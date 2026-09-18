@@ -1,0 +1,12 @@
+# Xcode / SwiftPM
+DerivedData/
+.build/
+*.xcuserstate
+xcuserdata/
+# Windows-Version (Gradle)
+Windows/build/
+Windows/.gradle/
+Windows/.kotlin/
+# Fertige Pakete (zu groß für Git – als Release hochladen)
+dist/
+.DS_Store

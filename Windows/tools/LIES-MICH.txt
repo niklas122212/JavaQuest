@@ -1,0 +1,32 @@
+﻿JavaQuest für Windows – Java lernen, Level für Level
+=====================================================
+
+Starten
+-------
+1. Die ZIP-Datei entpacken (Rechtsklick → „Alle extrahieren…“).
+2. Im entpackten Ordner doppelt auf „JavaQuest starten.bat“ klicken.
+
+Es ist keine Installation und kein eigenes Java nötig – die passende
+Java-Laufzeit (Eclipse Temurin 21) liegt im Ordner „runtime“ bei.
+
+Falls Windows „Der Computer wurde durch Windows geschützt“ meldet:
+auf „Weitere Informationen“ und dann „Trotzdem ausführen“ klicken.
+(Das Paket ist nicht signiert, deshalb fragt Windows einmal nach.)
+
+Was die App kann
+----------------
+• Start: „Ich habe 0 Erfahrung“ (Grundkurs) oder „Ich habe schon Vorkenntnisse“
+  (eine Einstufungsfrage mit 6 Lücken, ab 65 % Start bei den Objekten).
+• Jede der 534 Codezeilen ist in Alltagssprache erklärt – Zeile anklicken,
+  „Schritt für Schritt“ oder „Alle Zeilen“. Befehle erklärt das Lexikon.
+• Aufgaben mit Niveau 1–5, automatische Auswertung, Lektion bestanden ab 90 %.
+• Java Master Score, Lernpfad, Wissenslücken-Analyse mit Diagrammen.
+• Tastatur: Strg + Enter = Prüfen / Weiter · Enter/Tab = nächste Lücke.
+
+Deine Daten
+-----------
+Der Lernstand liegt nur auf deinem Rechner:
+%APPDATA%\JavaQuest\progress.json
+Zum Neuanfangen: in der App unter „Profil“ → „Alle Fortschritte löschen“.
+
+Systemvoraussetzungen: Windows 10 oder 11, 64 Bit.
