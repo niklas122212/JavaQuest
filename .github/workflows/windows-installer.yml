@@ -1,0 +1,31 @@
+# Baut den Windows-Installer (MSI + EXE) auf einem Windows-Rechner von GitHub.
+# jpackage kann Installer nur für das Betriebssystem bauen, auf dem es läuft.
+name: Windows-Installer
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: Windows
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Tests (Logik + Klick-Durchläufe der Oberfläche)
+        run: ./gradlew.bat test --console=plain
+      - name: Installer bauen
+        run: ./gradlew.bat packageMsi packageExe --console=plain
+      - uses: actions/upload-artifact@v4
+        with:
+          name: JavaQuest-Windows-Installer
+          path: |
+            Windows/build/compose/binaries/main/msi/*.msi
+            Windows/build/compose/binaries/main/exe/*.exe
