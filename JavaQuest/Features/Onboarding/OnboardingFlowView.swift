@@ -300,8 +300,10 @@ private struct InfoLine: View {
 
 // MARK: - Previews
 
+#if DEBUG
 #Preview("Onboarding") {
     OnboardingFlowView()
         .environment(PreviewSupport.makeStore(.fresh))
         .environment(AppRouter())
 }
+#endif

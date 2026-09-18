@@ -93,9 +93,11 @@ private struct LessonTopBar: View {
 
 // MARK: - Previews
 
+#if DEBUG
 #Preview("Lektion") {
     let store = PreviewSupport.makeStore()
     LessonFlowContainer(request: SessionRequest(kind: .lesson("l09-inheritance")))
         .environment(store)
         .environment(AppRouter())
 }
+#endif

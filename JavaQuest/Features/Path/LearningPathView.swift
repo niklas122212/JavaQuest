@@ -252,8 +252,10 @@ private struct LessonNodeLabel: View {
 
 // MARK: - Previews
 
+#if DEBUG
 #Preview("Lernpfad") {
     NavigationStack { LearningPathView() }
         .environment(PreviewSupport.makeStore())
         .environment(AppRouter())
 }
+#endif

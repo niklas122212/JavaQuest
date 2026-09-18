@@ -133,8 +133,10 @@ private struct DashboardHeader: View {
 
 // MARK: - Previews
 
+#if DEBUG
 #Preview("Übersicht") {
     NavigationStack { DashboardView() }
         .environment(PreviewSupport.makeStore())
         .environment(AppRouter())
 }
+#endif

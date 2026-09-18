@@ -212,8 +212,10 @@ private struct TopicRow: View {
 
 // MARK: - Previews
 
+#if DEBUG
 #Preview("Wissensanalyse") {
     NavigationStack { KnowledgeAnalysisView() }
         .environment(PreviewSupport.makeStore())
         .environment(AppRouter())
 }
+#endif

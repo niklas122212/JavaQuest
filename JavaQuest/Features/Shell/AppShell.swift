@@ -114,8 +114,10 @@ struct SectionScreen: View {
 
 // MARK: - Previews
 
+#if DEBUG
 #Preview("App") {
     AppShell()
         .environment(PreviewSupport.makeStore())
         .environment(AppRouter())
 }
+#endif
