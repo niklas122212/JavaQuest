@@ -6,6 +6,7 @@ import app.javaquest.core.ExperienceLevel
 import app.javaquest.core.LessonSession
 import app.javaquest.core.PlacementTest
 import app.javaquest.core.TaskAnswer
+import app.javaquest.core.TaskHistory
 import app.javaquest.core.TaskKind
 import app.javaquest.data.AttemptContext
 import app.javaquest.data.ProgressFile
@@ -39,6 +40,34 @@ class StoreTest {
             session.advanceToNextTask()
         }
         store.completeLesson(lesson.id, session.summary)
+    }
+
+    @Test fun `Endlos-Training - Topf, Verlauf und Zaehler bleiben gespeichert`() {
+        val store = ProgressStore(course, file(), clock(1))
+        store.completeOnboarding(ExperienceLevel.BEGINNER, null)
+        assertTrue(store.trainingTasks().isEmpty(), "ohne abgeschlossene Lektion gibt es nichts zu trainieren")
+        playLesson(store, 0)
+        playLesson(store, 1)
+        assertEquals(course.allLessons.take(2).sumOf { it.tasks.size }, store.trainingPool.size)
+
+        val scoreBefore = store.masterScore
+        val round = store.trainingTasks()
+        assertEquals(8, round.size)
+        val session = LessonSession(LessonSession.Mode.Training, "Endlos-Training", emptyList(), round)
+        val revealed = session.currentTask!!
+        while (true) {
+            val task = session.currentTask ?: break
+            if (task == revealed) session.revealSolution() else session.submit(AnswerEvaluator.referenceAnswer(task))
+            store.record(session.finishedOutcome!!, session.lessonId, AttemptContext.TRAINING)
+            session.advanceToNextTask()
+        }
+        assertEquals(8, store.trainingTaskCount)
+        assertEquals(scoreBefore, store.masterScore, "Training ändert den Score nicht")
+        assertEquals(TaskHistory(2, 0.0, Instant.parse("2026-09-01T10:00:00Z")), store.taskHistory[revealed.id])
+
+        val reopened = ProgressStore(course, file(), clock(1))
+        assertEquals(8, reopened.trainingTaskCount)
+        assertEquals(0.0, reopened.taskHistory[revealed.id]?.lastCredit)
     }
 
     @Test fun `Anfaenger - Fortschritt wird gespeichert und nach Neustart gelesen`() {

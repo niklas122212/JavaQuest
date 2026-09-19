@@ -38,7 +38,7 @@ struct AnswerDraft: Equatable {
     }
 }
 
-/// Steuert eine Lern-Sitzung (Lektion oder gezielte Übung) und speichert Ergebnisse.
+/// Steuert eine Lern-Sitzung (Lektion, gezielte Übung oder Training) und speichert Ergebnisse.
 @MainActor
 @Observable
 final class LessonFlowModel {
@@ -63,6 +63,8 @@ final class LessonFlowModel {
         case .practice(let topicId):
             let title = store.course.topic(id: topicId).map { "Gezielt üben: \($0.title)" } ?? "Gezielt üben"
             session = LessonSession(mode: .practice(topicId: topicId), title: title, theory: [], tasks: store.practiceTasks(for: topicId))
+        case .training:
+            session = LessonSession(mode: .training, title: "Endlos-Training", theory: [], tasks: store.trainingTasks())
         }
         self.store = store
         self.session = session
@@ -72,6 +74,7 @@ final class LessonFlowModel {
     var course: Course { store.course }
     var currentTask: LearningTask? { session.currentTask }
     var isPractice: Bool { session.lessonId == nil }
+    var isTraining: Bool { session.mode == .training }
     var isAnswerLocked: Bool { session.isCurrentTaskFinished }
 
     var taskPosition: (index: Int, count: Int)? {
@@ -144,6 +147,6 @@ final class LessonFlowModel {
 
     private func persistFinishedOutcome() {
         guard let outcome = session.finishedOutcome else { return }
-        store.record(outcome, lessonId: session.lessonId, context: isPractice ? .practice : .lesson)
+        store.record(outcome, lessonId: session.lessonId, context: isTraining ? .training : isPractice ? .practice : .lesson)
     }
 }

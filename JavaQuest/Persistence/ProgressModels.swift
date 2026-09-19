@@ -115,6 +115,7 @@ final class ScoreSnapshot {
 enum AttemptContext: String, Sendable {
     case lesson
     case practice
+    case training
     case placement
 }
 

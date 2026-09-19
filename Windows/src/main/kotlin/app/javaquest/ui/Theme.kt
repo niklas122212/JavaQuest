@@ -26,6 +26,20 @@ import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material.icons.rounded.Whatshot
 import androidx.compose.material.icons.rounded.Widgets
 import androidx.compose.material.icons.rounded.AllInbox
+import androidx.compose.material.icons.rounded.AllInclusive
+import androidx.compose.material.icons.rounded.Balance
+import androidx.compose.material.icons.rounded.CalendarMonth
+import androidx.compose.material.icons.rounded.Category
+import androidx.compose.material.icons.rounded.Description
+import androidx.compose.material.icons.rounded.Extension
+import androidx.compose.material.icons.rounded.FormatListNumbered
+import androidx.compose.material.icons.rounded.Handyman
+import androidx.compose.material.icons.rounded.Layers
+import androidx.compose.material.icons.rounded.Loop
+import androidx.compose.material.icons.rounded.Memory
+import androidx.compose.material.icons.rounded.SportsScore
+import androidx.compose.material.icons.rounded.SwapVert
+import androidx.compose.material.icons.rounded.Verified
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
@@ -176,6 +190,20 @@ fun symbolIcon(symbol: String): ImageVector = when (symbol) {
     "wand.and.stars", "sparkles" -> Icons.Rounded.AutoAwesome
     "leaf.fill" -> Icons.Rounded.Spa
     "shield.lefthalf.filled" -> Icons.Rounded.Shield
+    "list.number" -> Icons.Rounded.FormatListNumbered
+    "equal.circle" -> Icons.Rounded.Balance
+    "doc.text" -> Icons.Rounded.Description
+    "calendar" -> Icons.Rounded.CalendarMonth
+    "arrow.triangle.2.circlepath" -> Icons.Rounded.Loop
+    "arrow.up.arrow.down" -> Icons.Rounded.SwapVert
+    "square.stack.3d.up" -> Icons.Rounded.Layers
+    "checkmark.seal" -> Icons.Rounded.Verified
+    "hammer", "hammer.fill" -> Icons.Rounded.Handyman
+    "cpu" -> Icons.Rounded.Memory
+    "puzzlepiece" -> Icons.Rounded.Extension
+    "flag.checkered" -> Icons.Rounded.SportsScore
+    "cube.transparent" -> Icons.Rounded.Category
+    "infinity" -> Icons.Rounded.AllInclusive
     else -> Icons.Rounded.Widgets
 }
 

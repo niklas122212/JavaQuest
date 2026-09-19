@@ -10,3 +10,5 @@ Windows/.kotlin/
 # Fertige Pakete (zu groß für Git – als Release hochladen)
 dist/
 .DS_Store
+Tools/course/.build/
+Tools/course/__pycache__/

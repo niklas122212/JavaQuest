@@ -40,12 +40,53 @@ struct ContinueLearningCard: View {
                 Label("Kurs abgeschlossen!", systemImage: "trophy.fill")
                     .font(.title2.weight(.bold))
                     .foregroundStyle(Theme.orange)
-                Text("Du hast alle Lektionen gemeistert. Wiederhole Lektionen für mehr Sterne oder übe gezielt deine schwächsten Themen.")
+                Text("Du hast alle Lektionen gemeistert. Im Endlos-Training bleibt alles frisch – oder übe gezielt dein schwächstes Thema.")
                     .foregroundStyle(.secondary)
                 if let onPractice {
                     Button("Schwächstes Thema üben", systemImage: "target", action: onPractice)
                         .buttonStyle(.primary)
                 }
+            }
+        }
+        .card()
+    }
+}
+
+/// Endlos-Training: gemischte Runden über alles, was schon gelernt ist.
+struct TrainingCard: View {
+    let poolCount: Int
+    let trainedTasks: Int
+    let onStart: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 12) {
+                IconTile(systemImage: "infinity", tint: Theme.violet, size: 44)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("ENDLOS-TRAINING")
+                        .font(.caption.weight(.heavy))
+                        .tracking(1.1)
+                        .foregroundStyle(Theme.violet)
+                    Text(poolCount > 0 ? "\(poolCount) Aufgaben im Topf" : "Noch leer")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            if poolCount > 0 {
+                Text("Runden mit \(TrainingBuilder.roundSize) gemischten Aufgaben aus deinen abgeschlossenen Lektionen. Was du falsch hattest, was lange her ist und deine schwachen Themen kommen öfter dran.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                if trainedTasks > 0 {
+                    Chip(text: "\(trainedTasks) Aufgaben trainiert", systemImage: "checkmark.seal")
+                }
+                Button(action: onStart) {
+                    Label("Training starten", systemImage: "play.fill")
+                }
+                .buttonStyle(.secondary)
+            } else {
+                Text("Schließe deine erste Lektion ab – dann mischt dir das Training daraus immer neue Runden.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
             }
         }
         .card()

@@ -29,7 +29,7 @@ enum class Section(val title: String, val icon: ImageVector) {
     PROFILE("Profil", Icons.Rounded.Person),
 }
 
-/** Navigation: Bereich in der Seitenleiste und die laufende Lektion bzw. Übung. */
+/** Navigation: Bereich in der Seitenleiste und die laufende Lektion, Übung oder Trainingsrunde. */
 class AppState(val store: ProgressStore) {
     var section by mutableStateOf(Section.DASHBOARD)
     var flow by mutableStateOf<LessonFlowModel?>(null)
@@ -45,6 +45,13 @@ class AppState(val store: ProgressStore) {
         if (tasks.isEmpty()) return
         val title = "Übung: ${store.course.topic(topicId)?.title ?: topicId}"
         flow = LessonFlowModel(store, LessonSession(LessonSession.Mode.Practice(topicId), title, emptyList(), tasks), isPractice = true)
+    }
+
+    /** Startet eine neue Runde Endlos-Training (auch direkt aus der Auswertung heraus). */
+    fun startTraining() {
+        val tasks = store.trainingTasks()
+        if (tasks.isEmpty()) return
+        flow = LessonFlowModel(store, LessonSession(LessonSession.Mode.Training, "Endlos-Training", emptyList(), tasks), isPractice = true)
     }
 
     fun closeFlow() {
@@ -76,7 +83,7 @@ data class AnswerDraft(val choice: Int? = null, val blanks: List<String> = empty
 }
 
 /**
- * Lern-Loop einer Lektion oder Übung. Die Sitzung selbst ist reine Logik aus `core`;
+ * Lern-Loop einer Lektion, Übung oder Trainingsrunde. Die Sitzung selbst ist reine Logik aus `core`;
  * `revision` sorgt dafür, dass Compose nach jeder Änderung neu zeichnet.
  */
 class LessonFlowModel(val store: ProgressStore, private val session: LessonSession, val isPractice: Boolean) {
@@ -105,6 +112,7 @@ class LessonFlowModel(val store: ProgressStore, private val session: LessonSessi
     val progress: Double get() = read { session.progress }
     val summary get() = read { session.summary }
     val lessonId: String? get() = session.lessonId
+    val isTraining: Boolean get() = session.mode == LessonSession.Mode.Training
     val remainingAttempts: Int get() = read { maxOf(LessonSession.MAX_ATTEMPTS - session.attempts, 0) }
 
     /** Position „Aufgabe 2 von 5“. */
@@ -172,6 +180,10 @@ class LessonFlowModel(val store: ProgressStore, private val session: LessonSessi
 
     private fun persistFinishedOutcome() {
         val outcome = session.finishedOutcome ?: return
-        store.record(outcome, session.lessonId, if (isPractice) AttemptContext.PRACTICE else AttemptContext.LESSON)
+        store.record(outcome, session.lessonId, when {
+            isTraining -> AttemptContext.TRAINING
+            isPractice -> AttemptContext.PRACTICE
+            else -> AttemptContext.LESSON
+        })
     }
 }

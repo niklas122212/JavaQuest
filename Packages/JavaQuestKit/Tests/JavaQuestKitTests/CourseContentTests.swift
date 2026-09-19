@@ -21,10 +21,11 @@ struct CourseContentTests {
         #expect(issues.isEmpty, "\(issues.map(\.description).joined(separator: "\n"))")
     }
 
-    @Test("Umfang: 5 Module, 13 Lektionen, je Stufe ein Einstiegsmodul")
+    @Test("Umfang: 12 Module, 29 Lektionen, 145 Aufgaben, je Stufe ein Einstiegsmodul")
     func courseShape() {
-        #expect(course.modules.count == 5)
-        #expect(course.allLessons.count == 13)
+        #expect(course.modules.count == 12)
+        #expect(course.allLessons.count == 29)
+        #expect(course.allLessons.flatMap(\.tasks).count == 145)
         #expect(course.entryModule(for: .beginner)?.id == "m1-first-steps")
         #expect(course.entryModule(for: .intermediate)?.id == "m3-objects")
         #expect(course.entryModule(for: .advanced)?.id == "m5-modern")

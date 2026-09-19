@@ -86,7 +86,7 @@ struct ExplanationTests {
             "double", "else", "enum", "extends", "final", "finally", "float", "for", "if", "implements",
             "import", "instanceof", "int", "interface", "long", "new", "private", "protected", "public",
             "record", "return", "static", "super", "switch", "this", "throw", "throws", "try", "var",
-            "void", "while", "yield", "true", "false", "null",
+            "void", "while", "yield", "true", "false", "null", "sealed", "permits", "package",
         ]
         let word = try NSRegularExpression(pattern: #"\b[a-z]+\b"#)
         var used: Set<String> = []
@@ -97,7 +97,7 @@ struct ExplanationTests {
                 if keywords.contains(token) { used.insert(token) }
             }
         }
-        #expect(used.count >= 30, "Kurs nutzt \(used.count) Schlüsselwörter")
+        #expect(used.count >= 40, "Kurs nutzt \(used.count) Schlüsselwörter")
         for keyword in used.sorted() {
             #expect(JavaGlossary.entry(for: keyword) != nil, "Schlüsselwort „\(keyword)“ fehlt im Lexikon")
         }
@@ -120,11 +120,12 @@ struct ExplanationTests {
                 if let name = part.split(separator: " ").last { declared.insert(String(name)) }
             }
         }
-        let called = try names(#"\.\s*(\w+)\s*\("#).union(try names(#"::\s*(\w+)"#))
+        // „::new“ ist ein Verweis auf einen Konstruktor, kein Methodenname.
+        let called = try names(#"\.\s*(\w+)\s*\("#).union(try names(#"::\s*(\w+)"#)).subtracting(["new"])
         let qualifiedMethods = Set(JavaGlossary.qualified.keys.compactMap { $0.split(separator: ".").last.map(String.init) })
         let missing = called.subtracting(declared).subtracting(qualifiedMethods).filter { JavaGlossary.methods[$0] == nil }
         #expect(missing.isEmpty, "Fehlen im Lexikon: \(missing.sorted())")
-        #expect(called.count >= 25, "Kurs ruft \(called.count) Methoden auf")
+        #expect(called.count >= 60, "Kurs ruft \(called.count) Methoden auf")
     }
 
     @Test("Lexikon-Begriffe erscheinen zur Zeile")

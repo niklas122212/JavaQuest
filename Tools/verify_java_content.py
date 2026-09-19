@@ -24,7 +24,9 @@ import sys
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
 
-IMPORTS = "import java.util.*;\nimport java.util.function.*;\nimport java.util.stream.*;\n\n"
+IMPORTS = ("import java.util.*;\nimport java.util.function.*;\nimport java.util.stream.*;\n"
+           "import java.util.concurrent.*;\nimport java.util.concurrent.atomic.*;\n"
+           "import java.io.*;\nimport java.nio.file.*;\nimport java.time.*;\nimport java.time.format.*;\n\n")
 DEFAULT_PATH = os.path.join(os.path.dirname(__file__), "..", "Packages", "JavaQuestKit",
                             "Sources", "JavaQuestKit", "Resources", "java_course.json")
 
@@ -47,17 +49,17 @@ def build_source(snippet, context, verify_main):
     has_main = re.search(r"static\s+void\s+main\s*\(", snippet) is not None
     if context == "statements":
         body = indent(snippet, 8)
-        return IMPORTS + f"public class Main {{\n    public static void main(String[] args) {{\n{body}\n    }}\n}}\n", "Main"
+        return IMPORTS + f"public class Main {{\n    public static void main(String[] args) throws Exception {{\n{body}\n    }}\n}}\n", "Main"
     if context == "members":
         main = ""
         if not has_main and verify_main:
-            main = f"\n\n    public static void main(String[] args) {{\n{indent(verify_main, 8)}\n    }}"
+            main = f"\n\n    public static void main(String[] args) throws Exception {{\n{indent(verify_main, 8)}\n    }}"
         run = "Main" if (has_main or verify_main) else None
         return IMPORTS + f"public class Main {{\n{indent(snippet, 4)}{main}\n}}\n", run
     # file: Top-Level-Typen dürfen nicht public sein, damit jeder Dateiname passt.
     source = re.sub(r"(?m)^public\s+(?=(final\s+|abstract\s+|sealed\s+)*(class|interface|record|enum)\b)", "", snippet)
     if verify_main:
-        source += f"\n\nclass VerifyMain {{\n    public static void main(String[] args) {{\n{indent(verify_main, 8)}\n    }}\n}}\n"
+        source += f"\n\nclass VerifyMain {{\n    public static void main(String[] args) throws Exception {{\n{indent(verify_main, 8)}\n    }}\n}}\n"
         return IMPORTS + source, "VerifyMain"
     if re.search(r"class\s+Main\b", source) and has_main:
         return IMPORTS + source, "Main"
@@ -108,6 +110,8 @@ def fill_template(task):
 
 def cases_for(task):
     verify = task.get("verify", {})
+    if verify.get("skip"):
+        return  # z. B. JUnit-Code: braucht eine Bibliothek, die ein reines JDK nicht mitbringt
     context = task.get("javaContext", "statements")
     main = verify.get("main")
     kind = task["type"]
@@ -130,6 +134,14 @@ def main():
     tasks = [t for m in course["modules"] for l in m["lessons"] for t in l["tasks"]]
     tasks += [t for pool in course["placement"]["pools"].values() for t in pool]
     cases = [case for task in tasks for case in cases_for(task)]
+    # Theorie-Beispiele mit verify werden ebenfalls übersetzt und ausgeführt.
+    for m in course["modules"]:
+        for l in m["lessons"]:
+            for index, card in enumerate(l["theory"]):
+                v = card.get("verify")
+                if v and card.get("code"):
+                    cases.append((f"{l['id']} Theorie {index + 1}", source(card["code"]), v.get("context", "statements"),
+                                  v.get("main"), v.get("output"), True))
     with ThreadPoolExecutor(max_workers=6) as pool:
         results = list(pool.map(run_case, cases))
     failures = [r for r in results if not r[1]]
@@ -137,7 +149,7 @@ def main():
     for name, ok, message in results:
         if not ok:
             print(f"FEHLER {name}: {message}\n")
-    print(f"{len(tasks)} Aufgaben, {len(cases)} Java-Prüfungen: {len(results) - len(failures)} ok "
+    print(f"{len(tasks)} Aufgaben + Theorie-Beispiele, {len(cases)} Java-Prüfungen: {len(results) - len(failures)} ok "
           f"({executed} mit Ausgabevergleich), {len(failures)} fehlgeschlagen")
     sys.exit(1 if failures else 0)
 

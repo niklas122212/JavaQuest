@@ -289,7 +289,7 @@ fun AppShell(state: AppState) {
         Box(Modifier.weight(1f).fillMaxHeight()) {
             val flow = state.flow
             if (flow != null) {
-                LessonFlowScreen(flow, onClose = state::closeFlow, onStartLesson = state::startLesson)
+                LessonFlowScreen(flow, onClose = state::closeFlow, onStartLesson = state::startLesson, onTrainAgain = state::startTraining)
             } else {
                 when (state.section) {
                     Section.DASHBOARD -> DashboardScreen(state)

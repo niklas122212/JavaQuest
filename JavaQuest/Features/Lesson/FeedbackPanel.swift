@@ -10,6 +10,8 @@ struct FeedbackPanel: View {
     let remainingAttempts: Int
     let hint: String?
     let explanation: String
+    /// In Übung und Training zählt die Antwort für die Wissensanalyse, nicht für den Score.
+    var countsForScore = true
 
     private var isCorrect: Bool { result?.isCorrect == true }
 
@@ -26,7 +28,10 @@ struct FeedbackPanel: View {
     }
 
     private var subline: String {
-        if isCorrect { return attempts == 1 ? "Das zählt voll für deinen Score." : "Das zählt zur Hälfte für deinen Score." }
+        if isCorrect {
+            let target = countsForScore ? "deinen Score" : "deine Wissensanalyse"
+            return attempts == 1 ? "Das zählt voll für \(target)." : "Das zählt zur Hälfte für \(target)."
+        }
         if isRevealed { return "Schau dir die Lösung in Ruhe an – beim nächsten Mal klappt’s." }
         return remainingAttempts > 0
             ? "Du hast noch \(remainingAttempts) \(remainingAttempts == 1 ? "Versuch" : "Versuche")."

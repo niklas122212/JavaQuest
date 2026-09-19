@@ -36,6 +36,7 @@ struct DashboardContent: View {
                     VStack(spacing: 20) {
                         scoreCard
                         continueCard
+                        trainingCard
                         statsGrid
                     }
                     VStack(spacing: 20) {
@@ -46,6 +47,7 @@ struct DashboardContent: View {
             } else {
                 scoreCard
                 continueCard
+                trainingCard
                 knowledgeCard
                 pathCard
                 statsGrid
@@ -72,6 +74,10 @@ struct DashboardContent: View {
             onStart: { if let lesson { router.startLesson(lesson.id) } },
             onPractice: store.knowledgeReport.focusTopic.map { focus in { router.practice(topicId: focus.topic.id) } }
         )
+    }
+
+    private var trainingCard: some View {
+        TrainingCard(poolCount: store.trainingPool.count, trainedTasks: store.trainingTaskCount) { router.train() }
     }
 
     private var knowledgeCard: some View {

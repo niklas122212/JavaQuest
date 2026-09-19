@@ -44,7 +44,7 @@ struct LessonFlowView: View {
                 case .task:
                     TaskStepView(model: model)
                 case .summary:
-                    LessonSummaryView(model: model, onClose: { dismiss() }, onStartLesson: { id in router.startLesson(id) })
+                    LessonSummaryView(model: model, onClose: { dismiss() }, onStartLesson: { id in router.startLesson(id) }, onTrainAgain: { router.train() })
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)

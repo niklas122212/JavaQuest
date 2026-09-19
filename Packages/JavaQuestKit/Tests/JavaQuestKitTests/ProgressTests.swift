@@ -270,6 +270,69 @@ struct ProgressTests {
         #expect(PracticeBuilder.tasks(for: "lambdas", in: course, unlockedLessonIds: unlocked).isEmpty)
     }
 
+    @Test("Endlos-Training: nur abgeschlossene Lektionen, 8 verschiedene Aufgaben, aufsteigend")
+    func trainingRound() {
+        #expect(TrainingBuilder.pool(course: course, completedLessonIds: []).isEmpty)
+        let completed = Set(course.allLessons.prefix(4).map(\.id))
+        let pool = TrainingBuilder.pool(course: course, completedLessonIds: completed)
+        let allowed = Set(course.allLessons.prefix(4).flatMap(\.tasks).map(\.id))
+        #expect(Set(pool.map(\.id)) == allowed)
+
+        let round = TrainingBuilder.round(from: pool, topicStats: [:], history: [:], seed: 42)
+        #expect(round.count == TrainingBuilder.roundSize)
+        #expect(Set(round.map(\.id)).count == round.count, "keine Aufgabe doppelt")
+        #expect(round.allSatisfy { allowed.contains($0.id) })
+        #expect(round.map(\.difficulty) == round.map(\.difficulty).sorted())
+        #expect(round.map(\.id) == TrainingBuilder.round(from: pool, topicStats: [:], history: [:], seed: 42).map(\.id))
+        #expect(round.map(\.id) != TrainingBuilder.round(from: pool, topicStats: [:], history: [:], seed: 7).map(\.id))
+
+        let small = Array(pool.prefix(3))
+        #expect(Set(TrainingBuilder.round(from: small, topicStats: [:], history: [:], seed: 1).map(\.id)) == Set(small.map(\.id)))
+    }
+
+    @Test("Endlos-Training: Fehler, Lücken und Vergessenes kommen öfter dran")
+    func trainingWeights() {
+        let now = Date()
+        let task = course.allLessons[0].tasks[0]
+        func weight(_ history: TaskHistory?, _ stats: TopicStats? = nil) -> Double {
+            TrainingBuilder.weight(
+                for: task,
+                topicStats: stats.map { [task.topicId: $0] } ?? [:],
+                history: history.map { [task.id: $0] } ?? [:],
+                now: now
+            )
+        }
+        let solvedToday = TaskHistory(attempts: 1, lastCredit: 1, lastDate: now)
+        let solvedLongAgo = TaskHistory(attempts: 1, lastCredit: 1, lastDate: now.addingTimeInterval(-20 * 86_400))
+        let failed = TaskHistory(attempts: 1, lastCredit: 0, lastDate: now.addingTimeInterval(-2 * 86_400))
+        var weak = TopicStats()
+        weak.record(difficulty: .medium, credit: 0, at: now)
+        weak.record(difficulty: .medium, credit: 0, at: now)
+        var strong = TopicStats()
+        for _ in 0..<4 { strong.record(difficulty: .medium, credit: 1, at: now) }
+
+        #expect(weight(nil) > weight(solvedToday), "Neues vor gerade Gelöstem")
+        #expect(weight(failed) > weight(solvedLongAgo), "Fehler vor Gelöstem")
+        #expect(weight(solvedLongAgo) > weight(solvedToday), "lange nicht gesehen kommt wieder")
+        #expect(weight(solvedLongAgo, weak) > weight(solvedLongAgo, strong), "schwaches Thema vor starkem")
+
+        // Gemessen über viele Runden: eine falsch gelöste Aufgabe kommt deutlich öfter dran
+        // als eine, die heute schon fehlerfrei gelöst wurde.
+        let pool = TrainingBuilder.pool(course: course, completedLessonIds: Set(course.allLessons.prefix(6).map(\.id)))
+        let wrong = pool[3], done = pool[4]
+        let history = [
+            wrong.id: TaskHistory(attempts: 2, lastCredit: 0, lastDate: now.addingTimeInterval(-86_400)),
+            done.id: TaskHistory(attempts: 2, lastCredit: 1, lastDate: now),
+        ]
+        var wrongCount = 0, doneCount = 0
+        for seed in 1...400 as ClosedRange<UInt64> {
+            let ids = Set(TrainingBuilder.round(from: pool, topicStats: [:], history: history, now: now, seed: seed).map(\.id))
+            if ids.contains(wrong.id) { wrongCount += 1 }
+            if ids.contains(done.id) { doneCount += 1 }
+        }
+        #expect(wrongCount > doneCount * 3, "falsch: \(wrongCount)×, heute gelöst: \(doneCount)×")
+    }
+
     @Test("Syntaxhervorhebung erkennt Schlüsselwörter, Strings und Kommentare")
     func highlighter() {
         let tokens = JavaHighlighter.tokenize("int x = 5; // Zahl\nString s = \"hi\";")

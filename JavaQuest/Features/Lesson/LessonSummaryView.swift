@@ -6,16 +6,19 @@ struct LessonSummaryView: View {
     let model: LessonFlowModel
     let onClose: () -> Void
     let onStartLesson: (String) -> Void
+    var onTrainAgain: () -> Void = {}
     @State private var appeared = false
 
     private var summary: LessonSummary { model.session.summary }
 
     private var headline: String {
+        if model.isTraining { return "Runde geschafft" }
         if model.isPractice { return "Übung abgeschlossen" }
         return summary.passed ? "Lektion gemeistert!" : "Fast geschafft!"
     }
 
     private var message: String {
+        if model.isTraining { return "Was noch hakt, kommt in den nächsten Runden öfter dran – so lange, bis es sitzt." }
         if model.isPractice { return "Deine Wissensanalyse wurde aktualisiert." }
         if summary.passed { return "Stark! Dein Java Master Score ist gestiegen." }
         return "Ab \(Int(LessonSession.passThreshold * 100)) % gilt eine Lektion als bestanden. Wiederhole sie – es zählt immer dein Bestwert."
@@ -39,7 +42,12 @@ struct LessonSummaryView: View {
         }
         .safeAreaInset(edge: .bottom) {
             VStack(spacing: 10) {
-                if let next = model.nextLessonAfterCurrent, summary.passed {
+                if model.isTraining {
+                    Button(action: onTrainAgain) {
+                        Label("Nächste Runde", systemImage: "infinity")
+                    }
+                    .buttonStyle(.primary)
+                } else if let next = model.nextLessonAfterCurrent, summary.passed {
                     Button { onStartLesson(next.id) } label: {
                         Label("Nächste Lektion: \(next.title)", systemImage: "arrow.right")
                     }

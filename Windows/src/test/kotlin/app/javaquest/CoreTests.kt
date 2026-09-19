@@ -25,12 +25,15 @@ import app.javaquest.core.RuleKind
 import app.javaquest.core.RuleScope
 import app.javaquest.core.Stars
 import app.javaquest.core.StructureCheck
+import app.javaquest.core.TaskHistory
 import app.javaquest.core.TaskAnswer
 import app.javaquest.core.TaskKind
 import app.javaquest.core.TopicStats
 import app.javaquest.core.TopicStatus
+import app.javaquest.core.TrainingBuilder
 import java.time.Instant
 import kotlin.math.abs
+import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -178,10 +181,10 @@ class EvaluatorTest {
 }
 
 class CourseContentTest {
-    @Test fun `Kurs laedt - 5 Module, 13 Lektionen, 65 Aufgaben, 1 Einstufungsfrage`() {
-        assertEquals(5, course.modules.size)
-        assertEquals(13, course.allLessons.size)
-        assertEquals(65, course.allLessons.sumOf { it.tasks.size })
+    @Test fun `Kurs laedt - 12 Module, 29 Lektionen, 145 Aufgaben, 1 Einstufungsfrage`() {
+        assertEquals(12, course.modules.size)
+        assertEquals(29, course.allLessons.size)
+        assertEquals(145, course.allLessons.sumOf { it.tasks.size })
         assertEquals(1, course.placement.pool(ExperienceLevel.INTERMEDIATE).size)
         assertEquals("m1-first-steps", course.entryModule(ExperienceLevel.BEGINNER)?.id)
         assertEquals("m3-objects", course.entryModule(ExperienceLevel.INTERMEDIATE)?.id)
@@ -189,13 +192,13 @@ class CourseContentTest {
 
     @Test fun `Jede Codezeile im Kurs hat eine Erklaerung`() {
         val snippets = course.allSnippets
-        assertEquals(98, snippets.size)
+        assertEquals(207, snippets.size)
         var lines = 0
         for ((location, snippet) in snippets) {
             assertTrue(snippet.linesMissingExplanation.isEmpty(), "$location: Zeilen ${snippet.linesMissingExplanation}")
             lines += snippet.explained(course.glossary).size
         }
-        assertTrue(lines >= 534, "nur $lines erklärte Zeilen")
+        assertTrue(lines >= 1340, "nur $lines erklärte Zeilen")
     }
 
     @Test fun `Jeder Befehl einer Zeile steht im Lexikon`() {
@@ -403,5 +406,60 @@ class ProgressTest {
         val tasks = PracticeBuilder.tasks("loops", course, unlocked)
         assertTrue(tasks.isNotEmpty() && tasks.size <= 5 && tasks.all { it.topicId == "loops" })
         assertTrue(PracticeBuilder.tasks("lambdas", course, unlocked).isEmpty())
+    }
+
+    @Test fun `Endlos-Training - nur Abgeschlossenes, 8 verschiedene Aufgaben, aufsteigend`() {
+        assertTrue(TrainingBuilder.pool(course, emptySet()).isEmpty())
+        val completed = course.allLessons.take(4).map { it.id }.toSet()
+        val pool = TrainingBuilder.pool(course, completed)
+        val allowed = course.allLessons.take(4).flatMap { it.tasks }.map { it.id }.toSet()
+        assertEquals(allowed, pool.map { it.id }.toSet())
+
+        val round = TrainingBuilder.round(pool, emptyMap(), emptyMap(), random = Random(42))
+        assertEquals(TrainingBuilder.ROUND_SIZE, round.size)
+        assertEquals(round.size, round.map { it.id }.toSet().size, "keine Aufgabe doppelt")
+        assertTrue(round.all { it.id in allowed })
+        assertEquals(round.map { it.difficulty.level }.sorted(), round.map { it.difficulty.level })
+        assertEquals(round.map { it.id }, TrainingBuilder.round(pool, emptyMap(), emptyMap(), random = Random(42)).map { it.id })
+        val small = pool.take(3)
+        assertEquals(small.map { it.id }.toSet(), TrainingBuilder.round(small, emptyMap(), emptyMap(), random = Random(1)).map { it.id }.toSet())
+    }
+
+    @Test fun `Endlos-Training - Fehler, Luecken und Vergessenes kommen oefter dran`() {
+        val now = Instant.now()
+        val task = course.allLessons[0].tasks[0]
+        fun weight(history: TaskHistory?, stats: TopicStats? = null) = TrainingBuilder.weight(
+            task,
+            stats?.let { mapOf(task.topicId to it) } ?: emptyMap(),
+            history?.let { mapOf(task.id to it) } ?: emptyMap(),
+            now,
+        )
+        val solvedToday = TaskHistory(1, 1.0, now)
+        val solvedLongAgo = TaskHistory(1, 1.0, now.minusSeconds(20 * 86_400))
+        val failed = TaskHistory(1, 0.0, now.minusSeconds(2 * 86_400))
+        val weak = TopicStats().recording(Difficulty.MEDIUM, 0.0, now).recording(Difficulty.MEDIUM, 0.0, now)
+        var strong = TopicStats()
+        repeat(4) { strong = strong.recording(Difficulty.MEDIUM, 1.0, now) }
+        assertTrue(weight(null) > weight(solvedToday), "Neues vor gerade Gelöstem")
+        assertTrue(weight(failed) > weight(solvedLongAgo), "Fehler vor Gelöstem")
+        assertTrue(weight(solvedLongAgo) > weight(solvedToday), "lange nicht gesehen kommt wieder")
+        assertTrue(weight(solvedLongAgo, weak) > weight(solvedLongAgo, strong), "schwaches Thema vor starkem")
+
+        // Gemessen über viele Runden: Falsches kommt deutlich öfter als heute fehlerfrei Gelöstes.
+        val pool = TrainingBuilder.pool(course, course.allLessons.take(6).map { it.id }.toSet())
+        val wrong = pool[3]
+        val done = pool[4]
+        val history = mapOf(
+            wrong.id to TaskHistory(2, 0.0, now.minusSeconds(86_400)),
+            done.id to TaskHistory(2, 1.0, now),
+        )
+        var wrongCount = 0
+        var doneCount = 0
+        for (seed in 1..400) {
+            val ids = TrainingBuilder.round(pool, emptyMap(), history, now, random = Random(seed)).map { it.id }.toSet()
+            if (wrong.id in ids) wrongCount++
+            if (done.id in ids) doneCount++
+        }
+        assertTrue(wrongCount > doneCount * 3, "falsch: ${wrongCount}×, heute gelöst: ${doneCount}×")
     }
 }

@@ -18,8 +18,10 @@ import app.javaquest.core.MasterScore
 import app.javaquest.core.ModuleProgress
 import app.javaquest.core.PlacementTest
 import app.javaquest.core.PracticeBuilder
+import app.javaquest.core.TaskHistory
 import app.javaquest.core.TaskOutcome
 import app.javaquest.core.TopicStats
+import app.javaquest.core.TrainingBuilder
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.nio.file.Files
@@ -88,7 +90,7 @@ data class ProgressData(
     val scoreHistory: List<ScoreSnapshot> = emptyList(),
 )
 
-enum class AttemptContext(val raw: String) { LESSON("lesson"), PRACTICE("practice"), PLACEMENT("placement") }
+enum class AttemptContext(val raw: String) { LESSON("lesson"), PRACTICE("practice"), TRAINING("training"), PLACEMENT("placement") }
 
 /** Ergebnis einer Score-Neuberechnung („+36 Punkte“, Rangaufstieg). */
 data class ScoreChange(val before: Int, val after: Int, val newRank: MasterRank?) {
@@ -194,6 +196,29 @@ class ProgressStore(
     val unlockedLessonIds: Set<String> get() = lessonStates.filterValues { it.isPlayable }.keys
 
     fun practiceTasks(topicId: String): List<LearningTask> = PracticeBuilder.tasks(topicId, course, unlockedLessonIds)
+
+    // MARK: Endlos-Training
+
+    val completedLessonIds: Set<String> get() = lessonResults.filterValues { it.isCompleted }.keys
+
+    /** Alle Aufgaben, die im Endlos-Training vorkommen können. */
+    val trainingPool: List<LearningTask> get() = TrainingBuilder.pool(course, completedLessonIds)
+
+    /** Wie jede Aufgabe zuletzt lief (aus dem Aufgaben-Protokoll). */
+    val taskHistory: Map<String, TaskHistory>
+        get() {
+            val history = mutableMapOf<String, TaskHistory>()
+            for (attempt in data?.attempts.orEmpty().sortedBy { it.date }) {
+                val count = (history[attempt.taskId]?.attempts ?: 0) + 1
+                history[attempt.taskId] = TaskHistory(count, attempt.credit, Instant.parse(attempt.date))
+            }
+            return history
+        }
+
+    /** Wie viele Aufgaben schon im Endlos-Training gelöst oder aufgelöst wurden. */
+    val trainingTaskCount: Int get() = data?.attempts?.count { it.context == AttemptContext.TRAINING.raw } ?: 0
+
+    fun trainingTasks(): List<LearningTask> = TrainingBuilder.round(trainingPool, topicStats, taskHistory, clock.instant())
 
     // MARK: Onboarding & Einstufung
 

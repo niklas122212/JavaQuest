@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AllInclusive
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Code
 import androidx.compose.material.icons.rounded.GpsFixed
@@ -31,6 +32,7 @@ import androidx.compose.material.icons.rounded.Psychology
 import androidx.compose.material.icons.rounded.Route
 import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material.icons.rounded.Style
+import androidx.compose.material.icons.rounded.Verified
 import androidx.compose.material.icons.automirrored.rounded.ListAlt
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -50,6 +52,7 @@ import app.javaquest.core.KnowledgeAnalyzer
 import app.javaquest.core.KnowledgeReport
 import app.javaquest.core.TopicInsight
 import app.javaquest.core.TopicStatus
+import app.javaquest.core.TrainingBuilder
 import app.javaquest.data.ProgressStore
 import java.time.LocalTime
 import kotlin.math.roundToInt
@@ -77,6 +80,7 @@ fun DashboardScreen(state: AppState) {
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(20.dp)) {
                         MasterScoreCard(store)
                         ContinueCard(state)
+                        TrainingCard(state)
                     }
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(20.dp)) {
                         KnowledgeSnapshotCard(state)
@@ -86,6 +90,7 @@ fun DashboardScreen(state: AppState) {
                 Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
                     MasterScoreCard(store)
                     ContinueCard(state)
+                    TrainingCard(state)
                     KnowledgeSnapshotCard(state)
                 }
             }
@@ -147,7 +152,7 @@ private fun ContinueCard(state: AppState) {
     val lesson = store.nextLesson
     Column(Modifier.fillMaxWidth().card(22.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         if (lesson == null) {
-            SectionTitle("Alles geschafft!", "Du hast jede Lektion abgeschlossen. Wiederhole Lektionen für bessere Bestwerte.", Icons.Rounded.CheckCircle)
+            SectionTitle("Alles geschafft!", "Du hast jede Lektion abgeschlossen. Im Endlos-Training bleibt alles frisch.", Icons.Rounded.CheckCircle)
             return@Column
         }
         val module = store.course.moduleContaining(lesson.id)
@@ -167,6 +172,35 @@ private fun ContinueCard(state: AppState) {
             Chip("${lesson.tasks.size} Aufgaben", Icons.AutoMirrored.Rounded.ListAlt)
         }
         PrimaryButton("Lektion starten", Icons.Rounded.PlayArrow, Modifier.fillMaxWidth().testTag("start-next-lesson")) { state.startLesson(lesson.id) }
+    }
+}
+
+/** Endlos-Training: gemischte Runden über alles, was schon gelernt ist. */
+@Composable
+private fun TrainingCard(state: AppState) {
+    val store = state.store
+    val poolCount = store.trainingPool.size
+    Column(Modifier.fillMaxWidth().card(22.dp).testTag("training-card"), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconTile(Icons.Rounded.AllInclusive, Palette.violet, 50.dp)
+            Spacer(Modifier.width(14.dp))
+            Column {
+                Eyebrow("Endlos-Training", Palette.violet)
+                Text(if (poolCount > 0) "$poolCount Aufgaben im Topf" else "Noch leer", color = secondaryText, fontSize = 15.sp)
+            }
+        }
+        if (poolCount > 0) {
+            Text(
+                "Runden mit ${TrainingBuilder.ROUND_SIZE} gemischten Aufgaben aus deinen abgeschlossenen Lektionen. " +
+                    "Was du falsch hattest, was lange her ist und deine schwachen Themen kommen öfter dran.",
+                color = secondaryText, fontSize = 16.sp,
+            )
+            val trained = store.trainingTaskCount
+            if (trained > 0) Chip("$trained Aufgaben trainiert", Icons.Rounded.Verified)
+            SecondaryButton("Training starten", Icons.Rounded.PlayArrow, Modifier.fillMaxWidth().testTag("start-training")) { state.startTraining() }
+        } else {
+            Text("Schließe deine erste Lektion ab – dann mischt dir das Training daraus immer neue Runden.", color = secondaryText, fontSize = 16.sp)
+        }
     }
 }
 

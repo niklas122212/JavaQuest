@@ -7,8 +7,8 @@ Java Master Score von 0 bis 1000.
 
 - **Apple:** iOS/iPadOS 17, macOS 14 · Swift 6 (strict concurrency) · SwiftUI · SwiftData · Swift Charts
 - **Windows:** Windows 10/11 (64 Bit) · Kotlin 2.4 · Compose Multiplatform 1.12 (Desktop) – Ordner `Windows/`
-- **Inhalt:** 5 Module, 13 Lektionen, 65 Aufgaben, 1 Einstufungsfrage mit 6 Lücken, 534 erklärte Codezeilen,
-  Befehlslexikon mit 134 Einträgen (Deutsch) – eine gemeinsame Kursdatei für alle Plattformen
+- **Inhalt:** 12 Module, 29 Lektionen, 145 Aufgaben, 1 Einstufungsfrage mit 6 Lücken, 1340 erklärte Codezeilen,
+  Befehlslexikon mit 212 Einträgen (Deutsch), Endlos-Training – eine gemeinsame Kursdatei für alle Plattformen
 
 **Windows sofort ausprobieren:** `dist/JavaQuest-Windows-1.0.0.zip` entpacken und
 „JavaQuest starten.bat“ doppelklicken – ohne Installation, Java liegt bei (siehe [Windows](#windows)).
@@ -27,7 +27,7 @@ Die Screenshots zeigen echte App-Views mit echter Logik; die Beispieldaten stamm
 
 1. `JavaQuest.xcodeproj` in Xcode 16 oder neuer öffnen.
 2. Unter *Signing & Capabilities* das eigene Team wählen und `PRODUCT_BUNDLE_IDENTIFIER`
-   (`com.example.JavaQuest`) auf die eigene ID ändern.
+   (`io.github.niklas122212.JavaQuest`) bei Bedarf auf die eigene ID ändern.
 3. Schema **JavaQuest**, Ziel iPhone/iPad-Simulator oder „My Mac“ – ⌘R.
 
 Tests des Kerns: Schema **JavaQuestKit** → ⌘U, oder im Terminal:
@@ -64,11 +64,12 @@ JavaQuest.xcodeproj
 ├── Packages/JavaQuestKit/         Plattformunabhängiger Kern (SwiftPM, ohne UI)
 │   ├── Content/                   Course/Lesson/LearningTask (Codable), Validator, Loader
 │   ├── Evaluation/                AnswerEvaluator, JavaSource (Lexer), JavaHighlighter
-│   ├── Progress/                  PlacementTest, LessonSession, MasterScore, LearningPath, KnowledgeAnalyzer
+│   ├── Progress/                  PlacementTest, LessonSession, MasterScore, LearningPath, KnowledgeAnalyzer, Training
 │   ├── Evaluation/CodeExplainer   Zeilen-Erklärungen in Alltagssprache (Regeln + Blockstapel)
 │   └── Resources/java_course.json Der komplette Kurs (auch für Windows)
 ├── Windows/                       Windows-App (Kotlin, Compose Desktop): core/ · data/ · ui/ · tools/
 ├── Config/                        Info.plist-Ergänzung, macOS-Entitlements (Sandbox)
+├── Tools/course/                  Quelle des Kurses (Python) → java_course.json, mit Zeilen-Erklärungen
 └── Tools/verify_java_content.py   Prüft alle Code-Beispiele mit javac/java
 ```
 
@@ -100,6 +101,27 @@ Funktionen des Kerns aufruft.
    Nach dem Lösen zeigt die App die Musterlösung Zeile für Zeile.
 4. **Wissensanalyse:** Stärken, Wissenslücken (mit „Gezielt üben“), Themen im Aufbau, noch unbekannte Themen –
    auf dem Dashboard als Verteilungsbalken und Balkengrafik der schwächsten Themen.
+5. **Endlos-Training:** Runden mit 8 gemischten Aufgaben aus allen abgeschlossenen Lektionen, Niveau aufsteigend,
+   danach „Nächste Runde“. Welche Aufgaben drankommen, entscheidet ein Gewicht je Aufgabe: schwaches Thema
+   bis +3, noch nie geübt +2, zuletzt falsch bis +3, lange nicht gesehen bis +2 (eine Woche = +1); heute schon
+   fehlerfrei gelöst zählt nur ein Drittel. Training und Übungen verändern den Score nicht, nur die Wissensanalyse.
+
+### Kursinhalt
+
+| Modul | Stufe | Lektionen |
+|---|---|---|
+| 1 Erste Schritte | Anfänger | Hallo Java · Variablen & Datentypen · Rechnen & Operatoren |
+| 2 Kontrollfluss | Anfänger | if & switch · Schleifen · Methoden |
+| 3 Daten & Objekte | Fortgeschritten | Arrays & Strings · Klassen & Objekte · Vererbung & Interfaces |
+| 4 Robuster Code | Fortgeschritten | Exceptions · Collections |
+| 5 Modernes Java | Erfahren | Generics · Lambdas & Streams |
+| 6 Objekte vertieft | Fortgeschritten | Enums & static · equals, hashCode & toString |
+| 7 Daten & Dateien | Fortgeschritten | Texte, Eingabe & Dateien · Datum & Zeit |
+| 8 Algorithmen | Erfahren | Rekursion · Suchen & Sortieren · Datenstrukturen |
+| 9 Profi-Werkzeuge | Erfahren | Unit-Tests mit JUnit · Pakete, Build & Git |
+| 10 Nebenläufigkeit | Erfahren | Threads & Synchronisation · Executor & virtuelle Threads |
+| 11 Modernes Java vertieft | Erfahren | sealed & Pattern Matching · Streams für Profis |
+| 12 Abschlussprojekte | Erfahren | Notenrechner · Aufgabenliste · Textabenteuer |
 
 ## Didaktik: jede Zeile in Alltagssprache
 
@@ -140,7 +162,7 @@ sicher, dass keine Zeile ohne Erklärung bleibt und jeder verwendete Befehl im L
 | `LearnerProfile` | Selbsteinschätzung, Einstufung (Score, Stufe), Master Score, Serie; Beziehungen zu allen anderen Modellen (cascade) |
 | `LessonRecord` | Bestwert, letzte Trefferquote, Anzahl Durchläufe, abgeschlossen / per Einstufung angerechnet |
 | `TopicMastery` | gewichtete Treffer je Thema → Wissenslücken-Analyse |
-| `TaskAttempt` | Protokoll jeder abgeschlossenen Aufgabe (Lektion, Übung, Einstufung) |
+| `TaskAttempt` | Protokoll jeder abgeschlossenen Aufgabe (Lektion, Übung, Training, Einstufung) – daraus liest das Endlos-Training, wie jede Aufgabe zuletzt lief |
 | `ScoreSnapshot` | Verlauf des Master Scores (Sparkline) |
 
 Alle Eigenschaften haben Standardwerte, alle Beziehungen sind optional. Damit ist das Schema
@@ -226,7 +248,11 @@ Gemeinsame Felder jeder Aufgabe: `id`, `type`, `topicId`, `difficulty` (1–5), 
 Das optionale Feld `verify` (`main`, `output`, `compiles`) ist reine Autoren-Metadaten für
 `Tools/verify_java_content.py`. Die App ignoriert es.
 
-**Neue Inhalte:** Lektion ins JSON schreiben, danach `swift test` und `python3 Tools/verify_java_content.py`
+**Neue Inhalte:** Die Kursdatei wird erzeugt, nicht von Hand bearbeitet. Lektionen stehen in
+`Tools/course/course_source.py` (Module 1–5) und `Tools/course/content_advanced.py` (Module 6–12).
+`Tools/course/build_course.sh` baut daraus `java_course.json`: Ein kleines Swift-Programm schreibt mit dem
+`CodeExplainer` zu jeder Codezeile die Erklärung und die Lexikon-Begriffe. Findet es für eine Zeile keine
+passende Regel, bricht der Bau ab. Danach `swift test` und `python3 Tools/verify_java_content.py`
 laufen lassen. Der `CourseValidator` meldet doppelte IDs, falsche Sortierung, ungültige RegEx und
 Musterlösungen, die der Evaluator nicht akzeptiert. In Debug-Builds läuft er auch beim App-Start.
 
@@ -234,7 +260,7 @@ Musterlösungen, die der Evaluator nicht akzeptiert. In Debug-Builds läuft er a
 
 Eigene App im Ordner `Windows/` (Kotlin + Compose Desktop), gleiche Inhalte, gleiche Regeln, gleiche Gestaltung:
 Seitenleiste (Übersicht, Lernpfad, Analyse, Profil), Onboarding mit zwei Optionen, Code-Exegese, Aufgaben,
-Auswertung, Dashboard mit Diagrammen. Der Lernstand liegt als JSON in `%APPDATA%\JavaQuest\progress.json`.
+Auswertung, Endlos-Training, Dashboard mit Diagrammen. Der Lernstand liegt als JSON in `%APPDATA%\JavaQuest\progress.json`.
 Tastatur: Strg + Enter = Prüfen/Weiter, Enter/Tab = nächste Lücke, Tab im Code-Editor = 4 Leerzeichen.
 
 | Aufgabe | Befehl (im Ordner `Windows/`) |
@@ -245,19 +271,19 @@ Tastatur: Strg + Enter = Prüfen/Weiter, Enter/Tab = nächste Lücke, Tab im Cod
 | Installer MSI/EXE bauen (nur unter Windows) | `gradlew.bat packageMsi packageExe` oder GitHub-Workflow `Windows-Installer` |
 
 `package_windows.sh` baut die App, entfernt ungenutzte Symbole (122 → 86 MB), zeichnet als Selbsttest jeden
-Bildschirm aller 13 Lektionen aus der fertigen JAR und legt die geprüfte Java-Laufzeit (Eclipse Temurin 21,
+Bildschirm aller 29 Lektionen und eine Trainingsrunde aus der fertigen JAR und legt die geprüfte Java-Laufzeit (Eclipse Temurin 21,
 SHA-256-geprüft) bei.
 
 ## Geprüft (Stand 19.09.2026)
 
 | Prüfung | Ergebnis |
 |---|---|
-| `swift test` (JavaQuestKit) | 47 Tests in 7 Suites bestanden – u. a. keine Zeile ohne Erklärung, Lexikon vollständig, 90-%-Regel, Einstufung 4/6 = 67 % |
-| `Tools/verify_java_content.py` mit OpenJDK 25 | 47/47 Java-Prüfungen, davon 45 mit Ausgabevergleich |
+| `swift test` (JavaQuestKit) | 49 Tests in 7 Suites bestanden – u. a. keine Zeile ohne Erklärung, Lexikon vollständig, 90-%-Regel, Einstufung 4/6 = 67 %, Endlos-Training (falsch Gelöstes kommt über 400 Runden mehr als 3× so oft wie heute Gelöstes) |
+| `Tools/verify_java_content.py` mit OpenJDK 25 | 134/134 Java-Prüfungen (Aufgaben und Theorie-Beispiele), davon 132 mit Ausgabevergleich |
 | `xcodebuild` (Xcode 27) für iOS-Simulator, iOS-Gerät, macOS | BUILD SUCCEEDED, 0 Warnungen |
-| iPhone-Simulator (iOS 27), von Hand durchgeklickt | Onboarding (beide Optionen), Einstufung 5/6 = 83 %, Theorie mit Code-Exegese, alle 4 Aufgabentypen, 78 % → „Fast geschafft“, 100 % → 3 Sterne und +40 Score, Dunkelmodus |
-| Windows-App: `./gradlew test` | 38 Tests bestanden (33 Logik/Speicherung, 5 Klick-Durchläufe der echten Oberfläche mit Screenshots) |
-| Windows-Paket: Selbsttest der fertigen JAR | 165 Bildschirme gezeichnet, alle 13 Lektionen und 65 Aufgaben durchgespielt, Score 1000 |
+| iPhone-Simulator (iOS 27), von Hand durchgeklickt | Onboarding (beide Optionen), Einstufung 5/6 = 83 %, Theorie mit Code-Exegese, alle 4 Aufgabentypen, 78 % → „Fast geschafft“, 100 % → 3 Sterne und +40 Score, Dunkelmodus; Endlos-Training: Runde mit 8 Aufgaben (Niveau 1→5), Lösung aufdecken, Auswertung, „Nächste Runde“, Score bleibt unverändert |
+| Windows-App: `./gradlew test` | 41 Tests bestanden (36 Logik/Speicherung, 5 Klick-Durchläufe der echten Oberfläche mit Screenshots) |
+| Windows-Paket: Selbsttest der fertigen JAR | 366 Bildschirme gezeichnet, alle 29 Lektionen und 145 Aufgaben durchgespielt, dazu eine Trainingsrunde, Score 1000 |
 
 Nicht geprüft: Start auf einem echten Windows-PC (hier steht nur ein Mac zur Verfügung – die Windows-Bibliothek
 `skiko-windows-x64.dll` und die Windows-Laufzeit liegen im Paket, laufen aber erst dort) sowie Signierung und Upload.

@@ -31,6 +31,7 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.rounded.MenuBook
+import androidx.compose.material.icons.rounded.AllInclusive
 import androidx.compose.material.icons.rounded.Bolt
 import androidx.compose.material.icons.rounded.Cancel
 import androidx.compose.material.icons.rounded.CheckCircle
@@ -95,7 +96,7 @@ import kotlin.math.roundToInt
 
 /** Lektion bzw. Übung: Kopfzeile mit Fortschritt, darunter Theorie, Aufgabe oder Auswertung. */
 @Composable
-fun LessonFlowScreen(model: LessonFlowModel, onClose: () -> Unit, onStartLesson: (String) -> Unit) {
+fun LessonFlowScreen(model: LessonFlowModel, onClose: () -> Unit, onStartLesson: (String) -> Unit, onTrainAgain: () -> Unit = {}) {
     val surfaces = LocalSurfaces.current
     Column(
         Modifier
@@ -135,7 +136,7 @@ fun LessonFlowScreen(model: LessonFlowModel, onClose: () -> Unit, onStartLesson:
             when (val phase = model.phase) {
                 is LessonSession.Phase.Theory -> TheoryStep(model, phase.page)
                 is LessonSession.Phase.Task -> TaskStep(model)
-                LessonSession.Phase.Summary -> SummaryStep(model, onClose, onStartLesson)
+                LessonSession.Phase.Summary -> SummaryStep(model, onClose, onStartLesson, onTrainAgain)
             }
         }
     }
@@ -230,7 +231,7 @@ private fun TaskStep(model: LessonFlowModel) {
                 val feedback: @Composable ColumnScope.() -> Unit = {
                     if (model.lastResult != null || model.isRevealed) {
                         Box(Modifier.bringIntoViewRequester(feedbackRequester)) {
-                            FeedbackPanel(model.lastResult, model.isRevealed, model.attempts, model.remainingAttempts, task.hint, task.explanation)
+                            FeedbackPanel(model.lastResult, model.isRevealed, model.attempts, model.remainingAttempts, task.hint, task.explanation, countsForScore = !model.isPractice)
                         }
                     }
                     val kind = task.kind
@@ -547,7 +548,16 @@ fun CodeEditor(text: String, placeholder: String, minHeight: androidx.compose.ui
 
 /** Rückmeldung: Urteil, Teilpunkte, Befunde, Tipp und Erklärung. */
 @Composable
-fun FeedbackPanel(result: EvaluationResult?, isRevealed: Boolean, attempts: Int, remainingAttempts: Int, hint: String?, explanation: String) {
+fun FeedbackPanel(
+    result: EvaluationResult?,
+    isRevealed: Boolean,
+    attempts: Int,
+    remainingAttempts: Int,
+    hint: String?,
+    explanation: String,
+    // In Übung und Training zählt die Antwort für die Wissensanalyse, nicht für den Score.
+    countsForScore: Boolean = true,
+) {
     val isCorrect = result?.isCorrect == true
     val tint = when { isCorrect -> Palette.success; isRevealed -> Palette.indigo; else -> Palette.orange }
     val headline = when {
@@ -556,7 +566,10 @@ fun FeedbackPanel(result: EvaluationResult?, isRevealed: Boolean, attempts: Int,
         else -> "Noch nicht ganz"
     }
     val subline = when {
-        isCorrect -> if (attempts == 1) "Das zählt voll für deinen Score." else "Das zählt zur Hälfte für deinen Score."
+        isCorrect -> {
+            val target = if (countsForScore) "deinen Score" else "deine Wissensanalyse"
+            if (attempts == 1) "Das zählt voll für $target." else "Das zählt zur Hälfte für $target."
+        }
         isRevealed -> "Schau dir die Lösung in Ruhe an – beim nächsten Mal klappt’s."
         remainingAttempts > 0 -> "Du hast noch $remainingAttempts ${if (remainingAttempts == 1) "Versuch" else "Versuche"}."
         else -> "Keine Versuche mehr – deck die Lösung auf."
@@ -621,7 +634,7 @@ fun FindingRow(finding: Finding) {
 // ---------------------------------------------------------------- Auswertung
 
 @Composable
-private fun SummaryStep(model: LessonFlowModel, onClose: () -> Unit, onStartLesson: (String) -> Unit) {
+private fun SummaryStep(model: LessonFlowModel, onClose: () -> Unit, onStartLesson: (String) -> Unit, onTrainAgain: () -> Unit) {
     val summary = model.summary
     val passed = summary.passed
     val next = model.nextLessonAfterCurrent
@@ -633,11 +646,12 @@ private fun SummaryStep(model: LessonFlowModel, onClose: () -> Unit, onStartLess
                     null, tint = if (passed || model.isPractice) Palette.orange else Palette.indigo, modifier = Modifier.size(64.dp),
                 )
                 Text(
-                    when { model.isPractice -> "Übung abgeschlossen"; passed -> "Lektion gemeistert!"; else -> "Fast geschafft!" },
+                    when { model.isTraining -> "Runde geschafft"; model.isPractice -> "Übung abgeschlossen"; passed -> "Lektion gemeistert!"; else -> "Fast geschafft!" },
                     fontSize = 34.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center,
                 )
                 Text(
                     when {
+                        model.isTraining -> "Was noch hakt, kommt in den nächsten Runden öfter dran – so lange, bis es sitzt."
                         model.isPractice -> "Deine Antworten sind in die Wissensanalyse eingeflossen."
                         passed -> if ((model.scoreChange?.delta ?: 0) > 0) "Stark! Dein Java Master Score ist gestiegen." else "Stark! Es zählt immer dein Bestwert."
                         else -> "Ab 90 % gilt eine Lektion als bestanden. Wiederhole sie – es zählt immer dein Bestwert."
@@ -655,7 +669,10 @@ private fun SummaryStep(model: LessonFlowModel, onClose: () -> Unit, onStartLess
             }
         }
         ActionBar {
-            if (model.isPractice) {
+            if (model.isTraining) {
+                SecondaryButton("Zur Übersicht", null, Modifier.weight(1f)) { onClose() }
+                PrimaryButton("Nächste Runde", Icons.Rounded.AllInclusive, Modifier.weight(2f).testTag("next-round")) { onTrainAgain() }
+            } else if (model.isPractice) {
                 PrimaryButton("Fertig", Icons.Rounded.CheckCircle, Modifier.weight(1f)) { onClose() }
             } else if (passed && next != null) {
                 SecondaryButton("Zur Übersicht", null, Modifier.weight(1f)) { onClose() }

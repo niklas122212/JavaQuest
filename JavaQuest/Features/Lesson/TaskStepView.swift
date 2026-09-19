@@ -27,7 +27,8 @@ struct TaskStepView: View {
                                 attempts: model.session.attempts,
                                 remainingAttempts: model.remainingAttempts,
                                 hint: task.hint,
-                                explanation: task.explanation
+                                explanation: task.explanation,
+                                countsForScore: !model.isPractice
                             )
                             .id(Self.feedbackAnchor)
                             .transition(.move(edge: .bottom).combined(with: .opacity))

@@ -65,6 +65,7 @@ struct SessionRequest: Identifiable, Hashable {
     enum Kind: Hashable {
         case lesson(String)
         case practice(topicId: String)
+        case training
     }
 
     let id = UUID()
@@ -83,5 +84,10 @@ final class AppRouter {
 
     func practice(topicId: String) {
         activeSession = SessionRequest(kind: .practice(topicId: topicId))
+    }
+
+    /// Startet eine neue Runde Endlos-Training (auch direkt aus der Auswertung heraus).
+    func train() {
+        activeSession = SessionRequest(kind: .training)
     }
 }

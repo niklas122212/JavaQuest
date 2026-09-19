@@ -98,6 +98,36 @@ final class ProgressStore {
         PracticeBuilder.tasks(for: topicId, in: course, unlockedLessonIds: unlockedLessonIds)
     }
 
+    // MARK: - Endlos-Training
+
+    var completedLessonIds: Set<String> {
+        Set(lessonResults.filter { $0.value.isCompleted }.map(\.key))
+    }
+
+    /// Alle Aufgaben, die im Endlos-Training vorkommen können.
+    var trainingPool: [LearningTask] {
+        TrainingBuilder.pool(course: course, completedLessonIds: completedLessonIds)
+    }
+
+    /// Wie jede Aufgabe zuletzt lief (aus dem Aufgaben-Protokoll).
+    var taskHistory: [String: TaskHistory] {
+        var history: [String: TaskHistory] = [:]
+        for attempt in (profile?.attempts ?? []).sorted(by: { $0.date < $1.date }) {
+            let count = (history[attempt.taskId]?.attempts ?? 0) + 1
+            history[attempt.taskId] = TaskHistory(attempts: count, lastCredit: attempt.credit, lastDate: attempt.date)
+        }
+        return history
+    }
+
+    /// Wie viele Aufgaben schon im Endlos-Training gelöst oder aufgelöst wurden.
+    var trainingTaskCount: Int {
+        (profile?.attempts ?? []).filter { $0.contextRaw == AttemptContext.training.rawValue }.count
+    }
+
+    func trainingTasks() -> [LearningTask] {
+        TrainingBuilder.round(from: trainingPool, topicStats: topicStats, history: taskHistory)
+    }
+
     // MARK: - Onboarding & Einstufung
 
     /// Schließt das Onboarding ab. Bei einem Einstufungstest werden die Antworten

@@ -1,8 +1,10 @@
 package app.javaquest.core
 
+import java.time.Duration
 import java.time.Instant
 import kotlin.math.abs
 import kotlin.math.roundToInt
+import kotlin.random.Random
 
 // ---------------------------------------------------------------- Lern-Loop
 
@@ -51,6 +53,8 @@ class LessonSession(val mode: Mode, val title: String, val theory: List<TheoryCa
     sealed interface Mode {
         data class Lesson(val lessonId: String) : Mode
         data class Practice(val topicId: String) : Mode
+        /** Endlos-Training: gemischte Runde über alle abgeschlossenen Lektionen. */
+        data object Training : Mode
     }
 
     sealed interface Phase {
@@ -415,5 +419,61 @@ object PracticeBuilder {
         if (limit <= 1 || candidates.size <= limit) return candidates.take(maxOf(limit, 0))
         val step = (candidates.size - 1).toDouble() / (limit - 1)
         return (0 until limit).map { candidates[(it * step).roundToInt()] }
+    }
+}
+
+// ---------------------------------------------------------------- Endlos-Training
+
+/** Wie eine Aufgabe zuletzt lief – für die Auswahl im Endlos-Training. */
+data class TaskHistory(val attempts: Int, val lastCredit: Double, val lastDate: Instant)
+
+/**
+ * Endlos-Training: gemischte Runden über alle abgeschlossenen Lektionen.
+ *
+ * Jede Aufgabe bekommt ein Gewicht – je höher, desto eher kommt sie dran:
+ * schwaches Thema bis zu +3, noch nie geübt +2, zuletzt nicht (voll) gelöst bis zu +3,
+ * lange nicht gesehen bis zu +2 (eine Woche = +1); heute schon fehlerfrei gelöst: nur ein Drittel.
+ * Gezogen wird ohne Zurücklegen; die Runde steigt im Niveau an.
+ */
+object TrainingBuilder {
+    const val ROUND_SIZE = 8
+
+    /** Trainiert wird nur, was schon gelernt ist: alle Aufgaben abgeschlossener Lektionen. */
+    fun pool(course: Course, completedLessonIds: Set<String>): List<LearningTask> =
+        course.allLessons.filter { it.id in completedLessonIds }.flatMap { it.tasks }
+
+    fun weight(task: LearningTask, topicStats: Map<String, TopicStats>, history: Map<String, TaskHistory>, now: Instant): Double {
+        var weight = 1.0
+        val mastery = topicStats[task.topicId]?.takeIf { it.attempts > 0 }?.mastery ?: 0.5
+        weight += (1 - mastery) * 3
+        val past = history[task.id] ?: return weight + 2
+        weight += (1 - past.lastCredit.coerceIn(0.0, 1.0)) * 3
+        val days = maxOf(Duration.between(past.lastDate, now).toMillis() / 86_400_000.0, 0.0)
+        weight += minOf(days, 14.0) / 7
+        if (days < 1 && past.lastCredit >= 1) weight /= 3
+        return weight
+    }
+
+    /** Eine Runde mit bis zu [size] verschiedenen Aufgaben. Gleicher Zufall → gleiche Runde (für Tests). */
+    fun round(
+        pool: List<LearningTask>,
+        topicStats: Map<String, TopicStats>,
+        history: Map<String, TaskHistory>,
+        now: Instant = Instant.now(),
+        size: Int = ROUND_SIZE,
+        random: Random = Random.Default,
+    ): List<LearningTask> {
+        val candidates = pool.map { it to weight(it, topicStats, history, now) }.toMutableList()
+        val chosen = mutableListOf<LearningTask>()
+        while (chosen.size < size && candidates.isNotEmpty()) {
+            var ticket = random.nextDouble() * candidates.sumOf { it.second }
+            var index = candidates.lastIndex
+            for ((i, candidate) in candidates.withIndex()) {
+                ticket -= candidate.second
+                if (ticket <= 0) { index = i; break }
+            }
+            chosen += candidates.removeAt(index).first
+        }
+        return chosen.sortedBy { it.difficulty.level }
     }
 }

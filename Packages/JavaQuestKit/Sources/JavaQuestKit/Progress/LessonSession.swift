@@ -9,6 +9,8 @@ public struct LessonSession: Sendable {
     public enum Mode: Sendable, Hashable {
         case lesson(lessonId: String)
         case practice(topicId: String)
+        /// Endlos-Training: gemischte Runde über alle abgeschlossenen Lektionen.
+        case training
     }
 
     public enum Phase: Sendable, Hashable {
