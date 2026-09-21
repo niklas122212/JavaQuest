@@ -121,26 +121,28 @@ class UiFlowTest {
     }
 
     @Test
-    fun `Unter 90 Prozent - Loesung gezeigt, Lektion nicht bestanden`() = runDesktopComposeUiTest(1280, 860) {
+    fun `Unter 69 Prozent - Loesung gezeigt, Lektion nicht bestanden`() = runDesktopComposeUiTest(1280, 860) {
         val state = newState()
         show(state)
         click("welcome-start"); click("level-beginner"); click("experience-continue")
         repeat(state.flow!!.theory.size) { click("theory-next") }
-        var first = true
+        // Lösung bei der schwersten Aufgabe aufdecken (Niveau 3 von 9 Punkten) → 6/9 = 67 %.
+        val lastIndex = state.flow!!.tasks.lastIndex
+        var position = 0
         while (state.flow?.phase is LessonSession.Phase.Task) {
-            if (first) {
+            if (position == lastIndex) {
                 answerCurrentTask(state, correct = false)
                 onNodeWithText("Noch nicht ganz").assertExists()
                 click("reveal")
                 onNodeWithText("Lösung aufgedeckt").assertExists()
-                first = false
             } else {
                 answerCurrentTask(state)
             }
+            position++
             click("task-next")
         }
         onNodeWithText("Fast geschafft!").assertExists()
-        onNodeWithText("Punkte gibt es, sobald du die Lektion mit mindestens 90 % bestehst.").assertExists()
+        onNodeWithText("Punkte gibt es, sobald du die Lektion mit mindestens 69 % bestehst.").assertExists()
         shot("10-summary-not-passed")
         assertEquals(0, state.store.completedLessonCount)
         assertEquals(0, state.store.masterScore)

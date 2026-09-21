@@ -14,6 +14,16 @@ public struct LearningTask: Decodable, Sendable, Hashable, Identifiable {
     public let explanation: String
     public let javaContext: JavaContext
     public let kind: TaskKind
+    /// Aufgaben mit derselben Gruppe fragen dasselbe Lernziel auf verschiedene Weise ab.
+    /// Aus einer Gruppe kommt pro Sitzung höchstens eine Variante dran – so lässt sich
+    /// eine falsch beantwortete Aufgabe später üben, ohne die Antwort auswendig zu können.
+    /// Ohne Angabe ist die Aufgabe ihre eigene Gruppe.
+    public let variantGroup: String?
+    /// UML-Klassendiagramm, das zur Aufgabe gezeigt wird (statt oder neben Code).
+    public let diagram: UMLDiagram?
+
+    /// Gruppenschlüssel für die Variantenauswahl (eigene ID, falls keine Gruppe gesetzt ist).
+    public var groupKey: String { variantGroup ?? id }
 
     /// Wie ein Code-Schnipsel zu verstehen ist: Anweisungen im `main`-Block,
     /// Klassenmitglieder oder eine vollständige Quelldatei.
@@ -34,7 +44,7 @@ public struct LearningTask: Decodable, Sendable, Hashable, Identifiable {
     public var type: TaskType { kind.type }
 
     enum CodingKeys: String, CodingKey {
-        case id, type, topicId, difficulty, prompt, code, hint, explanation, javaContext
+        case id, type, topicId, difficulty, prompt, code, hint, explanation, javaContext, variantGroup, diagram
     }
 
     public init(from decoder: any Decoder) throws {
@@ -47,6 +57,8 @@ public struct LearningTask: Decodable, Sendable, Hashable, Identifiable {
         hint = try container.decodeIfPresent(String.self, forKey: .hint)
         explanation = try container.decode(String.self, forKey: .explanation)
         javaContext = try container.decodeIfPresent(JavaContext.self, forKey: .javaContext) ?? .statements
+        variantGroup = try container.decodeIfPresent(String.self, forKey: .variantGroup)
+        diagram = try container.decodeIfPresent(UMLDiagram.self, forKey: .diagram)
         switch try container.decode(TaskType.self, forKey: .type) {
         case .singleChoice: kind = .singleChoice(try SingleChoiceSpec(from: decoder))
         case .fillBlank: kind = .fillBlank(try FillBlankSpec(from: decoder))
@@ -64,6 +76,8 @@ public struct LearningTask: Decodable, Sendable, Hashable, Identifiable {
         hint: String? = nil,
         explanation: String,
         javaContext: JavaContext = .statements,
+        variantGroup: String? = nil,
+        diagram: UMLDiagram? = nil,
         kind: TaskKind
     ) {
         self.id = id
@@ -74,6 +88,8 @@ public struct LearningTask: Decodable, Sendable, Hashable, Identifiable {
         self.hint = hint
         self.explanation = explanation
         self.javaContext = javaContext
+        self.variantGroup = variantGroup
+        self.diagram = diagram
         self.kind = kind
     }
 }

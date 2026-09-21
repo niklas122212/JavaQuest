@@ -73,6 +73,9 @@ struct TheoryCardContent: View {
                 .font(.title3)
                 .foregroundStyle(.primary.opacity(0.85))
                 .fixedSize(horizontal: false, vertical: true)
+            if let diagram = card.diagram {
+                UMLDiagramView(diagram: diagram)
+            }
             if let example = card.example {
                 CodeExegesisView(lines: example.explained(), caption: "Beispiel")
             }

@@ -12,6 +12,8 @@ struct SidebarView: View {
                     .tag(AppSection.dashboard)
                 Label("Lernpfad", systemImage: "point.topleft.down.to.point.bottomright.curvepath.fill")
                     .tag(AppSection.path)
+                Label("Alle Themen", systemImage: "square.grid.3x3.fill")
+                    .tag(AppSection.topics)
                 Label("Wissensanalyse", systemImage: "brain.head.profile")
                     .tag(AppSection.analysis)
             }

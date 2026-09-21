@@ -11,6 +11,8 @@ public struct LessonSession: Sendable {
         case practice(topicId: String)
         /// Endlos-Training: gemischte Runde über alle abgeschlossenen Lektionen.
         case training
+        /// Freies Training: selbst gewählte Themen, unabhängig vom Lernpfad.
+        case free(topicIds: [String])
     }
 
     public enum Phase: Sendable, Hashable {
@@ -20,8 +22,9 @@ public struct LessonSession: Sendable {
     }
 
     public static let maxAttempts = 3
-    /// Eine Lektion gilt ab 90 % (gewichtete Trefferquote) als bestanden.
-    public static let passThreshold = 0.9
+    /// Eine Lektion gilt ab 69 % (gewichtete Trefferquote) als bestanden.
+    /// Einzige Quelle für die Bestehensgrenze – Sterne und Anzeigetexte leiten sich davon ab.
+    public static let passThreshold = 0.69
 
     public let mode: Mode
     public let title: String
@@ -178,11 +181,15 @@ public struct LessonSummary: Sendable, Hashable {
 }
 
 public enum Stars {
+    /// Zweiter Stern auf halbem Weg zwischen Bestehensgrenze und fehlerfrei –
+    /// so bleiben die Stufen sinnvoll, egal wie die Grenze eingestellt ist.
+    public static var twoStarThreshold: Double { LessonSession.passThreshold + (1 - LessonSession.passThreshold) / 2 }
+
     public static func forAccuracy(_ accuracy: Double) -> Int {
-        // Bestanden (ab 90 %) = 1 Stern, ab 95 % = 2 Sterne, fehlerfrei = 3 Sterne.
+        // Bestanden = 1 Stern, deutlich darüber = 2 Sterne, fehlerfrei = 3 Sterne.
         switch accuracy {
         case 0.999...: 3
-        case 0.95...: 2
+        case twoStarThreshold...: 2
         case LessonSession.passThreshold...: 1
         default: 0
         }

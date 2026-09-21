@@ -56,7 +56,13 @@ final class LessonFlowModel {
         switch request.kind {
         case .lesson(let id):
             if let lesson = store.course.lesson(id: id) {
-                session = LessonSession(lesson: lesson)
+                // Varianten je Lernziel: beim Wiederholen kommen andere Aufgaben.
+                session = LessonSession(
+                    mode: .lesson(lessonId: lesson.id),
+                    title: lesson.title,
+                    theory: lesson.theory,
+                    tasks: store.lessonTasks(for: lesson)
+                )
             } else {
                 session = LessonSession(mode: .lesson(lessonId: id), title: "Lektion nicht gefunden", theory: [], tasks: [])
             }
@@ -65,6 +71,17 @@ final class LessonFlowModel {
             session = LessonSession(mode: .practice(topicId: topicId), title: title, theory: [], tasks: store.practiceTasks(for: topicId))
         case .training:
             session = LessonSession(mode: .training, title: "Endlos-Training", theory: [], tasks: store.trainingTasks())
+        case .free(let topicIds, let difficulties, let count):
+            let topics = Set(topicIds)
+            let levels = Set(difficulties.compactMap(Difficulty.init(rawValue:)))
+            let names = topicIds.compactMap { store.course.topic(id: $0)?.title }
+            let title = names.isEmpty ? "Freies Training" : "Freies Training: \(names.joined(separator: ", "))"
+            session = LessonSession(
+                mode: .free(topicIds: topicIds),
+                title: title,
+                theory: [],
+                tasks: store.freeTrainingTasks(topicIds: topics, difficulties: levels, count: count)
+            )
         }
         self.store = store
         self.session = session
@@ -74,7 +91,10 @@ final class LessonFlowModel {
     var course: Course { store.course }
     var currentTask: LearningTask? { session.currentTask }
     var isPractice: Bool { session.lessonId == nil }
-    var isTraining: Bool { session.mode == .training }
+    var isTraining: Bool {
+        if case .free = session.mode { return true }
+        return session.mode == .training
+    }
     var isAnswerLocked: Bool { session.isCurrentTaskFinished }
 
     var taskPosition: (index: Int, count: Int)? {

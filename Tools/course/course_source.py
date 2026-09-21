@@ -11,6 +11,8 @@ import sys
 
 from authoring import *
 from content_advanced import ADVANCED_TOPICS, ADVANCED_MODULES
+from task_pool import POOL
+from uml_content import UML_MODULE, UML_POOL, UML_TOPICS
 
 topics = [
     ("syntax", "Programmaufbau", "curlybraces", "Klassen, main-Methode, Ausgabe und Kommentare"),
@@ -1539,7 +1541,7 @@ course = {
     "schemaVersion": 1,
     "id": "java-core-de",
     "title": "Java – vom ersten Befehl zum Profi",
-    "topics": [{"id": i, "title": t, "symbol": s, "summary": d} for i, t, s, d in topics + ADVANCED_TOPICS],
+    "topics": [{"id": i, "title": t, "symbol": s, "summary": d} for i, t, s, d in topics + ADVANCED_TOPICS + UML_TOPICS],
     "modules": [
         {"id": "m1-first-steps", "title": "Erste Schritte", "subtitle": "Programmaufbau, Variablen und Operatoren",
          "tier": "beginner", "symbol": "leaf.fill", "lessons": [l1, l2, l3]},
@@ -1551,7 +1553,8 @@ course = {
          "tier": "intermediate", "symbol": "shield.lefthalf.filled", "lessons": [l10, l11]},
         {"id": "m5-modern", "title": "Modernes Java", "subtitle": "Lambdas, Streams, Records und Pattern Matching",
          "tier": "advanced", "symbol": "sparkles", "lessons": [l12, l13]},
-    ] + ADVANCED_MODULES,
+    ] + ADVANCED_MODULES + [UML_MODULE],
+    "taskPool": POOL + UML_POOL,
     "placement": {
         "passThreshold": 65,
         "questionsPerTest": 1,
@@ -1572,7 +1575,8 @@ for (lesson_id, index), (title, body, kind, text) in THEORY.items():
     card_.pop("callout", None)
     if kind:
         card_["callout"] = {"kind": kind, "text": text}
-all_tasks = [t for m in course["modules"] for l in m["lessons"] for t in l["tasks"]] + [placement_question]
+all_tasks = ([t for m in course["modules"] for l in m["lessons"] for t in l["tasks"]]
+             + course["taskPool"] + [placement_question])
 for task in all_tasks:
     if task["id"] in TASK_EXPLANATIONS:
         task["explanation"] = TASK_EXPLANATIONS[task["id"]]
@@ -1630,7 +1634,9 @@ with open(sys.argv[1], "w", encoding="utf-8") as f:
     f.write("\n")
 
 tasks = sum(len(l["tasks"]) for m in course["modules"] for l in m["lessons"])
+groups = len({t.get("variantGroup", t["id"]) for t in course["taskPool"]})
 print(f"{len(course['modules'])} Module, {sum(len(m['lessons']) for m in course['modules'])} Lektionen, "
-      f"{tasks} Aufgaben, 1 Einstufungsfrage")
+      f"{tasks} Lektionsaufgaben, {len(course['taskPool'])} Übungsaufgaben im Pool "
+      f"({groups} Lernziele), 1 Einstufungsfrage")
 if fallbacks:
     sys.exit(1)

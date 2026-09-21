@@ -128,6 +128,38 @@ final class ProgressStore {
         TrainingBuilder.round(from: trainingPool, topicStats: topicStats, history: taskHistory)
     }
 
+    /// Selbst zusammengestellte Runde: gewählte Themen und Niveaus, unabhängig vom Lernpfad.
+    func freeTrainingTasks(topicIds: Set<String>, difficulties: Set<Difficulty>, count: Int) -> [LearningTask] {
+        TrainingBuilder.freeRound(
+            course: course,
+            topicIds: topicIds,
+            difficulties: difficulties,
+            count: count,
+            topicStats: topicStats,
+            history: taskHistory
+        )
+    }
+
+    /// Aufgaben einer Lektion mit passender Variante je Lernziel – beim Wiederholen
+    /// kommen dadurch andere Aufgaben als beim ersten Durchlauf.
+    func lessonTasks(for lesson: Lesson) -> [LearningTask] {
+        VariantSelector.lessonTasks(lesson, course: course, history: taskHistory)
+    }
+
+    // MARK: - Fortschritt je Thema
+
+    /// Gesehene, richtige und falsche Aufgaben eines Themas – aus dem Aufgaben-Protokoll.
+    func topicPractice(for topicId: String) -> TopicPractice {
+        let attempts = (profile?.attempts ?? []).filter { $0.topicId == topicId }
+        return TopicPractice(
+            seen: attempts.count,
+            correct: attempts.filter(\.solved).count,
+            firstTry: attempts.filter { $0.solved && $0.tries == 1 }.count,
+            lastPracticed: attempts.map(\.date).max(),
+            mastery: topicStats[topicId].map { $0.attempts > 0 ? $0.mastery : nil } ?? nil
+        )
+    }
+
     // MARK: - Onboarding & Einstufung
 
     /// Schließt das Onboarding ab. Bei einem Einstufungstest werden die Antworten
@@ -285,4 +317,16 @@ final class ProgressStore {
             lastSaveError = error.localizedDescription
         }
     }
+}
+
+/// Übungsstand eines Themas für die Themenübersicht.
+struct TopicPractice: Hashable {
+    var seen: Int
+    var correct: Int
+    var firstTry: Int
+    var lastPracticed: Date?
+    var mastery: Double?
+
+    var wrong: Int { max(seen - correct, 0) }
+    var successRate: Double { seen > 0 ? Double(correct) / Double(seen) : 0 }
 }

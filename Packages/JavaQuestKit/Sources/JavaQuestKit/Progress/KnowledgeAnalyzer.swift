@@ -114,18 +114,25 @@ public enum KnowledgeAnalyzer {
 
 /// Stellt gezielte Übungssitzungen für ein Thema zusammen.
 public enum PracticeBuilder {
-    /// Bis zu `limit` Aufgaben des Themas aus freigeschalteten Lektionen, über die
-    /// Niveaus verteilt und aufsteigend sortiert.
+    /// Bis zu `limit` Aufgaben des Themas aus freigeschalteten Lektionen und dem
+    /// Übungspool, über die Niveaus verteilt und aufsteigend sortiert.
+    /// Je Lernziel kommt nur eine Variante dran (siehe `VariantSelector`).
     public static func tasks(
         for topicId: String,
         in course: Course,
         unlockedLessonIds: Set<String>,
-        limit: Int = 5
+        limit: Int = 5,
+        history: [String: TaskHistory] = [:]
     ) -> [LearningTask] {
-        let candidates = course.allLessons
+        let unlockedTopics = Set(course.allLessons.filter { unlockedLessonIds.contains($0.id) }.flatMap(\.topicIds))
+        let fromLessons = course.allLessons
             .filter { unlockedLessonIds.contains($0.id) }
             .flatMap(\.tasks)
             .filter { $0.topicId == topicId }
+        // Aus dem Pool nur Themen, die im Lernpfad schon dran waren – das freie Training
+        // (siehe `TrainingBuilder.freePool`) umgeht diese Sperre bewusst.
+        let fromPool = unlockedTopics.contains(topicId) ? course.taskPool.filter { $0.topicId == topicId } : []
+        let candidates = VariantSelector.collapse(fromLessons + fromPool, history: history)
             .sorted { $0.difficulty < $1.difficulty }
         guard limit > 1, candidates.count > limit else { return Array(candidates.prefix(max(limit, 0))) }
         let step = Double(candidates.count - 1) / Double(limit - 1)

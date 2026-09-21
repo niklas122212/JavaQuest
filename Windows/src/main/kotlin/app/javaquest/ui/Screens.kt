@@ -45,6 +45,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.javaquest.core.ExperienceLevel
+import app.javaquest.core.LessonSession
 import app.javaquest.core.LessonState
 import app.javaquest.core.TopicStatus
 import java.time.Duration
@@ -59,7 +60,10 @@ fun PathScreen(state: AppState) {
     val results = store.lessonResults
     ScreenScroll {
         Text("Lernpfad", fontSize = 34.sp, fontWeight = FontWeight.Bold)
-        Text("Eine Lektion wird frei, sobald die vorherige mit mindestens 90 % bestanden ist.", color = secondaryText, fontSize = 16.sp)
+        Text(
+            "Eine Lektion wird frei, sobald die vorherige mit mindestens ${LessonSession.passPercent} % bestanden ist.",
+            color = secondaryText, fontSize = 16.sp,
+        )
         for (progress in store.moduleProgress) {
             val module = progress.module
             val tint = Palette.tier(module.tier)
@@ -201,7 +205,7 @@ fun ProfileScreen(state: AppState) {
             store.placedLevel?.let { ProfileRow("Einstieg", if (it == ExperienceLevel.BEGINNER) "Grundkurs" else store.course.entryModule(it)?.title ?: it.title) }
             ProfileRow("Java Master Score", "${store.masterScore} · ${store.rank.title}")
             ProfileRow("Serie", "${store.displayedStreak} ${if (store.displayedStreak == 1) "Tag" else "Tage"} (Rekord ${store.data?.longestStreak ?: 0})")
-            ProfileRow("Bestanden ab", "90 % je Lektion")
+            ProfileRow("Bestanden ab", "${LessonSession.passPercent} % je Lektion")
         }
         Column(Modifier.fillMaxWidth().card(22.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             SectionTitle("Privat & lokal", icon = Icons.Rounded.Shield)

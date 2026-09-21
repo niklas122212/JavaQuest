@@ -27,15 +27,16 @@ class StoreTest {
     private fun file() = ProgressFile(dir.resolve("progress.json"))
     private fun clock(day: Int) = Clock.fixed(Instant.parse("2026-09-%02dT10:00:00Z".format(day)), ZoneOffset.UTC)
 
-    private fun playLesson(store: ProgressStore, index: Int, revealFirst: Boolean = false) {
+    /** Spielt eine Lektion durch; [revealAtIndex] deckt dort die Lösung auf (0 Punkte für die Aufgabe). */
+    private fun playLesson(store: ProgressStore, index: Int, revealAtIndex: Int? = null) {
         val lesson = course.allLessons[index]
         val session = LessonSession.of(lesson)
         repeat(lesson.theory.size) { session.advanceTheory() }
-        var first = true
+        var position = 0
         while (true) {
             val task = session.currentTask ?: break
-            if (revealFirst && first) session.revealSolution() else session.submit(AnswerEvaluator.referenceAnswer(task))
-            first = false
+            if (position == revealAtIndex) session.revealSolution() else session.submit(AnswerEvaluator.referenceAnswer(task))
+            position++
             store.record(session.finishedOutcome!!, lesson.id, AttemptContext.LESSON)
             session.advanceToNextTask()
         }
@@ -87,10 +88,11 @@ class StoreTest {
         assertEquals(1, reopened.displayedStreak)
     }
 
-    @Test fun `Unter 90 Prozent bleibt die Lektion offen, Score bleibt 0`() {
+    @Test fun `Unter 69 Prozent bleibt die Lektion offen, Score bleibt 0`() {
         val store = ProgressStore(course, file(), clock(1))
         store.completeOnboarding(ExperienceLevel.BEGINNER, null)
-        playLesson(store, 0, revealFirst = true)  // 8/9 = 89 %
+        // Lösung bei der schwersten Aufgabe (Niveau 3 von 9 Gewichtspunkten) → 6/9 = 67 % → nicht bestanden.
+        playLesson(store, 0, revealAtIndex = course.allLessons[0].tasks.lastIndex)
         assertEquals(0, store.completedLessonCount)
         assertEquals(0, store.masterScore)
         assertEquals("l01-hello", store.nextLesson?.id)

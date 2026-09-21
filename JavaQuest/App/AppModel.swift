@@ -55,6 +55,7 @@ final class AppModel {
 enum AppSection: Hashable {
     case dashboard
     case path
+    case topics
     case analysis
     case profile
     case module(String)
@@ -66,6 +67,8 @@ struct SessionRequest: Identifiable, Hashable {
         case lesson(String)
         case practice(topicId: String)
         case training
+        /// Freies Training: selbst gewählte Themen, Niveaus und Aufgabenzahl.
+        case free(topicIds: [String], difficulties: [Int], count: Int)
     }
 
     let id = UUID()
@@ -89,5 +92,14 @@ final class AppRouter {
     /// Startet eine neue Runde Endlos-Training (auch direkt aus der Auswertung heraus).
     func train() {
         activeSession = SessionRequest(kind: .training)
+    }
+
+    /// Startet eine selbst zusammengestellte Übungsrunde aus dem freien Lernen.
+    func train(topicIds: Set<String>, difficulties: Set<Difficulty>, count: Int) {
+        activeSession = SessionRequest(kind: .free(
+            topicIds: topicIds.sorted(),
+            difficulties: difficulties.map(\.rawValue).sorted(),
+            count: count
+        ))
     }
 }

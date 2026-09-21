@@ -164,6 +164,18 @@
       "title": "Projekte",
       "symbol": "flag.checkered",
       "summary": "Alles zusammen in kleinen Programmen"
+    },
+    {
+      "id": "umlbasics",
+      "title": "UML-Klassendiagramme",
+      "symbol": "square.on.square",
+      "summary": "Kästen lesen: Klassen, Attribute, Methoden, Sichtbarkeit"
+    },
+    {
+      "id": "umlrelations",
+      "title": "UML-Beziehungen",
+      "symbol": "arrow.triangle.pull",
+      "summary": "Vererbung, Assoziation, Aggregation, Komposition, Vielfachheit"
     }
   ],
   "modules": [
@@ -15135,6 +15147,4585 @@
           ]
         }
       ]
+    },
+    {
+      "id": "m13-uml",
+      "title": "UML",
+      "subtitle": "Klassendiagramme lesen, schreiben und in Java übersetzen",
+      "tier": "intermediate",
+      "symbol": "square.on.square",
+      "lessons": [
+        {
+          "id": "l30-uml-basics",
+          "title": "UML lesen: der Klassenkasten",
+          "summary": "Klassen als Bild: Name, Attribute, Methoden und Sichtbarkeit.",
+          "topicIds": [
+            "umlbasics"
+          ],
+          "estimatedMinutes": 8,
+          "theory": [
+            {
+              "title": "Ein Kasten pro Klasse",
+              "body": "Ein UML-Klassendiagramm zeigt denselben Bauplan wie dein Java-Code, nur als Bild. Jede Klasse ist ein Kasten mit drei Fächern: oben der Name, in der Mitte die Attribute (die Felder), unten die Methoden. So sieht man auf einen Blick, was eine Klasse kann – ohne den Code zu lesen.",
+              "diagram": {
+                "classes": [
+                  {
+                    "name": "Person",
+                    "kind": "classType",
+                    "fields": [
+                      {
+                        "visibility": "-",
+                        "name": "name",
+                        "type": "String"
+                      },
+                      {
+                        "visibility": "-",
+                        "name": "alter",
+                        "type": "int"
+                      }
+                    ],
+                    "methods": [
+                      {
+                        "visibility": "+",
+                        "name": "getName()",
+                        "type": "String"
+                      },
+                      {
+                        "visibility": "+",
+                        "name": "hatGeburtstag()"
+                      }
+                    ]
+                  }
+                ],
+                "relations": []
+              },
+              "callout": {
+                "kind": "tip",
+                "text": "UML heißt „Unified Modeling Language“ – eine einheitliche Sprache, um Software als Bild aufzuzeichnen."
+              }
+            },
+            {
+              "title": "Die Zeichen + - # : Wer darf ran?",
+              "body": "Vor jedem Attribut und jeder Methode steht ein Zeichen für die Sichtbarkeit. + heißt öffentlich (public): von überall nutzbar. - heißt privat (private): nur innerhalb der eigenen Klasse. # heißt geschützt (protected): in der Klasse selbst und in ihren Kind-Klassen. Hinter dem Doppelpunkt steht der Typ – bei Methoden der Rückgabetyp.",
+              "diagram": {
+                "classes": [
+                  {
+                    "name": "Konto",
+                    "kind": "classType",
+                    "fields": [
+                      {
+                        "visibility": "-",
+                        "name": "stand",
+                        "type": "double"
+                      }
+                    ],
+                    "methods": [
+                      {
+                        "visibility": "+",
+                        "name": "einzahlen()"
+                      },
+                      {
+                        "visibility": "+",
+                        "name": "getStand()",
+                        "type": "double"
+                      }
+                    ]
+                  }
+                ],
+                "relations": []
+              },
+              "callout": {
+                "kind": "info",
+                "text": "Faustregel wie in Java: Attribute privat (-), Methoden so öffentlich wie nötig (+)."
+              }
+            },
+            {
+              "title": "Vom Kasten zum Java-Code",
+              "body": "Der Kasten links und der Code rechts sagen dasselbe. „- stand: double“ wird zu „private double stand;“, „+ getStand(): double“ wird zu „public double getStand()“. Ein leerer Rückgabetyp im Diagramm bedeutet void.",
+              "code": {
+                "lines": [
+                  {
+                    "code": "class Konto {",
+                    "explain": "Hier beginnt die Klasse „Konto“. Stell sie dir als Kuchenform vor: Sie beschreibt, welche Eigenschaften und Fähigkeiten jedes Objekt vom Typ Konto hat. Die echten Objekte sind die Kuchen, die später mit new aus dieser Form gebacken werden.",
+                    "terms": [
+                      "class"
+                    ]
+                  },
+                  {
+                    "code": "    private double stand;",
+                    "explain": "Jedes Objekt, das aus dieser Kuchenform gebacken wird, bekommt ein eigenes Fach namens „stand“. Das Etikett double heißt: In dieses Fach passen Kommazahlen (mit Punkt geschrieben, z. B. 9.99). private: Nur die Klasse selbst darf in dieses Fach schauen – von außen ist es verschlossen.",
+                    "terms": [
+                      "private",
+                      "double"
+                    ]
+                  },
+                  {
+                    "code": ""
+                  },
+                  {
+                    "code": "    public void einzahlen(double betrag) {",
+                    "explain": "Hier beginnt die Methode „einzahlen“ – ein Rezept mit Namen. Als Zutaten bekommt sie betrag (eine Kommazahl) und liefert kein Ergebnis zurück (void = „leer“) – sie erledigt nur eine Aufgabe. public: Jeder darf dieses Rezept benutzen.",
+                    "terms": [
+                      "public",
+                      "void",
+                      "double"
+                    ]
+                  },
+                  {
+                    "code": "        stand = stand + betrag;",
+                    "explain": "Rechnet stand + betrag aus und legt das Ergebnis zurück in die Box „stand“ – der alte Inhalt wird ersetzt.",
+                    "terms": [
+                      "=",
+                      "+"
+                    ]
+                  },
+                  {
+                    "code": "    }",
+                    "explain": "Hier endet die Methode (das Rezept) „einzahlen“."
+                  },
+                  {
+                    "code": ""
+                  },
+                  {
+                    "code": "    public double getStand() {",
+                    "explain": "Hier beginnt die Methode „getStand“ – ein Rezept mit Namen. Sie braucht keine Zutaten und liefert am Ende eine Kommazahl als Ergebnis zurück. public: Jeder darf dieses Rezept benutzen.",
+                    "terms": [
+                      "public",
+                      "double"
+                    ]
+                  },
+                  {
+                    "code": "        return stand;",
+                    "explain": "Das Rezept ist fertig: Es gibt den Inhalt der Box „stand“ zurück an die Stelle, die es aufgerufen hat – wie ein Automat, der sein Produkt ausgibt.",
+                    "terms": [
+                      "return"
+                    ]
+                  },
+                  {
+                    "code": "    }",
+                    "explain": "Hier endet die Methode (das Rezept) „getStand“."
+                  },
+                  {
+                    "code": "}",
+                    "explain": "Hier endet die Klasse „Konto“ – die Kuchenform ist fertig beschrieben."
+                  }
+                ]
+              },
+              "verify": {
+                "context": "file",
+                "main": "Konto k = new Konto(); k.einzahlen(5); System.out.println(k.getStand());",
+                "output": "5.0"
+              }
+            }
+          ],
+          "tasks": [
+            {
+              "id": "t30-1",
+              "type": "singleChoice",
+              "topicId": "umlbasics",
+              "difficulty": 1,
+              "prompt": "Was steht im obersten Fach eines UML-Klassenkastens?",
+              "explanation": "Der Kasten ist immer gleich aufgebaut: oben der Name, in der Mitte die Attribute, unten die Methoden.",
+              "choices": [
+                "Die Methoden",
+                "Der Konstruktor",
+                "Der Name der Klasse",
+                "Die Attribute"
+              ],
+              "correctIndex": 2
+            },
+            {
+              "id": "t30-2",
+              "type": "singleChoice",
+              "topicId": "umlbasics",
+              "difficulty": 2,
+              "prompt": "Was bedeutet das Minus vor „- alter: int“?",
+              "diagram": {
+                "classes": [
+                  {
+                    "name": "Person",
+                    "kind": "classType",
+                    "fields": [
+                      {
+                        "visibility": "-",
+                        "name": "name",
+                        "type": "String"
+                      },
+                      {
+                        "visibility": "-",
+                        "name": "alter",
+                        "type": "int"
+                      }
+                    ],
+                    "methods": [
+                      {
+                        "visibility": "+",
+                        "name": "getName()",
+                        "type": "String"
+                      },
+                      {
+                        "visibility": "+",
+                        "name": "hatGeburtstag()"
+                      }
+                    ]
+                  }
+                ],
+                "relations": []
+              },
+              "explanation": "- steht für private: Von außen kommt man nur über Methoden heran. + wäre öffentlich, # geschützt.",
+              "choices": [
+                "öffentlich – von überall nutzbar",
+                "geschützt – auch in Kind-Klassen nutzbar",
+                "Das Attribut ist gelöscht",
+                "privat – nur innerhalb der Klasse nutzbar"
+              ],
+              "correctIndex": 3
+            },
+            {
+              "id": "t30-3",
+              "type": "singleChoice",
+              "topicId": "umlbasics",
+              "difficulty": 2,
+              "prompt": "Welchen Typ liefert die Methode getName() laut Diagramm zurück?",
+              "diagram": {
+                "classes": [
+                  {
+                    "name": "Person",
+                    "kind": "classType",
+                    "fields": [
+                      {
+                        "visibility": "-",
+                        "name": "name",
+                        "type": "String"
+                      },
+                      {
+                        "visibility": "-",
+                        "name": "alter",
+                        "type": "int"
+                      }
+                    ],
+                    "methods": [
+                      {
+                        "visibility": "+",
+                        "name": "getName()",
+                        "type": "String"
+                      },
+                      {
+                        "visibility": "+",
+                        "name": "hatGeburtstag()"
+                      }
+                    ]
+                  }
+                ],
+                "relations": []
+              },
+              "explanation": "Hinter dem Doppelpunkt steht bei einer Methode der Rückgabetyp: „+ getName(): String“ liefert einen Text.",
+              "choices": [
+                "String",
+                "int",
+                "void – sie liefert nichts",
+                "Person"
+              ],
+              "correctIndex": 0
+            },
+            {
+              "id": "t30-4",
+              "type": "singleChoice",
+              "topicId": "umlbasics",
+              "difficulty": 3,
+              "prompt": "Welcher Java-Code passt zu „- stand: double“ im Kasten Konto?",
+              "diagram": {
+                "classes": [
+                  {
+                    "name": "Konto",
+                    "kind": "classType",
+                    "fields": [
+                      {
+                        "visibility": "-",
+                        "name": "stand",
+                        "type": "double"
+                      }
+                    ],
+                    "methods": [
+                      {
+                        "visibility": "+",
+                        "name": "einzahlen()"
+                      },
+                      {
+                        "visibility": "+",
+                        "name": "getStand()",
+                        "type": "double"
+                      }
+                    ]
+                  }
+                ],
+                "relations": []
+              },
+              "explanation": "Das Minus wird zu private, hinter dem Doppelpunkt steht der Typ – und der steht in Java vor dem Namen.",
+              "choices": [
+                "public double stand;",
+                "double stand();",
+                "private stand: double;",
+                "private double stand;"
+              ],
+              "correctIndex": 3
+            },
+            {
+              "id": "t30-5",
+              "type": "code",
+              "topicId": "umlbasics",
+              "difficulty": 3,
+              "prompt": "Setze den Kasten in Java um: Die Klasse Person hat ein privates Feld name (String) und die öffentliche Methode getName(), die name zurückgibt.",
+              "diagram": {
+                "classes": [
+                  {
+                    "name": "Person",
+                    "kind": "classType",
+                    "fields": [
+                      {
+                        "visibility": "-",
+                        "name": "name",
+                        "type": "String"
+                      },
+                      {
+                        "visibility": "-",
+                        "name": "alter",
+                        "type": "int"
+                      }
+                    ],
+                    "methods": [
+                      {
+                        "visibility": "+",
+                        "name": "getName()",
+                        "type": "String"
+                      },
+                      {
+                        "visibility": "+",
+                        "name": "hatGeburtstag()"
+                      }
+                    ]
+                  }
+                ],
+                "relations": []
+              },
+              "explanation": "Jede Zeile des Kastens wird zu einer Zeile Java: - name: String → private String name; und + getName(): String → public String getName().",
+              "javaContext": "file",
+              "verify": {
+                "context": "file",
+                "main": "System.out.println(new Person().getName());",
+                "output": "null"
+              },
+              "starterCode": {
+                "lines": [
+                  {
+                    "code": "class Person {",
+                    "explain": "Hier beginnt die Klasse „Person“. Stell sie dir als Kuchenform vor: Sie beschreibt, welche Eigenschaften und Fähigkeiten jedes Objekt vom Typ Person hat. Die echten Objekte sind die Kuchen, die später mit new aus dieser Form gebacken werden.",
+                    "terms": [
+                      "class"
+                    ]
+                  },
+                  {
+                    "code": "    // Feld und Methode hier",
+                    "explain": "Ein Notizzettel als Platzhalter („Feld und Methode hier“): Genau an dieser Stelle schreibst du deinen eigenen Code hin. Java überliest Kommentare."
+                  },
+                  {
+                    "code": "}",
+                    "explain": "Hier endet die Klasse „Person“ – die Kuchenform ist fertig beschrieben."
+                  },
+                  {
+                    "code": ""
+                  }
+                ]
+              },
+              "sampleSolution": {
+                "lines": [
+                  {
+                    "code": "class Person {",
+                    "explain": "Hier beginnt die Klasse „Person“. Stell sie dir als Kuchenform vor: Sie beschreibt, welche Eigenschaften und Fähigkeiten jedes Objekt vom Typ Person hat. Die echten Objekte sind die Kuchen, die später mit new aus dieser Form gebacken werden.",
+                    "terms": [
+                      "class"
+                    ]
+                  },
+                  {
+                    "code": "    private String name;",
+                    "explain": "Jedes Objekt, das aus dieser Kuchenform gebacken wird, bekommt ein eigenes Fach namens „name“. Das Etikett String heißt: In dieses Fach passen Texte. private: Nur die Klasse selbst darf in dieses Fach schauen – von außen ist es verschlossen.",
+                    "terms": [
+                      "private",
+                      "String"
+                    ]
+                  },
+                  {
+                    "code": ""
+                  },
+                  {
+                    "code": "    public String getName() {",
+                    "explain": "Hier beginnt die Methode „getName“ – ein Rezept mit Namen. Sie braucht keine Zutaten und liefert am Ende einen Text als Ergebnis zurück. public: Jeder darf dieses Rezept benutzen.",
+                    "terms": [
+                      "public",
+                      "String"
+                    ]
+                  },
+                  {
+                    "code": "        return name;",
+                    "explain": "Das Rezept ist fertig: Es gibt den Inhalt der Box „name“ zurück an die Stelle, die es aufgerufen hat – wie ein Automat, der sein Produkt ausgibt.",
+                    "terms": [
+                      "return"
+                    ]
+                  },
+                  {
+                    "code": "    }",
+                    "explain": "Hier endet die Methode (das Rezept) „getName“."
+                  },
+                  {
+                    "code": "}",
+                    "explain": "Hier endet die Klasse „Person“ – die Kuchenform ist fertig beschrieben."
+                  }
+                ]
+              },
+              "rules": [
+                {
+                  "rule": "require",
+                  "pattern": "class\\s+Person",
+                  "message": "Schreibe die Klasse Person."
+                },
+                {
+                  "rule": "require",
+                  "pattern": "private\\s+String\\s+name",
+                  "message": "Das Minus im Diagramm bedeutet private."
+                },
+                {
+                  "rule": "require",
+                  "pattern": "public\\s+String\\s+getName\\s*\\(\\s*\\)",
+                  "message": "getName() ist öffentlich und liefert einen String."
+                },
+                {
+                  "rule": "require",
+                  "pattern": "return\\s+name",
+                  "message": "Gib das Feld name zurück."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "l31-uml-relations",
+          "title": "UML-Beziehungen zwischen Klassen",
+          "summary": "Vererbung, Assoziation, Aggregation, Komposition und Vielfachheit.",
+          "topicIds": [
+            "umlrelations"
+          ],
+          "estimatedMinutes": 10,
+          "theory": [
+            {
+              "title": "Vererbung und Interfaces: die Dreiecksspitze",
+              "body": "Ein Pfeil mit leerer Dreiecksspitze zeigt immer zur Eltern-Klasse und bedeutet „ist ein“: Ein Hund ist ein Tier. In Java steht dort extends. Zeigt derselbe Pfeil gestrichelt auf ein Interface («interface»), heißt das: Die Klasse unterschreibt diesen Vertrag – in Java implements.",
+              "diagram": {
+                "classes": [
+                  {
+                    "name": "Tier",
+                    "kind": "classType",
+                    "fields": [
+                      {
+                        "visibility": "#",
+                        "name": "name",
+                        "type": "String"
+                      }
+                    ],
+                    "methods": [
+                      {
+                        "visibility": "+",
+                        "name": "laut()",
+                        "type": "String"
+                      }
+                    ]
+                  },
+                  {
+                    "name": "Hund",
+                    "kind": "classType",
+                    "fields": [],
+                    "methods": [
+                      {
+                        "visibility": "+",
+                        "name": "laut()",
+                        "type": "String"
+                      },
+                      {
+                        "visibility": "+",
+                        "name": "apportieren()"
+                      }
+                    ]
+                  }
+                ],
+                "relations": [
+                  {
+                    "from": "Hund",
+                    "to": "Tier",
+                    "kind": "extendsRelation"
+                  }
+                ]
+              },
+              "callout": {
+                "kind": "tip",
+                "text": "Merke: Die Spitze zeigt dorthin, wo geerbt wird – also nach oben zur Eltern-Klasse."
+              }
+            },
+            {
+              "title": "Assoziation: eine Klasse kennt eine andere",
+              "body": "Eine einfache Linie heißt Assoziation: Die eine Klasse kennt die andere dauerhaft, meist als Feld. An der Linie steht oft, wie viele gemeint sind – die Vielfachheit. 1 heißt genau eine, 0..1 heißt keine oder eine, 1..* heißt mindestens eine, * heißt beliebig viele.",
+              "diagram": {
+                "classes": [
+                  {
+                    "name": "Bestellung",
+                    "kind": "classType",
+                    "fields": [
+                      {
+                        "visibility": "-",
+                        "name": "nummer",
+                        "type": "int"
+                      }
+                    ],
+                    "methods": [
+                      {
+                        "visibility": "+",
+                        "name": "summe()",
+                        "type": "double"
+                      }
+                    ]
+                  },
+                  {
+                    "name": "Kunde",
+                    "kind": "classType",
+                    "fields": [
+                      {
+                        "visibility": "-",
+                        "name": "name",
+                        "type": "String"
+                      }
+                    ],
+                    "methods": []
+                  }
+                ],
+                "relations": [
+                  {
+                    "from": "Bestellung",
+                    "to": "Kunde",
+                    "kind": "association",
+                    "label": "gehoert zu",
+                    "multiplicity": "1"
+                  }
+                ]
+              },
+              "callout": {
+                "kind": "info",
+                "text": "Die Beschriftung an der Linie („gehoert zu“) sagt, wie die Beziehung gemeint ist."
+              }
+            },
+            {
+              "title": "Aggregation und Komposition: die Raute",
+              "body": "Beides heißt „besteht aus“, der Unterschied steckt in der Raute. Die leere Raute (Aggregation) bedeutet: Die Teile leben ohne das Ganze weiter – löst man die Schulklasse auf, gibt es die Schüler immer noch. Die gefüllte Raute (Komposition) bedeutet: Ohne das Ganze gibt es die Teile nicht – reißt man das Haus ab, sind auch die Räume weg. Die Raute steht immer am Ganzen.",
+              "diagram": {
+                "classes": [
+                  {
+                    "name": "Haus",
+                    "kind": "classType",
+                    "fields": [
+                      {
+                        "visibility": "-",
+                        "name": "adresse",
+                        "type": "String"
+                      }
+                    ],
+                    "methods": []
+                  },
+                  {
+                    "name": "Raum",
+                    "kind": "classType",
+                    "fields": [
+                      {
+                        "visibility": "-",
+                        "name": "flaeche",
+                        "type": "double"
+                      }
+                    ],
+                    "methods": []
+                  }
+                ],
+                "relations": [
+                  {
+                    "from": "Haus",
+                    "to": "Raum",
+                    "kind": "composition",
+                    "multiplicity": "1..*"
+                  }
+                ]
+              },
+              "callout": {
+                "kind": "warning",
+                "text": "Verwechsle die Raute nicht mit der Dreiecksspitze: Raute = besteht aus, Dreieck = ist ein."
+              }
+            }
+          ],
+          "tasks": [
+            {
+              "id": "t31-1",
+              "type": "singleChoice",
+              "topicId": "umlrelations",
+              "difficulty": 1,
+              "prompt": "Was bedeutet ein Pfeil mit leerer Dreiecksspitze von Hund zu Tier?",
+              "diagram": {
+                "classes": [
+                  {
+                    "name": "Tier",
+                    "kind": "classType",
+                    "fields": [
+                      {
+                        "visibility": "#",
+                        "name": "name",
+                        "type": "String"
+                      }
+                    ],
+                    "methods": [
+                      {
+                        "visibility": "+",
+                        "name": "laut()",
+                        "type": "String"
+                      }
+                    ]
+                  },
+                  {
+                    "name": "Hund",
+                    "kind": "classType",
+                    "fields": [],
+                    "methods": [
+                      {
+                        "visibility": "+",
+                        "name": "laut()",
+                        "type": "String"
+                      },
+                      {
+                        "visibility": "+",
+                        "name": "apportieren()"
+                      }
+                    ]
+                  }
+                ],
+                "relations": [
+                  {
+                    "from": "Hund",
+                    "to": "Tier",
+                    "kind": "extendsRelation"
+                  }
+                ]
+              },
+              "explanation": "Die Dreiecksspitze zeigt zur Eltern-Klasse. In Java: class Hund extends Tier.",
+              "choices": [
+                "Tier erbt von Hund",
+                "Hund besteht aus Tieren",
+                "Hund benutzt Tier kurzzeitig",
+                "Hund erbt von Tier – ein Hund ist ein Tier"
+              ],
+              "correctIndex": 3
+            },
+            {
+              "id": "t31-2",
+              "type": "singleChoice",
+              "topicId": "umlrelations",
+              "difficulty": 2,
+              "prompt": "Welches Java-Schlüsselwort gehört zur gestrichelten Linie mit Dreiecksspitze auf «interface» Fahrbar?",
+              "diagram": {
+                "classes": [
+                  {
+                    "name": "Fahrbar",
+                    "kind": "interfaceType",
+                    "fields": [],
+                    "methods": [
+                      {
+                        "visibility": "+",
+                        "name": "fahren()"
+                      }
+                    ]
+                  },
+                  {
+                    "name": "Auto",
+                    "kind": "classType",
+                    "fields": [
+                      {
+                        "visibility": "-",
+                        "name": "marke",
+                        "type": "String"
+                      }
+                    ],
+                    "methods": [
+                      {
+                        "visibility": "+",
+                        "name": "fahren()"
+                      }
+                    ]
+                  }
+                ],
+                "relations": [
+                  {
+                    "from": "Auto",
+                    "to": "Fahrbar",
+                    "kind": "implementsRelation"
+                  }
+                ]
+              },
+              "explanation": "Gestrichelt plus Dreiecksspitze auf ein Interface heißt: Die Klasse unterschreibt den Vertrag – class Auto implements Fahrbar.",
+              "choices": [
+                "import",
+                "implements",
+                "extends",
+                "new"
+              ],
+              "correctIndex": 1
+            },
+            {
+              "id": "t31-3",
+              "type": "singleChoice",
+              "topicId": "umlrelations",
+              "difficulty": 3,
+              "prompt": "Was bedeutet die leere Raute an der Schulklasse?",
+              "diagram": {
+                "classes": [
+                  {
+                    "name": "Schulklasse",
+                    "kind": "classType",
+                    "fields": [
+                      {
+                        "visibility": "-",
+                        "name": "raum",
+                        "type": "String"
+                      }
+                    ],
+                    "methods": [
+                      {
+                        "visibility": "+",
+                        "name": "anzahl()",
+                        "type": "int"
+                      }
+                    ]
+                  },
+                  {
+                    "name": "Schueler",
+                    "kind": "classType",
+                    "fields": [
+                      {
+                        "visibility": "-",
+                        "name": "name",
+                        "type": "String"
+                      }
+                    ],
+                    "methods": []
+                  }
+                ],
+                "relations": [
+                  {
+                    "from": "Schulklasse",
+                    "to": "Schueler",
+                    "kind": "aggregation",
+                    "multiplicity": "1..*"
+                  }
+                ]
+              },
+              "explanation": "Leere Raute = Aggregation: Das Ganze hat Teile, die Teile leben aber weiter. Gefüllt wäre es Komposition.",
+              "choices": [
+                "Komposition: Ohne die Schulklasse gibt es die Schüler nicht",
+                "Vererbung: Schueler erbt von Schulklasse",
+                "Abhängigkeit: Die Schulklasse benutzt Schüler nur kurz",
+                "Aggregation: Die Schüler gibt es auch ohne die Schulklasse"
+              ],
+              "correctIndex": 3
+            },
+            {
+              "id": "t31-4",
+              "type": "singleChoice",
+              "topicId": "umlrelations",
+              "difficulty": 3,
+              "prompt": "Was sagt die Vielfachheit 1..* an der Linie zwischen Haus und Raum?",
+              "diagram": {
+                "classes": [
+                  {
+                    "name": "Haus",
+                    "kind": "classType",
+                    "fields": [
+                      {
+                        "visibility": "-",
+                        "name": "adresse",
+                        "type": "String"
+                      }
+                    ],
+                    "methods": []
+                  },
+                  {
+                    "name": "Raum",
+                    "kind": "classType",
+                    "fields": [
+                      {
+                        "visibility": "-",
+                        "name": "flaeche",
+                        "type": "double"
+                      }
+                    ],
+                    "methods": []
+                  }
+                ],
+                "relations": [
+                  {
+                    "from": "Haus",
+                    "to": "Raum",
+                    "kind": "composition",
+                    "multiplicity": "1..*"
+                  }
+                ]
+              },
+              "explanation": "1..* heißt: mindestens eins, nach oben offen. 0..1 wäre keins oder eins, * wäre beliebig viele.",
+              "choices": [
+                "Ein Haus hat mindestens einen Raum",
+                "Ein Haus hat höchstens einen Raum",
+                "Ein Haus hat genau einen Raum",
+                "Ein Haus hat keine oder einen Raum"
+              ],
+              "correctIndex": 0
+            },
+            {
+              "id": "t31-5",
+              "type": "singleChoice",
+              "topicId": "umlrelations",
+              "difficulty": 4,
+              "prompt": "Rechnung benutzt Drucker nur innerhalb einer Methode als Parameter. Welche Beziehung ist das?",
+              "diagram": {
+                "classes": [
+                  {
+                    "name": "Rechnung",
+                    "kind": "classType",
+                    "fields": [],
+                    "methods": [
+                      {
+                        "visibility": "+",
+                        "name": "drucke()"
+                      }
+                    ]
+                  },
+                  {
+                    "name": "Drucker",
+                    "kind": "classType",
+                    "fields": [],
+                    "methods": [
+                      {
+                        "visibility": "+",
+                        "name": "ausgeben()"
+                      }
+                    ]
+                  }
+                ],
+                "relations": [
+                  {
+                    "from": "Rechnung",
+                    "to": "Drucker",
+                    "kind": "dependency",
+                    "label": "benutzt"
+                  }
+                ]
+              },
+              "explanation": "Wird eine Klasse nur kurz benutzt (Parameter, lokale Variable), ist das eine Abhängigkeit: gestrichelter Pfeil, keine Raute.",
+              "choices": [
+                "Abhängigkeit – gestrichelter Pfeil",
+                "Komposition – gefüllte Raute",
+                "Vererbung – Dreiecksspitze",
+                "Aggregation – leere Raute"
+              ],
+              "correctIndex": 0
+            }
+          ]
+        },
+        {
+          "id": "l32-uml-java",
+          "title": "UML ↔ Java übersetzen",
+          "summary": "Aus dem Diagramm Code lesen – und aus Code das Diagramm.",
+          "topicIds": [
+            "umlrelations",
+            "umlbasics"
+          ],
+          "estimatedMinutes": 10,
+          "theory": [
+            {
+              "title": "Vom Diagramm zum Code",
+              "body": "Eine abstrakte Klasse steht in UML mit «abstract» über dem Namen. Die Kind-Klassen hängen mit der Dreiecksspitze daran und füllen die fehlende Methode aus. Das Bild rechts ist also genau der Java-Code darunter – nur kürzer aufgeschrieben.",
+              "code": {
+                "lines": [
+                  {
+                    "code": "abstract class Form {",
+                    "explain": "Hier beginnt die Klasse „Form“. Stell sie dir als Kuchenform vor: Sie beschreibt, welche Eigenschaften und Fähigkeiten jedes Objekt vom Typ Form hat. Die echten Objekte sind die Kuchen, die später mit new aus dieser Form gebacken werden. abstract: Eine unfertige Form – aus ihr selbst kann man keine Kuchen backen, nur aus ihren Erweiterungen.",
+                    "terms": [
+                      "abstract",
+                      "class"
+                    ]
+                  },
+                  {
+                    "code": "    abstract double flaeche();",
+                    "explain": "Hier steht nur der Name des Rezepts „flaeche“ – ohne Anleitung (abstract). Sie braucht keine Zutaten und liefert am Ende eine Kommazahl als Ergebnis zurück. Jede Kind-Klasse, die „Form“ erweitert (extends), muss die fehlende Anleitung selbst liefern.",
+                    "terms": [
+                      "abstract",
+                      "double"
+                    ]
+                  },
+                  {
+                    "code": "}",
+                    "explain": "Hier endet die Klasse „Form“ – die Kuchenform ist fertig beschrieben."
+                  },
+                  {
+                    "code": ""
+                  },
+                  {
+                    "code": "class Quadrat extends Form {",
+                    "explain": "Hier beginnt die Klasse „Quadrat“. Stell sie dir als Kuchenform vor: Sie beschreibt, welche Eigenschaften und Fähigkeiten jedes Objekt vom Typ Quadrat hat. Die echten Objekte sind die Kuchen, die später mit new aus dieser Form gebacken werden. extends Form: „Quadrat“ ist eine erweiterte Form-Form. Sie übernimmt (erbt) alles, was Form hat und kann, und darf Dinge ergänzen oder ändern.",
+                    "terms": [
+                      "class",
+                      "extends"
+                    ]
+                  },
+                  {
+                    "code": "    private double seite;",
+                    "explain": "Jedes Objekt, das aus dieser Kuchenform gebacken wird, bekommt ein eigenes Fach namens „seite“. Das Etikett double heißt: In dieses Fach passen Kommazahlen (mit Punkt geschrieben, z. B. 9.99). private: Nur die Klasse selbst darf in dieses Fach schauen – von außen ist es verschlossen.",
+                    "terms": [
+                      "private",
+                      "double"
+                    ]
+                  },
+                  {
+                    "code": ""
+                  },
+                  {
+                    "code": "    Quadrat(double seite) {",
+                    "explain": "Das ist der Konstruktor – die Backanleitung, die automatisch abläuft, sobald mit new Quadrat(…) ein neues Objekt gebacken wird. Als Zutaten bekommt er seite (eine Kommazahl). Hier bekommt das neue Objekt seine Startwerte.",
+                    "terms": [
+                      "double"
+                    ]
+                  },
+                  {
+                    "code": "        this.seite = seite;",
+                    "explain": "Legt die mitgegebene Zutat „seite“ in das Fach „seite“ genau dieses Objekts. this.seite meint das Fach („dieser Kuchen hier“), seite allein die mitgegebene Zutat.",
+                    "terms": [
+                      "this",
+                      "="
+                    ]
+                  },
+                  {
+                    "code": "    }",
+                    "explain": "Hier endet der Konstruktor (die Backanleitung)."
+                  },
+                  {
+                    "code": ""
+                  },
+                  {
+                    "code": "    @Override",
+                    "explain": "@Override ist ein Hinweiszettel: „Die folgende Methode ersetzt die gleichnamige Methode der Eltern-Form.“ Java prüft, ob es diese Methode dort wirklich gibt – so fallen Tippfehler sofort auf.",
+                    "terms": [
+                      "Override"
+                    ]
+                  },
+                  {
+                    "code": "    double flaeche() {",
+                    "explain": "Hier beginnt die Methode „flaeche“ – ein Rezept mit Namen. Sie braucht keine Zutaten und liefert am Ende eine Kommazahl als Ergebnis zurück.",
+                    "terms": [
+                      "double"
+                    ]
+                  },
+                  {
+                    "code": "        return seite * seite;",
+                    "explain": "Das Rezept ist fertig: Es gibt das Ergebnis der Rechnung seite * seite zurück an die Stelle, die es aufgerufen hat – wie ein Automat, der sein Produkt ausgibt.",
+                    "terms": [
+                      "return",
+                      "*"
+                    ]
+                  },
+                  {
+                    "code": "    }",
+                    "explain": "Hier endet die Methode (das Rezept) „flaeche“."
+                  },
+                  {
+                    "code": "}",
+                    "explain": "Hier endet die Klasse „Quadrat“ – die Kuchenform ist fertig beschrieben."
+                  }
+                ]
+              },
+              "diagram": {
+                "classes": [
+                  {
+                    "name": "Form",
+                    "kind": "abstractType",
+                    "fields": [],
+                    "methods": [
+                      {
+                        "visibility": "+",
+                        "name": "flaeche()",
+                        "type": "double"
+                      }
+                    ]
+                  },
+                  {
+                    "name": "Kreis",
+                    "kind": "classType",
+                    "fields": [
+                      {
+                        "visibility": "-",
+                        "name": "radius",
+                        "type": "double"
+                      }
+                    ],
+                    "methods": [
+                      {
+                        "visibility": "+",
+                        "name": "flaeche()",
+                        "type": "double"
+                      }
+                    ]
+                  },
+                  {
+                    "name": "Quadrat",
+                    "kind": "classType",
+                    "fields": [
+                      {
+                        "visibility": "-",
+                        "name": "seite",
+                        "type": "double"
+                      }
+                    ],
+                    "methods": [
+                      {
+                        "visibility": "+",
+                        "name": "flaeche()",
+                        "type": "double"
+                      }
+                    ]
+                  }
+                ],
+                "relations": [
+                  {
+                    "from": "Kreis",
+                    "to": "Form",
+                    "kind": "extendsRelation"
+                  },
+                  {
+                    "from": "Quadrat",
+                    "to": "Form",
+                    "kind": "extendsRelation"
+                  }
+                ]
+              },
+              "verify": {
+                "context": "file",
+                "main": "System.out.println(new Quadrat(3).flaeche());",
+                "output": "9.0"
+              }
+            },
+            {
+              "title": "Vom Code zum Diagramm",
+              "body": "Umgekehrt geht es genauso: Jedes Feld wird eine Zeile im mittleren Fach, jede Methode eine Zeile im unteren Fach. private wird zu -, public zu +. Steht im Code ein Feld vom Typ einer anderen Klasse, zeichnet man eine Linie dorthin statt einer normalen Zeile.",
+              "code": {
+                "lines": [
+                  {
+                    "code": "class Bestellung {",
+                    "explain": "Hier beginnt die Klasse „Bestellung“. Stell sie dir als Kuchenform vor: Sie beschreibt, welche Eigenschaften und Fähigkeiten jedes Objekt vom Typ Bestellung hat. Die echten Objekte sind die Kuchen, die später mit new aus dieser Form gebacken werden.",
+                    "terms": [
+                      "class"
+                    ]
+                  },
+                  {
+                    "code": "    private int nummer;",
+                    "explain": "Jedes Objekt, das aus dieser Kuchenform gebacken wird, bekommt ein eigenes Fach namens „nummer“. Das Etikett int heißt: In dieses Fach passen nur ganze Zahlen. private: Nur die Klasse selbst darf in dieses Fach schauen – von außen ist es verschlossen.",
+                    "terms": [
+                      "private",
+                      "int"
+                    ]
+                  },
+                  {
+                    "code": "    private Kunde kunde;",
+                    "explain": "Jedes Objekt, das aus dieser Kuchenform gebacken wird, bekommt ein eigenes Fach namens „kunde“. Das Etikett Kunde heißt: In dieses Fach passt ein Objekt vom Typ Kunde. private: Nur die Klasse selbst darf in dieses Fach schauen – von außen ist es verschlossen.",
+                    "terms": [
+                      "private"
+                    ]
+                  },
+                  {
+                    "code": ""
+                  },
+                  {
+                    "code": "    public double summe() {",
+                    "explain": "Hier beginnt die Methode „summe“ – ein Rezept mit Namen. Sie braucht keine Zutaten und liefert am Ende eine Kommazahl als Ergebnis zurück. public: Jeder darf dieses Rezept benutzen.",
+                    "terms": [
+                      "public",
+                      "double"
+                    ]
+                  },
+                  {
+                    "code": "        return 0.0;",
+                    "explain": "Das Rezept ist fertig: Es gibt die Kommazahl 0.0 zurück an die Stelle, die es aufgerufen hat – wie ein Automat, der sein Produkt ausgibt.",
+                    "terms": [
+                      "return"
+                    ]
+                  },
+                  {
+                    "code": "    }",
+                    "explain": "Hier endet die Methode (das Rezept) „summe“."
+                  },
+                  {
+                    "code": "}",
+                    "explain": "Hier endet die Klasse „Bestellung“ – die Kuchenform ist fertig beschrieben."
+                  }
+                ]
+              },
+              "diagram": {
+                "classes": [
+                  {
+                    "name": "Bestellung",
+                    "kind": "classType",
+                    "fields": [
+                      {
+                        "visibility": "-",
+                        "name": "nummer",
+                        "type": "int"
+                      }
+                    ],
+                    "methods": [
+                      {
+                        "visibility": "+",
+                        "name": "summe()",
+                        "type": "double"
+                      }
+                    ]
+                  },
+                  {
+                    "name": "Kunde",
+                    "kind": "classType",
+                    "fields": [
+                      {
+                        "visibility": "-",
+                        "name": "name",
+                        "type": "String"
+                      }
+                    ],
+                    "methods": []
+                  }
+                ],
+                "relations": [
+                  {
+                    "from": "Bestellung",
+                    "to": "Kunde",
+                    "kind": "association",
+                    "label": "gehoert zu",
+                    "multiplicity": "1"
+                  }
+                ]
+              },
+              "callout": {
+                "kind": "tip",
+                "text": "Das Feld „kunde“ taucht im Kasten nicht als Zeile auf – dafür gibt es die Linie zum Kunden."
+              }
+            }
+          ],
+          "tasks": [
+            {
+              "id": "t32-1",
+              "type": "singleChoice",
+              "topicId": "umlrelations",
+              "difficulty": 1,
+              "prompt": "Welcher Java-Code passt zum Diagramm?",
+              "diagram": {
+                "classes": [
+                  {
+                    "name": "Tier",
+                    "kind": "classType",
+                    "fields": [
+                      {
+                        "visibility": "#",
+                        "name": "name",
+                        "type": "String"
+                      }
+                    ],
+                    "methods": [
+                      {
+                        "visibility": "+",
+                        "name": "laut()",
+                        "type": "String"
+                      }
+                    ]
+                  },
+                  {
+                    "name": "Hund",
+                    "kind": "classType",
+                    "fields": [],
+                    "methods": [
+                      {
+                        "visibility": "+",
+                        "name": "laut()",
+                        "type": "String"
+                      },
+                      {
+                        "visibility": "+",
+                        "name": "apportieren()"
+                      }
+                    ]
+                  }
+                ],
+                "relations": [
+                  {
+                    "from": "Hund",
+                    "to": "Tier",
+                    "kind": "extendsRelation"
+                  }
+                ]
+              },
+              "explanation": "Die Dreiecksspitze zeigt von Hund auf Tier – also erbt Hund von Tier: class Hund extends Tier.",
+              "choices": [
+                "class Hund implements Tier { }",
+                "class Hund { Tier tier; }",
+                "class Hund extends Tier { }",
+                "class Tier extends Hund { }"
+              ],
+              "correctIndex": 2
+            },
+            {
+              "id": "t32-2",
+              "type": "singleChoice",
+              "topicId": "umlbasics",
+              "difficulty": 2,
+              "prompt": "Welche UML-Zeile passt zu „public void einzahlen(double betrag)“?",
+              "diagram": {
+                "classes": [
+                  {
+                    "name": "Konto",
+                    "kind": "classType",
+                    "fields": [
+                      {
+                        "visibility": "-",
+                        "name": "stand",
+                        "type": "double"
+                      }
+                    ],
+                    "methods": [
+                      {
+                        "visibility": "+",
+                        "name": "einzahlen()"
+                      },
+                      {
+                        "visibility": "+",
+                        "name": "getStand()",
+                        "type": "double"
+                      }
+                    ]
+                  }
+                ],
+                "relations": []
+              },
+              "explanation": "public wird zu +, und weil die Methode nichts zurückgibt (void), steht hinter dem Namen kein Typ.",
+              "choices": [
+                "- einzahlen()",
+                "+ einzahlen(): double",
+                "# einzahlen(): void",
+                "+ einzahlen()"
+              ],
+              "correctIndex": 3
+            },
+            {
+              "id": "t32-3",
+              "type": "predictOutput",
+              "topicId": "umlrelations",
+              "difficulty": 3,
+              "prompt": "Das Diagramm zeigt Form mit den Kindern Kreis und Quadrat. Was gibt dieser Code aus?",
+              "diagram": {
+                "classes": [
+                  {
+                    "name": "Form",
+                    "kind": "abstractType",
+                    "fields": [],
+                    "methods": [
+                      {
+                        "visibility": "+",
+                        "name": "flaeche()",
+                        "type": "double"
+                      }
+                    ]
+                  },
+                  {
+                    "name": "Kreis",
+                    "kind": "classType",
+                    "fields": [
+                      {
+                        "visibility": "-",
+                        "name": "radius",
+                        "type": "double"
+                      }
+                    ],
+                    "methods": [
+                      {
+                        "visibility": "+",
+                        "name": "flaeche()",
+                        "type": "double"
+                      }
+                    ]
+                  },
+                  {
+                    "name": "Quadrat",
+                    "kind": "classType",
+                    "fields": [
+                      {
+                        "visibility": "-",
+                        "name": "seite",
+                        "type": "double"
+                      }
+                    ],
+                    "methods": [
+                      {
+                        "visibility": "+",
+                        "name": "flaeche()",
+                        "type": "double"
+                      }
+                    ]
+                  }
+                ],
+                "relations": [
+                  {
+                    "from": "Kreis",
+                    "to": "Form",
+                    "kind": "extendsRelation"
+                  },
+                  {
+                    "from": "Quadrat",
+                    "to": "Form",
+                    "kind": "extendsRelation"
+                  }
+                ]
+              },
+              "code": {
+                "lines": [
+                  {
+                    "code": "abstract class Form {",
+                    "explain": "Hier beginnt die Klasse „Form“. Stell sie dir als Kuchenform vor: Sie beschreibt, welche Eigenschaften und Fähigkeiten jedes Objekt vom Typ Form hat. Die echten Objekte sind die Kuchen, die später mit new aus dieser Form gebacken werden. abstract: Eine unfertige Form – aus ihr selbst kann man keine Kuchen backen, nur aus ihren Erweiterungen.",
+                    "terms": [
+                      "abstract",
+                      "class"
+                    ]
+                  },
+                  {
+                    "code": "    abstract double flaeche();",
+                    "explain": "Hier steht nur der Name des Rezepts „flaeche“ – ohne Anleitung (abstract). Sie braucht keine Zutaten und liefert am Ende eine Kommazahl als Ergebnis zurück. Jede Kind-Klasse, die „Form“ erweitert (extends), muss die fehlende Anleitung selbst liefern.",
+                    "terms": [
+                      "abstract",
+                      "double"
+                    ]
+                  },
+                  {
+                    "code": "}",
+                    "explain": "Hier endet die Klasse „Form“ – die Kuchenform ist fertig beschrieben."
+                  },
+                  {
+                    "code": ""
+                  },
+                  {
+                    "code": "class Quadrat extends Form {",
+                    "explain": "Hier beginnt die Klasse „Quadrat“. Stell sie dir als Kuchenform vor: Sie beschreibt, welche Eigenschaften und Fähigkeiten jedes Objekt vom Typ Quadrat hat. Die echten Objekte sind die Kuchen, die später mit new aus dieser Form gebacken werden. extends Form: „Quadrat“ ist eine erweiterte Form-Form. Sie übernimmt (erbt) alles, was Form hat und kann, und darf Dinge ergänzen oder ändern.",
+                    "terms": [
+                      "class",
+                      "extends"
+                    ]
+                  },
+                  {
+                    "code": "    private double seite;",
+                    "explain": "Jedes Objekt, das aus dieser Kuchenform gebacken wird, bekommt ein eigenes Fach namens „seite“. Das Etikett double heißt: In dieses Fach passen Kommazahlen (mit Punkt geschrieben, z. B. 9.99). private: Nur die Klasse selbst darf in dieses Fach schauen – von außen ist es verschlossen.",
+                    "terms": [
+                      "private",
+                      "double"
+                    ]
+                  },
+                  {
+                    "code": ""
+                  },
+                  {
+                    "code": "    Quadrat(double seite) {",
+                    "explain": "Das ist der Konstruktor – die Backanleitung, die automatisch abläuft, sobald mit new Quadrat(…) ein neues Objekt gebacken wird. Als Zutaten bekommt er seite (eine Kommazahl). Hier bekommt das neue Objekt seine Startwerte.",
+                    "terms": [
+                      "double"
+                    ]
+                  },
+                  {
+                    "code": "        this.seite = seite;",
+                    "explain": "Legt die mitgegebene Zutat „seite“ in das Fach „seite“ genau dieses Objekts. this.seite meint das Fach („dieser Kuchen hier“), seite allein die mitgegebene Zutat.",
+                    "terms": [
+                      "this",
+                      "="
+                    ]
+                  },
+                  {
+                    "code": "    }",
+                    "explain": "Hier endet der Konstruktor (die Backanleitung)."
+                  },
+                  {
+                    "code": ""
+                  },
+                  {
+                    "code": "    @Override",
+                    "explain": "@Override ist ein Hinweiszettel: „Die folgende Methode ersetzt die gleichnamige Methode der Eltern-Form.“ Java prüft, ob es diese Methode dort wirklich gibt – so fallen Tippfehler sofort auf.",
+                    "terms": [
+                      "Override"
+                    ]
+                  },
+                  {
+                    "code": "    double flaeche() {",
+                    "explain": "Hier beginnt die Methode „flaeche“ – ein Rezept mit Namen. Sie braucht keine Zutaten und liefert am Ende eine Kommazahl als Ergebnis zurück.",
+                    "terms": [
+                      "double"
+                    ]
+                  },
+                  {
+                    "code": "        return seite * seite;",
+                    "explain": "Das Rezept ist fertig: Es gibt das Ergebnis der Rechnung seite * seite zurück an die Stelle, die es aufgerufen hat – wie ein Automat, der sein Produkt ausgibt.",
+                    "terms": [
+                      "return",
+                      "*"
+                    ]
+                  },
+                  {
+                    "code": "    }",
+                    "explain": "Hier endet die Methode (das Rezept) „flaeche“."
+                  },
+                  {
+                    "code": "}",
+                    "explain": "Hier endet die Klasse „Quadrat“ – die Kuchenform ist fertig beschrieben."
+                  },
+                  {
+                    "code": ""
+                  },
+                  {
+                    "code": "public class Main {",
+                    "explain": "Hier beginnt die Klasse „Main“. In Java muss jedes Programm in so einer Klasse stehen – hier dient sie nur als Behälter für unser Programm, nicht als Kuchenform für Objekte. Die geschweifte Klammer { öffnet den Behälter.",
+                    "terms": [
+                      "public",
+                      "class"
+                    ]
+                  },
+                  {
+                    "code": "    public static void main(String[] args) {",
+                    "explain": "Die main-Methode ist der Startknopf des Programms: Hier beginnt Java, die Anweisungen von oben nach unten auszuführen. (public: von außen startbar · static: ohne Objekt nutzbar · void: liefert kein Ergebnis · String[] args: mögliche Startwerte.)",
+                    "terms": [
+                      "public",
+                      "static",
+                      "void",
+                      "String",
+                      "[]"
+                    ]
+                  },
+                  {
+                    "code": "        Form f = new Quadrat(4);",
+                    "explain": "Hier backen wir mit new aus der Kuchenform „Quadrat“ ein neues Objekt mit den Zutaten 4 und legen es in die Box „f“. Das Etikett Form heißt: In diese Box passt ein Objekt vom Typ Form. Achtung, spannend: Das Etikett sagt „Form“, drin liegt aber ein Quadrat-Objekt. Das passt, denn jedes Quadrat-Objekt zählt auch als Form-Objekt (es wurde aus einer erweiterten Form-Form gebacken). Fragt man es später etwas, antwortet trotzdem das Quadrat-Objekt – das nennt man Polymorphie („Vielgestaltigkeit“).",
+                    "terms": [
+                      "=",
+                      "new"
+                    ]
+                  },
+                  {
+                    "code": "        System.out.println(f.flaeche());",
+                    "explain": "Schreibt das Ergebnis von f.flaeche() auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+                    "terms": [
+                      "System.out",
+                      "println()"
+                    ]
+                  },
+                  {
+                    "code": "    }",
+                    "explain": "Hier endet die main-Methode – danach ist das Programm fertig."
+                  },
+                  {
+                    "code": "}",
+                    "explain": "Hier endet die Klasse „Main“ – der Behälter um unser Programm ist zu."
+                  }
+                ]
+              },
+              "explanation": "Auf dem Etikett steht Form, drin liegt ein Quadrat – aufgerufen wird die Methode des echten Objekts: 4 · 4 = 16.0.",
+              "javaContext": "file",
+              "expectedOutput": "16.0"
+            },
+            {
+              "id": "t32-4",
+              "type": "fillBlank",
+              "topicId": "umlrelations",
+              "difficulty": 3,
+              "prompt": "Ergänze den Code zum Diagramm: Auto setzt das Interface Fahrbar um.",
+              "diagram": {
+                "classes": [
+                  {
+                    "name": "Fahrbar",
+                    "kind": "interfaceType",
+                    "fields": [],
+                    "methods": [
+                      {
+                        "visibility": "+",
+                        "name": "fahren()"
+                      }
+                    ]
+                  },
+                  {
+                    "name": "Auto",
+                    "kind": "classType",
+                    "fields": [
+                      {
+                        "visibility": "-",
+                        "name": "marke",
+                        "type": "String"
+                      }
+                    ],
+                    "methods": [
+                      {
+                        "visibility": "+",
+                        "name": "fahren()"
+                      }
+                    ]
+                  }
+                ],
+                "relations": [
+                  {
+                    "from": "Auto",
+                    "to": "Fahrbar",
+                    "kind": "implementsRelation"
+                  }
+                ]
+              },
+              "explanation": "Die gestrichelte Linie mit Dreiecksspitze auf ein Interface heißt implements.",
+              "javaContext": "file",
+              "verify": {
+                "context": "file",
+                "main": "new Auto().fahren();",
+                "output": "faehrt"
+              },
+              "template": {
+                "lines": [
+                  {
+                    "code": "interface Fahrbar {",
+                    "explain": "Hier beginnt das Interface „Fahrbar“ – ein Vertrag: Es legt nur fest, WAS eine Klasse können muss (welche Methoden), aber nicht WIE.",
+                    "terms": [
+                      "interface"
+                    ]
+                  },
+                  {
+                    "code": "    void fahren();",
+                    "explain": "Hier steht nur der Name des Rezepts „fahren“ – ohne Anleitung. Sie braucht keine Zutaten und liefert kein Ergebnis zurück (void = „leer“) – sie erledigt nur eine Aufgabe. Jede Klasse, die den Vertrag „Fahrbar“ unterschreibt, muss die Anleitung selbst liefern.",
+                    "terms": [
+                      "void"
+                    ]
+                  },
+                  {
+                    "code": "}",
+                    "explain": "Hier endet das Interface (der Vertrag) „Fahrbar“."
+                  },
+                  {
+                    "code": ""
+                  },
+                  {
+                    "code": "class Auto {{0}} Fahrbar {",
+                    "explain": "Hier beginnt die Klasse „Auto“. Stell sie dir als Kuchenform vor: Sie beschreibt, welche Eigenschaften und Fähigkeiten jedes Objekt vom Typ Auto hat. Die echten Objekte sind die Kuchen, die später mit new aus dieser Form gebacken werden. implements Fahrbar: Die Klasse unterschreibt einen Vertrag – sie verspricht, alle Methoden anzubieten, die Fahrbar verlangt.",
+                    "terms": [
+                      "class"
+                    ]
+                  },
+                  {
+                    "code": "    public void fahren() {",
+                    "explain": "Hier beginnt die Methode „fahren“ – ein Rezept mit Namen. Sie braucht keine Zutaten und liefert kein Ergebnis zurück (void = „leer“) – sie erledigt nur eine Aufgabe. public: Jeder darf dieses Rezept benutzen.",
+                    "terms": [
+                      "public",
+                      "void"
+                    ]
+                  },
+                  {
+                    "code": "        System.out.println(\"faehrt\");",
+                    "explain": "Schreibt den Text „faehrt“ auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+                    "terms": [
+                      "System.out",
+                      "println()"
+                    ]
+                  },
+                  {
+                    "code": "    }",
+                    "explain": "Hier endet die Methode (das Rezept) „fahren“."
+                  },
+                  {
+                    "code": "}",
+                    "explain": "Hier endet die Klasse „Auto“ – die Kuchenform ist fertig beschrieben."
+                  }
+                ]
+              },
+              "blanks": [
+                {
+                  "accepted": [
+                    "implements"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "t32-5",
+              "type": "code",
+              "topicId": "umlrelations",
+              "difficulty": 4,
+              "prompt": "Setze das Diagramm um: Hund erbt von Tier und überschreibt laut() mit der Rückgabe \"Wau\".",
+              "diagram": {
+                "classes": [
+                  {
+                    "name": "Tier",
+                    "kind": "classType",
+                    "fields": [
+                      {
+                        "visibility": "#",
+                        "name": "name",
+                        "type": "String"
+                      }
+                    ],
+                    "methods": [
+                      {
+                        "visibility": "+",
+                        "name": "laut()",
+                        "type": "String"
+                      }
+                    ]
+                  },
+                  {
+                    "name": "Hund",
+                    "kind": "classType",
+                    "fields": [],
+                    "methods": [
+                      {
+                        "visibility": "+",
+                        "name": "laut()",
+                        "type": "String"
+                      },
+                      {
+                        "visibility": "+",
+                        "name": "apportieren()"
+                      }
+                    ]
+                  }
+                ],
+                "relations": [
+                  {
+                    "from": "Hund",
+                    "to": "Tier",
+                    "kind": "extendsRelation"
+                  }
+                ]
+              },
+              "explanation": "Die Dreiecksspitze im Diagramm wird zu extends; die Methode im Kasten des Hundes überschreibt die geerbte.",
+              "javaContext": "file",
+              "verify": {
+                "context": "file",
+                "main": "System.out.println(new Hund().laut());",
+                "output": "Wau"
+              },
+              "starterCode": {
+                "lines": [
+                  {
+                    "code": "class Tier {",
+                    "explain": "Hier beginnt die Klasse „Tier“. Stell sie dir als Kuchenform vor: Sie beschreibt, welche Eigenschaften und Fähigkeiten jedes Objekt vom Typ Tier hat. Die echten Objekte sind die Kuchen, die später mit new aus dieser Form gebacken werden.",
+                    "terms": [
+                      "class"
+                    ]
+                  },
+                  {
+                    "code": "    protected String name;",
+                    "explain": "Jedes Objekt, das aus dieser Kuchenform gebacken wird, bekommt ein eigenes Fach namens „name“. Das Etikett String heißt: In dieses Fach passen Texte. protected: Auch Kind-Formen (Unterklassen) dürfen hineinschauen.",
+                    "terms": [
+                      "protected",
+                      "String"
+                    ]
+                  },
+                  {
+                    "code": ""
+                  },
+                  {
+                    "code": "    public String laut() {",
+                    "explain": "Hier beginnt die Methode „laut“ – ein Rezept mit Namen. Sie braucht keine Zutaten und liefert am Ende einen Text als Ergebnis zurück. public: Jeder darf dieses Rezept benutzen.",
+                    "terms": [
+                      "public",
+                      "String"
+                    ]
+                  },
+                  {
+                    "code": "        return \"...\";",
+                    "explain": "Das Rezept ist fertig: Es gibt den Text „...“ zurück an die Stelle, die es aufgerufen hat – wie ein Automat, der sein Produkt ausgibt.",
+                    "terms": [
+                      "return"
+                    ]
+                  },
+                  {
+                    "code": "    }",
+                    "explain": "Hier endet die Methode (das Rezept) „laut“."
+                  },
+                  {
+                    "code": "}",
+                    "explain": "Hier endet die Klasse „Tier“ – die Kuchenform ist fertig beschrieben."
+                  },
+                  {
+                    "code": ""
+                  },
+                  {
+                    "code": "// Klasse Hund hier",
+                    "explain": "Ein Notizzettel als Platzhalter („Klasse Hund hier“): Genau an dieser Stelle schreibst du deinen eigenen Code hin. Java überliest Kommentare."
+                  },
+                  {
+                    "code": ""
+                  }
+                ]
+              },
+              "sampleSolution": {
+                "lines": [
+                  {
+                    "code": "class Tier {",
+                    "explain": "Hier beginnt die Klasse „Tier“. Stell sie dir als Kuchenform vor: Sie beschreibt, welche Eigenschaften und Fähigkeiten jedes Objekt vom Typ Tier hat. Die echten Objekte sind die Kuchen, die später mit new aus dieser Form gebacken werden.",
+                    "terms": [
+                      "class"
+                    ]
+                  },
+                  {
+                    "code": "    protected String name;",
+                    "explain": "Jedes Objekt, das aus dieser Kuchenform gebacken wird, bekommt ein eigenes Fach namens „name“. Das Etikett String heißt: In dieses Fach passen Texte. protected: Auch Kind-Formen (Unterklassen) dürfen hineinschauen.",
+                    "terms": [
+                      "protected",
+                      "String"
+                    ]
+                  },
+                  {
+                    "code": ""
+                  },
+                  {
+                    "code": "    public String laut() {",
+                    "explain": "Hier beginnt die Methode „laut“ – ein Rezept mit Namen. Sie braucht keine Zutaten und liefert am Ende einen Text als Ergebnis zurück. public: Jeder darf dieses Rezept benutzen.",
+                    "terms": [
+                      "public",
+                      "String"
+                    ]
+                  },
+                  {
+                    "code": "        return \"...\";",
+                    "explain": "Das Rezept ist fertig: Es gibt den Text „...“ zurück an die Stelle, die es aufgerufen hat – wie ein Automat, der sein Produkt ausgibt.",
+                    "terms": [
+                      "return"
+                    ]
+                  },
+                  {
+                    "code": "    }",
+                    "explain": "Hier endet die Methode (das Rezept) „laut“."
+                  },
+                  {
+                    "code": "}",
+                    "explain": "Hier endet die Klasse „Tier“ – die Kuchenform ist fertig beschrieben."
+                  },
+                  {
+                    "code": ""
+                  },
+                  {
+                    "code": "class Hund extends Tier {",
+                    "explain": "Hier beginnt die Klasse „Hund“. Stell sie dir als Kuchenform vor: Sie beschreibt, welche Eigenschaften und Fähigkeiten jedes Objekt vom Typ Hund hat. Die echten Objekte sind die Kuchen, die später mit new aus dieser Form gebacken werden. extends Tier: „Hund“ ist eine erweiterte Tier-Form. Sie übernimmt (erbt) alles, was Tier hat und kann, und darf Dinge ergänzen oder ändern.",
+                    "terms": [
+                      "class",
+                      "extends"
+                    ]
+                  },
+                  {
+                    "code": "    @Override",
+                    "explain": "@Override ist ein Hinweiszettel: „Die folgende Methode ersetzt die gleichnamige Methode der Eltern-Form.“ Java prüft, ob es diese Methode dort wirklich gibt – so fallen Tippfehler sofort auf.",
+                    "terms": [
+                      "Override"
+                    ]
+                  },
+                  {
+                    "code": "    public String laut() {",
+                    "explain": "Hier beginnt die Methode „laut“ – ein Rezept mit Namen. Sie braucht keine Zutaten und liefert am Ende einen Text als Ergebnis zurück. public: Jeder darf dieses Rezept benutzen.",
+                    "terms": [
+                      "public",
+                      "String"
+                    ]
+                  },
+                  {
+                    "code": "        return \"Wau\";",
+                    "explain": "Das Rezept ist fertig: Es gibt den Text „Wau“ zurück an die Stelle, die es aufgerufen hat – wie ein Automat, der sein Produkt ausgibt.",
+                    "terms": [
+                      "return"
+                    ]
+                  },
+                  {
+                    "code": "    }",
+                    "explain": "Hier endet die Methode (das Rezept) „laut“."
+                  },
+                  {
+                    "code": "}",
+                    "explain": "Hier endet die Klasse „Hund“ – die Kuchenform ist fertig beschrieben."
+                  }
+                ]
+              },
+              "rules": [
+                {
+                  "rule": "require",
+                  "pattern": "class\\s+Hund\\s+extends\\s+Tier",
+                  "message": "Die Dreiecksspitze bedeutet extends."
+                },
+                {
+                  "rule": "require",
+                  "pattern": "public\\s+String\\s+laut\\s*\\(\\s*\\)",
+                  "message": "Überschreibe die Methode laut()."
+                },
+                {
+                  "rule": "require",
+                  "pattern": "\"Wau\"",
+                  "message": "Gib \"Wau\" zurück.",
+                  "scope": "raw"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "taskPool": [
+    {
+      "id": "p-var-1a",
+      "type": "singleChoice",
+      "topicId": "variables",
+      "difficulty": 1,
+      "prompt": "Welcher Typ speichert eine Zahl mit Nachkommastellen?",
+      "variantGroup": "t02-2",
+      "explanation": "double speichert Kommazahlen. int kann nur ganze Zahlen ohne Nachkommastellen.",
+      "choices": [
+        "boolean",
+        "char",
+        "double",
+        "int"
+      ],
+      "correctIndex": 2
+    },
+    {
+      "id": "p-var-1b",
+      "type": "singleChoice",
+      "topicId": "variables",
+      "difficulty": 1,
+      "prompt": "Was passt in eine Box mit dem Etikett boolean?",
+      "variantGroup": "t02-1",
+      "explanation": "boolean kennt nur zwei Werte: true (ja) und false (nein).",
+      "choices": [
+        "Ein einzelnes Zeichen",
+        "Beliebiger Text",
+        "true oder false",
+        "Jede ganze Zahl"
+      ],
+      "correctIndex": 2
+    },
+    {
+      "id": "p-var-2a",
+      "type": "predictOutput",
+      "topicId": "variables",
+      "difficulty": 2,
+      "prompt": "Was wird ausgegeben?",
+      "variantGroup": "t02-3",
+      "code": {
+        "lines": [
+          {
+            "code": "int punkte = 7;",
+            "explain": "Hier erstellen wir eine Box namens „punkte“ und legen die Zahl 7 hinein. Das Etikett int heißt: In diese Box passen nur ganze Zahlen.",
+            "terms": [
+              "int",
+              "="
+            ]
+          },
+          {
+            "code": "punkte = punkte + 3;",
+            "explain": "Rechnet punkte + 3 aus und legt das Ergebnis zurück in die Box „punkte“ – der alte Inhalt wird ersetzt.",
+            "terms": [
+              "=",
+              "+"
+            ]
+          },
+          {
+            "code": "System.out.println(\"Punkte: \" + punkte);",
+            "explain": "Schreibt den zusammengesetzten Text aus „Punkte: “ und dem Inhalt der Box „punkte“ (das + klebt die Teile aneinander) auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()",
+              "+"
+            ]
+          }
+        ]
+      },
+      "explanation": "punkte wird auf 10 gesetzt. Mit + klebt Java Text und Zahl zu einem Text zusammen.",
+      "expectedOutput": "Punkte: 10"
+    },
+    {
+      "id": "p-var-2b",
+      "type": "predictOutput",
+      "topicId": "variables",
+      "difficulty": 2,
+      "prompt": "Was wird ausgegeben?",
+      "variantGroup": "t02-2",
+      "code": {
+        "lines": [
+          {
+            "code": "double preis = 2.5;",
+            "explain": "Hier erstellen wir eine Box namens „preis“ und legen die Kommazahl 2.5 hinein. Das Etikett double heißt: In diese Box passen Kommazahlen (mit Punkt geschrieben, z. B. 9.99).",
+            "terms": [
+              "double",
+              "="
+            ]
+          },
+          {
+            "code": "int menge = 4;",
+            "explain": "Hier erstellen wir eine Box namens „menge“ und legen die Zahl 4 hinein. Das Etikett int heißt: In diese Box passen nur ganze Zahlen.",
+            "terms": [
+              "int",
+              "="
+            ]
+          },
+          {
+            "code": "System.out.println(preis * menge);",
+            "explain": "Schreibt das Ergebnis der Rechnung preis * menge auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()",
+              "*"
+            ]
+          }
+        ]
+      },
+      "explanation": "Sobald eine Kommazahl beteiligt ist, rechnet Java in double – deshalb 10.0 und nicht 10.",
+      "expectedOutput": "10.0"
+    },
+    {
+      "id": "p-var-3a",
+      "type": "singleChoice",
+      "topicId": "variables",
+      "difficulty": 3,
+      "prompt": "Warum lässt sich der Inhalt einer final-Box nicht mehr ändern?",
+      "variantGroup": "t02-4",
+      "explanation": "final heißt: einmal gefüllt, für immer gleich. Genau richtig für Konstanten wie MWST.",
+      "choices": [
+        "final versiegelt die Box – der Wert bleibt für immer",
+        "final macht die Box kleiner",
+        "final wandelt die Box in Text um",
+        "final löscht den Inhalt nach der Nutzung"
+      ],
+      "correctIndex": 0
+    },
+    {
+      "id": "p-op-1a",
+      "type": "predictOutput",
+      "topicId": "operators",
+      "difficulty": 1,
+      "prompt": "Was wird ausgegeben?",
+      "variantGroup": "t03-1",
+      "code": {
+        "lines": [
+          {
+            "code": "System.out.println(9 % 4);",
+            "explain": "Schreibt das Ergebnis der Rechnung 9 % 4 auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()",
+              "%"
+            ]
+          }
+        ]
+      },
+      "explanation": "% liefert den Rest der Division: 9 = 2 · 4 + 1.",
+      "expectedOutput": "1"
+    },
+    {
+      "id": "p-op-1b",
+      "type": "predictOutput",
+      "topicId": "operators",
+      "difficulty": 1,
+      "prompt": "Was wird ausgegeben?",
+      "variantGroup": "t03-1",
+      "code": {
+        "lines": [
+          {
+            "code": "System.out.println(10 % 5);",
+            "explain": "Schreibt das Ergebnis der Rechnung 10 % 5 auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()",
+              "%"
+            ]
+          }
+        ]
+      },
+      "explanation": "10 geht genau 2-mal in 5 · 2 auf – es bleibt kein Rest. Rest 0 heißt: teilbar.",
+      "expectedOutput": "0"
+    },
+    {
+      "id": "p-op-2a",
+      "type": "predictOutput",
+      "topicId": "operators",
+      "difficulty": 2,
+      "prompt": "Was gibt dieses Programm aus?",
+      "variantGroup": "t03-2",
+      "code": {
+        "lines": [
+          {
+            "code": "int a = 9;",
+            "explain": "Hier erstellen wir eine Box namens „a“ und legen die Zahl 9 hinein. Das Etikett int heißt: In diese Box passen nur ganze Zahlen.",
+            "terms": [
+              "int",
+              "="
+            ]
+          },
+          {
+            "code": "int b = 4;",
+            "explain": "Hier erstellen wir eine Box namens „b“ und legen die Zahl 4 hinein. Das Etikett int heißt: In diese Box passen nur ganze Zahlen.",
+            "terms": [
+              "int",
+              "="
+            ]
+          },
+          {
+            "code": "System.out.println(a / b);",
+            "explain": "Schreibt das Ergebnis der Rechnung a / b auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()",
+              "/"
+            ]
+          },
+          {
+            "code": "System.out.println(a % b);",
+            "explain": "Schreibt das Ergebnis der Rechnung a % b auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()",
+              "%"
+            ]
+          }
+        ]
+      },
+      "explanation": "Ganzzahldivision schneidet ab: 9 / 4 = 2. Der Rest 1 kommt mit % heraus.",
+      "expectedOutput": "2\n1"
+    },
+    {
+      "id": "p-op-2b",
+      "type": "predictOutput",
+      "topicId": "operators",
+      "difficulty": 2,
+      "prompt": "Was wird ausgegeben?",
+      "variantGroup": "t03-3",
+      "code": {
+        "lines": [
+          {
+            "code": "int zaehler = 5;",
+            "explain": "Hier erstellen wir eine Box namens „zaehler“ und legen die Zahl 5 hinein. Das Etikett int heißt: In diese Box passen nur ganze Zahlen.",
+            "terms": [
+              "int",
+              "="
+            ]
+          },
+          {
+            "code": "zaehler += 3;",
+            "explain": "Legt 3 zum Inhalt der Box „zaehler“ dazu – sie wird um 3 größer. (Kurzform für zaehler = zaehler + 3.)",
+            "terms": [
+              "+="
+            ]
+          },
+          {
+            "code": "zaehler++;",
+            "explain": "Zählt die Box „zaehler“ um 1 hoch – wie ein Klick auf einen Handzähler. (Kurzform für zaehler = zaehler + 1.)",
+            "terms": [
+              "++"
+            ]
+          },
+          {
+            "code": "System.out.println(zaehler);",
+            "explain": "Schreibt den Inhalt der Box „zaehler“ auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()"
+            ]
+          }
+        ]
+      },
+      "explanation": "+= 3 macht 8 daraus, ++ zählt eins weiter: 9.",
+      "expectedOutput": "9"
+    },
+    {
+      "id": "p-op-3a",
+      "type": "singleChoice",
+      "topicId": "operators",
+      "difficulty": 3,
+      "prompt": "Wie rechnet man 7 geteilt durch 2 so, dass 3.5 herauskommt?",
+      "variantGroup": "t03-5",
+      "explanation": "Sobald eine Kommazahl beteiligt ist, rechnet Java in double. 7 / 2 wäre Ganzzahldivision und ergäbe 3.",
+      "choices": [
+        "7 % 2",
+        "(int) 7 / 2",
+        "7 / 2.0",
+        "7 / 2"
+      ],
+      "correctIndex": 2
+    },
+    {
+      "id": "p-if-1a",
+      "type": "predictOutput",
+      "topicId": "conditionals",
+      "difficulty": 2,
+      "prompt": "Was wird ausgegeben?",
+      "variantGroup": "t04-2",
+      "code": {
+        "lines": [
+          {
+            "code": "int alter = 20;",
+            "explain": "Hier erstellen wir eine Box namens „alter“ und legen die Zahl 20 hinein. Das Etikett int heißt: In diese Box passen nur ganze Zahlen.",
+            "terms": [
+              "int",
+              "="
+            ]
+          },
+          {
+            "code": "if (alter >= 18) {",
+            "explain": "Hier stellt das Programm eine Frage: Stimmt „alter >= 18“? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
+            "terms": [
+              "if",
+              ">="
+            ]
+          },
+          {
+            "code": "    System.out.println(\"volljaehrig\");",
+            "explain": "Schreibt den Text „volljaehrig“ auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()"
+            ]
+          },
+          {
+            "code": "} else {",
+            "explain": "Sonst (else): Wenn alle Fragen davor mit „nein“ beantwortet wurden, läuft stattdessen dieser Block.",
+            "terms": [
+              "else"
+            ]
+          },
+          {
+            "code": "    System.out.println(\"minderjaehrig\");",
+            "explain": "Schreibt den Text „minderjaehrig“ auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()"
+            ]
+          },
+          {
+            "code": "}",
+            "explain": "Hier endet der Sonst-Block (else)."
+          }
+        ]
+      },
+      "explanation": "20 >= 18 ist wahr, deshalb läuft der if-Block und der else-Block wird übersprungen.",
+      "expectedOutput": "volljaehrig"
+    },
+    {
+      "id": "p-if-1b",
+      "type": "predictOutput",
+      "topicId": "conditionals",
+      "difficulty": 2,
+      "prompt": "Was wird ausgegeben?",
+      "variantGroup": "t04-4",
+      "code": {
+        "lines": [
+          {
+            "code": "int temperatur = 3;",
+            "explain": "Hier erstellen wir eine Box namens „temperatur“ und legen die Zahl 3 hinein. Das Etikett int heißt: In diese Box passen nur ganze Zahlen.",
+            "terms": [
+              "int",
+              "="
+            ]
+          },
+          {
+            "code": "if (temperatur > 20) {",
+            "explain": "Hier stellt das Programm eine Frage: Stimmt „temperatur > 20“? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
+            "terms": [
+              "if",
+              ">"
+            ]
+          },
+          {
+            "code": "    System.out.println(\"warm\");",
+            "explain": "Schreibt den Text „warm“ auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()"
+            ]
+          },
+          {
+            "code": "} else if (temperatur > 10) {",
+            "explain": "Falls die Antwort oben „nein“ war, stellt das Programm die nächste Frage: Stimmt „temperatur > 10“? Nur bei „ja“ läuft der folgende Block.",
+            "terms": [
+              "else",
+              "if",
+              ">"
+            ]
+          },
+          {
+            "code": "    System.out.println(\"mild\");",
+            "explain": "Schreibt den Text „mild“ auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()"
+            ]
+          },
+          {
+            "code": "} else {",
+            "explain": "Sonst (else): Wenn alle Fragen davor mit „nein“ beantwortet wurden, läuft stattdessen dieser Block.",
+            "terms": [
+              "else"
+            ]
+          },
+          {
+            "code": "    System.out.println(\"kalt\");",
+            "explain": "Schreibt den Text „kalt“ auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()"
+            ]
+          },
+          {
+            "code": "}",
+            "explain": "Hier endet der Sonst-Block (else)."
+          }
+        ]
+      },
+      "explanation": "3 > 20 ist falsch, 3 > 10 auch – deshalb bleibt nur der else-Block übrig.",
+      "expectedOutput": "kalt"
+    },
+    {
+      "id": "p-if-2a",
+      "type": "fillBlank",
+      "topicId": "conditionals",
+      "difficulty": 3,
+      "prompt": "Ergänze die Bedingung: Eine Zahl ist durch 3 teilbar, wenn der Rest bei Division durch 3 null ist.",
+      "variantGroup": "t04-3",
+      "explanation": "zahl % 3 liefert den Rest. Ist er 0, ist die Zahl durch 3 teilbar.",
+      "verify": {
+        "output": "teilbar"
+      },
+      "template": {
+        "lines": [
+          {
+            "code": "int zahl = 12;",
+            "explain": "Hier erstellen wir eine Box namens „zahl“ und legen die Zahl 12 hinein. Das Etikett int heißt: In diese Box passen nur ganze Zahlen.",
+            "terms": [
+              "int",
+              "="
+            ]
+          },
+          {
+            "code": "if (zahl {{0}} 3 == 0) {",
+            "explain": "Hier stellt das Programm eine Frage: Stimmt „zahl % 3 == 0“? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
+            "terms": [
+              "if",
+              "=="
+            ]
+          },
+          {
+            "code": "    System.out.println(\"teilbar\");",
+            "explain": "Schreibt den Text „teilbar“ auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()"
+            ]
+          },
+          {
+            "code": "}",
+            "explain": "Hier endet der Block, der nur bei „ja“ ausgeführt wird."
+          }
+        ]
+      },
+      "blanks": [
+        {
+          "accepted": [
+            "%"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "p-if-2b",
+      "type": "predictOutput",
+      "topicId": "conditionals",
+      "difficulty": 3,
+      "prompt": "Was wird ausgegeben?",
+      "variantGroup": "t04-4",
+      "code": {
+        "lines": [
+          {
+            "code": "int punkte = 55;",
+            "explain": "Hier erstellen wir eine Box namens „punkte“ und legen die Zahl 55 hinein. Das Etikett int heißt: In diese Box passen nur ganze Zahlen.",
+            "terms": [
+              "int",
+              "="
+            ]
+          },
+          {
+            "code": "if (punkte >= 90) {",
+            "explain": "Hier stellt das Programm eine Frage: Stimmt „punkte >= 90“? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
+            "terms": [
+              "if",
+              ">="
+            ]
+          },
+          {
+            "code": "    System.out.println(\"sehr gut\");",
+            "explain": "Schreibt den Text „sehr gut“ auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()"
+            ]
+          },
+          {
+            "code": "} else if (punkte >= 70) {",
+            "explain": "Falls die Antwort oben „nein“ war, stellt das Programm die nächste Frage: Stimmt „punkte >= 70“? Nur bei „ja“ läuft der folgende Block.",
+            "terms": [
+              "else",
+              "if",
+              ">="
+            ]
+          },
+          {
+            "code": "    System.out.println(\"gut\");",
+            "explain": "Schreibt den Text „gut“ auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()"
+            ]
+          },
+          {
+            "code": "} else if (punkte >= 50) {",
+            "explain": "Falls die Antwort oben „nein“ war, stellt das Programm die nächste Frage: Stimmt „punkte >= 50“? Nur bei „ja“ läuft der folgende Block.",
+            "terms": [
+              "else",
+              "if",
+              ">="
+            ]
+          },
+          {
+            "code": "    System.out.println(\"bestanden\");",
+            "explain": "Schreibt den Text „bestanden“ auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()"
+            ]
+          },
+          {
+            "code": "} else {",
+            "explain": "Sonst (else): Wenn alle Fragen davor mit „nein“ beantwortet wurden, läuft stattdessen dieser Block.",
+            "terms": [
+              "else"
+            ]
+          },
+          {
+            "code": "    System.out.println(\"nicht bestanden\");",
+            "explain": "Schreibt den Text „nicht bestanden“ auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()"
+            ]
+          },
+          {
+            "code": "}",
+            "explain": "Hier endet der Sonst-Block (else)."
+          }
+        ]
+      },
+      "explanation": "Java prüft von oben nach unten. Die erste wahre Bedingung gewinnt: 55 >= 50.",
+      "expectedOutput": "bestanden"
+    },
+    {
+      "id": "p-loop-1a",
+      "type": "predictOutput",
+      "topicId": "loops",
+      "difficulty": 1,
+      "prompt": "Was gibt die Schleife aus?",
+      "variantGroup": "t05-1",
+      "code": {
+        "lines": [
+          {
+            "code": "for (int i = 1; i <= 3; i++) {",
+            "explain": "Eine Schleife: Das Programm wiederholt die Zeilen im Block mehrmals. Der Zähler „i“ startet bei 1. Vor jeder Runde fragt das Programm „i <= 3?“ – nur bei „ja“ gibt es eine weitere Runde. Nach jeder Runde wird „i“ um 1 erhöht.",
+            "terms": [
+              "for",
+              "int",
+              "=",
+              "<=",
+              "++"
+            ]
+          },
+          {
+            "code": "    System.out.println(i);",
+            "explain": "Schreibt den Inhalt der Box „i“ auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()"
+            ]
+          },
+          {
+            "code": "}",
+            "explain": "Hier endet eine Runde der Schleife. Das Programm springt wieder nach oben und prüft, ob noch eine Runde kommt."
+          }
+        ]
+      },
+      "explanation": "i startet bei 1 und läuft, solange i <= 3 gilt – also 1, 2, 3.",
+      "expectedOutput": "1\n2\n3"
+    },
+    {
+      "id": "p-loop-1b",
+      "type": "predictOutput",
+      "topicId": "loops",
+      "difficulty": 2,
+      "prompt": "Was gibt die Schleife aus?",
+      "variantGroup": "t05-3",
+      "code": {
+        "lines": [
+          {
+            "code": "int n = 3;",
+            "explain": "Hier erstellen wir eine Box namens „n“ und legen die Zahl 3 hinein. Das Etikett int heißt: In diese Box passen nur ganze Zahlen.",
+            "terms": [
+              "int",
+              "="
+            ]
+          },
+          {
+            "code": "while (n > 0) {",
+            "explain": "Eine Schleife: Solange die Frage „n > 0?“ mit „ja“ beantwortet wird, wiederholt das Programm die Zeilen im Block. Ist die Antwort schon am Anfang „nein“, läuft der Block gar nicht.",
+            "terms": [
+              "while",
+              ">"
+            ]
+          },
+          {
+            "code": "    System.out.print(n + \" \");",
+            "explain": "Schreibt den zusammengesetzten Text aus dem Inhalt der Box „n“ und „ “ (das + klebt die Teile aneinander) auf den Bildschirm – aber ohne neue Zeile: Die nächste Ausgabe kommt direkt dahinter.",
+            "terms": [
+              "System.out",
+              "print()",
+              "+"
+            ]
+          },
+          {
+            "code": "    n--;",
+            "explain": "Zählt die Box „n“ um 1 herunter. (Kurzform für n = n - 1.)",
+            "terms": [
+              "--"
+            ]
+          },
+          {
+            "code": "}",
+            "explain": "Hier endet eine Runde der Schleife. Das Programm springt wieder nach oben und prüft, ob noch eine Runde kommt."
+          }
+        ]
+      },
+      "explanation": "Die Schleife läuft rückwärts: n wird in jeder Runde um 1 kleiner, bei 0 endet sie.",
+      "expectedOutput": "3 2 1 "
+    },
+    {
+      "id": "p-loop-2a",
+      "type": "predictOutput",
+      "topicId": "loops",
+      "difficulty": 3,
+      "prompt": "Was wird ausgegeben?",
+      "variantGroup": "t05-5",
+      "code": {
+        "lines": [
+          {
+            "code": "int summe = 0;",
+            "explain": "Hier erstellen wir eine Box namens „summe“ und legen die Zahl 0 hinein. Das Etikett int heißt: In diese Box passen nur ganze Zahlen.",
+            "terms": [
+              "int",
+              "="
+            ]
+          },
+          {
+            "code": "for (int i = 1; i <= 5; i++) {",
+            "explain": "Eine Schleife: Das Programm wiederholt die Zeilen im Block mehrmals. Der Zähler „i“ startet bei 1. Vor jeder Runde fragt das Programm „i <= 5?“ – nur bei „ja“ gibt es eine weitere Runde. Nach jeder Runde wird „i“ um 1 erhöht.",
+            "terms": [
+              "for",
+              "int",
+              "=",
+              "<=",
+              "++"
+            ]
+          },
+          {
+            "code": "    summe += i;",
+            "explain": "Legt i zum Inhalt der Box „summe“ dazu – sie wird um i größer. (Kurzform für summe = summe + i.)",
+            "terms": [
+              "+="
+            ]
+          },
+          {
+            "code": "}",
+            "explain": "Hier endet eine Runde der Schleife. Das Programm springt wieder nach oben und prüft, ob noch eine Runde kommt."
+          },
+          {
+            "code": "System.out.println(summe);",
+            "explain": "Schreibt den Inhalt der Box „summe“ auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()"
+            ]
+          }
+        ]
+      },
+      "explanation": "1 + 2 + 3 + 4 + 5 = 15. Die Box summe sammelt das Ergebnis über alle Runden ein.",
+      "expectedOutput": "15"
+    },
+    {
+      "id": "p-loop-2b",
+      "type": "predictOutput",
+      "topicId": "loops",
+      "difficulty": 3,
+      "prompt": "Was wird ausgegeben?",
+      "variantGroup": "t05-4",
+      "code": {
+        "lines": [
+          {
+            "code": "for (int i = 1; i <= 6; i++) {",
+            "explain": "Eine Schleife: Das Programm wiederholt die Zeilen im Block mehrmals. Der Zähler „i“ startet bei 1. Vor jeder Runde fragt das Programm „i <= 6?“ – nur bei „ja“ gibt es eine weitere Runde. Nach jeder Runde wird „i“ um 1 erhöht.",
+            "terms": [
+              "for",
+              "int",
+              "=",
+              "<=",
+              "++"
+            ]
+          },
+          {
+            "code": "    if (i % 2 == 0) {",
+            "explain": "Hier stellt das Programm eine Frage: Stimmt „i % 2 == 0“ – ist i also gerade? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
+            "terms": [
+              "if",
+              "%",
+              "=="
+            ]
+          },
+          {
+            "code": "        continue;",
+            "explain": "Mit continue wird diese Runde hier abgebrochen; die Schleife macht direkt mit der nächsten Runde weiter.",
+            "terms": [
+              "continue"
+            ]
+          },
+          {
+            "code": "    }",
+            "explain": "Hier endet der Block, der nur bei „ja“ ausgeführt wird."
+          },
+          {
+            "code": "    System.out.print(i + \" \");",
+            "explain": "Schreibt den zusammengesetzten Text aus dem Inhalt der Box „i“ und „ “ (das + klebt die Teile aneinander) auf den Bildschirm – aber ohne neue Zeile: Die nächste Ausgabe kommt direkt dahinter.",
+            "terms": [
+              "System.out",
+              "print()",
+              "+"
+            ]
+          },
+          {
+            "code": "}",
+            "explain": "Hier endet eine Runde der Schleife. Das Programm springt wieder nach oben und prüft, ob noch eine Runde kommt."
+          }
+        ]
+      },
+      "explanation": "continue überspringt den Rest der Runde. Gerade Zahlen werden also nicht ausgegeben.",
+      "expectedOutput": "1 3 5 "
+    },
+    {
+      "id": "p-loop-3a",
+      "type": "code",
+      "topicId": "loops",
+      "difficulty": 4,
+      "prompt": "Gib mit einer Schleife die Zahlen von 10 bis 1 rückwärts aus, jede in einer eigenen Zeile.",
+      "variantGroup": "t05-5",
+      "explanation": "Der Zähler startet bei 10 und wird mit i-- kleiner, bis die Bedingung i >= 1 nicht mehr gilt.",
+      "starterCode": {
+        "lines": [
+          {
+            "code": "// Deine Schleife hier",
+            "explain": "Ein Notizzettel als Platzhalter („Deine Schleife hier“): Genau an dieser Stelle schreibst du deinen eigenen Code hin. Java überliest Kommentare."
+          },
+          {
+            "code": ""
+          }
+        ]
+      },
+      "sampleSolution": {
+        "lines": [
+          {
+            "code": "for (int i = 10; i >= 1; i--) {",
+            "explain": "Eine Schleife: Das Programm wiederholt die Zeilen im Block mehrmals. Der Zähler „i“ startet bei 10. Vor jeder Runde fragt das Programm „i >= 1?“ – nur bei „ja“ gibt es eine weitere Runde. Nach jeder Runde wird „i“ um 1 verringert.",
+            "terms": [
+              "for",
+              "int",
+              "=",
+              ">=",
+              "--"
+            ]
+          },
+          {
+            "code": "    System.out.println(i);",
+            "explain": "Schreibt den Inhalt der Box „i“ auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()"
+            ]
+          },
+          {
+            "code": "}",
+            "explain": "Hier endet eine Runde der Schleife. Das Programm springt wieder nach oben und prüft, ob noch eine Runde kommt."
+          }
+        ]
+      },
+      "expectedOutput": "10\n9\n8\n7\n6\n5\n4\n3\n2\n1",
+      "rules": [
+        {
+          "rule": "require",
+          "pattern": "\\b(for|while)\\b",
+          "message": "Nutze eine Schleife."
+        },
+        {
+          "rule": "require",
+          "pattern": "System\\.out\\.println",
+          "message": "Gib jede Zahl mit println aus."
+        },
+        {
+          "rule": "forbid",
+          "pattern": "println\\(10\\);[\\s\\S]*println\\(9\\);",
+          "message": "Nicht alle Zahlen einzeln hinschreiben – lass die Schleife zählen."
+        }
+      ]
+    },
+    {
+      "id": "p-meth-1a",
+      "type": "predictOutput",
+      "topicId": "methods",
+      "difficulty": 2,
+      "prompt": "Was wird ausgegeben?",
+      "variantGroup": "t06-2",
+      "code": {
+        "lines": [
+          {
+            "code": "static int verdreifache(int x) {",
+            "explain": "Hier beginnt die Methode „verdreifache“ – ein Rezept mit Namen. Als Zutaten bekommt sie x (eine ganze Zahl) und liefert am Ende eine ganze Zahl als Ergebnis zurück. static: Das Rezept gehört zur Kuchenform selbst – man braucht kein Objekt, um es zu benutzen.",
+            "terms": [
+              "static",
+              "int"
+            ]
+          },
+          {
+            "code": "    return x * 3;",
+            "explain": "Das Rezept ist fertig: Es gibt das Ergebnis der Rechnung x * 3 zurück an die Stelle, die es aufgerufen hat – wie ein Automat, der sein Produkt ausgibt.",
+            "terms": [
+              "return",
+              "*"
+            ]
+          },
+          {
+            "code": "}",
+            "explain": "Hier endet die Methode (das Rezept) „verdreifache“."
+          },
+          {
+            "code": ""
+          },
+          {
+            "code": "public static void main(String[] args) {",
+            "explain": "Die main-Methode ist der Startknopf des Programms: Hier beginnt Java, die Anweisungen von oben nach unten auszuführen. (public: von außen startbar · static: ohne Objekt nutzbar · void: liefert kein Ergebnis · String[] args: mögliche Startwerte.)",
+            "terms": [
+              "public",
+              "static",
+              "void",
+              "String",
+              "[]"
+            ]
+          },
+          {
+            "code": "    System.out.println(verdreifache(4));",
+            "explain": "Schreibt das Ergebnis von verdreifache(4) auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()"
+            ]
+          },
+          {
+            "code": "}",
+            "explain": "Hier endet die main-Methode – danach ist das Programm fertig."
+          }
+        ]
+      },
+      "explanation": "Das Rezept „verdreifache“ bekommt 4 als Zutat und gibt 4 * 3 = 12 zurück.",
+      "javaContext": "members",
+      "expectedOutput": "12"
+    },
+    {
+      "id": "p-meth-1b",
+      "type": "singleChoice",
+      "topicId": "methods",
+      "difficulty": 2,
+      "prompt": "Was bedeutet void als Rückgabetyp?",
+      "variantGroup": "t06-1",
+      "explanation": "void heißt „nichts“: Das Rezept erledigt etwas, liefert aber kein Ergebnis zurück.",
+      "choices": [
+        "Die Methode gibt keinen Wert zurück",
+        "Die Methode gibt immer 0 zurück",
+        "Die Methode darf nicht aufgerufen werden",
+        "Die Methode gibt einen leeren Text zurück"
+      ],
+      "correctIndex": 0
+    },
+    {
+      "id": "p-meth-2a",
+      "type": "fillBlank",
+      "topicId": "methods",
+      "difficulty": 3,
+      "prompt": "Ergänze die Methode: Sie soll das Quadrat einer Zahl zurückgeben.",
+      "variantGroup": "t06-3",
+      "explanation": "Die Methode liefert eine ganze Zahl (int) und gibt sie mit return zurück: 6 · 6 = 36.",
+      "javaContext": "members",
+      "verify": {
+        "context": "members",
+        "output": "36"
+      },
+      "template": {
+        "lines": [
+          {
+            "code": "static {{0}} quadrat(int zahl) {",
+            "explain": "Hier beginnt die Methode „quadrat“ – ein Rezept mit Namen. Als Zutaten bekommt sie zahl (eine ganze Zahl) und liefert am Ende eine ganze Zahl als Ergebnis zurück. static: Das Rezept gehört zur Kuchenform selbst – man braucht kein Objekt, um es zu benutzen.",
+            "terms": [
+              "static",
+              "int"
+            ]
+          },
+          {
+            "code": "    {{1}} zahl * zahl;",
+            "explain": "Das Rezept ist fertig: Es gibt das Ergebnis der Rechnung zahl * zahl zurück an die Stelle, die es aufgerufen hat – wie ein Automat, der sein Produkt ausgibt.",
+            "terms": [
+              "*"
+            ]
+          },
+          {
+            "code": "}",
+            "explain": "Hier endet die Methode (das Rezept) „quadrat“."
+          },
+          {
+            "code": ""
+          },
+          {
+            "code": "public static void main(String[] args) {",
+            "explain": "Die main-Methode ist der Startknopf des Programms: Hier beginnt Java, die Anweisungen von oben nach unten auszuführen. (public: von außen startbar · static: ohne Objekt nutzbar · void: liefert kein Ergebnis · String[] args: mögliche Startwerte.)",
+            "terms": [
+              "public",
+              "static",
+              "void",
+              "String",
+              "[]"
+            ]
+          },
+          {
+            "code": "    System.out.println(quadrat(6));",
+            "explain": "Schreibt das Ergebnis von quadrat(6) auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()"
+            ]
+          },
+          {
+            "code": "}",
+            "explain": "Hier endet die main-Methode – danach ist das Programm fertig."
+          }
+        ]
+      },
+      "blanks": [
+        {
+          "accepted": [
+            "int"
+          ]
+        },
+        {
+          "accepted": [
+            "return"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "p-meth-3a",
+      "type": "code",
+      "topicId": "methods",
+      "difficulty": 4,
+      "prompt": "Schreibe die Methode istPositiv(int zahl), die true liefert, wenn die Zahl größer als 0 ist.",
+      "variantGroup": "t06-5",
+      "explanation": "Der Vergleich zahl > 0 ist selbst schon ein boolean und kann direkt zurückgegeben werden.",
+      "javaContext": "members",
+      "verify": {
+        "context": "members",
+        "main": "System.out.println(istPositiv(5));",
+        "output": "true"
+      },
+      "starterCode": {
+        "lines": [
+          {
+            "code": "// Deine Methode hier",
+            "explain": "Ein Notizzettel als Platzhalter („Deine Methode hier“): Genau an dieser Stelle schreibst du deinen eigenen Code hin. Java überliest Kommentare."
+          },
+          {
+            "code": ""
+          }
+        ]
+      },
+      "sampleSolution": {
+        "lines": [
+          {
+            "code": "static boolean istPositiv(int zahl) {",
+            "explain": "Hier beginnt die Methode „istPositiv“ – ein Rezept mit Namen. Als Zutaten bekommt sie zahl (eine ganze Zahl) und liefert am Ende einen Ja/Nein-Wert (true oder false) als Ergebnis zurück. static: Das Rezept gehört zur Kuchenform selbst – man braucht kein Objekt, um es zu benutzen.",
+            "terms": [
+              "static",
+              "boolean",
+              "int"
+            ]
+          },
+          {
+            "code": "    return zahl > 0;",
+            "explain": "Das Rezept ist fertig: Es gibt die Antwort auf die Frage „zahl > 0?“ (true = ja, false = nein) zurück an die Stelle, die es aufgerufen hat – wie ein Automat, der sein Produkt ausgibt.",
+            "terms": [
+              "return",
+              ">"
+            ]
+          },
+          {
+            "code": "}",
+            "explain": "Hier endet die Methode (das Rezept) „istPositiv“."
+          }
+        ]
+      },
+      "rules": [
+        {
+          "rule": "require",
+          "pattern": "boolean\\s+istPositiv\\s*\\(\\s*int\\s+\\w+\\s*\\)",
+          "message": "Die Methode heißt istPositiv und liefert boolean."
+        },
+        {
+          "rule": "require",
+          "pattern": "return[^;]*>[^;]*0",
+          "message": "Vergleiche die Zahl mit 0."
+        }
+      ]
+    },
+    {
+      "id": "p-arr-1a",
+      "type": "predictOutput",
+      "topicId": "arrays",
+      "difficulty": 1,
+      "prompt": "Was wird ausgegeben?",
+      "variantGroup": "t07-1",
+      "code": {
+        "lines": [
+          {
+            "code": "int[] zahlen = {10, 20, 30};",
+            "explain": "Hier erstellen wir einen Eierkarton namens „zahlen“ mit 3 nummerierten Fächern und legen 10, 20 und 30 hinein. Die Fächer sind ab 0 nummeriert: In Fach 0 liegt 10.",
+            "terms": [
+              "int",
+              "[]",
+              "="
+            ]
+          },
+          {
+            "code": "System.out.println(zahlen[0]);",
+            "explain": "Schreibt den Inhalt von Fach Nummer 0 im Eierkarton „zahlen“ auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()"
+            ]
+          }
+        ]
+      },
+      "explanation": "Java zählt die Fächer ab 0: In Fach 0 liegt die 10.",
+      "expectedOutput": "10"
+    },
+    {
+      "id": "p-arr-1b",
+      "type": "predictOutput",
+      "topicId": "arrays",
+      "difficulty": 2,
+      "prompt": "Was wird ausgegeben?",
+      "variantGroup": "t07-1",
+      "code": {
+        "lines": [
+          {
+            "code": "String[] namen = {\"Ada\", \"Linus\", \"Grace\"};",
+            "explain": "Hier erstellen wir einen Eierkarton namens „namen“ mit 3 nummerierten Fächern und legen „Ada“, „Linus“ und „Grace“ hinein. Die Fächer sind ab 0 nummeriert: In Fach 0 liegt „Ada“.",
+            "terms": [
+              "String",
+              "[]",
+              "="
+            ]
+          },
+          {
+            "code": "System.out.println(namen.length);",
+            "explain": "Schreibt die Anzahl der Fächer im Eierkarton „namen“ auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()",
+              ".length"
+            ]
+          }
+        ]
+      },
+      "explanation": "length ist die Anzahl der Fächer im Eierkarton – hier 3.",
+      "expectedOutput": "3"
+    },
+    {
+      "id": "p-arr-2a",
+      "type": "predictOutput",
+      "topicId": "arrays",
+      "difficulty": 2,
+      "prompt": "Was gibt die Schleife aus?",
+      "variantGroup": "t07-3",
+      "code": {
+        "lines": [
+          {
+            "code": "int[] werte = {2, 4, 6};",
+            "explain": "Hier erstellen wir einen Eierkarton namens „werte“ mit 3 nummerierten Fächern und legen 2, 4 und 6 hinein. Die Fächer sind ab 0 nummeriert: In Fach 0 liegt 2.",
+            "terms": [
+              "int",
+              "[]",
+              "="
+            ]
+          },
+          {
+            "code": "for (int w : werte) {",
+            "explain": "Eine Schleife, die jedes Element aus „werte“ der Reihe nach durchgeht – wie beim Durchblättern eines Kartenstapels. In jeder Runde liegt das aktuelle Element in der Box „w“.",
+            "terms": [
+              "for",
+              "int"
+            ]
+          },
+          {
+            "code": "    System.out.print(w + \" \");",
+            "explain": "Schreibt den zusammengesetzten Text aus dem Inhalt der Box „w“ und „ “ (das + klebt die Teile aneinander) auf den Bildschirm – aber ohne neue Zeile: Die nächste Ausgabe kommt direkt dahinter.",
+            "terms": [
+              "System.out",
+              "print()",
+              "+"
+            ]
+          },
+          {
+            "code": "}",
+            "explain": "Hier endet eine Runde der Schleife. Das Programm springt wieder nach oben und prüft, ob noch eine Runde kommt."
+          }
+        ]
+      },
+      "explanation": "Die for-each-Schleife geht jedes Fach der Reihe nach durch – ganz ohne Zähler.",
+      "expectedOutput": "2 4 6 "
+    },
+    {
+      "id": "p-str-1a",
+      "type": "predictOutput",
+      "topicId": "strings",
+      "difficulty": 2,
+      "prompt": "Was wird ausgegeben?",
+      "variantGroup": "t07-2",
+      "code": {
+        "lines": [
+          {
+            "code": "String wort = \"JavaQuest\";",
+            "explain": "Hier erstellen wir eine Box namens „wort“ und legen den Text „JavaQuest“ hinein. Das Etikett String heißt: In diese Box passen Texte.",
+            "terms": [
+              "String",
+              "="
+            ]
+          },
+          {
+            "code": "System.out.println(wort.length());",
+            "explain": "Schreibt das Ergebnis von wort.length() (die Anzahl der Zeichen) auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()",
+              "length()"
+            ]
+          }
+        ]
+      },
+      "explanation": "length() zählt die Zeichen: J-a-v-a-Q-u-e-s-t sind 9.",
+      "expectedOutput": "9"
+    },
+    {
+      "id": "p-str-1b",
+      "type": "predictOutput",
+      "topicId": "strings",
+      "difficulty": 3,
+      "prompt": "Was wird ausgegeben?",
+      "variantGroup": "t07-4",
+      "code": {
+        "lines": [
+          {
+            "code": "String text = \"Programmieren\";",
+            "explain": "Hier erstellen wir eine Box namens „text“ und legen den Text „Programmieren“ hinein. Das Etikett String heißt: In diese Box passen Texte.",
+            "terms": [
+              "String",
+              "="
+            ]
+          },
+          {
+            "code": "System.out.println(text.substring(0, 7));",
+            "explain": "Schreibt das Ergebnis von text.substring(0, 7) (das ausgeschnittene Textstück) auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()",
+              "substring()"
+            ]
+          }
+        ]
+      },
+      "explanation": "substring(0, 7) liefert die Zeichen ab Fach 0 bis vor Fach 7 – also die ersten sieben.",
+      "expectedOutput": "Program"
+    },
+    {
+      "id": "p-str-2a",
+      "type": "singleChoice",
+      "topicId": "strings",
+      "difficulty": 3,
+      "prompt": "Womit vergleicht man zwei Strings auf gleichen Inhalt?",
+      "variantGroup": "t07-4",
+      "explanation": "== fragt, ob es dasselbe Objekt ist. equals vergleicht den Inhalt – das ist bei Texten fast immer gemeint.",
+      "choices": [
+        "equals",
+        "==",
+        "compare",
+        "="
+      ],
+      "correctIndex": 0
+    },
+    {
+      "id": "p-oop-1a",
+      "type": "singleChoice",
+      "topicId": "oop",
+      "difficulty": 2,
+      "prompt": "Wozu dient der Konstruktor einer Klasse?",
+      "variantGroup": "t08-1",
+      "explanation": "Der Konstruktor ist die Backanleitung: Er läuft beim new und füllt die Fächer des neuen Objekts.",
+      "choices": [
+        "Er vergleicht zwei Objekte",
+        "Er wandelt ein Objekt in Text um",
+        "Er gibt dem neuen Objekt seine Startwerte",
+        "Er löscht ein Objekt aus dem Speicher"
+      ],
+      "correctIndex": 2
+    },
+    {
+      "id": "p-oop-1b",
+      "type": "predictOutput",
+      "topicId": "oop",
+      "difficulty": 3,
+      "prompt": "Was wird ausgegeben?",
+      "variantGroup": "t08-3",
+      "code": {
+        "lines": [
+          {
+            "code": "class Zaehler {",
+            "explain": "Hier beginnt die Klasse „Zaehler“. Stell sie dir als Kuchenform vor: Sie beschreibt, welche Eigenschaften und Fähigkeiten jedes Objekt vom Typ Zaehler hat. Die echten Objekte sind die Kuchen, die später mit new aus dieser Form gebacken werden.",
+            "terms": [
+              "class"
+            ]
+          },
+          {
+            "code": "    private int stand = 0;",
+            "explain": "Jedes Objekt, das aus dieser Kuchenform gebacken wird, bekommt ein eigenes Fach namens „stand“ und darin zu Beginn die Zahl 0. Das Etikett int heißt: In dieses Fach passen nur ganze Zahlen. private: Nur die Klasse selbst darf in dieses Fach schauen – von außen ist es verschlossen.",
+            "terms": [
+              "private",
+              "int",
+              "="
+            ]
+          },
+          {
+            "code": ""
+          },
+          {
+            "code": "    void klick() {",
+            "explain": "Hier beginnt die Methode „klick“ – ein Rezept mit Namen. Sie braucht keine Zutaten und liefert kein Ergebnis zurück (void = „leer“) – sie erledigt nur eine Aufgabe.",
+            "terms": [
+              "void"
+            ]
+          },
+          {
+            "code": "        stand++;",
+            "explain": "Zählt die Box „stand“ um 1 hoch – wie ein Klick auf einen Handzähler. (Kurzform für stand = stand + 1.)",
+            "terms": [
+              "++"
+            ]
+          },
+          {
+            "code": "    }",
+            "explain": "Hier endet die Methode (das Rezept) „klick“."
+          },
+          {
+            "code": ""
+          },
+          {
+            "code": "    int getStand() {",
+            "explain": "Hier beginnt die Methode „getStand“ – ein Rezept mit Namen. Sie braucht keine Zutaten und liefert am Ende eine ganze Zahl als Ergebnis zurück.",
+            "terms": [
+              "int"
+            ]
+          },
+          {
+            "code": "        return stand;",
+            "explain": "Das Rezept ist fertig: Es gibt den Inhalt der Box „stand“ zurück an die Stelle, die es aufgerufen hat – wie ein Automat, der sein Produkt ausgibt.",
+            "terms": [
+              "return"
+            ]
+          },
+          {
+            "code": "    }",
+            "explain": "Hier endet die Methode (das Rezept) „getStand“."
+          },
+          {
+            "code": "}",
+            "explain": "Hier endet die Klasse „Zaehler“ – die Kuchenform ist fertig beschrieben."
+          },
+          {
+            "code": ""
+          },
+          {
+            "code": "public class Main {",
+            "explain": "Hier beginnt die Klasse „Main“. In Java muss jedes Programm in so einer Klasse stehen – hier dient sie nur als Behälter für unser Programm, nicht als Kuchenform für Objekte. Die geschweifte Klammer { öffnet den Behälter.",
+            "terms": [
+              "public",
+              "class"
+            ]
+          },
+          {
+            "code": "    public static void main(String[] args) {",
+            "explain": "Die main-Methode ist der Startknopf des Programms: Hier beginnt Java, die Anweisungen von oben nach unten auszuführen. (public: von außen startbar · static: ohne Objekt nutzbar · void: liefert kein Ergebnis · String[] args: mögliche Startwerte.)",
+            "terms": [
+              "public",
+              "static",
+              "void",
+              "String",
+              "[]"
+            ]
+          },
+          {
+            "code": "        Zaehler a = new Zaehler();",
+            "explain": "Hier backen wir mit new aus der Kuchenform „Zaehler“ ein neues Objekt und legen es in die Box „a“. Das Etikett Zaehler heißt: In diese Box passt ein Objekt vom Typ Zaehler.",
+            "terms": [
+              "=",
+              "new"
+            ]
+          },
+          {
+            "code": "        Zaehler b = new Zaehler();",
+            "explain": "Hier backen wir mit new aus der Kuchenform „Zaehler“ ein neues Objekt und legen es in die Box „b“. Das Etikett Zaehler heißt: In diese Box passt ein Objekt vom Typ Zaehler.",
+            "terms": [
+              "=",
+              "new"
+            ]
+          },
+          {
+            "code": "        a.klick();",
+            "explain": "Bittet das Objekt „a“, seine Methode klick() auszuführen. Dann läuft der Code, der in der Kuchenform für klick() steht – für genau dieses Objekt."
+          },
+          {
+            "code": "        a.klick();",
+            "explain": "Bittet das Objekt „a“, seine Methode klick() auszuführen. Dann läuft der Code, der in der Kuchenform für klick() steht – für genau dieses Objekt."
+          },
+          {
+            "code": "        b.klick();",
+            "explain": "Bittet das Objekt „b“, seine Methode klick() auszuführen. Dann läuft der Code, der in der Kuchenform für klick() steht – für genau dieses Objekt."
+          },
+          {
+            "code": "        System.out.println(a.getStand() + \" \" + b.getStand());",
+            "explain": "Schreibt den zusammengesetzten Text aus dem Ergebnis von a.getStand(), „ “ und dem Ergebnis von b.getStand() (das + klebt die Teile aneinander) auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()",
+              "+"
+            ]
+          },
+          {
+            "code": "    }",
+            "explain": "Hier endet die main-Methode – danach ist das Programm fertig."
+          },
+          {
+            "code": "}",
+            "explain": "Hier endet die Klasse „Main“ – der Behälter um unser Programm ist zu."
+          }
+        ]
+      },
+      "explanation": "a und b sind zwei unabhängige Objekte mit eigenen Fächern: a wurde zweimal geklickt, b einmal.",
+      "javaContext": "file",
+      "expectedOutput": "2 1"
+    },
+    {
+      "id": "p-oop-2a",
+      "type": "singleChoice",
+      "topicId": "oop",
+      "difficulty": 3,
+      "prompt": "Warum macht man Felder meist private?",
+      "variantGroup": "t08-5",
+      "explanation": "private ist ein abgeschlossenes Fach: Von außen kommt man nur über Methoden heran, die die Klasse kontrolliert.",
+      "choices": [
+        "Damit das Programm schneller läuft",
+        "Damit die Felder weniger Speicher brauchen",
+        "Weil Java sonst einen Fehler meldet",
+        "Damit die Klasse selbst bestimmt, welche Werte erlaubt sind"
+      ],
+      "correctIndex": 3
+    },
+    {
+      "id": "p-inh-1a",
+      "type": "singleChoice",
+      "topicId": "inheritance",
+      "difficulty": 2,
+      "prompt": "Mit welchem Schlüsselwort setzt eine Klasse ein Interface um?",
+      "variantGroup": "t09-1",
+      "explanation": "extends erweitert eine Eltern-Klasse, implements unterschreibt einen Vertrag (Interface).",
+      "choices": [
+        "super",
+        "new",
+        "implements",
+        "extends"
+      ],
+      "correctIndex": 2
+    },
+    {
+      "id": "p-inh-1b",
+      "type": "predictOutput",
+      "topicId": "inheritance",
+      "difficulty": 3,
+      "prompt": "Was wird ausgegeben?",
+      "variantGroup": "t09-3",
+      "code": {
+        "lines": [
+          {
+            "code": "class Tier {",
+            "explain": "Hier beginnt die Klasse „Tier“. Stell sie dir als Kuchenform vor: Sie beschreibt, welche Eigenschaften und Fähigkeiten jedes Objekt vom Typ Tier hat. Die echten Objekte sind die Kuchen, die später mit new aus dieser Form gebacken werden.",
+            "terms": [
+              "class"
+            ]
+          },
+          {
+            "code": "    String laut() {",
+            "explain": "Hier beginnt die Methode „laut“ – ein Rezept mit Namen. Sie braucht keine Zutaten und liefert am Ende einen Text als Ergebnis zurück.",
+            "terms": [
+              "String"
+            ]
+          },
+          {
+            "code": "        return \"...\";",
+            "explain": "Das Rezept ist fertig: Es gibt den Text „...“ zurück an die Stelle, die es aufgerufen hat – wie ein Automat, der sein Produkt ausgibt.",
+            "terms": [
+              "return"
+            ]
+          },
+          {
+            "code": "    }",
+            "explain": "Hier endet die Methode (das Rezept) „laut“."
+          },
+          {
+            "code": "}",
+            "explain": "Hier endet die Klasse „Tier“ – die Kuchenform ist fertig beschrieben."
+          },
+          {
+            "code": ""
+          },
+          {
+            "code": "class Kuh extends Tier {",
+            "explain": "Hier beginnt die Klasse „Kuh“. Stell sie dir als Kuchenform vor: Sie beschreibt, welche Eigenschaften und Fähigkeiten jedes Objekt vom Typ Kuh hat. Die echten Objekte sind die Kuchen, die später mit new aus dieser Form gebacken werden. extends Tier: „Kuh“ ist eine erweiterte Tier-Form. Sie übernimmt (erbt) alles, was Tier hat und kann, und darf Dinge ergänzen oder ändern.",
+            "terms": [
+              "class",
+              "extends"
+            ]
+          },
+          {
+            "code": "    @Override",
+            "explain": "@Override ist ein Hinweiszettel: „Die folgende Methode ersetzt die gleichnamige Methode der Eltern-Form.“ Java prüft, ob es diese Methode dort wirklich gibt – so fallen Tippfehler sofort auf.",
+            "terms": [
+              "Override"
+            ]
+          },
+          {
+            "code": "    String laut() {",
+            "explain": "Hier beginnt die Methode „laut“ – ein Rezept mit Namen. Sie braucht keine Zutaten und liefert am Ende einen Text als Ergebnis zurück.",
+            "terms": [
+              "String"
+            ]
+          },
+          {
+            "code": "        return \"Muh\";",
+            "explain": "Das Rezept ist fertig: Es gibt den Text „Muh“ zurück an die Stelle, die es aufgerufen hat – wie ein Automat, der sein Produkt ausgibt.",
+            "terms": [
+              "return"
+            ]
+          },
+          {
+            "code": "    }",
+            "explain": "Hier endet die Methode (das Rezept) „laut“."
+          },
+          {
+            "code": "}",
+            "explain": "Hier endet die Klasse „Kuh“ – die Kuchenform ist fertig beschrieben."
+          },
+          {
+            "code": ""
+          },
+          {
+            "code": "public class Main {",
+            "explain": "Hier beginnt die Klasse „Main“. In Java muss jedes Programm in so einer Klasse stehen – hier dient sie nur als Behälter für unser Programm, nicht als Kuchenform für Objekte. Die geschweifte Klammer { öffnet den Behälter.",
+            "terms": [
+              "public",
+              "class"
+            ]
+          },
+          {
+            "code": "    public static void main(String[] args) {",
+            "explain": "Die main-Methode ist der Startknopf des Programms: Hier beginnt Java, die Anweisungen von oben nach unten auszuführen. (public: von außen startbar · static: ohne Objekt nutzbar · void: liefert kein Ergebnis · String[] args: mögliche Startwerte.)",
+            "terms": [
+              "public",
+              "static",
+              "void",
+              "String",
+              "[]"
+            ]
+          },
+          {
+            "code": "        Tier t = new Kuh();",
+            "explain": "Hier backen wir mit new aus der Kuchenform „Kuh“ ein neues Objekt und legen es in die Box „t“. Das Etikett Tier heißt: In diese Box passt ein Objekt vom Typ Tier. Achtung, spannend: Das Etikett sagt „Tier“, drin liegt aber ein Kuh-Objekt. Das passt, denn jedes Kuh-Objekt zählt auch als Tier-Objekt (es wurde aus einer erweiterten Tier-Form gebacken). Fragt man es später etwas, antwortet trotzdem das Kuh-Objekt – das nennt man Polymorphie („Vielgestaltigkeit“).",
+            "terms": [
+              "=",
+              "new"
+            ]
+          },
+          {
+            "code": "        System.out.println(t.laut());",
+            "explain": "Schreibt das Ergebnis von t.laut() auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()"
+            ]
+          },
+          {
+            "code": "    }",
+            "explain": "Hier endet die main-Methode – danach ist das Programm fertig."
+          },
+          {
+            "code": "}",
+            "explain": "Hier endet die Klasse „Main“ – der Behälter um unser Programm ist zu."
+          }
+        ]
+      },
+      "explanation": "Auf dem Etikett steht Tier, drin liegt eine Kuh – und die antwortet mit ihrer eigenen Methode.",
+      "javaContext": "file",
+      "expectedOutput": "Muh"
+    },
+    {
+      "id": "p-inh-2a",
+      "type": "singleChoice",
+      "topicId": "inheritance",
+      "difficulty": 3,
+      "prompt": "Wofür steht super(…) im Konstruktor?",
+      "variantGroup": "t09-5",
+      "explanation": "super(…) reicht die Startwerte an die Eltern-Klasse weiter, bevor die Kind-Klasse weitermacht.",
+      "choices": [
+        "Es macht die Klasse abstrakt",
+        "Es ruft den Konstruktor der Eltern-Klasse auf",
+        "Es erzeugt ein zweites Objekt",
+        "Es löscht geerbte Methoden"
+      ],
+      "correctIndex": 1
+    },
+    {
+      "id": "p-exc-1a",
+      "type": "predictOutput",
+      "topicId": "exceptions",
+      "difficulty": 2,
+      "prompt": "In welcher Reihenfolge erscheinen die Texte?",
+      "variantGroup": "t10-2",
+      "code": {
+        "lines": [
+          {
+            "code": "try {",
+            "explain": "Beginnt einen Versuch mit Sicherheitsnetz (try): Geht in diesem Block etwas schief – Java nennt das eine Exception, also einen Alarm –, stürzt das Programm nicht ab. Stattdessen fängt das passende catch den Alarm auf.",
+            "terms": [
+              "try"
+            ]
+          },
+          {
+            "code": "    System.out.println(\"start\");",
+            "explain": "Schreibt den Text „start“ auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()"
+            ]
+          },
+          {
+            "code": "    int x = 1 / 0;",
+            "explain": "Hier erstellen wir eine Box namens „x“ und legen das Ergebnis der Rechnung 1 / 0 hinein. Das Etikett int heißt: In diese Box passen nur ganze Zahlen.",
+            "terms": [
+              "int",
+              "=",
+              "/"
+            ]
+          },
+          {
+            "code": "    System.out.println(\"nie\");",
+            "explain": "Schreibt den Text „nie“ auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()"
+            ]
+          },
+          {
+            "code": "} catch (ArithmeticException e) {",
+            "explain": "Das Sicherheitsnetz (catch) für den Alarm ArithmeticException – Rechen-Alarm, z. B. bei einer Division durch 0. Wurde im try-Block genau dieser Alarm ausgelöst, landet das Programm hier, statt abzustürzen. In „e“ stehen die Details zum Fehler.",
+            "terms": [
+              "catch",
+              "ArithmeticException"
+            ]
+          },
+          {
+            "code": "    System.out.println(\"gefangen\");",
+            "explain": "Schreibt den Text „gefangen“ auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()"
+            ]
+          },
+          {
+            "code": "}",
+            "explain": "Hier endet das Sicherheitsnetz (catch)."
+          }
+        ]
+      },
+      "explanation": "Nach „start“ knallt die Division durch 0. Der Rest im try-Block wird übersprungen, das Sicherheitsnetz catch fängt den Alarm auf.",
+      "expectedOutput": "start\ngefangen"
+    },
+    {
+      "id": "p-exc-1b",
+      "type": "singleChoice",
+      "topicId": "exceptions",
+      "difficulty": 3,
+      "prompt": "Was bedeutet es, dass IOException eine checked Exception ist?",
+      "variantGroup": "t10-3",
+      "explanation": "Bei checked Exceptions besteht Java darauf, dass du dich kümmerst – sonst meckert schon der Compiler. Unchecked Exceptions (von RuntimeException abstammend) verlangt Java nicht.",
+      "choices": [
+        "Sie kann nicht gefangen werden",
+        "Man muss sie auffangen oder mit throws ankündigen",
+        "Sie tritt nur beim Rechnen auf",
+        "Sie beendet das Programm immer sofort"
+      ],
+      "correctIndex": 1
+    },
+    {
+      "id": "p-exc-2a",
+      "type": "fillBlank",
+      "topicId": "exceptions",
+      "difficulty": 3,
+      "prompt": "Ergänze das Sicherheitsnetz für die Division durch 0.",
+      "variantGroup": "t10-1",
+      "explanation": "Im try-Block steht der riskante Code, catch fängt den Alarm auf.",
+      "verify": {
+        "output": "Fehler aufgefangen"
+      },
+      "template": {
+        "lines": [
+          {
+            "code": "{{0}} {",
+            "explain": "Beginnt einen Versuch mit Sicherheitsnetz (try): Geht in diesem Block etwas schief – Java nennt das eine Exception, also einen Alarm –, stürzt das Programm nicht ab. Stattdessen fängt das passende catch den Alarm auf."
+          },
+          {
+            "code": "    System.out.println(10 / 0);",
+            "explain": "Schreibt das Ergebnis der Rechnung 10 / 0 auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()",
+              "/"
+            ]
+          },
+          {
+            "code": "} {{1}} (ArithmeticException e) {",
+            "explain": "Das Sicherheitsnetz (catch) für den Alarm ArithmeticException – Rechen-Alarm, z. B. bei einer Division durch 0. Wurde im try-Block genau dieser Alarm ausgelöst, landet das Programm hier, statt abzustürzen. In „e“ stehen die Details zum Fehler.",
+            "terms": [
+              "ArithmeticException"
+            ]
+          },
+          {
+            "code": "    System.out.println(\"Fehler aufgefangen\");",
+            "explain": "Schreibt den Text „Fehler aufgefangen“ auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()"
+            ]
+          },
+          {
+            "code": "}",
+            "explain": "Hier endet das Sicherheitsnetz (catch)."
+          }
+        ]
+      },
+      "blanks": [
+        {
+          "accepted": [
+            "try"
+          ]
+        },
+        {
+          "accepted": [
+            "catch"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "p-col-1a",
+      "type": "predictOutput",
+      "topicId": "collections",
+      "difficulty": 2,
+      "prompt": "Was wird ausgegeben?",
+      "variantGroup": "t11-1",
+      "code": {
+        "lines": [
+          {
+            "code": "List<String> liste = new ArrayList<>();",
+            "explain": "Hier erstellen wir mit new eine ArrayList – eine Liste, die wachsen kann wie ein Einkaufszettel – noch leer – und legen sie in die Box „liste“. Das Etikett List<String> heißt: Darin liegt eine Liste, und auf ihr dürfen nur Texte (String) stehen. Auf dem Etikett steht allgemein „List“, drin liegt eine ArrayList – so kann man später leicht eine andere Sorte nehmen.",
+            "terms": [
+              "List",
+              "<>",
+              "String",
+              "=",
+              "new",
+              "ArrayList"
+            ]
+          },
+          {
+            "code": "liste.add(\"a\");",
+            "explain": "Schreibt „a“ ans Ende der Liste „liste“ – wie ein neuer Eintrag auf dem Einkaufszettel.",
+            "terms": [
+              "add()"
+            ]
+          },
+          {
+            "code": "liste.add(\"b\");",
+            "explain": "Schreibt „b“ ans Ende der Liste „liste“ – wie ein neuer Eintrag auf dem Einkaufszettel.",
+            "terms": [
+              "add()"
+            ]
+          },
+          {
+            "code": "System.out.println(liste.size());",
+            "explain": "Schreibt das Ergebnis von liste.size() (die Anzahl der Einträge) auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()",
+              "size()"
+            ]
+          }
+        ]
+      },
+      "explanation": "add hängt hinten an, size zählt die Einträge – hier 2.",
+      "expectedOutput": "2"
+    },
+    {
+      "id": "p-col-1b",
+      "type": "predictOutput",
+      "topicId": "collections",
+      "difficulty": 3,
+      "prompt": "Was wird ausgegeben?",
+      "variantGroup": "t11-3",
+      "code": {
+        "lines": [
+          {
+            "code": "List<String> liste = new ArrayList<>(List.of(\"Tee\", \"Kakao\", \"Saft\"));",
+            "explain": "Hier erstellen wir mit new eine ArrayList – eine Liste, die wachsen kann wie ein Einkaufszettel, gefüllt mit „Tee“, „Kakao“ und „Saft“ – und legen sie in die Box „liste“. Das Etikett List<String> heißt: Darin liegt eine Liste, und auf ihr dürfen nur Texte (String) stehen. Auf dem Etikett steht allgemein „List“, drin liegt eine ArrayList – so kann man später leicht eine andere Sorte nehmen.",
+            "terms": [
+              "List",
+              "<>",
+              "String",
+              "=",
+              "new",
+              "ArrayList",
+              "List.of"
+            ]
+          },
+          {
+            "code": "liste.remove(0);",
+            "explain": "Streicht 0 aus „liste“ – alles dahinter rückt nach vorn.",
+            "terms": [
+              "remove()"
+            ]
+          },
+          {
+            "code": "System.out.println(liste);",
+            "explain": "Schreibt den Inhalt der Box „liste“ auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()"
+            ]
+          }
+        ]
+      },
+      "explanation": "remove(0) streicht den ersten Eintrag. Die übrigen rücken auf, die Ausgabe steht in eckigen Klammern.",
+      "expectedOutput": "[Kakao, Saft]"
+    },
+    {
+      "id": "p-col-2a",
+      "type": "predictOutput",
+      "topicId": "collections",
+      "difficulty": 3,
+      "prompt": "Was wird ausgegeben?",
+      "variantGroup": "t11-4",
+      "code": {
+        "lines": [
+          {
+            "code": "Map<String, Integer> alter = new HashMap<>();",
+            "explain": "Hier erstellen wir mit new ein Wörterbuch (HashMap) – noch leer und legen es in die Box „alter“. Das Etikett Map<String, Integer> heißt: Darin liegt ein Wörterbuch – zu jedem Schlüssel gehört ein Wert. Auf dem Etikett steht allgemein „Map“, drin liegt eine HashMap – so kann man später leicht eine andere Sorte nehmen.",
+            "terms": [
+              "Map",
+              "<>",
+              "String",
+              "Integer",
+              "=",
+              "new",
+              "HashMap"
+            ]
+          },
+          {
+            "code": "alter.put(\"Ada\", 36);",
+            "explain": "Trägt ins Wörterbuch „alter“ ein: „Ada“ → 36. Stand „Ada“ schon drin, wird der alte Eintrag überschrieben.",
+            "terms": [
+              "put()"
+            ]
+          },
+          {
+            "code": "alter.put(\"Ada\", 37);",
+            "explain": "Trägt ins Wörterbuch „alter“ ein: „Ada“ → 37. Stand „Ada“ schon drin, wird der alte Eintrag überschrieben.",
+            "terms": [
+              "put()"
+            ]
+          },
+          {
+            "code": "System.out.println(alter.get(\"Ada\"));",
+            "explain": "Schreibt das Ergebnis von alter.get(\"Ada\") (den gespeicherten Eintrag) auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()",
+              "get()"
+            ]
+          }
+        ]
+      },
+      "explanation": "put mit demselben Schlüssel überschreibt den alten Wert – im Wörterbuch steht jeder Schlüssel nur einmal.",
+      "expectedOutput": "37"
+    },
+    {
+      "id": "p-col-2b",
+      "type": "singleChoice",
+      "topicId": "generics",
+      "difficulty": 3,
+      "prompt": "Was sagt das <String> in List<String> aus?",
+      "variantGroup": "t11-2",
+      "explanation": "Die spitzen Klammern sind das Etikett der Sammlung: Sie legen fest, was hinein darf. Java prüft das schon beim Übersetzen.",
+      "choices": [
+        "Nur Texte dürfen in die Liste",
+        "Die Liste hat höchstens String-viele Plätze",
+        "Die Liste wandelt alles in Text um",
+        "Die Liste ist nach Text sortiert"
+      ],
+      "correctIndex": 0
+    },
+    {
+      "id": "p-col-3a",
+      "type": "predictOutput",
+      "topicId": "collections",
+      "difficulty": 4,
+      "prompt": "Was wird ausgegeben?",
+      "variantGroup": "t11-4",
+      "code": {
+        "lines": [
+          {
+            "code": "Map<String, Integer> zaehler = new HashMap<>();",
+            "explain": "Hier erstellen wir mit new ein Wörterbuch (HashMap) – noch leer und legen es in die Box „zaehler“. Das Etikett Map<String, Integer> heißt: Darin liegt ein Wörterbuch – zu jedem Schlüssel gehört ein Wert. Auf dem Etikett steht allgemein „Map“, drin liegt eine HashMap – so kann man später leicht eine andere Sorte nehmen.",
+            "terms": [
+              "Map",
+              "<>",
+              "String",
+              "Integer",
+              "=",
+              "new",
+              "HashMap"
+            ]
+          },
+          {
+            "code": "zaehler.put(\"a\", 1);",
+            "explain": "Trägt ins Wörterbuch „zaehler“ ein: „a“ → 1. Stand „a“ schon drin, wird der alte Eintrag überschrieben.",
+            "terms": [
+              "put()"
+            ]
+          },
+          {
+            "code": "System.out.println(zaehler.getOrDefault(\"b\", 0));",
+            "explain": "Schreibt das Ergebnis von zaehler.getOrDefault(\"b\", 0) (den Eintrag oder den Ersatzwert) auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()",
+              "getOrDefault()"
+            ]
+          }
+        ]
+      },
+      "explanation": "Den Schlüssel „b“ gibt es nicht – getOrDefault liefert dann den Ersatzwert 0 statt null.",
+      "expectedOutput": "0"
+    },
+    {
+      "id": "p-lam-1a",
+      "type": "predictOutput",
+      "topicId": "lambdas",
+      "difficulty": 3,
+      "prompt": "Was wird ausgegeben?",
+      "variantGroup": "t12-3",
+      "code": {
+        "lines": [
+          {
+            "code": "List<Integer> zahlen = List.of(1, 2, 3, 4);",
+            "explain": "Hier erstellen wir eine Box namens „zahlen“ und legen einen fertigen Einkaufszettel mit 1, 2, 3 und 4 (List.of – danach unveränderlich) hinein. Das Etikett List<Integer> heißt: Darin liegt eine Liste, und auf ihr dürfen nur ganze Zahlen (Integer) stehen.",
+            "terms": [
+              "List",
+              "<>",
+              "Integer",
+              "=",
+              "List.of"
+            ]
+          },
+          {
+            "code": "zahlen.stream()",
+            "explain": "Legt alle Elemente von „zahlen“ aufs Fließband (Stream). Die nächsten Zeilen sind die Stationen, an denen sie vorbeikommen.",
+            "terms": [
+              "stream()"
+            ]
+          },
+          {
+            "code": "        .filter(z -> z % 2 == 0)",
+            "explain": "Station „Sieb“ (filter): Nur die Elemente z, für die „z % 2 == 0“ stimmt, dürfen weiter aufs Band – die anderen fallen heraus.",
+            "terms": [
+              "filter()",
+              "->",
+              "%",
+              "=="
+            ]
+          },
+          {
+            "code": "        .forEach(z -> System.out.print(z + \" \"));",
+            "explain": "Ende des Bandes (forEach): Mit jedem Element, das übrig ist, passiert z -> System.out.print(z + \" \") – hier also: ausgeben. Damit ist das Fließband fertig.",
+            "terms": [
+              "forEach()",
+              "->",
+              "System.out",
+              "print()",
+              "+"
+            ]
+          }
+        ]
+      },
+      "explanation": "filter lässt nur gerade Zahlen aufs Band, forEach gibt jede davon aus.",
+      "expectedOutput": "2 4 "
+    },
+    {
+      "id": "p-lam-1b",
+      "type": "predictOutput",
+      "topicId": "lambdas",
+      "difficulty": 4,
+      "prompt": "Was wird ausgegeben?",
+      "variantGroup": "t12-4",
+      "code": {
+        "lines": [
+          {
+            "code": "List<String> woerter = List.of(\"hut\", \"bus\");",
+            "explain": "Hier erstellen wir eine Box namens „woerter“ und legen einen fertigen Einkaufszettel mit „hut“ und „bus“ (List.of – danach unveränderlich) hinein. Das Etikett List<String> heißt: Darin liegt eine Liste, und auf ihr dürfen nur Texte (String) stehen.",
+            "terms": [
+              "List",
+              "<>",
+              "String",
+              "=",
+              "List.of"
+            ]
+          },
+          {
+            "code": "List<String> gross = woerter.stream()",
+            "explain": "Hier erstellen wir eine Box namens „gross“. Hineinkommen soll das Ergebnis eines Fließbands (Stream): woerter.stream() legt alle Elemente von „woerter“ aufs Band, die nächsten Zeilen sind die Stationen. Das Etikett List<String> heißt: Darin liegt eine Liste, und auf ihr dürfen nur Texte (String) stehen.",
+            "terms": [
+              "List",
+              "<>",
+              "String",
+              "=",
+              "stream()"
+            ]
+          },
+          {
+            "code": "        .map(String::toUpperCase)",
+            "explain": "Station „Umformer“ (map): Jedes Element wird mit String::toUpperCase umgewandelt.",
+            "terms": [
+              "map()",
+              "String",
+              "::",
+              "toUpperCase()"
+            ]
+          },
+          {
+            "code": "        .toList();",
+            "explain": "Ende des Bandes (toList): Alles, was übrig ist, kommt in eine neue Liste. Damit ist das Fließband fertig – das Ergebnis kommt in die Box „gross“.",
+            "terms": [
+              "toList()"
+            ]
+          },
+          {
+            "code": "System.out.println(gross);",
+            "explain": "Schreibt den Inhalt der Box „gross“ auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()"
+            ]
+          }
+        ]
+      },
+      "explanation": "map wandelt jedes Element um – hier jedes Wort in Großbuchstaben.",
+      "expectedOutput": "[HUT, BUS]"
+    },
+    {
+      "id": "p-lam-2a",
+      "type": "predictOutput",
+      "topicId": "lambdas",
+      "difficulty": 4,
+      "prompt": "Was wird ausgegeben?",
+      "variantGroup": "t12-5",
+      "code": {
+        "lines": [
+          {
+            "code": "List<Integer> zahlen = List.of(2, 3, 4);",
+            "explain": "Hier erstellen wir eine Box namens „zahlen“ und legen einen fertigen Einkaufszettel mit 2, 3 und 4 (List.of – danach unveränderlich) hinein. Das Etikett List<Integer> heißt: Darin liegt eine Liste, und auf ihr dürfen nur ganze Zahlen (Integer) stehen.",
+            "terms": [
+              "List",
+              "<>",
+              "Integer",
+              "=",
+              "List.of"
+            ]
+          },
+          {
+            "code": "int summe = zahlen.stream()",
+            "explain": "Hier erstellen wir eine Box namens „summe“. Hineinkommen soll das Ergebnis eines Fließbands (Stream): zahlen.stream() legt alle Elemente von „zahlen“ aufs Band, die nächsten Zeilen sind die Stationen. Das Etikett int heißt: In diese Box passen nur ganze Zahlen.",
+            "terms": [
+              "int",
+              "=",
+              "stream()"
+            ]
+          },
+          {
+            "code": "        .mapToInt(z -> z * z)",
+            "explain": "Station „Umformer zu Zahlen“ (mapToInt): Aus jedem z wird die ganze Zahl z * z – damit man danach rechnen kann.",
+            "terms": [
+              "mapToInt()",
+              "->",
+              "*"
+            ]
+          },
+          {
+            "code": "        .sum();",
+            "explain": "Ende des Bandes (sum): Alle Zahlen werden zusammengezählt. Damit ist das Fließband fertig – das Ergebnis kommt in die Box „summe“.",
+            "terms": [
+              "sum()"
+            ]
+          },
+          {
+            "code": "System.out.println(summe);",
+            "explain": "Schreibt den Inhalt der Box „summe“ auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()"
+            ]
+          }
+        ]
+      },
+      "explanation": "Jede Zahl wird quadriert (4, 9, 16) und dann zusammengezählt: 29.",
+      "expectedOutput": "29"
+    },
+    {
+      "id": "p-mod-1a",
+      "type": "predictOutput",
+      "topicId": "records",
+      "difficulty": 2,
+      "prompt": "Was wird ausgegeben?",
+      "variantGroup": "t13-1",
+      "code": {
+        "lines": [
+          {
+            "code": "record Buch(String titel, int jahr) {}",
+            "explain": "Hier definieren wir den Record „Buch“ – wie ein Formular mit festen Feldern: titel (einen Text) und jahr (eine ganze Zahl). Den Rest erledigt Java automatisch: Konstruktor, Lesemethoden titel() und jahr(), Vergleich (equals) und Textdarstellung (toString). Die leeren Klammern {} heißen: Mehr braucht es nicht.",
+            "terms": [
+              "record",
+              "String",
+              "int"
+            ]
+          },
+          {
+            "code": ""
+          },
+          {
+            "code": "public class Main {",
+            "explain": "Hier beginnt die Klasse „Main“. In Java muss jedes Programm in so einer Klasse stehen – hier dient sie nur als Behälter für unser Programm, nicht als Kuchenform für Objekte. Die geschweifte Klammer { öffnet den Behälter.",
+            "terms": [
+              "public",
+              "class"
+            ]
+          },
+          {
+            "code": "    public static void main(String[] args) {",
+            "explain": "Die main-Methode ist der Startknopf des Programms: Hier beginnt Java, die Anweisungen von oben nach unten auszuführen. (public: von außen startbar · static: ohne Objekt nutzbar · void: liefert kein Ergebnis · String[] args: mögliche Startwerte.)",
+            "terms": [
+              "public",
+              "static",
+              "void",
+              "String",
+              "[]"
+            ]
+          },
+          {
+            "code": "        Buch b = new Buch(\"Momo\", 1973);",
+            "explain": "Hier backen wir mit new aus der Kuchenform „Buch“ ein neues Objekt mit den Zutaten „Momo“ und 1973 und legen es in die Box „b“. Das Etikett Buch heißt: In diese Box passt ein Objekt vom Typ Buch.",
+            "terms": [
+              "=",
+              "new"
+            ]
+          },
+          {
+            "code": "        System.out.println(b.titel());",
+            "explain": "Schreibt das Ergebnis von b.titel() auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()"
+            ]
+          },
+          {
+            "code": "    }",
+            "explain": "Hier endet die main-Methode – danach ist das Programm fertig."
+          },
+          {
+            "code": "}",
+            "explain": "Hier endet die Klasse „Main“ – der Behälter um unser Programm ist zu."
+          }
+        ]
+      },
+      "explanation": "Der Record erzeugt automatisch die Lesemethode titel() – Setter gibt es bewusst nicht.",
+      "javaContext": "file",
+      "expectedOutput": "Momo"
+    },
+    {
+      "id": "p-mod-1b",
+      "type": "predictOutput",
+      "topicId": "optional",
+      "difficulty": 3,
+      "prompt": "Was wird ausgegeben?",
+      "variantGroup": "t13-3",
+      "code": {
+        "lines": [
+          {
+            "code": "Optional<String> leer = Optional.empty();",
+            "explain": "Hier erstellen wir eine Box namens „leer“ und legen eine leere Schachtel (Optional) hinein. Das Etikett Optional<String> heißt: Darin liegt eine Schachtel (Optional), die etwas enthalten kann – oder leer ist.",
+            "terms": [
+              "Optional",
+              "<>",
+              "String",
+              "=",
+              "Optional.empty"
+            ]
+          },
+          {
+            "code": "System.out.println(leer.orElse(\"Ersatz\"));",
+            "explain": "Schreibt das Ergebnis von leer.orElse(\"Ersatz\") (den Inhalt oder den Ersatzwert) auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()",
+              "orElse()"
+            ]
+          }
+        ]
+      },
+      "explanation": "Die Schachtel ist leer – orElse liefert dann den Ersatzwert statt eines Alarms.",
+      "expectedOutput": "Ersatz"
+    },
+    {
+      "id": "p-enum-1a",
+      "type": "predictOutput",
+      "topicId": "enums",
+      "difficulty": 2,
+      "prompt": "Was wird ausgegeben?",
+      "variantGroup": "t14-2",
+      "code": {
+        "lines": [
+          {
+            "code": "enum Ampel { ROT, GELB, GRUEN }",
+            "explain": "Hier legen wir die Aufzählung (enum) „Ampel“ an – eine feste Auswahl mit genau 3 erlaubten Werten: ROT, GELB und GRUEN. Andere Werte kann es nicht geben.",
+            "terms": [
+              "enum"
+            ]
+          },
+          {
+            "code": ""
+          },
+          {
+            "code": "public class Main {",
+            "explain": "Hier beginnt die Klasse „Main“. In Java muss jedes Programm in so einer Klasse stehen – hier dient sie nur als Behälter für unser Programm, nicht als Kuchenform für Objekte. Die geschweifte Klammer { öffnet den Behälter.",
+            "terms": [
+              "public",
+              "class"
+            ]
+          },
+          {
+            "code": "    public static void main(String[] args) {",
+            "explain": "Die main-Methode ist der Startknopf des Programms: Hier beginnt Java, die Anweisungen von oben nach unten auszuführen. (public: von außen startbar · static: ohne Objekt nutzbar · void: liefert kein Ergebnis · String[] args: mögliche Startwerte.)",
+            "terms": [
+              "public",
+              "static",
+              "void",
+              "String",
+              "[]"
+            ]
+          },
+          {
+            "code": "        Ampel a = Ampel.GELB;",
+            "explain": "Hier erstellen wir eine Box namens „a“ und legen den festen Wert GELB aus „Ampel“ hinein. Das Etikett Ampel heißt: In diese Box passt nur einer der festen Ampel-Werte.",
+            "terms": [
+              "="
+            ]
+          },
+          {
+            "code": "        System.out.println(a);",
+            "explain": "Schreibt den Inhalt der Box „a“ auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()"
+            ]
+          },
+          {
+            "code": "        System.out.println(a.ordinal());",
+            "explain": "Schreibt das Ergebnis von a.ordinal() (die Position, gezählt ab 0) auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()",
+              "ordinal()"
+            ]
+          },
+          {
+            "code": "    }",
+            "explain": "Hier endet die main-Methode – danach ist das Programm fertig."
+          },
+          {
+            "code": "}",
+            "explain": "Hier endet die Klasse „Main“ – der Behälter um unser Programm ist zu."
+          }
+        ]
+      },
+      "explanation": "println zeigt den Namen des Werts. ordinal() ist die Position – gezählt ab 0: ROT = 0, GELB = 1.",
+      "javaContext": "file",
+      "expectedOutput": "GELB\n1"
+    },
+    {
+      "id": "p-rec-1a",
+      "type": "predictOutput",
+      "topicId": "recursion",
+      "difficulty": 3,
+      "prompt": "Was wird ausgegeben?",
+      "variantGroup": "t18-2",
+      "code": {
+        "lines": [
+          {
+            "code": "static int summe(int n) {",
+            "explain": "Hier beginnt die Methode „summe“ – ein Rezept mit Namen. Als Zutaten bekommt sie n (eine ganze Zahl) und liefert am Ende eine ganze Zahl als Ergebnis zurück. static: Das Rezept gehört zur Kuchenform selbst – man braucht kein Objekt, um es zu benutzen.",
+            "terms": [
+              "static",
+              "int"
+            ]
+          },
+          {
+            "code": "    if (n == 0) {",
+            "explain": "Hier stellt das Programm eine Frage: Stimmt „n == 0“? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
+            "terms": [
+              "if",
+              "=="
+            ]
+          },
+          {
+            "code": "        return 0;",
+            "explain": "Das Rezept ist fertig: Es gibt die Zahl 0 zurück an die Stelle, die es aufgerufen hat – wie ein Automat, der sein Produkt ausgibt.",
+            "terms": [
+              "return"
+            ]
+          },
+          {
+            "code": "    }",
+            "explain": "Hier endet der Block, der nur bei „ja“ ausgeführt wird."
+          },
+          {
+            "code": "    return n + summe(n - 1);",
+            "explain": "Das Rezept ist fertig: Es gibt das Ergebnis der Rechnung n + summe(n - 1) zurück an die Stelle, die es aufgerufen hat – wie ein Automat, der sein Produkt ausgibt. Achtung, spannend: Hier ruft das Rezept „summe“ sich selbst auf (Rekursion) – mit einer kleineren Aufgabe. Das wiederholt sich, bis der Basisfall greift.",
+            "terms": [
+              "return",
+              "+",
+              "-"
+            ]
+          },
+          {
+            "code": "}",
+            "explain": "Hier endet die Methode (das Rezept) „summe“."
+          },
+          {
+            "code": ""
+          },
+          {
+            "code": "public static void main(String[] args) {",
+            "explain": "Die main-Methode ist der Startknopf des Programms: Hier beginnt Java, die Anweisungen von oben nach unten auszuführen. (public: von außen startbar · static: ohne Objekt nutzbar · void: liefert kein Ergebnis · String[] args: mögliche Startwerte.)",
+            "terms": [
+              "public",
+              "static",
+              "void",
+              "String",
+              "[]"
+            ]
+          },
+          {
+            "code": "    System.out.println(summe(3));",
+            "explain": "Schreibt das Ergebnis von summe(3) auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()"
+            ]
+          },
+          {
+            "code": "}",
+            "explain": "Hier endet die main-Methode – danach ist das Programm fertig."
+          }
+        ]
+      },
+      "explanation": "summe(3) = 3 + summe(2) = 3 + 2 + summe(1) = 3 + 2 + 1 + 0 = 6. Ohne den Basisfall n == 0 würde es nie enden.",
+      "javaContext": "members",
+      "expectedOutput": "6"
+    },
+    {
+      "id": "p-sort-1a",
+      "type": "predictOutput",
+      "topicId": "algorithms",
+      "difficulty": 3,
+      "prompt": "Was wird ausgegeben?",
+      "variantGroup": "t19-3",
+      "code": {
+        "lines": [
+          {
+            "code": "int[] zahlen = {4, 1, 3};",
+            "explain": "Hier erstellen wir einen Eierkarton namens „zahlen“ mit 3 nummerierten Fächern und legen 4, 1 und 3 hinein. Die Fächer sind ab 0 nummeriert: In Fach 0 liegt 4.",
+            "terms": [
+              "int",
+              "[]",
+              "="
+            ]
+          },
+          {
+            "code": "Arrays.sort(zahlen);",
+            "explain": "Sortiert den Eierkarton „zahlen“ – danach liegen die Werte aufsteigend in den Fächern (Arrays.sort).",
+            "terms": [
+              "Arrays.sort"
+            ]
+          },
+          {
+            "code": "System.out.println(Arrays.toString(zahlen));",
+            "explain": "Schreibt den Inhalt des Eierkartons „zahlen“ als Text (in eckigen Klammern) auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()",
+              "Arrays.toString"
+            ]
+          }
+        ]
+      },
+      "explanation": "Arrays.sort sortiert aufsteigend an Ort und Stelle; toString macht daraus einen lesbaren Text.",
+      "expectedOutput": "[1, 3, 4]"
+    },
+    {
+      "id": "p-set-1a",
+      "type": "predictOutput",
+      "topicId": "datastructures",
+      "difficulty": 3,
+      "prompt": "Was wird ausgegeben?",
+      "variantGroup": "t20-5",
+      "code": {
+        "lines": [
+          {
+            "code": "Set<String> menge = new HashSet<>();",
+            "explain": "Hier erstellen wir mit new ein HashSet – eine Menge ohne Doppelte – und legen es in die Box „menge“. Das Etikett Set<String> heißt: Darin liegt eine Menge (Set) – jeder Eintrag kommt höchstens einmal vor. Auf dem Etikett steht allgemein „Set“, drin liegt ein HashSet – so kann man später leicht eine andere Sorte nehmen.",
+            "terms": [
+              "Set",
+              "<>",
+              "String",
+              "=",
+              "new",
+              "HashSet"
+            ]
+          },
+          {
+            "code": "menge.add(\"ja\");",
+            "explain": "Legt „ja“ ins Set „menge“. Steht es schon drin, passiert nichts – jeder Eintrag kommt nur einmal vor.",
+            "terms": [
+              "add()"
+            ]
+          },
+          {
+            "code": "menge.add(\"ja\");",
+            "explain": "Legt „ja“ ins Set „menge“. Steht es schon drin, passiert nichts – jeder Eintrag kommt nur einmal vor.",
+            "terms": [
+              "add()"
+            ]
+          },
+          {
+            "code": "menge.add(\"nein\");",
+            "explain": "Legt „nein“ ins Set „menge“. Steht es schon drin, passiert nichts – jeder Eintrag kommt nur einmal vor.",
+            "terms": [
+              "add()"
+            ]
+          },
+          {
+            "code": "System.out.println(menge.size());",
+            "explain": "Schreibt das Ergebnis von menge.size() (die Anzahl der Einträge) auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()",
+              "size()"
+            ]
+          }
+        ]
+      },
+      "explanation": "Ein Set ist wie ein Stempelheft: Jeder Eintrag kommt höchstens einmal vor – „ja“ zählt also nur einmal.",
+      "expectedOutput": "2"
+    },
+    {
+      "id": "p-set-1b",
+      "type": "predictOutput",
+      "topicId": "datastructures",
+      "difficulty": 3,
+      "prompt": "Was wird ausgegeben?",
+      "variantGroup": "t20-3",
+      "code": {
+        "lines": [
+          {
+            "code": "Deque<Integer> stapel = new ArrayDeque<>();",
+            "explain": "Hier erstellen wir mit new eine ArrayDeque – eine Reihe, die als Stapel oder als Warteschlange dienen kann – noch leer – und legen sie in die Box „stapel“. Das Etikett Deque<Integer> heißt: Darin liegt eine Reihe, an der man vorne und hinten anbauen kann – als Stapel oder Warteschlange. Auf dem Etikett steht allgemein „Deque“, drin liegt eine ArrayDeque – so kann man später leicht eine andere Sorte nehmen.",
+            "terms": [
+              "Deque",
+              "<>",
+              "Integer",
+              "=",
+              "new",
+              "ArrayDeque"
+            ]
+          },
+          {
+            "code": "stapel.push(1);",
+            "explain": "Legt 1 oben auf den Stapel „stapel“ (push).",
+            "terms": [
+              "push()"
+            ]
+          },
+          {
+            "code": "stapel.push(2);",
+            "explain": "Legt 2 oben auf den Stapel „stapel“ (push).",
+            "terms": [
+              "push()"
+            ]
+          },
+          {
+            "code": "System.out.println(stapel.pop());",
+            "explain": "Schreibt den obersten Eintrag des Stapels „stapel“ (pop nimmt ihn dabei weg) auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()",
+              "pop()"
+            ]
+          }
+        ]
+      },
+      "explanation": "Beim Tellerstapel kommt zuerst weg, was zuletzt draufkam: pop liefert die 2.",
+      "expectedOutput": "2"
+    },
+    {
+      "id": "p-uml-1a",
+      "type": "singleChoice",
+      "topicId": "umlbasics",
+      "difficulty": 2,
+      "prompt": "Was bedeutet das Zeichen # vor einem Attribut?",
+      "diagram": {
+        "classes": [
+          {
+            "name": "Tier",
+            "kind": "classType",
+            "fields": [
+              {
+                "visibility": "#",
+                "name": "name",
+                "type": "String"
+              }
+            ],
+            "methods": [
+              {
+                "visibility": "+",
+                "name": "laut()",
+                "type": "String"
+              }
+            ]
+          },
+          {
+            "name": "Hund",
+            "kind": "classType",
+            "fields": [],
+            "methods": [
+              {
+                "visibility": "+",
+                "name": "laut()",
+                "type": "String"
+              },
+              {
+                "visibility": "+",
+                "name": "apportieren()"
+              }
+            ]
+          }
+        ],
+        "relations": [
+          {
+            "from": "Hund",
+            "to": "Tier",
+            "kind": "extendsRelation"
+          }
+        ]
+      },
+      "variantGroup": "t30-2",
+      "explanation": "# steht für protected: Die eigene Klasse und alle Kind-Klassen kommen heran, sonst niemand.",
+      "choices": [
+        "privat – nur in der eigenen Klasse",
+        "öffentlich – von überall",
+        "Das Attribut ist eine Konstante",
+        "geschützt – in der Klasse und in ihren Kind-Klassen nutzbar"
+      ],
+      "correctIndex": 3
+    },
+    {
+      "id": "p-uml-1b",
+      "type": "singleChoice",
+      "topicId": "umlbasics",
+      "difficulty": 2,
+      "prompt": "In welchem Fach des Kastens stehen die Methoden?",
+      "diagram": {
+        "classes": [
+          {
+            "name": "Konto",
+            "kind": "classType",
+            "fields": [
+              {
+                "visibility": "-",
+                "name": "stand",
+                "type": "double"
+              }
+            ],
+            "methods": [
+              {
+                "visibility": "+",
+                "name": "einzahlen()"
+              },
+              {
+                "visibility": "+",
+                "name": "getStand()",
+                "type": "double"
+              }
+            ]
+          }
+        ],
+        "relations": []
+      },
+      "variantGroup": "t30-1",
+      "explanation": "Von oben nach unten: Name, Attribute, Methoden.",
+      "choices": [
+        "Im obersten Fach",
+        "Im mittleren Fach",
+        "Neben dem Klassennamen",
+        "Im untersten Fach"
+      ],
+      "correctIndex": 3
+    },
+    {
+      "id": "p-uml-2a",
+      "type": "singleChoice",
+      "topicId": "umlrelations",
+      "difficulty": 3,
+      "prompt": "Was bedeutet die gefüllte Raute am Haus?",
+      "diagram": {
+        "classes": [
+          {
+            "name": "Haus",
+            "kind": "classType",
+            "fields": [
+              {
+                "visibility": "-",
+                "name": "adresse",
+                "type": "String"
+              }
+            ],
+            "methods": []
+          },
+          {
+            "name": "Raum",
+            "kind": "classType",
+            "fields": [
+              {
+                "visibility": "-",
+                "name": "flaeche",
+                "type": "double"
+              }
+            ],
+            "methods": []
+          }
+        ],
+        "relations": [
+          {
+            "from": "Haus",
+            "to": "Raum",
+            "kind": "composition",
+            "multiplicity": "1..*"
+          }
+        ]
+      },
+      "variantGroup": "t31-3",
+      "explanation": "Gefüllte Raute = Komposition. Das Ganze und seine Teile gehören untrennbar zusammen.",
+      "choices": [
+        "Komposition: Ohne das Haus gibt es die Räume nicht",
+        "Aggregation: Die Räume leben ohne das Haus weiter",
+        "Vererbung: Raum erbt von Haus",
+        "Assoziation ohne weitere Bedeutung"
+      ],
+      "correctIndex": 0
+    },
+    {
+      "id": "p-uml-2b",
+      "type": "singleChoice",
+      "topicId": "umlrelations",
+      "difficulty": 3,
+      "prompt": "Welche Vielfachheit heißt „keine oder genau eine“?",
+      "diagram": {
+        "classes": [
+          {
+            "name": "Bestellung",
+            "kind": "classType",
+            "fields": [
+              {
+                "visibility": "-",
+                "name": "nummer",
+                "type": "int"
+              }
+            ],
+            "methods": [
+              {
+                "visibility": "+",
+                "name": "summe()",
+                "type": "double"
+              }
+            ]
+          },
+          {
+            "name": "Kunde",
+            "kind": "classType",
+            "fields": [
+              {
+                "visibility": "-",
+                "name": "name",
+                "type": "String"
+              }
+            ],
+            "methods": []
+          }
+        ],
+        "relations": [
+          {
+            "from": "Bestellung",
+            "to": "Kunde",
+            "kind": "association",
+            "label": "gehoert zu",
+            "multiplicity": "1"
+          }
+        ]
+      },
+      "variantGroup": "t31-4",
+      "explanation": "0..1 erlaubt auch keinen Partner. 1 verlangt genau einen, 1..* mindestens einen, * beliebig viele.",
+      "choices": [
+        "*",
+        "0..1",
+        "1",
+        "1..*"
+      ],
+      "correctIndex": 1
+    },
+    {
+      "id": "p-uml-3a",
+      "type": "singleChoice",
+      "topicId": "umlrelations",
+      "difficulty": 3,
+      "prompt": "Welcher Java-Code passt zur gestrichelten Linie mit Dreiecksspitze?",
+      "diagram": {
+        "classes": [
+          {
+            "name": "Fahrbar",
+            "kind": "interfaceType",
+            "fields": [],
+            "methods": [
+              {
+                "visibility": "+",
+                "name": "fahren()"
+              }
+            ]
+          },
+          {
+            "name": "Auto",
+            "kind": "classType",
+            "fields": [
+              {
+                "visibility": "-",
+                "name": "marke",
+                "type": "String"
+              }
+            ],
+            "methods": [
+              {
+                "visibility": "+",
+                "name": "fahren()"
+              }
+            ]
+          }
+        ],
+        "relations": [
+          {
+            "from": "Auto",
+            "to": "Fahrbar",
+            "kind": "implementsRelation"
+          }
+        ]
+      },
+      "variantGroup": "t31-2",
+      "explanation": "Gestrichelt plus Dreiecksspitze auf ein «interface» heißt implements – die Klasse erfüllt den Vertrag.",
+      "choices": [
+        "interface Auto extends Fahrbar { }",
+        "class Fahrbar implements Auto { }",
+        "class Auto implements Fahrbar { }",
+        "class Auto extends Fahrbar { }"
+      ],
+      "correctIndex": 2
     }
   ],
   "placement": {

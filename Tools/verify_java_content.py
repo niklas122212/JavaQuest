@@ -132,6 +132,7 @@ def main():
     with open(path, encoding="utf-8") as f:
         course = json.load(f)
     tasks = [t for m in course["modules"] for l in m["lessons"] for t in l["tasks"]]
+    tasks += course.get("taskPool", [])  # Übungsaufgaben außerhalb der Lektionen
     tasks += [t for pool in course["placement"]["pools"].values() for t in pool]
     cases = [case for task in tasks for case in cases_for(task)]
     # Theorie-Beispiele mit verify werden ebenfalls übersetzt und ausgeführt.

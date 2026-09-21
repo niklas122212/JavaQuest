@@ -16,8 +16,13 @@ def rotate(choices, key):
     return rotated, rotated.index(choices[0])
 
 
-def base(id, type, topic, d, prompt, explanation, hint=None, code=None, ctx=None, verify=None):
+def base(id, type, topic, d, prompt, explanation, hint=None, code=None, ctx=None, verify=None, group=None, diagram=None):
     t = {"id": id, "type": type, "topicId": topic, "difficulty": d, "prompt": prompt}
+    if diagram:
+        t["diagram"] = diagram
+    if group:
+        # Aufgaben derselben Gruppe fragen dasselbe Lernziel ab; pro Sitzung kommt eine davon dran.
+        t["variantGroup"] = group
     if code:
         t["code"] = c(code)
     if hint:
@@ -78,11 +83,13 @@ def forbid(pattern, message, scope=None):
     return r
 
 
-def card(title, body, code=None, tip=None, warning=None, info=None, verify=None):
+def card(title, body, code=None, tip=None, warning=None, info=None, verify=None, diagram=None):
     """verify (optional): {"context": statements|members|file, "main": …, "output": …} – prüft das Beispiel mit javac/java."""
     k = {"title": title, "body": body}
     if code:
         k["code"] = c(code)
+    if diagram:
+        k["diagram"] = diagram
     if verify:
         k["verify"] = {key: (c(v) if isinstance(v, str) else v) for key, v in verify.items()}
     for kind, text in (("tip", tip), ("warning", warning), ("info", info)):

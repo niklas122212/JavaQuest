@@ -114,18 +114,32 @@ struct LessonSessionTests {
         #expect(session.summary.passed)
     }
 
-    @Test("Bestanden erst ab 90 %, Sterne bei 90 / 95 / 100 %")
-    func passThresholdAndStars() {
-        #expect(LessonSession.passThreshold == 0.9)
-        #expect(Stars.forAccuracy(0.89) == 0)
-        #expect(Stars.forAccuracy(0.9) == 1)
-        #expect(Stars.forAccuracy(0.94) == 1)
-        #expect(Stars.forAccuracy(0.95) == 2)
+    @Test("Bestehensgrenze 69 %: 68 % fällt durch, 69 % und 70 % bestehen")
+    func passThresholdBoundaries() {
+        #expect(LessonSession.passThreshold == 0.69)
+
+        // Die geforderten Grenzfälle, direkt an der Auswertung einer Lektion.
+        #expect(!summary(accuracy: 0.68).passed, "68 % ist nicht bestanden")
+        #expect(summary(accuracy: 0.69).passed, "69 % ist bestanden")
+        #expect(summary(accuracy: 0.70).passed, "70 % ist bestanden")
+
+        // Sterne: ab der Grenze einer, auf halbem Weg zur Fehlerfreiheit zwei, fehlerfrei drei.
+        #expect(Stars.forAccuracy(0.68) == 0)
+        #expect(Stars.forAccuracy(0.69) == 1)
+        #expect(Stars.forAccuracy(0.84) == 1)
+        #expect(Stars.twoStarThreshold == 0.845)
+        #expect(Stars.forAccuracy(0.845) == 2)
         #expect(Stars.forAccuracy(1) == 3)
     }
 
-    @Test("Halbe Punkte auf der schwersten Aufgabe → unter 90 %, nicht bestanden")
-    func ninetyPercentIsStrict() {
+    /// Auswertung mit genau dieser Trefferquote – eine Aufgabe, deren Wertung die Quote ist.
+    private func summary(accuracy: Double) -> LessonSummary {
+        let task = course.allLessons[0].tasks[0]
+        return LessonSummary(outcomes: [TaskOutcome(task: task, attempts: 1, solved: true, credit: accuracy)], taskCount: 1)
+    }
+
+    @Test("Niveau zählt: halbe Punkte auf der schwersten Aufgabe senken die Quote spürbar")
+    func difficultyIsWeighted() {
         let lesson = course.allLessons[0]
         var session = LessonSession(mode: .lesson(lessonId: lesson.id), title: "", theory: [], tasks: lesson.tasks)
         let lastIndex = lesson.tasks.count - 1
@@ -142,8 +156,8 @@ struct LessonSessionTests {
         let weights = lesson.tasks.map(\.difficulty.weight)
         let expected = (weights.dropLast().reduce(0, +) + weights.last! * 0.5) / weights.reduce(0, +)
         #expect(abs(session.summary.accuracy - expected) < 0.0001)
-        #expect(session.summary.passed == (expected >= 0.9))
-        #expect(!session.summary.passed, "Halbe Punkte auf die schwerste Aufgabe drücken unter 90 %")
+        #expect(expected < 1, "Halbe Punkte auf die schwerste Aufgabe drücken die gewichtete Quote")
+        #expect(session.summary.passed == (expected >= LessonSession.passThreshold))
     }
 
     @Test("Zweiter Versuch zählt halb, Lösung zeigen zählt nichts")
@@ -275,8 +289,12 @@ struct ProgressTests {
         #expect(TrainingBuilder.pool(course: course, completedLessonIds: []).isEmpty)
         let completed = Set(course.allLessons.prefix(4).map(\.id))
         let pool = TrainingBuilder.pool(course: course, completedLessonIds: completed)
-        let allowed = Set(course.allLessons.prefix(4).flatMap(\.tasks).map(\.id))
+        let lessonTasks = course.allLessons.prefix(4).flatMap(\.tasks)
+        let learnedTopics = Set(lessonTasks.map(\.topicId))
+        // Abgeschlossene Lektionen plus Übungsaufgaben zu genau deren Themen.
+        let allowed = Set(lessonTasks.map(\.id)).union(course.taskPool.filter { learnedTopics.contains($0.topicId) }.map(\.id))
         #expect(Set(pool.map(\.id)) == allowed)
+        #expect(pool.count > lessonTasks.count, "Der Pool erweitert das Training")
 
         let round = TrainingBuilder.round(from: pool, topicStats: [:], history: [:], seed: 42)
         #expect(round.count == TrainingBuilder.roundSize)
@@ -331,6 +349,70 @@ struct ProgressTests {
             if ids.contains(done.id) { doneCount += 1 }
         }
         #expect(wrongCount > doneCount * 3, "falsch: \(wrongCount)×, heute gelöst: \(doneCount)×")
+    }
+
+    @Test("Varianten: eine je Lernziel, nach einem Fehler beim nächsten Mal eine andere")
+    func variantRotation() {
+        // Eine Gruppe mit drei Varianten desselben Lernziels.
+        let group = course.practiceableTasks.filter { $0.groupKey == "t03-1" }
+        #expect(group.count >= 2, "Lernziel t03-1 hat Varianten: \(group.map(\.id))")
+
+        // Ohne Vorgeschichte: genau eine Variante, keine doppelten Lernziele.
+        let collapsed = VariantSelector.collapse(group, history: [:])
+        #expect(collapsed.count == 1)
+
+        // Eine Variante falsch beantwortet → beim nächsten Mal kommt eine andere.
+        let wrong = collapsed[0]
+        let history = [wrong.id: TaskHistory(attempts: 1, lastCredit: 0, lastDate: .now)]
+        let again = VariantSelector.pick(from: group, history: history)
+        #expect(again?.id != wrong.id, "Nach einem Fehler nicht dieselbe Frage erneut")
+
+        // Auch wenn alle Varianten schon dran waren, kommt nicht die zuletzt gezeigte.
+        var seen: [String: TaskHistory] = [:]
+        for (index, task) in group.enumerated() {
+            seen[task.id] = TaskHistory(attempts: 1, lastCredit: 1, lastDate: Date().addingTimeInterval(Double(index) * 60))
+        }
+        let newest = group.last!
+        #expect(VariantSelector.pick(from: group, history: seen)?.id != newest.id)
+    }
+
+    @Test("Eine Runde zeigt kein Lernziel doppelt, auch wenn es Varianten hat")
+    func roundHasNoDuplicateGoals() {
+        let completed = Set(course.allLessons.prefix(6).map(\.id))
+        let pool = TrainingBuilder.pool(course: course, completedLessonIds: completed)
+        let round = TrainingBuilder.round(from: pool, topicStats: [:], history: [:], seed: 7)
+        let goals = round.map(\.groupKey)
+        #expect(Set(goals).count == goals.count, "jedes Lernziel höchstens einmal je Runde")
+    }
+
+    @Test("Freies Training: eigene Themen und Niveaus, ohne Lernpfad-Sperre")
+    func freeTraining() {
+        // Streams stehen erst am Ende des Kurses – trotzdem sofort übbar.
+        let tasks = TrainingBuilder.freeRound(course: course, topicIds: ["lambdas"], count: 5, seed: 3)
+        #expect(!tasks.isEmpty)
+        #expect(tasks.allSatisfy { $0.topicId == "lambdas" })
+        #expect(tasks.count <= 5)
+        #expect(tasks.map(\.difficulty) == tasks.map(\.difficulty).sorted())
+
+        // Mehrere Themen zugleich, auf ein Niveau begrenzt.
+        let mixed = TrainingBuilder.freeRound(
+            course: course, topicIds: ["loops", "conditionals"], difficulties: [.easy], count: 10, seed: 4
+        )
+        #expect(!mixed.isEmpty)
+        #expect(mixed.allSatisfy { ["loops", "conditionals"].contains($0.topicId) })
+        #expect(mixed.allSatisfy { $0.difficulty == .easy })
+
+        // Ohne Themenwahl steht der ganze Kurs zur Verfügung.
+        let all = TrainingBuilder.freePool(course: course, topicIds: [])
+        #expect(all.count == course.practiceableTasks.count)
+    }
+
+    @Test("Jedes Thema mit Aufgaben ist frei wählbar")
+    func everyTopicIsPracticeable() {
+        for topic in course.practiceableTopics {
+            let tasks = TrainingBuilder.freeRound(course: course, topicIds: [topic.id], count: 3, seed: 11)
+            #expect(!tasks.isEmpty, "Thema „\(topic.title)“ hat keine übbare Aufgabe")
+        }
     }
 
     @Test("Syntaxhervorhebung erkennt Schlüsselwörter, Strings und Kommentare")

@@ -654,7 +654,7 @@ private fun SummaryStep(model: LessonFlowModel, onClose: () -> Unit, onStartLess
                         model.isTraining -> "Was noch hakt, kommt in den nächsten Runden öfter dran – so lange, bis es sitzt."
                         model.isPractice -> "Deine Antworten sind in die Wissensanalyse eingeflossen."
                         passed -> if ((model.scoreChange?.delta ?: 0) > 0) "Stark! Dein Java Master Score ist gestiegen." else "Stark! Es zählt immer dein Bestwert."
-                        else -> "Ab 90 % gilt eine Lektion als bestanden. Wiederhole sie – es zählt immer dein Bestwert."
+                        else -> "Ab ${LessonSession.passPercent} % gilt eine Lektion als bestanden. Wiederhole sie – es zählt immer dein Bestwert."
                     },
                     fontSize = 17.sp, color = secondaryText, textAlign = TextAlign.Center,
                 )
@@ -704,7 +704,7 @@ private fun ScoreChangeCard(before: Int, after: Int, passed: Boolean) {
             Text("  →  ", color = Color.White.copy(alpha = 0.7f), fontSize = 20.sp)
             Text("$after", color = Color.White, fontSize = 48.sp, fontWeight = FontWeight.Black)
         }
-        if (!passed) Text("Punkte gibt es, sobald du die Lektion mit mindestens 90 % bestehst.", color = Color.White.copy(alpha = 0.9f), fontSize = 15.sp)
+        if (!passed) Text("Punkte gibt es, sobald du die Lektion mit mindestens ${LessonSession.passPercent} % bestehst.", color = Color.White.copy(alpha = 0.9f), fontSize = 15.sp)
     }
 }
 

@@ -17,6 +17,8 @@ import app.javaquest.core.LearningTask
 import app.javaquest.core.LessonResult
 import app.javaquest.core.LessonSession
 import app.javaquest.core.LessonState
+import app.javaquest.core.LessonSummary
+import app.javaquest.core.TaskOutcome
 import app.javaquest.core.MasterRank
 import app.javaquest.core.MasterScore
 import app.javaquest.core.PlacementTest
@@ -321,14 +323,27 @@ class ProgressTest {
         assertTrue(session.summary.passed)
     }
 
-    @Test fun `Bestanden erst ab 90 Prozent`() {
-        assertEquals(0.9, LessonSession.PASS_THRESHOLD)
-        assertEquals(0, Stars.forAccuracy(0.89))
-        assertEquals(1, Stars.forAccuracy(0.9))
-        assertEquals(2, Stars.forAccuracy(0.95))
+    @Test fun `Bestehensgrenze 69 Prozent - 68 faellt durch, 69 und 70 bestehen`() {
+        assertEquals(0.69, LessonSession.PASS_THRESHOLD)
+        assertEquals(69, LessonSession.passPercent)
+
+        // Die geforderten Grenzfälle, direkt an der Auswertung einer Lektion.
+        val task = course.allLessons[0].tasks[0]
+        fun summaryWith(accuracy: Double) =
+            LessonSummary(listOf(TaskOutcome(task, 1, true, accuracy)), 1)
+        assertFalse(summaryWith(0.68).passed, "68 % ist nicht bestanden")
+        assertTrue(summaryWith(0.69).passed, "69 % ist bestanden")
+        assertTrue(summaryWith(0.70).passed, "70 % ist bestanden")
+
+        // Sterne: ab der Grenze einer, auf halbem Weg zur Fehlerfreiheit zwei, fehlerfrei drei.
+        assertEquals(0, Stars.forAccuracy(0.68))
+        assertEquals(1, Stars.forAccuracy(0.69))
+        assertEquals(1, Stars.forAccuracy(0.84))
+        assertEquals(0.845, Stars.twoStarThreshold)
+        assertEquals(2, Stars.forAccuracy(0.845))
         assertEquals(3, Stars.forAccuracy(1.0))
 
-        // Lektion 1 (Niveaus 1,1,2,2,3): die schwerste Aufgabe erst im 2. Versuch → 7,5/9 = 83 % → nicht bestanden.
+        // Lektion 1 (Niveaus 1,1,2,2,3): die schwerste Aufgabe erst im 2. Versuch → 7,5/9 = 83 %.
         val lesson = course.allLessons[0]
         val session = LessonSession(LessonSession.Mode.Lesson(lesson.id), "", emptyList(), lesson.tasks)
         var index = 0
@@ -343,7 +358,7 @@ class ProgressTest {
             index++
         }
         assertTrue(abs(session.summary.accuracy - 7.5 / 9) < 1e-9)
-        assertFalse(session.summary.passed)
+        assertTrue(session.summary.passed, "83 % liegen über der Grenze von 69 %")
     }
 
     @Test fun `Zweiter Versuch halb, Loesung zeigen null, maximal drei Versuche`() {

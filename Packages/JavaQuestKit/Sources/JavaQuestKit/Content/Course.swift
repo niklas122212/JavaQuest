@@ -2,14 +2,48 @@ import Foundation
 
 /// Der komplette, lokal gebündelte Kurs (siehe `Resources/java_course.json`).
 public struct Course: Decodable, Sendable, Hashable {
+    enum CodingKeys: String, CodingKey {
+        case schemaVersion, id, title, topics, modules, placement, taskPool
+    }
+
+    /// Eigener Decoder, damit ältere Kursdateien ohne `taskPool` weiterhin lesbar bleiben.
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        schemaVersion = try container.decode(Int.self, forKey: .schemaVersion)
+        id = try container.decode(String.self, forKey: .id)
+        title = try container.decode(String.self, forKey: .title)
+        topics = try container.decode([Topic].self, forKey: .topics)
+        modules = try container.decode([CourseModule].self, forKey: .modules)
+        placement = try container.decode(PlacementConfig.self, forKey: .placement)
+        taskPool = try container.decodeIfPresent([LearningTask].self, forKey: .taskPool) ?? []
+    }
+
     public let schemaVersion: Int
     public let id: String
     public let title: String
     public let topics: [Topic]
     public let modules: [CourseModule]
     public let placement: PlacementConfig
+    /// Übungsaufgaben außerhalb der Lektionen: zusätzliche Varianten und Aufgaben je Thema.
+    /// Der Lernpfad bleibt davon unberührt; Übung, Training und freies Lernen ziehen daraus mit.
+    public let taskPool: [LearningTask]
+
     public var allTasks: [LearningTask] {
-        allLessons.flatMap(\.tasks) + ExperienceLevel.allCases.flatMap { placement.pool(for: $0) }
+        allLessons.flatMap(\.tasks) + taskPool + ExperienceLevel.allCases.flatMap { placement.pool(for: $0) }
+    }
+
+    /// Alle übbaren Aufgaben (Lektionen + Pool) – ohne die Einstufungsfragen.
+    public var practiceableTasks: [LearningTask] { allLessons.flatMap(\.tasks) + taskPool }
+
+    /// Alle übbaren Aufgaben eines Themas, unabhängig davon, ob die Lektion schon frei ist.
+    public func tasks(forTopic topicId: String) -> [LearningTask] {
+        practiceableTasks.filter { $0.topicId == topicId }
+    }
+
+    /// Themen, zu denen es überhaupt Aufgaben gibt – Grundlage der freien Themenauswahl.
+    public var practiceableTopics: [Topic] {
+        let withTasks = Set(practiceableTasks.map(\.topicId))
+        return topics.filter { withTasks.contains($0.id) }
     }
 
     /// Alle Code-Schnipsel des Kurses mit Fundstelle – für Tests und Validierung.
@@ -90,8 +124,10 @@ public struct TheoryCard: Decodable, Sendable, Hashable {
     public let body: String
     public let example: CodeSnippet?
     public let callout: Callout?
+    /// UML-Klassendiagramm zur Karte – wird unter dem Text gezeichnet.
+    public let diagram: UMLDiagram?
 
-    enum CodingKeys: String, CodingKey { case title, body, example = "code", callout }
+    enum CodingKeys: String, CodingKey { case title, body, example = "code", callout, diagram }
 
     public var code: String? { example?.source }
 

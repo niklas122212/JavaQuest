@@ -25,9 +25,21 @@ public struct TaskHistory: Sendable, Hashable {
 public enum TrainingBuilder {
     public static let roundSize = 8
 
-    /// Trainiert wird nur, was schon gelernt ist: alle Aufgaben abgeschlossener Lektionen.
+    /// Trainiert wird nur, was schon gelernt ist: Aufgaben abgeschlossener Lektionen –
+    /// dazu alle Übungsaufgaben aus dem Pool zu den Themen dieser Lektionen.
     public static func pool(course: Course, completedLessonIds: Set<String>) -> [LearningTask] {
-        course.allLessons.filter { completedLessonIds.contains($0.id) }.flatMap(\.tasks)
+        let lessons = course.allLessons.filter { completedLessonIds.contains($0.id) }
+        let learnedTopics = Set(lessons.flatMap(\.tasks).map(\.topicId))
+        return lessons.flatMap(\.tasks) + course.taskPool.filter { learnedTopics.contains($0.topicId) }
+    }
+
+    /// Aufgabentopf für das freie Training: nur die gewählten Themen, optional auf Niveaus begrenzt.
+    /// Bewusst ohne Rücksicht auf den Lernpfad – jedes Thema ist jederzeit übbar.
+    public static func freePool(course: Course, topicIds: Set<String>, difficulties: Set<Difficulty> = []) -> [LearningTask] {
+        course.practiceableTasks.filter { task in
+            (topicIds.isEmpty || topicIds.contains(task.topicId))
+                && (difficulties.isEmpty || difficulties.contains(task.difficulty))
+        }
     }
 
     public static func weight(
@@ -47,6 +59,28 @@ public enum TrainingBuilder {
         return weight
     }
 
+    /// Eine Runde freies Training: selbst gewählte Themen und Niveaus, beliebig viele Aufgaben.
+    /// Funktioniert auch für Themen, deren Lektion noch nicht freigeschaltet ist.
+    public static func freeRound(
+        course: Course,
+        topicIds: Set<String>,
+        difficulties: Set<Difficulty> = [],
+        count: Int = roundSize,
+        topicStats: [String: TopicStats] = [:],
+        history: [String: TaskHistory] = [:],
+        now: Date = .now,
+        seed: UInt64 = UInt64.random(in: 1...UInt64.max)
+    ) -> [LearningTask] {
+        round(
+            from: freePool(course: course, topicIds: topicIds, difficulties: difficulties),
+            topicStats: topicStats,
+            history: history,
+            now: now,
+            size: count,
+            seed: seed
+        )
+    }
+
     /// Eine Runde mit bis zu `size` verschiedenen Aufgaben. Gleicher `seed` → gleiche Runde (für Tests).
     public static func round(
         from pool: [LearningTask],
@@ -57,7 +91,10 @@ public enum TrainingBuilder {
         seed: UInt64 = UInt64.random(in: 1...UInt64.max)
     ) -> [LearningTask] {
         var generator = SplitMix64(seed: seed)
-        var candidates = pool.map { (task: $0, weight: weight(for: $0, topicStats: topicStats, history: history, now: now)) }
+        // Je Lernziel tritt nur eine Variante an – so kommt dieselbe Frage nicht zweimal
+        // in einer Runde, und nach einem Fehler kommt beim nächsten Mal eine andere.
+        let candidateTasks = VariantSelector.collapse(pool, history: history)
+        var candidates = candidateTasks.map { (task: $0, weight: weight(for: $0, topicStats: topicStats, history: history, now: now)) }
         var chosen: [LearningTask] = []
         while chosen.count < size, !candidates.isEmpty {
             let total = candidates.reduce(0) { $0 + $1.weight }

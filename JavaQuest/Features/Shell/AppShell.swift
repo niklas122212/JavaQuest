@@ -82,6 +82,7 @@ private struct CompactShell: View {
         TabView(selection: $router.selection) {
             tab(.dashboard, title: "Übersicht", systemImage: "square.grid.2x2.fill")
             tab(.path, title: "Lernpfad", systemImage: "point.topleft.down.to.point.bottomright.curvepath.fill")
+            tab(.topics, title: "Themen", systemImage: "square.grid.3x3.fill")
             tab(.analysis, title: "Analyse", systemImage: "brain.head.profile")
             tab(.profile, title: "Profil", systemImage: "person.crop.circle")
         }
@@ -105,6 +106,7 @@ struct SectionScreen: View {
         switch section {
         case .dashboard: DashboardView()
         case .path: LearningPathView()
+        case .topics: TopicCatalogView()
         case .analysis: KnowledgeAnalysisView()
         case .profile: ProfileView()
         case .module(let id): LearningPathView(focusModuleId: id)

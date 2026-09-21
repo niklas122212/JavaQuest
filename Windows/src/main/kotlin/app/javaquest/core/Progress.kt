@@ -23,10 +23,16 @@ data class TaskOutcome(
 }
 
 object Stars {
-    /** Bestanden (ab 90 %) = 1 Stern, ab 95 % = 2 Sterne, fehlerfrei = 3 Sterne. */
+    /**
+     * Zweiter Stern auf halbem Weg zwischen Bestehensgrenze und fehlerfrei –
+     * so bleiben die Stufen sinnvoll, egal wie die Grenze eingestellt ist.
+     */
+    val twoStarThreshold: Double get() = LessonSession.PASS_THRESHOLD + (1 - LessonSession.PASS_THRESHOLD) / 2
+
+    /** Bestanden = 1 Stern, deutlich darüber = 2 Sterne, fehlerfrei = 3 Sterne. */
     fun forAccuracy(accuracy: Double): Int = when {
         accuracy >= 0.999 -> 3
-        accuracy >= 0.95 -> 2
+        accuracy >= twoStarThreshold -> 2
         accuracy >= LessonSession.PASS_THRESHOLD -> 1
         else -> 0
     }
@@ -65,8 +71,14 @@ class LessonSession(val mode: Mode, val title: String, val theory: List<TheoryCa
 
     companion object {
         const val MAX_ATTEMPTS = 3
-        /** Eine Lektion gilt ab 90 % (gewichtete Trefferquote) als bestanden. */
-        const val PASS_THRESHOLD = 0.9
+        /**
+         * Eine Lektion gilt ab 69 % (gewichtete Trefferquote) als bestanden.
+         * Einzige Quelle für die Bestehensgrenze – Sterne und Anzeigetexte leiten sich davon ab.
+         */
+        const val PASS_THRESHOLD = 0.69
+
+        /** Bestehensgrenze als ganze Prozentzahl für Anzeigetexte („69 %“). */
+        val passPercent: Int get() = kotlin.math.round(PASS_THRESHOLD * 100).toInt()
 
         fun of(lesson: app.javaquest.core.Lesson) = LessonSession(Mode.Lesson(lesson.id), lesson.title, lesson.theory, lesson.tasks)
     }

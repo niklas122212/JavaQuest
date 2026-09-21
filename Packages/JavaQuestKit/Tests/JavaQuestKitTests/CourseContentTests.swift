@@ -21,11 +21,14 @@ struct CourseContentTests {
         #expect(issues.isEmpty, "\(issues.map(\.description).joined(separator: "\n"))")
     }
 
-    @Test("Umfang: 12 Module, 29 Lektionen, 145 Aufgaben, je Stufe ein Einstiegsmodul")
+    @Test("Umfang: 13 Module, 32 Lektionen, 160 Lektionsaufgaben plus Übungspool")
     func courseShape() {
-        #expect(course.modules.count == 12)
-        #expect(course.allLessons.count == 29)
-        #expect(course.allLessons.flatMap(\.tasks).count == 145)
+        #expect(course.modules.count == 13)
+        #expect(course.allLessons.count == 32)
+        #expect(course.allLessons.flatMap(\.tasks).count == 160)
+        // Der Übungspool speist Übung, Training und freies Lernen – er wächst unabhängig von den Lektionen.
+        #expect(course.taskPool.count >= 50)
+        #expect(course.practiceableTasks.count == course.allLessons.flatMap(\.tasks).count + course.taskPool.count)
         #expect(course.entryModule(for: .beginner)?.id == "m1-first-steps")
         #expect(course.entryModule(for: .intermediate)?.id == "m3-objects")
         #expect(course.entryModule(for: .advanced)?.id == "m5-modern")

@@ -153,6 +153,10 @@ struct TaskQuestionView: View {
                 .font(.title3.weight(.semibold))
                 .fixedSize(horizontal: false, vertical: true)
 
+            if let diagram = task.diagram {
+                UMLDiagramView(diagram: diagram)
+            }
+
             switch task.kind {
             case .singleChoice where !showsExplanations, .predictOutput where !showsExplanations:
                 if let code = task.code { CodeBlockView(code: code) }

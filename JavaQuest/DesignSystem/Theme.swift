@@ -28,6 +28,10 @@ enum Theme {
     }
 
     static let cornerRadius: CGFloat = 22
+
+    /// Linien und Füllungen der UML-Diagramme.
+    static let umlLine = indigo
+    static let umlFill = Color.white
     static let innerRadius: CGFloat = 14
 
     #if os(iOS)
