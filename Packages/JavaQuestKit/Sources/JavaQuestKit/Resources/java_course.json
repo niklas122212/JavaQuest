@@ -19055,7 +19055,7 @@
     {
       "id": "p-mod-1a",
       "type": "predictOutput",
-      "topicId": "records",
+      "topicId": "modern",
       "difficulty": 2,
       "prompt": "Was wird ausgegeben?",
       "variantGroup": "t13-1",
@@ -19125,7 +19125,7 @@
     {
       "id": "p-mod-1b",
       "type": "predictOutput",
-      "topicId": "optional",
+      "topicId": "modern",
       "difficulty": 3,
       "prompt": "Was wird ausgegeben?",
       "variantGroup": "t13-3",

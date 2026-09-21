@@ -74,7 +74,8 @@ JavaQuest.xcodeproj
 ├── Windows/                       Windows-App (Kotlin, Compose Desktop): core/ · data/ · ui/ · tools/
 ├── Config/                        Info.plist-Ergänzung, macOS-Entitlements (Sandbox)
 ├── Tools/course/                  Quelle des Kurses (Python) → java_course.json, mit Zeilen-Erklärungen
-└── Tools/verify_java_content.py   Prüft alle Code-Beispiele mit javac/java
+├── Tools/verify_java_content.py   Prüft alle Code-Beispiele mit javac/java
+└── Tools/check_course.py          Konsistenz: Themen erreichbar, keine Doppel, UML vollständig
 ```
 
 **Warum ein eigenes Paket?** Alles, was Wissen über Java, Bewertung und Fortschritt enthält,
@@ -318,6 +319,7 @@ SHA-256-geprüft) bei.
 | Prüfung | Ergebnis |
 |---|---|
 | `swift test` (JavaQuestKit) | 53 Tests in 7 Suites bestanden – u. a. keine Zeile ohne Erklärung, Lexikon vollständig, Bestehensgrenze 68/69/70 %, Varianten-Rotation, freie Themenwahl, UML-Layout, Endlos-Training (falsch Gelöstes kommt über 400 Runden mehr als 3× so oft wie heute Gelöstes) |
+| `Tools/check_course.py` | Keine Befunde: 29 Themen alle mit Aufgaben erreichbar, keine inhaltsgleichen Aufgaben, 26 UML-Diagramme vollständig, Niveaus steigen in jeder Lektion an |
 | `Tools/verify_java_content.py` mit OpenJDK 25 | 181/181 Java-Prüfungen (Lektionen, Übungspool und Theorie-Beispiele), davon 179 mit Ausgabevergleich |
 | `xcodebuild` (Xcode 27) für iOS-Simulator, iOS-Gerät, macOS | BUILD SUCCEEDED, 0 Warnungen |
 | iPhone-Simulator (iOS 27), von Hand durchgeklickt | Onboarding (beide Optionen), Einstufung 5/6 = 83 %, Theorie mit Code-Exegese, alle 4 Aufgabentypen, 78 % → „Fast geschafft“, 100 % → 3 Sterne und +40 Score, Dunkelmodus; Endlos-Training: Runde mit 8 Aufgaben (Niveau 1→5), Lösung aufdecken, Auswertung, „Nächste Runde“, Score bleibt unverändert |

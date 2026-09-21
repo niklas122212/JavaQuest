@@ -527,7 +527,7 @@ LAMBDAS = [
 
 # ---------------------------------------------------------------- Modernes Java
 MODERN = [
-    out("p-mod-1a", "records", 2, "Was wird ausgegeben?",
+    out("p-mod-1a", "modern", 2, "Was wird ausgegeben?",
         """
         record Buch(String titel, int jahr) {}
 
@@ -542,7 +542,7 @@ MODERN = [
         "Der Record erzeugt automatisch die Lesemethode titel() – Setter gibt es bewusst nicht.",
         ctx="file",
         group="t13-1"),
-    out("p-mod-1b", "optional", 3, "Was wird ausgegeben?",
+    out("p-mod-1b", "modern", 3, "Was wird ausgegeben?",
         """
         Optional<String> leer = Optional.empty();
         System.out.println(leer.orElse("Ersatz"));
