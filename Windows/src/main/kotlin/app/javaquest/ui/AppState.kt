@@ -2,6 +2,7 @@ package app.javaquest.ui
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Dashboard
+import androidx.compose.material.icons.rounded.GridView
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Psychology
 import androidx.compose.material.icons.rounded.Route
@@ -11,6 +12,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.vector.ImageVector
 import app.javaquest.core.AnswerEvaluator
+import app.javaquest.core.Difficulty
 import app.javaquest.core.EvaluationResult
 import app.javaquest.core.LearningTask
 import app.javaquest.core.Lesson
@@ -25,6 +27,7 @@ import app.javaquest.data.ScoreChange
 enum class Section(val title: String, val icon: ImageVector) {
     DASHBOARD("Übersicht", Icons.Rounded.Dashboard),
     PATH("Lernpfad", Icons.Rounded.Route),
+    TOPICS("Alle Themen", Icons.Rounded.GridView),
     ANALYSIS("Analyse", Icons.Rounded.Psychology),
     PROFILE("Profil", Icons.Rounded.Person),
 }
@@ -37,7 +40,11 @@ class AppState(val store: ProgressStore) {
 
     fun startLesson(lessonId: String) {
         val lesson = store.course.lesson(lessonId) ?: return
-        flow = LessonFlowModel(store, LessonSession.of(lesson), isPractice = false)
+        // Varianten je Lernziel: beim Wiederholen kommen andere Aufgaben.
+        val session = LessonSession(
+            LessonSession.Mode.Lesson(lesson.id), lesson.title, lesson.theory, store.lessonTasks(lesson),
+        )
+        flow = LessonFlowModel(store, session, isPractice = false)
     }
 
     fun startPractice(topicId: String) {
@@ -52,6 +59,15 @@ class AppState(val store: ProgressStore) {
         val tasks = store.trainingTasks()
         if (tasks.isEmpty()) return
         flow = LessonFlowModel(store, LessonSession(LessonSession.Mode.Training, "Endlos-Training", emptyList(), tasks), isPractice = true)
+    }
+
+    /** Freies Training: selbst gewählte Themen, Niveaus und Anzahl – ohne Lernpfad-Sperre. */
+    fun startFreeTraining(topicIds: Set<String>, difficulties: Set<Difficulty>, count: Int) {
+        val tasks = store.freeTrainingTasks(topicIds, difficulties, count)
+        if (tasks.isEmpty()) return
+        val names = topicIds.mapNotNull { store.course.topic(it)?.title }
+        val title = if (names.isEmpty()) "Freies Training" else "Freies Training: ${names.joinToString(", ")}"
+        flow = LessonFlowModel(store, LessonSession(LessonSession.Mode.Training, title, emptyList(), tasks), isPractice = true)
     }
 
     fun closeFlow() {

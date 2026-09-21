@@ -10,6 +10,7 @@ import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Calculate
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Code
+import androidx.compose.material.icons.rounded.Dashboard
 import androidx.compose.material.icons.rounded.DataArray
 import androidx.compose.material.icons.rounded.DataObject
 import androidx.compose.material.icons.rounded.EditNote
@@ -204,6 +205,8 @@ fun symbolIcon(symbol: String): ImageVector = when (symbol) {
     "flag.checkered" -> Icons.Rounded.SportsScore
     "cube.transparent" -> Icons.Rounded.Category
     "infinity" -> Icons.Rounded.AllInclusive
+    "square.on.square" -> Icons.Rounded.Dashboard
+    "arrow.triangle.pull" -> Icons.Rounded.AccountTree
     else -> Icons.Rounded.Widgets
 }
 

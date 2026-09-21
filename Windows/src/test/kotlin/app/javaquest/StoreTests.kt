@@ -49,7 +49,12 @@ class StoreTest {
         assertTrue(store.trainingTasks().isEmpty(), "ohne abgeschlossene Lektion gibt es nichts zu trainieren")
         playLesson(store, 0)
         playLesson(store, 1)
-        assertEquals(course.allLessons.take(2).sumOf { it.tasks.size }, store.trainingPool.size)
+        val lessonTasks = course.allLessons.take(2).flatMap { it.tasks }
+        val learnedTopics = lessonTasks.map { it.topicId }.toSet()
+        assertEquals(
+            lessonTasks.size + course.taskPool.count { it.topicId in learnedTopics },
+            store.trainingPool.size,
+        )
 
         val scoreBefore = store.masterScore
         val round = store.trainingTasks()
@@ -64,7 +69,10 @@ class StoreTest {
         }
         assertEquals(8, store.trainingTaskCount)
         assertEquals(scoreBefore, store.masterScore, "Training ändert den Score nicht")
-        assertEquals(TaskHistory(2, 0.0, Instant.parse("2026-09-01T10:00:00Z")), store.taskHistory[revealed.id])
+        // Aufgedeckte Lösung zählt 0 Punkte und steht so im Verlauf – Grundlage der Variantenauswahl.
+        val history = store.taskHistory.getValue(revealed.id)
+        assertEquals(0.0, history.lastCredit)
+        assertEquals(Instant.parse("2026-09-01T10:00:00Z"), history.lastDate)
 
         val reopened = ProgressStore(course, file(), clock(1))
         assertEquals(8, reopened.trainingTaskCount)

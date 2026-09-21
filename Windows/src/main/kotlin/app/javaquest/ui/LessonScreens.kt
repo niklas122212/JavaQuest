@@ -202,6 +202,7 @@ fun TheoryCardContent(card: TheoryCard, page: Int, count: Int, glossary: Map<Str
         }
         Text(card.title, fontSize = 32.sp, fontWeight = FontWeight.Bold, lineHeight = 38.sp)
         Text(card.body, fontSize = 19.sp, lineHeight = 28.sp)
+        card.diagram?.let { UmlDiagramView(it) }
         card.example?.let { CodeExegesis(it.explained(glossary), caption = "Beispiel") }
         card.callout?.let { CalloutBox(it) }
     }
@@ -314,6 +315,7 @@ fun TaskQuestion(
             course.topic(task.topicId)?.let { Chip(it.title, Icons.Rounded.Sell) }
         }
         Text(task.prompt, fontSize = 21.sp, fontWeight = FontWeight.SemiBold, lineHeight = 28.sp)
+        task.diagram?.let { UmlDiagramView(it) }
 
         when (val kind = task.kind) {
             is TaskKind.SingleChoice, is TaskKind.PredictOutput -> task.code?.let { snippet ->

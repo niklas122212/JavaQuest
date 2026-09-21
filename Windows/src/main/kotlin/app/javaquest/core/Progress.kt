@@ -420,13 +420,55 @@ object KnowledgeAnalyzer {
     })
 }
 
+/**
+ * Wählt aus Aufgaben-Varianten aus: Aufgaben mit derselben `variantGroup` fragen dasselbe
+ * Lernziel auf verschiedene Weise ab. Pro Sitzung kommt eine davon dran – erst ungesehene,
+ * nach einem Fehler bewusst eine andere, sonst die am längsten nicht gezeigte.
+ */
+object VariantSelector {
+    fun groups(tasks: List<LearningTask>): List<Pair<String, List<LearningTask>>> =
+        tasks.groupBy { it.groupKey }.toList()
+
+    fun pick(variants: List<LearningTask>, history: Map<String, TaskHistory>): LearningTask? {
+        val first = variants.firstOrNull() ?: return null
+        if (variants.size == 1) return first
+
+        val unseen = variants.filter { history[it.id] == null }
+        if (unseen.isNotEmpty()) return unseen.minByOrNull { it.difficulty.level }
+
+        val newest = variants.maxByOrNull { history[it.id]?.lastDate ?: Instant.EPOCH } ?: first
+        val others = variants.filter { it.id != newest.id }.sortedBy { history[it.id]?.lastDate ?: Instant.EPOCH }
+        return others.firstOrNull() ?: newest
+    }
+
+    /** Eine Aufgabe je Lernziel. */
+    fun collapse(tasks: List<LearningTask>, history: Map<String, TaskHistory>): List<LearningTask> =
+        groups(tasks).mapNotNull { (_, variants) -> pick(variants, history) }
+
+    /** Die Aufgaben einer Lektion, mit passender Variante je Lernziel. */
+    fun lessonTasks(lesson: Lesson, course: Course, history: Map<String, TaskHistory>): List<LearningTask> {
+        val groupKeys = lesson.tasks.map { it.groupKey }.toSet()
+        val extras = course.taskPool.filter { it.groupKey in groupKeys }
+        return collapse(lesson.tasks + extras, history).sortedBy { it.difficulty.level }
+    }
+}
+
 /** Stellt gezielte Übungssitzungen für ein Thema zusammen. */
 object PracticeBuilder {
-    fun tasks(topicId: String, course: Course, unlockedLessonIds: Set<String>, limit: Int = 5): List<LearningTask> {
-        val candidates = course.allLessons
-            .filter { it.id in unlockedLessonIds }
-            .flatMap { it.tasks }
-            .filter { it.topicId == topicId }
+    fun tasks(
+        topicId: String,
+        course: Course,
+        unlockedLessonIds: Set<String>,
+        limit: Int = 5,
+        history: Map<String, TaskHistory> = emptyMap(),
+    ): List<LearningTask> {
+        val unlocked = course.allLessons.filter { it.id in unlockedLessonIds }
+        val unlockedTopics = unlocked.flatMap { it.topicIds }.toSet()
+        val fromLessons = unlocked.flatMap { it.tasks }.filter { it.topicId == topicId }
+        // Aus dem Pool nur Themen, die im Lernpfad schon dran waren – das freie Training
+        // (siehe TrainingBuilder.freePool) umgeht diese Sperre bewusst.
+        val fromPool = if (topicId in unlockedTopics) course.taskPool.filter { it.topicId == topicId } else emptyList()
+        val candidates = VariantSelector.collapse(fromLessons + fromPool, history)
             .sortedBy { it.difficulty.level }
         if (limit <= 1 || candidates.size <= limit) return candidates.take(maxOf(limit, 0))
         val step = (candidates.size - 1).toDouble() / (limit - 1)
@@ -450,9 +492,39 @@ data class TaskHistory(val attempts: Int, val lastCredit: Double, val lastDate: 
 object TrainingBuilder {
     const val ROUND_SIZE = 8
 
-    /** Trainiert wird nur, was schon gelernt ist: alle Aufgaben abgeschlossener Lektionen. */
-    fun pool(course: Course, completedLessonIds: Set<String>): List<LearningTask> =
-        course.allLessons.filter { it.id in completedLessonIds }.flatMap { it.tasks }
+    /**
+     * Trainiert wird nur, was schon gelernt ist: Aufgaben abgeschlossener Lektionen –
+     * dazu die Übungsaufgaben aus dem Pool zu den Themen dieser Lektionen.
+     */
+    fun pool(course: Course, completedLessonIds: Set<String>): List<LearningTask> {
+        val lessons = course.allLessons.filter { it.id in completedLessonIds }
+        val learnedTopics = lessons.flatMap { it.tasks }.map { it.topicId }.toSet()
+        return lessons.flatMap { it.tasks } + course.taskPool.filter { it.topicId in learnedTopics }
+    }
+
+    /**
+     * Aufgabentopf für das freie Training: nur die gewählten Themen, optional auf Niveaus begrenzt.
+     * Bewusst ohne Rücksicht auf den Lernpfad – jedes Thema ist jederzeit übbar.
+     */
+    fun freePool(course: Course, topicIds: Set<String>, difficulties: Set<Difficulty> = emptySet()): List<LearningTask> =
+        course.practiceableTasks.filter { task ->
+            (topicIds.isEmpty() || task.topicId in topicIds) &&
+                (difficulties.isEmpty() || task.difficulty in difficulties)
+        }
+
+    /** Eine Runde freies Training: eigene Themen, Niveaus und Anzahl. */
+    fun freeRound(
+        course: Course,
+        topicIds: Set<String>,
+        difficulties: Set<Difficulty> = emptySet(),
+        count: Int = ROUND_SIZE,
+        topicStats: Map<String, TopicStats> = emptyMap(),
+        history: Map<String, TaskHistory> = emptyMap(),
+        now: Instant = Instant.now(),
+        random: Random = Random.Default,
+    ): List<LearningTask> = round(
+        freePool(course, topicIds, difficulties), topicStats, history, now, count, random,
+    )
 
     fun weight(task: LearningTask, topicStats: Map<String, TopicStats>, history: Map<String, TaskHistory>, now: Instant): Double {
         var weight = 1.0
@@ -475,7 +547,10 @@ object TrainingBuilder {
         size: Int = ROUND_SIZE,
         random: Random = Random.Default,
     ): List<LearningTask> {
-        val candidates = pool.map { it to weight(it, topicStats, history, now) }.toMutableList()
+        // Je Lernziel tritt nur eine Variante an – so kommt dieselbe Frage nicht zweimal
+        // in einer Runde, und nach einem Fehler kommt beim nächsten Mal eine andere.
+        val candidates = VariantSelector.collapse(pool, history)
+            .map { it to weight(it, topicStats, history, now) }.toMutableList()
         val chosen = mutableListOf<LearningTask>()
         while (chosen.size < size && candidates.isNotEmpty()) {
             var ticket = random.nextDouble() * candidates.sumOf { it.second }

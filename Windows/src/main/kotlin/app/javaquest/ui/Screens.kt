@@ -298,6 +298,7 @@ fun AppShell(state: AppState) {
                 when (state.section) {
                     Section.DASHBOARD -> DashboardScreen(state)
                     Section.PATH -> PathScreen(state)
+                    Section.TOPICS -> TopicsScreen(state)
                     Section.ANALYSIS -> AnalysisScreen(state)
                     Section.PROFILE -> ProfileScreen(state)
                 }

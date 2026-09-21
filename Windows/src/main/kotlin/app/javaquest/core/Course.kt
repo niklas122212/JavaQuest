@@ -188,8 +188,15 @@ data class LearningTask(
     val explanation: String,
     val javaContext: JavaContext,
     val kind: TaskKind,
+    /** Aufgaben derselben Gruppe fragen dasselbe Lernziel ab; pro Sitzung kommt eine davon dran. */
+    val variantGroup: String? = null,
+    /** UML-Klassendiagramm zur Aufgabe. */
+    val diagram: UmlDiagram? = null,
 ) {
     val type: TaskType get() = kind.type
+
+    /** Gruppenschlüssel für die Variantenauswahl (eigene ID, falls keine Gruppe gesetzt ist). */
+    val groupKey: String get() = variantGroup ?: id
 }
 
 data class Topic(val id: String, val title: String, val symbol: String, val summary: String)
@@ -198,7 +205,14 @@ enum class CalloutKind { TIP, WARNING, INFO }
 data class Callout(val kind: CalloutKind, val text: String)
 
 /** Ein „Theorie-Happen“: kurze Karte mit Text, optional erklärtem Codebeispiel und Hinweis. */
-data class TheoryCard(val title: String, val body: String, val example: CodeSnippet?, val callout: Callout?)
+data class TheoryCard(
+    val title: String,
+    val body: String,
+    val example: CodeSnippet?,
+    val callout: Callout?,
+    /** UML-Klassendiagramm zur Karte – wird unter dem Text gezeichnet. */
+    val diagram: UmlDiagram? = null,
+)
 
 data class Lesson(
     val id: String,
@@ -239,9 +253,25 @@ data class Course(
     val modules: List<CourseModule>,
     val placement: PlacementConfig,
     val glossary: Map<String, String>,
+    /** Übungsaufgaben außerhalb der Lektionen: Varianten und Aufgaben je Thema. */
+    val taskPool: List<LearningTask> = emptyList(),
 ) {
     val allLessons: List<Lesson> get() = modules.flatMap { it.lessons }
-    val allTasks: List<LearningTask> get() = allLessons.flatMap { it.tasks } + ExperienceLevel.entries.flatMap { placement.pool(it) }
+    val allTasks: List<LearningTask>
+        get() = allLessons.flatMap { it.tasks } + taskPool + ExperienceLevel.entries.flatMap { placement.pool(it) }
+
+    /** Alle übbaren Aufgaben (Lektionen + Pool) – ohne die Einstufungsfragen. */
+    val practiceableTasks: List<LearningTask> get() = allLessons.flatMap { it.tasks } + taskPool
+
+    /** Alle übbaren Aufgaben eines Themas, unabhängig vom Lernpfad. */
+    fun tasksForTopic(topicId: String) = practiceableTasks.filter { it.topicId == topicId }
+
+    /** Themen, zu denen es überhaupt Aufgaben gibt – Grundlage der freien Themenauswahl. */
+    val practiceableTopics: List<Topic>
+        get() {
+            val withTasks = practiceableTasks.map { it.topicId }.toSet()
+            return topics.filter { it.id in withTasks }
+        }
 
     fun topic(id: String) = topics.firstOrNull { it.id == id }
     fun lesson(id: String) = allLessons.firstOrNull { it.id == id }
@@ -300,8 +330,37 @@ object CourseLoader {
             glossary = (root["glossary"] as? JsonArray)?.associate { entry ->
                 entry.jsonObject.str("term") to entry.jsonObject.str("meaning")
             } ?: emptyMap(),
+            taskPool = (root["taskPool"] as? JsonArray)?.map { parseTask(it.jsonObject) } ?: emptyList(),
         )
     }
+
+    private fun parseDiagram(d: JsonObject) = UmlDiagram(
+        classes = d.arr("classes").map { entry ->
+            val box = entry.jsonObject
+            UmlBox(
+                name = box.str("name"),
+                kind = UmlBoxKind.fromRaw(box.optStr("kind")),
+                fields = (box["fields"] as? JsonArray)?.map { parseMember(it.jsonObject) } ?: emptyList(),
+                methods = (box["methods"] as? JsonArray)?.map { parseMember(it.jsonObject) } ?: emptyList(),
+            )
+        },
+        relations = (d["relations"] as? JsonArray)?.map { entry ->
+            val relation = entry.jsonObject
+            UmlRelation(
+                from = relation.str("from"),
+                to = relation.str("to"),
+                kind = UmlRelationKind.fromRaw(relation.str("kind")),
+                label = relation.optStr("label"),
+                multiplicity = relation.optStr("multiplicity"),
+            )
+        } ?: emptyList(),
+    )
+
+    private fun parseMember(m: JsonObject) = UmlMember(
+        visibility = UmlVisibility.fromSymbol(m.str("visibility")),
+        name = m.str("name"),
+        type = m.optStr("type"),
+    )
 
     private fun parseModule(m: JsonObject) = CourseModule(
         id = m.str("id"),
@@ -327,6 +386,7 @@ object CourseLoader {
                 callout = (c["callout"] as? JsonObject)?.let { callout ->
                     Callout(CalloutKind.valueOf(callout.str("kind").uppercase()), callout.str("text"))
                 },
+                diagram = (c["diagram"] as? JsonObject)?.let(::parseDiagram),
             )
         },
         tasks = l.arr("tasks").map { parseTask(it.jsonObject) },
@@ -387,6 +447,8 @@ object CourseLoader {
                 else -> JavaContext.STATEMENTS
             },
             kind = kind,
+            variantGroup = t.optStr("variantGroup"),
+            diagram = (t["diagram"] as? JsonObject)?.let(::parseDiagram),
         )
     }
 

@@ -87,6 +87,20 @@ private fun selfCheck(outputDir: File) {
         render("training-auswertung")
     }
     state.closeFlow()
+    // Freies Training über selbst gewählte Themen – hier die beiden UML-Themen.
+    state.startFreeTraining(setOf("umlbasics", "umlrelations"), emptySet(), 4)
+    state.flow?.let { flow ->
+        while (flow.currentTask != null) {
+            val task = flow.currentTask!!
+            render("frei-${task.id}")
+            flow.draft = flow.draft.applying(app.javaquest.core.AnswerEvaluator.referenceAnswer(task))
+            flow.submit()
+            flow.next()
+        }
+        render("frei-auswertung")
+    }
+    state.closeFlow()
+
     for (section in app.javaquest.ui.Section.entries) { state.section = section; render("${section.name.lowercase()}-am-ende") }
     scene.close()
     println("$count Bildschirme gezeichnet → ${outputDir.absolutePath}")

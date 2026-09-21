@@ -33,6 +33,9 @@ import app.javaquest.core.TaskKind
 import app.javaquest.core.TopicStats
 import app.javaquest.core.TopicStatus
 import app.javaquest.core.TrainingBuilder
+import app.javaquest.core.UmlLayout
+import app.javaquest.core.UmlRelationKind
+import app.javaquest.core.VariantSelector
 import java.time.Instant
 import kotlin.math.abs
 import kotlin.random.Random
@@ -183,10 +186,13 @@ class EvaluatorTest {
 }
 
 class CourseContentTest {
-    @Test fun `Kurs laedt - 12 Module, 29 Lektionen, 145 Aufgaben, 1 Einstufungsfrage`() {
-        assertEquals(12, course.modules.size)
-        assertEquals(29, course.allLessons.size)
-        assertEquals(145, course.allLessons.sumOf { it.tasks.size })
+    @Test fun `Kurs laedt - 13 Module, 32 Lektionen, 160 Aufgaben plus Uebungspool`() {
+        assertEquals(13, course.modules.size)
+        assertEquals(32, course.allLessons.size)
+        assertEquals(160, course.allLessons.sumOf { it.tasks.size })
+        // Der Übungspool speist Übung, Training und freies Lernen.
+        assertTrue(course.taskPool.size >= 50, "nur ${course.taskPool.size} Übungsaufgaben")
+        assertEquals(course.allLessons.sumOf { it.tasks.size } + course.taskPool.size, course.practiceableTasks.size)
         assertEquals(1, course.placement.pool(ExperienceLevel.INTERMEDIATE).size)
         assertEquals("m1-first-steps", course.entryModule(ExperienceLevel.BEGINNER)?.id)
         assertEquals("m3-objects", course.entryModule(ExperienceLevel.INTERMEDIATE)?.id)
@@ -194,13 +200,13 @@ class CourseContentTest {
 
     @Test fun `Jede Codezeile im Kurs hat eine Erklaerung`() {
         val snippets = course.allSnippets
-        assertEquals(207, snippets.size)
+        assertEquals(259, snippets.size)
         var lines = 0
         for ((location, snippet) in snippets) {
             assertTrue(snippet.linesMissingExplanation.isEmpty(), "$location: Zeilen ${snippet.linesMissingExplanation}")
             lines += snippet.explained(course.glossary).size
         }
-        assertTrue(lines >= 1340, "nur $lines erklärte Zeilen")
+        assertTrue(lines >= 1630, "nur $lines erklärte Zeilen")
     }
 
     @Test fun `Jeder Befehl einer Zeile steht im Lexikon`() {
@@ -423,12 +429,83 @@ class ProgressTest {
         assertTrue(PracticeBuilder.tasks("lambdas", course, unlocked).isEmpty())
     }
 
+    @Test fun `Varianten - eine je Lernziel, nach einem Fehler eine andere`() {
+        val group = course.practiceableTasks.filter { it.groupKey == "t03-1" }
+        assertTrue(group.size >= 2, "Lernziel t03-1 hat Varianten: ${group.map { it.id }}")
+
+        val collapsed = VariantSelector.collapse(group, emptyMap())
+        assertEquals(1, collapsed.size)
+
+        val wrong = collapsed.first()
+        val history = mapOf(wrong.id to TaskHistory(1, 0.0, Instant.now()))
+        assertTrue(VariantSelector.pick(group, history)?.id != wrong.id, "Nach einem Fehler nicht dieselbe Frage")
+
+        // Auch wenn alle dran waren: nicht die zuletzt gezeigte.
+        val seen = group.mapIndexed { index, task ->
+            task.id to TaskHistory(1, 1.0, Instant.now().plusSeconds(index * 60L))
+        }.toMap()
+        assertTrue(VariantSelector.pick(group, seen)?.id != group.last().id)
+    }
+
+    @Test fun `Eine Runde zeigt kein Lernziel doppelt`() {
+        val completed = course.allLessons.take(6).map { it.id }.toSet()
+        val round = TrainingBuilder.round(TrainingBuilder.pool(course, completed), emptyMap(), emptyMap(), random = Random(7))
+        val goals = round.map { it.groupKey }
+        assertEquals(goals.size, goals.toSet().size, "jedes Lernziel höchstens einmal je Runde")
+    }
+
+    @Test fun `Freies Training - eigene Themen und Niveaus, ohne Lernpfad-Sperre`() {
+        val tasks = TrainingBuilder.freeRound(course, setOf("lambdas"), count = 5, random = Random(3))
+        assertTrue(tasks.isNotEmpty())
+        assertTrue(tasks.all { it.topicId == "lambdas" })
+        assertTrue(tasks.size <= 5)
+
+        val mixed = TrainingBuilder.freeRound(
+            course, setOf("loops", "conditionals"), setOf(Difficulty.EASY), 10, random = Random(4),
+        )
+        assertTrue(mixed.isNotEmpty())
+        assertTrue(mixed.all { it.difficulty == Difficulty.EASY })
+
+        assertEquals(course.practiceableTasks.size, TrainingBuilder.freePool(course, emptySet()).size)
+    }
+
+    @Test fun `Jedes Thema ist frei waehlbar`() {
+        for (topic in course.practiceableTopics) {
+            val tasks = TrainingBuilder.freeRound(course, setOf(topic.id), count = 3, random = Random(11))
+            assertTrue(tasks.isNotEmpty(), "Thema „${topic.title}“ hat keine übbare Aufgabe")
+        }
+    }
+
+    @Test fun `UML-Diagramme werden geladen und angeordnet`() {
+        val umlTasks = course.practiceableTasks.filter { it.diagram != null }
+        assertTrue(umlTasks.size >= 10, "nur ${umlTasks.size} Aufgaben mit Diagramm")
+
+        val diagram = course.lesson("l31-uml-relations")!!.theory.first { it.diagram != null }.diagram!!
+        assertTrue(diagram.classes.isNotEmpty() && diagram.relations.isNotEmpty())
+
+        // Vererbung: Die Eltern-Klasse steht oben, das Kind darunter.
+        val inheritance = course.practiceableTasks.first { task ->
+            task.diagram?.relations?.any { it.kind == UmlRelationKind.EXTENDS } == true
+        }.diagram!!
+        val relation = inheritance.relations.first { it.kind == UmlRelationKind.EXTENDS }
+        val layout = UmlLayout.compute(inheritance)
+        val child = layout.placed(relation.from)!!
+        val parent = layout.placed(relation.to)!!
+        assertTrue(parent.y < child.y, "Eltern-Klasse gehört über die Kind-Klasse")
+        assertTrue(layout.width > 0 && layout.height > 0)
+    }
+
     @Test fun `Endlos-Training - nur Abgeschlossenes, 8 verschiedene Aufgaben, aufsteigend`() {
         assertTrue(TrainingBuilder.pool(course, emptySet()).isEmpty())
         val completed = course.allLessons.take(4).map { it.id }.toSet()
         val pool = TrainingBuilder.pool(course, completed)
-        val allowed = course.allLessons.take(4).flatMap { it.tasks }.map { it.id }.toSet()
+        val lessonTasks = course.allLessons.take(4).flatMap { it.tasks }
+        val learnedTopics = lessonTasks.map { it.topicId }.toSet()
+        // Abgeschlossene Lektionen plus Übungsaufgaben zu genau deren Themen.
+        val allowed = lessonTasks.map { it.id }.toSet() +
+            course.taskPool.filter { it.topicId in learnedTopics }.map { it.id }.toSet()
         assertEquals(allowed, pool.map { it.id }.toSet())
+        assertTrue(pool.size > lessonTasks.size, "Der Pool erweitert das Training")
 
         val round = TrainingBuilder.round(pool, emptyMap(), emptyMap(), random = Random(42))
         assertEquals(TrainingBuilder.ROUND_SIZE, round.size)

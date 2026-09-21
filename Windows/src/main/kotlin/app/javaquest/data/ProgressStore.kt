@@ -22,6 +22,8 @@ import app.javaquest.core.TaskHistory
 import app.javaquest.core.TaskOutcome
 import app.javaquest.core.TopicStats
 import app.javaquest.core.TrainingBuilder
+import app.javaquest.core.VariantSelector
+import app.javaquest.core.Difficulty
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.nio.file.Files
@@ -220,6 +222,25 @@ class ProgressStore(
 
     fun trainingTasks(): List<LearningTask> = TrainingBuilder.round(trainingPool, topicStats, taskHistory, clock.instant())
 
+    /** Selbst zusammengestellte Runde: gewählte Themen und Niveaus, unabhängig vom Lernpfad. */
+    fun freeTrainingTasks(topicIds: Set<String>, difficulties: Set<Difficulty>, count: Int): List<LearningTask> =
+        TrainingBuilder.freeRound(course, topicIds, difficulties, count, topicStats, taskHistory, clock.instant())
+
+    /** Aufgaben einer Lektion mit passender Variante je Lernziel. */
+    fun lessonTasks(lesson: Lesson): List<LearningTask> = VariantSelector.lessonTasks(lesson, course, taskHistory)
+
+    /** Gesehene, richtige und falsche Aufgaben eines Themas – aus dem Aufgaben-Protokoll. */
+    fun topicPractice(topicId: String): TopicPractice {
+        val attempts = data?.attempts.orEmpty().filter { it.topicId == topicId }
+        return TopicPractice(
+            seen = attempts.size,
+            correct = attempts.count { it.solved },
+            firstTry = attempts.count { it.solved && it.tries == 1 },
+            lastPracticed = attempts.maxOfOrNull { it.date },
+            mastery = topicStats[topicId]?.takeIf { it.attempts > 0 }?.mastery,
+        )
+    }
+
     // MARK: Onboarding & Einstufung
 
     /** Schließt das Onboarding ab; eine Einstufung fließt in die Analyse ein und rechnet Lektionen an. */
@@ -341,4 +362,16 @@ class ProgressStore(
 
     private fun now(): String = clock.instant().toString()
     private fun today(): LocalDate = LocalDate.ofInstant(clock.instant(), clock.zone ?: ZoneId.systemDefault())
+}
+
+/** Übungsstand eines Themas für die Themenübersicht. */
+data class TopicPractice(
+    val seen: Int,
+    val correct: Int,
+    val firstTry: Int,
+    val lastPracticed: String?,
+    val mastery: Double?,
+) {
+    val wrong: Int get() = maxOf(seen - correct, 0)
+    val successRate: Double get() = if (seen > 0) correct.toDouble() / seen else 0.0
 }

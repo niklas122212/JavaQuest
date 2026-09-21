@@ -7,8 +7,10 @@ Java Master Score von 0 bis 1000.
 
 - **Apple:** iOS/iPadOS 17, macOS 14 · Swift 6 (strict concurrency) · SwiftUI · SwiftData · Swift Charts
 - **Windows:** Windows 10/11 (64 Bit) · Kotlin 2.4 · Compose Multiplatform 1.12 (Desktop) – Ordner `Windows/`
-- **Inhalt:** 12 Module, 29 Lektionen, 145 Aufgaben, 1 Einstufungsfrage mit 6 Lücken, 1340 erklärte Codezeilen,
-  Befehlslexikon mit 212 Einträgen (Deutsch), Endlos-Training – eine gemeinsame Kursdatei für alle Plattformen
+- **Inhalt:** 13 Module, 32 Lektionen, 160 Lektionsaufgaben + 58 Übungsaufgaben im Pool (218 übbar),
+  1 Einstufungsfrage mit 6 Lücken, 1633 erklärte Codezeilen, Befehlslexikon mit 212 Einträgen (Deutsch),
+  UML-Klassendiagramme, Endlos-Training und freies Lernen – eine gemeinsame Kursdatei für alle Plattformen
+- **Bestanden ab 69 %** (zentral in `LessonSession.passThreshold`)
 
 **Windows sofort ausprobieren:** `dist/JavaQuest-Windows-1.0.0.zip` entpacken und
 „JavaQuest starten.bat“ doppelklicken – ohne Installation, Java liegt bei (siehe [Windows](#windows)).
@@ -64,7 +66,9 @@ JavaQuest.xcodeproj
 ├── Packages/JavaQuestKit/         Plattformunabhängiger Kern (SwiftPM, ohne UI)
 │   ├── Content/                   Course/Lesson/LearningTask (Codable), Validator, Loader
 │   ├── Evaluation/                AnswerEvaluator, JavaSource (Lexer), JavaHighlighter
-│   ├── Progress/                  PlacementTest, LessonSession, MasterScore, LearningPath, KnowledgeAnalyzer, Training
+│   ├── Progress/                  PlacementTest, LessonSession, MasterScore, LearningPath, KnowledgeAnalyzer,
+│   │                              Training (Endlos + frei), VariantSelector (Aufgaben-Varianten)
+│   ├── Content/UMLDiagram         UML-Klassendiagramme: Modell und plattformgleiches Layout
 │   ├── Evaluation/CodeExplainer   Zeilen-Erklärungen in Alltagssprache (Regeln + Blockstapel)
 │   └── Resources/java_course.json Der komplette Kurs (auch für Windows)
 ├── Windows/                       Windows-App (Kotlin, Compose Desktop): core/ · data/ · ui/ · tools/
@@ -101,7 +105,14 @@ Funktionen des Kerns aufruft.
    Nach dem Lösen zeigt die App die Musterlösung Zeile für Zeile.
 4. **Wissensanalyse:** Stärken, Wissenslücken (mit „Gezielt üben“), Themen im Aufbau, noch unbekannte Themen –
    auf dem Dashboard als Verteilungsbalken und Balkengrafik der schwächsten Themen.
-5. **Endlos-Training:** Runden mit 8 gemischten Aufgaben aus allen abgeschlossenen Lektionen, Niveau aufsteigend,
+5. **Freies Lernen („Alle Themen“):** Jedes Thema ist jederzeit übbar – unabhängig vom Lernpfad. Man wählt
+   Themen (auch mehrere), Niveau und Anzahl (5/10/15/25) und bekommt daraus eine eigene Übungsrunde. Jede Kachel
+   zeigt den Stand des Themas: gesehen, richtig, Erfolgsquote.
+6. **Aufgaben-Varianten statt Auswendiglernen:** Aufgaben zum selben Lernziel bilden eine Gruppe
+   (`variantGroup`). Pro Sitzung kommt aus einer Gruppe nur eine Variante dran – zuerst eine ungesehene, nach
+   einer falschen Antwort bewusst eine **andere**, sonst die am längsten nicht gezeigte. Das gilt auch beim
+   Wiederholen einer Lektion.
+7. **Endlos-Training:** Runden mit 8 gemischten Aufgaben aus allen abgeschlossenen Lektionen, Niveau aufsteigend,
    danach „Nächste Runde“. Welche Aufgaben drankommen, entscheidet ein Gewicht je Aufgabe: schwaches Thema
    bis +3, noch nie geübt +2, zuletzt falsch bis +3, lange nicht gesehen bis +2 (eine Woche = +1); heute schon
    fehlerfrei gelöst zählt nur ein Drittel. Training und Übungen verändern den Score nicht, nur die Wissensanalyse.
@@ -122,6 +133,7 @@ Funktionen des Kerns aufruft.
 | 10 Nebenläufigkeit | Erfahren | Threads & Synchronisation · Executor & virtuelle Threads |
 | 11 Modernes Java vertieft | Erfahren | sealed & Pattern Matching · Streams für Profis |
 | 12 Abschlussprojekte | Erfahren | Notenrechner · Aufgabenliste · Textabenteuer |
+| 13 UML | Fortgeschritten | Der Klassenkasten · Beziehungen · UML ↔ Java |
 
 ## Didaktik: jede Zeile in Alltagssprache
 
@@ -168,6 +180,33 @@ sicher, dass keine Zeile ohne Erklärung bleibt und jeder verwendete Befehl im L
 Alle Eigenschaften haben Standardwerte, alle Beziehungen sind optional. Damit ist das Schema
 CloudKit-kompatibel, falls später iCloud-Sync dazukommt. Das Schema ist als `JavaQuestSchemaV1` mit
 Migrationsplan versioniert, damit App-Updates bestehende Fortschritte migrieren können.
+
+### Aufgabenpool und Varianten
+
+Neben den Lektionsaufgaben steht im JSON ein `taskPool`: Übungsaufgaben, die nicht zum Lernpfad gehören.
+Er speist gezielte Übung, Endlos-Training und freies Lernen und kann beliebig wachsen (die Oberfläche
+kennt keine feste Aufgabenzahl). Jede Aufgabe darf eine `variantGroup` tragen:
+
+```json
+{ "id": "p-op-1b", "variantGroup": "t03-1", "topicId": "operators", "difficulty": 1, "type": "singleChoice" }
+```
+
+`VariantSelector` wählt daraus je Lernziel genau eine Aufgabe. Damit erscheint dieselbe Frage nicht zweimal
+in einer Runde – und nach einer falschen Antwort beim nächsten Mal eine andere Variante desselben Lernziels.
+
+### UML-Diagramme
+
+Theorie-Karten und Aufgaben können ein `diagram` tragen. Beide Apps zeichnen es selbst (SwiftUI `Canvas`
+bzw. Compose `Canvas`, keine Fremdbibliothek); `UMLLayout` berechnet die Anordnung auf beiden Plattformen gleich.
+
+```json
+"diagram": {
+  "classes": [{ "name": "Hund", "kind": "classType", "methods": [{ "visibility": "+", "name": "laut()", "type": "String" }] }],
+  "relations": [{ "from": "Hund", "to": "Tier", "kind": "extendsRelation", "multiplicity": "1..*" }]
+}
+```
+
+Unter jedem Diagramm steht eine Legende, die jede Linie in Alltagssprache erklärt – inklusive Vielfachheiten.
 
 ## Kursformat (`java_course.json`)
 
@@ -271,19 +310,19 @@ Tastatur: Strg + Enter = Prüfen/Weiter, Enter/Tab = nächste Lücke, Tab im Cod
 | Installer MSI/EXE bauen (nur unter Windows) | `gradlew.bat packageMsi packageExe` oder GitHub-Workflow `Windows-Installer` |
 
 `package_windows.sh` baut die App, entfernt ungenutzte Symbole (122 → 86 MB), zeichnet als Selbsttest jeden
-Bildschirm aller 29 Lektionen und eine Trainingsrunde aus der fertigen JAR und legt die geprüfte Java-Laufzeit (Eclipse Temurin 21,
+Bildschirm aller 32 Lektionen, eine Trainingsrunde und eine freie UML-Runde aus der fertigen JAR und legt die geprüfte Java-Laufzeit (Eclipse Temurin 21,
 SHA-256-geprüft) bei.
 
 ## Geprüft (Stand 19.09.2026)
 
 | Prüfung | Ergebnis |
 |---|---|
-| `swift test` (JavaQuestKit) | 49 Tests in 7 Suites bestanden – u. a. keine Zeile ohne Erklärung, Lexikon vollständig, 90-%-Regel, Einstufung 4/6 = 67 %, Endlos-Training (falsch Gelöstes kommt über 400 Runden mehr als 3× so oft wie heute Gelöstes) |
-| `Tools/verify_java_content.py` mit OpenJDK 25 | 134/134 Java-Prüfungen (Aufgaben und Theorie-Beispiele), davon 132 mit Ausgabevergleich |
+| `swift test` (JavaQuestKit) | 53 Tests in 7 Suites bestanden – u. a. keine Zeile ohne Erklärung, Lexikon vollständig, Bestehensgrenze 68/69/70 %, Varianten-Rotation, freie Themenwahl, UML-Layout, Endlos-Training (falsch Gelöstes kommt über 400 Runden mehr als 3× so oft wie heute Gelöstes) |
+| `Tools/verify_java_content.py` mit OpenJDK 25 | 181/181 Java-Prüfungen (Lektionen, Übungspool und Theorie-Beispiele), davon 179 mit Ausgabevergleich |
 | `xcodebuild` (Xcode 27) für iOS-Simulator, iOS-Gerät, macOS | BUILD SUCCEEDED, 0 Warnungen |
 | iPhone-Simulator (iOS 27), von Hand durchgeklickt | Onboarding (beide Optionen), Einstufung 5/6 = 83 %, Theorie mit Code-Exegese, alle 4 Aufgabentypen, 78 % → „Fast geschafft“, 100 % → 3 Sterne und +40 Score, Dunkelmodus; Endlos-Training: Runde mit 8 Aufgaben (Niveau 1→5), Lösung aufdecken, Auswertung, „Nächste Runde“, Score bleibt unverändert |
-| Windows-App: `./gradlew test` | 41 Tests bestanden (36 Logik/Speicherung, 5 Klick-Durchläufe der echten Oberfläche mit Screenshots) |
-| Windows-Paket: Selbsttest der fertigen JAR | 366 Bildschirme gezeichnet, alle 29 Lektionen und 145 Aufgaben durchgespielt, dazu eine Trainingsrunde, Score 1000 |
+| Windows-App: `./gradlew test` | 46 Tests bestanden (41 Logik/Speicherung, 5 Klick-Durchläufe der echten Oberfläche mit Screenshots) |
+| Windows-Paket: Selbsttest der fertigen JAR | 409 Bildschirme gezeichnet, alle 32 Lektionen und 160 Aufgaben durchgespielt, dazu Endlos-Training und eine freie UML-Runde, Score 1000 |
 
 Nicht geprüft: Start auf einem echten Windows-PC (hier steht nur ein Mac zur Verfügung – die Windows-Bibliothek
 `skiko-windows-x64.dll` und die Windows-Laufzeit liegen im Paket, laufen aber erst dort) sowie Signierung und Upload.

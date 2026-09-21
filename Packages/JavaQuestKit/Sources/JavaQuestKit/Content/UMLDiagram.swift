@@ -163,6 +163,7 @@ public enum UMLLayout {
     public static let headerHeight: Double = 38
     public static let rowHeight: Double = 22
     public static let sectionPadding: Double = 8
+    public static let dividerHeight: Double = 1
     public static let horizontalGap: Double = 40
     public static let verticalGap: Double = 70
 
@@ -185,10 +186,11 @@ public enum UMLLayout {
         public func placed(named name: String) -> Placed? { boxes.first { $0.box.name == name } }
     }
 
-    /// Höhe eines Kastens: Kopf plus je eine Zeile für Felder und Methoden.
+    /// Höhe eines Kastens: Kopf, zwei Trennlinien und beide Fächer mit eigenem Polster.
+    /// Leere Fächer behalten eine Zeile Höhe, damit der Kasten seine drei Teile zeigt.
     public static func height(of box: UMLDiagram.Box) -> Double {
-        let rows = Double(max(box.fields.count, 1) + max(box.methods.count, 1))
-        return headerHeight + rows * rowHeight + sectionPadding * 2
+        func section(_ count: Int) -> Double { Double(max(count, 1)) * rowHeight + sectionPadding * 2 }
+        return headerHeight + dividerHeight * 2 + section(box.fields.count) + section(box.methods.count)
     }
 
     /// Ebene je Klasse: 0 ganz oben, Kinder jeweils eine Ebene tiefer.
