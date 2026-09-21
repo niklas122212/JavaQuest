@@ -109,7 +109,7 @@ THEORY = {
         "Für verschiedene Alarme kannst du mehrere catch-Netze aufspannen. Der finally-Block läuft zum Schluss immer – wie das Aufräumen nach dem Kochen, egal ob etwas angebrannt ist oder nicht.",
         None, None),
     ("l10-exceptions", 2): ("Selbst Alarm schlagen",
-        "Mit throw löst du selbst einen Alarm aus – zum Beispiel, wenn jemand ein negatives Alter eingibt. Manche Alarme (etwa IOException) muss man vorab mit throws ankündigen oder direkt auffangen.",
+        "Mit throw löst du selbst einen Alarm aus – zum Beispiel, wenn jemand ein negatives Alter eingibt. Manche Alarme zwingt Java dich vorher anzukündigen: Eine checked Exception (z. B. IOException) musst du mit try/catch auffangen oder in der Methode mit throws ankündigen, sonst meckert schon der Compiler. Alarme, die von RuntimeException abstammen (unchecked, z. B. NullPointerException oder ArithmeticException), verlangt Java das nicht – auffangen darfst du sie trotzdem.",
         "warning", "Ein leeres catch verschluckt Fehler still und leise. Reagiere immer sinnvoll."),
 
     # --- Collections & Generics
@@ -142,7 +142,7 @@ THEORY = {
         "Ein Optional ist eine Schachtel, die etwas enthält – oder leer ist. Statt blind hineinzugreifen, fragst du mit orElse: „Gib mir den Inhalt – oder diesen Ersatz.“ So gibt es keinen Alarm wegen leerer Boxen.",
         None, None),
     ("l13-modern", 2): ("switch liefert Werte & Sorten-Prüfung",
-        "Ein switch kann direkt einen Wert liefern, den du in eine Box legst. Mit instanceof prüfst du die Sorte eines Objekts und gibst ihm gleich ein passendes Namensschild.",
+        "Ein switch kann direkt einen Wert liefern, den du in eine Box legst. Mit instanceof prüfst du die Sorte eines Objekts und gibst ihm gleich ein passendes Namensschild – das nennt man Pattern Matching: Java erkennt das Muster (die Sorte) und packt den Wert in einem Schritt aus.",
         "info", "Records gibt es seit Java 16, switch mit Sorten-Prüfung seit Java 21."),
 }
 

@@ -896,7 +896,7 @@ l9 = lesson("l09-inheritance", "Vererbung & Interfaces", "Gemeinsames Verhalten 
          [req(r"class\s+Quadrat\s+extends\s+Rechteck\b", "Quadrat erbt mit extends von Rechteck."),
           req(r"Quadrat\s*\(\s*double\s+\w+\s*\)", "Schreibe den Konstruktor Quadrat(double seite)."),
           req(r"super\s*\(\s*(\w+)\s*,\s*\1\s*\)", "Rufe super(seite, seite) auf.")],
-         "Ein Quadrat ist ein Rechteck mit gleichen Seiten. super(…) ruft den Konstruktor der Oberklasse auf, flaeche() wird geerbt.",
+         "Ein Quadrat ist ein Rechteck mit gleichen Seiten. super(…) ruft den Konstruktor der Eltern-Klasse auf, flaeche() wird geerbt.",
          ctx="file",
          hint="class Quadrat extends Rechteck { Quadrat(double seite) { super(seite, seite); } }",
          verify={"main": "System.out.println(new Quadrat(5).flaeche());", "output": "25.0"}),
@@ -1208,7 +1208,7 @@ l13 = lesson("l13-modern", "Records, Optional & switch-Ausdrücke", "Kompakter, 
     mc("t13-1", "modern", 1, "Was erzeugt record Punkt(int x, int y) {} automatisch?",
        ["Konstruktor, x(), y(), equals, hashCode und toString", "Nur einen leeren Konstruktor",
         "Setter-Methoden für x und y", "Nichts – Records müssen alles selbst definieren"],
-       "Records sind unveränderlich: Es gibt Zugriffsmethoden, aber keine Setter."),
+       "Records sind unveränderlich: Es gibt Lesemethoden (x(), y()), aber keine Setter."),
     out("t13-2", "modern", 2, "Was gibt das Programm aus?",
         """
         record Punkt(int x, int y) {}
@@ -1227,7 +1227,7 @@ l13 = lesson("l13-modern", "Records, Optional & switch-Ausdrücke", "Kompakter, 
         Punkt[x=3, y=4]
         true
         """,
-        "Die Zugriffsmethoden liefern 3 und 4. toString und equals sind automatisch implementiert und vergleichen die Werte.",
+        "Die Lesemethoden liefern 3 und 4. toString und equals sind automatisch implementiert und vergleichen die Werte.",
         ctx="file"),
     out("t13-3", "modern", 3, "Was wird ausgegeben?",
         """

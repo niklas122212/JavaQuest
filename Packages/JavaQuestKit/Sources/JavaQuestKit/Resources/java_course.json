@@ -4100,7 +4100,7 @@
               "difficulty": 5,
               "prompt": "Schreibe unter Rechteck die Klasse Quadrat, die von Rechteck erbt. Ihr Konstruktor Quadrat(double seite) ruft super(seite, seite) auf.",
               "hint": "class Quadrat extends Rechteck { Quadrat(double seite) { super(seite, seite); } }",
-              "explanation": "Ein Quadrat ist ein Rechteck mit gleichen Seiten. super(…) ruft den Konstruktor der Oberklasse auf, flaeche() wird geerbt.",
+              "explanation": "Ein Quadrat ist ein Rechteck mit gleichen Seiten. super(…) ruft den Konstruktor der Eltern-Klasse auf, flaeche() wird geerbt.",
               "javaContext": "file",
               "verify": {
                 "main": "System.out.println(new Quadrat(5).flaeche());",
@@ -4449,7 +4449,7 @@
             },
             {
               "title": "Selbst Alarm schlagen",
-              "body": "Mit throw löst du selbst einen Alarm aus – zum Beispiel, wenn jemand ein negatives Alter eingibt. Manche Alarme (etwa IOException) muss man vorab mit throws ankündigen oder direkt auffangen.",
+              "body": "Mit throw löst du selbst einen Alarm aus – zum Beispiel, wenn jemand ein negatives Alter eingibt. Manche Alarme zwingt Java dich vorher anzukündigen: Eine checked Exception (z. B. IOException) musst du mit try/catch auffangen oder in der Methode mit throws ankündigen, sonst meckert schon der Compiler. Alarme, die von RuntimeException abstammen (unchecked, z. B. NullPointerException oder ArithmeticException), verlangt Java das nicht – auffangen darfst du sie trotzdem.",
               "code": {
                 "lines": [
                   {
@@ -4791,7 +4791,7 @@
                 "lines": [
                   {
                     "code": "List<String> namen = new ArrayList<>();",
-                    "explain": "Hier erstellen wir mit new eine neue, leere ArrayList – eine Liste, die wachsen kann wie ein Einkaufszettel – und legen sie in die Box „namen“. Das Etikett List<String> heißt: Darin liegt eine Liste, und auf ihr dürfen nur Texte (String) stehen. Auf dem Etikett steht allgemein „List“, drin liegt eine ArrayList – so kann man später leicht eine andere Sorte nehmen.",
+                    "explain": "Hier erstellen wir mit new eine ArrayList – eine Liste, die wachsen kann wie ein Einkaufszettel – noch leer – und legen sie in die Box „namen“. Das Etikett List<String> heißt: Darin liegt eine Liste, und auf ihr dürfen nur Texte (String) stehen. Auf dem Etikett steht allgemein „List“, drin liegt eine ArrayList – so kann man später leicht eine andere Sorte nehmen.",
                     "terms": [
                       "List",
                       "<>",
@@ -4843,7 +4843,7 @@
                 "lines": [
                   {
                     "code": "Map<String, Integer> alter = new HashMap<>();",
-                    "explain": "Hier erstellen wir mit new ein neues, leeres Wörterbuch (HashMap) und legen es in die Box „alter“. Das Etikett Map<String, Integer> heißt: Darin liegt ein Wörterbuch – zu jedem Schlüssel gehört ein Wert. Auf dem Etikett steht allgemein „Map“, drin liegt eine HashMap – so kann man später leicht eine andere Sorte nehmen.",
+                    "explain": "Hier erstellen wir mit new ein Wörterbuch (HashMap) – noch leer und legen es in die Box „alter“. Das Etikett Map<String, Integer> heißt: Darin liegt ein Wörterbuch – zu jedem Schlüssel gehört ein Wert. Auf dem Etikett steht allgemein „Map“, drin liegt eine HashMap – so kann man später leicht eine andere Sorte nehmen.",
                     "terms": [
                       "Map",
                       "<>",
@@ -4953,7 +4953,7 @@
                 "lines": [
                   {
                     "code": "List<String> liste = new ArrayList<>();",
-                    "explain": "Hier erstellen wir mit new eine neue, leere ArrayList – eine Liste, die wachsen kann wie ein Einkaufszettel – und legen sie in die Box „liste“. Das Etikett List<String> heißt: Darin liegt eine Liste, und auf ihr dürfen nur Texte (String) stehen. Auf dem Etikett steht allgemein „List“, drin liegt eine ArrayList – so kann man später leicht eine andere Sorte nehmen.",
+                    "explain": "Hier erstellen wir mit new eine ArrayList – eine Liste, die wachsen kann wie ein Einkaufszettel – noch leer – und legen sie in die Box „liste“. Das Etikett List<String> heißt: Darin liegt eine Liste, und auf ihr dürfen nur Texte (String) stehen. Auf dem Etikett steht allgemein „List“, drin liegt eine ArrayList – so kann man später leicht eine andere Sorte nehmen.",
                     "terms": [
                       "List",
                       "<>",
@@ -5045,7 +5045,7 @@
                   },
                   {
                     "code": "Map<String, Integer> anzahl = new HashMap<>();",
-                    "explain": "Hier erstellen wir mit new ein neues, leeres Wörterbuch (HashMap) und legen es in die Box „anzahl“. Das Etikett Map<String, Integer> heißt: Darin liegt ein Wörterbuch – zu jedem Schlüssel gehört ein Wert. Auf dem Etikett steht allgemein „Map“, drin liegt eine HashMap – so kann man später leicht eine andere Sorte nehmen.",
+                    "explain": "Hier erstellen wir mit new ein Wörterbuch (HashMap) – noch leer und legen es in die Box „anzahl“. Das Etikett Map<String, Integer> heißt: Darin liegt ein Wörterbuch – zu jedem Schlüssel gehört ein Wert. Auf dem Etikett steht allgemein „Map“, drin liegt eine HashMap – so kann man später leicht eine andere Sorte nehmen.",
                     "terms": [
                       "Map",
                       "<>",
@@ -5715,7 +5715,7 @@
             },
             {
               "title": "switch liefert Werte & Sorten-Prüfung",
-              "body": "Ein switch kann direkt einen Wert liefern, den du in eine Box legst. Mit instanceof prüfst du die Sorte eines Objekts und gibst ihm gleich ein passendes Namensschild.",
+              "body": "Ein switch kann direkt einen Wert liefern, den du in eine Box legst. Mit instanceof prüfst du die Sorte eines Objekts und gibst ihm gleich ein passendes Namensschild – das nennt man Pattern Matching: Java erkennt das Muster (die Sorte) und packt den Wert in einem Schritt aus.",
               "code": {
                 "lines": [
                   {
@@ -5787,7 +5787,7 @@
               "topicId": "modern",
               "difficulty": 1,
               "prompt": "Was erzeugt record Punkt(int x, int y) {} automatisch?",
-              "explanation": "Records sind unveränderlich: Es gibt Zugriffsmethoden, aber keine Setter.",
+              "explanation": "Records sind unveränderlich: Es gibt Lesemethoden (x(), y()), aber keine Setter.",
               "choices": [
                 "Setter-Methoden für x und y",
                 "Nichts – Records müssen alles selbst definieren",
@@ -5879,7 +5879,7 @@
                   }
                 ]
               },
-              "explanation": "Die Zugriffsmethoden liefern 3 und 4. toString und equals sind automatisch implementiert und vergleichen die Werte.",
+              "explanation": "Die Lesemethoden liefern 3 und 4. toString und equals sind automatisch implementiert und vergleichen die Werte.",
               "javaContext": "file",
               "expectedOutput": "7\nPunkt[x=3, y=4]\ntrue"
             },
@@ -9234,7 +9234,7 @@
                   },
                   {
                     "code": "List<String> namen = new ArrayList<>(List.of(\"Linus\", \"Ada\", \"Grace\"));",
-                    "explain": "Hier erstellen wir mit new eine neue, leere ArrayList – eine Liste, die wachsen kann wie ein Einkaufszettel – und legen sie in die Box „namen“. Das Etikett List<String> heißt: Darin liegt eine Liste, und auf ihr dürfen nur Texte (String) stehen. Auf dem Etikett steht allgemein „List“, drin liegt eine ArrayList – so kann man später leicht eine andere Sorte nehmen.",
+                    "explain": "Hier erstellen wir mit new eine ArrayList – eine Liste, die wachsen kann wie ein Einkaufszettel, gefüllt mit „Linus“, „Ada“ und „Grace“ – und legen sie in die Box „namen“. Das Etikett List<String> heißt: Darin liegt eine Liste, und auf ihr dürfen nur Texte (String) stehen. Auf dem Etikett steht allgemein „List“, drin liegt eine ArrayList – so kann man später leicht eine andere Sorte nehmen.",
                     "terms": [
                       "List",
                       "<>",
@@ -9482,7 +9482,7 @@
                 "lines": [
                   {
                     "code": "List<String> woerter = new ArrayList<>(List.of(\"Kiwi\", \"Banane\", \"Apfel\"));",
-                    "explain": "Hier erstellen wir mit new eine neue, leere ArrayList – eine Liste, die wachsen kann wie ein Einkaufszettel – und legen sie in die Box „woerter“. Das Etikett List<String> heißt: Darin liegt eine Liste, und auf ihr dürfen nur Texte (String) stehen. Auf dem Etikett steht allgemein „List“, drin liegt eine ArrayList – so kann man später leicht eine andere Sorte nehmen.",
+                    "explain": "Hier erstellen wir mit new eine ArrayList – eine Liste, die wachsen kann wie ein Einkaufszettel, gefüllt mit „Kiwi“, „Banane“ und „Apfel“ – und legen sie in die Box „woerter“. Das Etikett List<String> heißt: Darin liegt eine Liste, und auf ihr dürfen nur Texte (String) stehen. Auf dem Etikett steht allgemein „List“, drin liegt eine ArrayList – so kann man später leicht eine andere Sorte nehmen.",
                     "terms": [
                       "List",
                       "<>",
@@ -9514,7 +9514,7 @@
                 "lines": [
                   {
                     "code": "List<String> woerter = new ArrayList<>(List.of(\"Kiwi\", \"Banane\", \"Apfel\"));",
-                    "explain": "Hier erstellen wir mit new eine neue, leere ArrayList – eine Liste, die wachsen kann wie ein Einkaufszettel – und legen sie in die Box „woerter“. Das Etikett List<String> heißt: Darin liegt eine Liste, und auf ihr dürfen nur Texte (String) stehen. Auf dem Etikett steht allgemein „List“, drin liegt eine ArrayList – so kann man später leicht eine andere Sorte nehmen.",
+                    "explain": "Hier erstellen wir mit new eine ArrayList – eine Liste, die wachsen kann wie ein Einkaufszettel, gefüllt mit „Kiwi“, „Banane“ und „Apfel“ – und legen sie in die Box „woerter“. Das Etikett List<String> heißt: Darin liegt eine Liste, und auf ihr dürfen nur Texte (String) stehen. Auf dem Etikett steht allgemein „List“, drin liegt eine ArrayList – so kann man später leicht eine andere Sorte nehmen.",
                     "terms": [
                       "List",
                       "<>",
@@ -9645,7 +9645,7 @@
                 "lines": [
                   {
                     "code": "Deque<String> stapel = new ArrayDeque<>();",
-                    "explain": "Hier erstellen wir mit new eine leere ArrayDeque – eine Reihe, die als Stapel oder als Warteschlange dienen kann – und legen sie in die Box „stapel“. Das Etikett Deque<String> heißt: Darin liegt eine Reihe, an der man vorne und hinten anbauen kann – als Stapel oder Warteschlange. Auf dem Etikett steht allgemein „Deque“, drin liegt eine ArrayDeque – so kann man später leicht eine andere Sorte nehmen.",
+                    "explain": "Hier erstellen wir mit new eine ArrayDeque – eine Reihe, die als Stapel oder als Warteschlange dienen kann – noch leer – und legen sie in die Box „stapel“. Das Etikett Deque<String> heißt: Darin liegt eine Reihe, an der man vorne und hinten anbauen kann – als Stapel oder Warteschlange. Auf dem Etikett steht allgemein „Deque“, drin liegt eine ArrayDeque – so kann man später leicht eine andere Sorte nehmen.",
                     "terms": [
                       "Deque",
                       "<>",
@@ -9683,7 +9683,7 @@
                   },
                   {
                     "code": "Queue<String> schlange = new ArrayDeque<>();",
-                    "explain": "Hier erstellen wir mit new eine leere ArrayDeque – eine Reihe, die als Stapel oder als Warteschlange dienen kann – und legen sie in die Box „schlange“. Das Etikett Queue<String> heißt: Darin liegt eine Warteschlange – wer zuerst kommt, ist zuerst dran. Auf dem Etikett steht allgemein „Queue“, drin liegt eine ArrayDeque – so kann man später leicht eine andere Sorte nehmen.",
+                    "explain": "Hier erstellen wir mit new eine ArrayDeque – eine Reihe, die als Stapel oder als Warteschlange dienen kann – noch leer – und legen sie in die Box „schlange“. Das Etikett Queue<String> heißt: Darin liegt eine Warteschlange – wer zuerst kommt, ist zuerst dran. Auf dem Etikett steht allgemein „Queue“, drin liegt eine ArrayDeque – so kann man später leicht eine andere Sorte nehmen.",
                     "terms": [
                       "Queue",
                       "<>",
@@ -9749,7 +9749,7 @@
                 "lines": [
                   {
                     "code": "Set<Integer> zahlen = new TreeSet<>(List.of(5, 3, 5, 1, 3));",
-                    "explain": "Hier erstellen wir mit new ein TreeSet – eine Menge, die jeden Eintrag nur einmal aufnimmt und alles automatisch sortiert, gefüllt mit einen fertigen Einkaufszettel mit 5, 3, 5, 1 und 3 (List.of – danach unveränderlich) – und legen es in die Box „zahlen“. Das Etikett Set<Integer> heißt: Darin liegt eine Menge (Set) – jeder Eintrag kommt höchstens einmal vor. Auf dem Etikett steht allgemein „Set“, drin liegt ein TreeSet – so kann man später leicht eine andere Sorte nehmen.",
+                    "explain": "Hier erstellen wir mit new ein TreeSet – eine Menge, die jeden Eintrag nur einmal aufnimmt und alles automatisch sortiert, gefüllt mit 5, 3, 5, 1 und 3 – und legen es in die Box „zahlen“. Das Etikett Set<Integer> heißt: Darin liegt eine Menge (Set) – jeder Eintrag kommt höchstens einmal vor. Auf dem Etikett steht allgemein „Set“, drin liegt ein TreeSet – so kann man später leicht eine andere Sorte nehmen.",
                     "terms": [
                       "Set",
                       "<>",
@@ -9792,7 +9792,7 @@
                 "lines": [
                   {
                     "code": "Deque<Integer> stapel = new ArrayDeque<>();",
-                    "explain": "Hier erstellen wir mit new eine leere ArrayDeque – eine Reihe, die als Stapel oder als Warteschlange dienen kann – und legen sie in die Box „stapel“. Das Etikett Deque<Integer> heißt: Darin liegt eine Reihe, an der man vorne und hinten anbauen kann – als Stapel oder Warteschlange. Auf dem Etikett steht allgemein „Deque“, drin liegt eine ArrayDeque – so kann man später leicht eine andere Sorte nehmen.",
+                    "explain": "Hier erstellen wir mit new eine ArrayDeque – eine Reihe, die als Stapel oder als Warteschlange dienen kann – noch leer – und legen sie in die Box „stapel“. Das Etikett Deque<Integer> heißt: Darin liegt eine Reihe, an der man vorne und hinten anbauen kann – als Stapel oder Warteschlange. Auf dem Etikett steht allgemein „Deque“, drin liegt eine ArrayDeque – so kann man später leicht eine andere Sorte nehmen.",
                     "terms": [
                       "Deque",
                       "<>",
@@ -9867,7 +9867,7 @@
                 "lines": [
                   {
                     "code": "Queue<String> kasse = new ArrayDeque<>();",
-                    "explain": "Hier erstellen wir mit new eine leere ArrayDeque – eine Reihe, die als Stapel oder als Warteschlange dienen kann – und legen sie in die Box „kasse“. Das Etikett Queue<String> heißt: Darin liegt eine Warteschlange – wer zuerst kommt, ist zuerst dran. Auf dem Etikett steht allgemein „Queue“, drin liegt eine ArrayDeque – so kann man später leicht eine andere Sorte nehmen.",
+                    "explain": "Hier erstellen wir mit new eine ArrayDeque – eine Reihe, die als Stapel oder als Warteschlange dienen kann – noch leer – und legen sie in die Box „kasse“. Das Etikett Queue<String> heißt: Darin liegt eine Warteschlange – wer zuerst kommt, ist zuerst dran. Auf dem Etikett steht allgemein „Queue“, drin liegt eine ArrayDeque – so kann man später leicht eine andere Sorte nehmen.",
                     "terms": [
                       "Queue",
                       "<>",
@@ -9974,7 +9974,7 @@
                   },
                   {
                     "code": "Set<String> verschieden = new HashSet<>(woerter);",
-                    "explain": "Hier erstellen wir mit new ein HashSet – eine Menge ohne Doppelte, gefüllt mit woerter – und legen es in die Box „verschieden“. Das Etikett Set<String> heißt: Darin liegt eine Menge (Set) – jeder Eintrag kommt höchstens einmal vor. Auf dem Etikett steht allgemein „Set“, drin liegt ein HashSet – so kann man später leicht eine andere Sorte nehmen.",
+                    "explain": "Hier erstellen wir mit new ein HashSet – eine Menge ohne Doppelte, gefüllt mit dem Inhalt der Box „woerter“ – und legen es in die Box „verschieden“. Das Etikett Set<String> heißt: Darin liegt eine Menge (Set) – jeder Eintrag kommt höchstens einmal vor. Auf dem Etikett steht allgemein „Set“, drin liegt ein HashSet – so kann man später leicht eine andere Sorte nehmen.",
                     "terms": [
                       "Set",
                       "<>",
@@ -11739,7 +11739,7 @@
                   },
                   {
                     "code": "    List<Future<Integer>> ergebnisse = new ArrayList<>();",
-                    "explain": "Hier erstellen wir mit new eine neue, leere ArrayList – eine Liste, die wachsen kann wie ein Einkaufszettel – und legen sie in die Box „ergebnisse“. Das Etikett List<Future<Integer>> heißt: Darin liegt eine Liste, und auf ihr dürfen nur Abholscheine (Future<Integer>) stehen. Auf dem Etikett steht allgemein „List“, drin liegt eine ArrayList – so kann man später leicht eine andere Sorte nehmen.",
+                    "explain": "Hier erstellen wir mit new eine ArrayList – eine Liste, die wachsen kann wie ein Einkaufszettel – noch leer – und legen sie in die Box „ergebnisse“. Das Etikett List<Future<Integer>> heißt: Darin liegt eine Liste, und auf ihr dürfen nur Abholscheine (Future<Integer>) stehen. Auf dem Etikett steht allgemein „List“, drin liegt eine ArrayList – so kann man später leicht eine andere Sorte nehmen.",
                     "terms": [
                       "List",
                       "<>",
@@ -13936,7 +13936,7 @@
                   },
                   {
                     "code": "List<Aufgabe> liste = new ArrayList<>();",
-                    "explain": "Hier erstellen wir mit new eine neue, leere ArrayList – eine Liste, die wachsen kann wie ein Einkaufszettel – und legen sie in die Box „liste“. Das Etikett List<Aufgabe> heißt: Darin liegt eine Liste, und auf ihr dürfen nur Aufgabe-Objekte stehen. Auf dem Etikett steht allgemein „List“, drin liegt eine ArrayList – so kann man später leicht eine andere Sorte nehmen.",
+                    "explain": "Hier erstellen wir mit new eine ArrayList – eine Liste, die wachsen kann wie ein Einkaufszettel – noch leer – und legen sie in die Box „liste“. Das Etikett List<Aufgabe> heißt: Darin liegt eine Liste, und auf ihr dürfen nur Aufgabe-Objekte stehen. Auf dem Etikett steht allgemein „List“, drin liegt eine ArrayList – so kann man später leicht eine andere Sorte nehmen.",
                     "terms": [
                       "List",
                       "<>",
@@ -14010,7 +14010,7 @@
                   },
                   {
                     "code": "List<Aufgabe> liste = new ArrayList<>();",
-                    "explain": "Hier erstellen wir mit new eine neue, leere ArrayList – eine Liste, die wachsen kann wie ein Einkaufszettel – und legen sie in die Box „liste“. Das Etikett List<Aufgabe> heißt: Darin liegt eine Liste, und auf ihr dürfen nur Aufgabe-Objekte stehen. Auf dem Etikett steht allgemein „List“, drin liegt eine ArrayList – so kann man später leicht eine andere Sorte nehmen.",
+                    "explain": "Hier erstellen wir mit new eine ArrayList – eine Liste, die wachsen kann wie ein Einkaufszettel – noch leer – und legen sie in die Box „liste“. Das Etikett List<Aufgabe> heißt: Darin liegt eine Liste, und auf ihr dürfen nur Aufgabe-Objekte stehen. Auf dem Etikett steht allgemein „List“, drin liegt eine ArrayList – so kann man später leicht eine andere Sorte nehmen.",
                     "terms": [
                       "List",
                       "<>",
@@ -14159,7 +14159,7 @@
                   },
                   {
                     "code": "List<Aufgabe> liste = new ArrayList<>();",
-                    "explain": "Hier erstellen wir mit new eine neue, leere ArrayList – eine Liste, die wachsen kann wie ein Einkaufszettel – und legen sie in die Box „liste“. Das Etikett List<Aufgabe> heißt: Darin liegt eine Liste, und auf ihr dürfen nur Aufgabe-Objekte stehen. Auf dem Etikett steht allgemein „List“, drin liegt eine ArrayList – so kann man später leicht eine andere Sorte nehmen.",
+                    "explain": "Hier erstellen wir mit new eine ArrayList – eine Liste, die wachsen kann wie ein Einkaufszettel – noch leer – und legen sie in die Box „liste“. Das Etikett List<Aufgabe> heißt: Darin liegt eine Liste, und auf ihr dürfen nur Aufgabe-Objekte stehen. Auf dem Etikett steht allgemein „List“, drin liegt eine ArrayList – so kann man später leicht eine andere Sorte nehmen.",
                     "terms": [
                       "List",
                       "<>",
@@ -14260,7 +14260,7 @@
                   },
                   {
                     "code": "List<Aufgabe> liste = new ArrayList<>();",
-                    "explain": "Hier erstellen wir mit new eine neue, leere ArrayList – eine Liste, die wachsen kann wie ein Einkaufszettel – und legen sie in die Box „liste“. Das Etikett List<Aufgabe> heißt: Darin liegt eine Liste, und auf ihr dürfen nur Aufgabe-Objekte stehen. Auf dem Etikett steht allgemein „List“, drin liegt eine ArrayList – so kann man später leicht eine andere Sorte nehmen.",
+                    "explain": "Hier erstellen wir mit new eine ArrayList – eine Liste, die wachsen kann wie ein Einkaufszettel – noch leer – und legen sie in die Box „liste“. Das Etikett List<Aufgabe> heißt: Darin liegt eine Liste, und auf ihr dürfen nur Aufgabe-Objekte stehen. Auf dem Etikett steht allgemein „List“, drin liegt eine ArrayList – so kann man später leicht eine andere Sorte nehmen.",
                     "terms": [
                       "List",
                       "<>",
@@ -14550,7 +14550,7 @@
                   },
                   {
                     "code": "Map<Raum, Map<String, Raum>> wege = new HashMap<>();",
-                    "explain": "Hier erstellen wir mit new ein neues, leeres Wörterbuch (HashMap) und legen es in die Box „wege“. Das Etikett Map<Raum, Map<String, Raum>> heißt: Darin liegt ein Wörterbuch – zu jedem Schlüssel gehört ein Wert. Auf dem Etikett steht allgemein „Map“, drin liegt eine HashMap – so kann man später leicht eine andere Sorte nehmen.",
+                    "explain": "Hier erstellen wir mit new ein Wörterbuch (HashMap) – noch leer und legen es in die Box „wege“. Das Etikett Map<Raum, Map<String, Raum>> heißt: Darin liegt ein Wörterbuch – zu jedem Schlüssel gehört ein Wert. Auf dem Etikett steht allgemein „Map“, drin liegt eine HashMap – so kann man später leicht eine andere Sorte nehmen.",
                     "terms": [
                       "Map",
                       "<>",
@@ -14844,7 +14844,7 @@
                   },
                   {
                     "code": "Map<Raum, Map<String, Raum>> wege = new HashMap<>();",
-                    "explain": "Hier erstellen wir mit new ein neues, leeres Wörterbuch (HashMap) und legen es in die Box „wege“. Das Etikett Map<Raum, Map<String, Raum>> heißt: Darin liegt ein Wörterbuch – zu jedem Schlüssel gehört ein Wert. Auf dem Etikett steht allgemein „Map“, drin liegt eine HashMap – so kann man später leicht eine andere Sorte nehmen.",
+                    "explain": "Hier erstellen wir mit new ein Wörterbuch (HashMap) – noch leer und legen es in die Box „wege“. Das Etikett Map<Raum, Map<String, Raum>> heißt: Darin liegt ein Wörterbuch – zu jedem Schlüssel gehört ein Wert. Auf dem Etikett steht allgemein „Map“, drin liegt eine HashMap – so kann man später leicht eine andere Sorte nehmen.",
                     "terms": [
                       "Map",
                       "<>",
@@ -14942,7 +14942,7 @@
                   },
                   {
                     "code": "Map<Raum, Map<String, Raum>> wege = new HashMap<>();",
-                    "explain": "Hier erstellen wir mit new ein neues, leeres Wörterbuch (HashMap) und legen es in die Box „wege“. Das Etikett Map<Raum, Map<String, Raum>> heißt: Darin liegt ein Wörterbuch – zu jedem Schlüssel gehört ein Wert. Auf dem Etikett steht allgemein „Map“, drin liegt eine HashMap – so kann man später leicht eine andere Sorte nehmen.",
+                    "explain": "Hier erstellen wir mit new ein Wörterbuch (HashMap) – noch leer und legen es in die Box „wege“. Das Etikett Map<Raum, Map<String, Raum>> heißt: Darin liegt ein Wörterbuch – zu jedem Schlüssel gehört ein Wert. Auf dem Etikett steht allgemein „Map“, drin liegt eine HashMap – so kann man später leicht eine andere Sorte nehmen.",
                     "terms": [
                       "Map",
                       "<>",
@@ -15025,7 +15025,7 @@
                   },
                   {
                     "code": "Map<Raum, Map<String, Raum>> wege = new HashMap<>();",
-                    "explain": "Hier erstellen wir mit new ein neues, leeres Wörterbuch (HashMap) und legen es in die Box „wege“. Das Etikett Map<Raum, Map<String, Raum>> heißt: Darin liegt ein Wörterbuch – zu jedem Schlüssel gehört ein Wert. Auf dem Etikett steht allgemein „Map“, drin liegt eine HashMap – so kann man später leicht eine andere Sorte nehmen.",
+                    "explain": "Hier erstellen wir mit new ein Wörterbuch (HashMap) – noch leer und legen es in die Box „wege“. Das Etikett Map<Raum, Map<String, Raum>> heißt: Darin liegt ein Wörterbuch – zu jedem Schlüssel gehört ein Wert. Auf dem Etikett steht allgemein „Map“, drin liegt eine HashMap – so kann man später leicht eine andere Sorte nehmen.",
                     "terms": [
                       "Map",
                       "<>",

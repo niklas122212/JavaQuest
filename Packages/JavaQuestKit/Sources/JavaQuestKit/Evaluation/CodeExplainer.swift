@@ -936,6 +936,14 @@ private enum Syntax {
         return shortValue(t)
     }
 
+    /// Womit eine Sammlung beim Erstellen gefüllt wird, im Dativ für „…, gefüllt mit …“ – ohne
+    /// den Einkaufszettel-Vergleich einer Liste noch einmal in eine andere Sammlung zu packen.
+    static func filledWithPhrase(_ a: String) -> String {
+        let t = a.trimmingCharacters(in: .whitespaces)
+        if let g = groups(rx(#"^List\.of\((.*)\)$"#), t) { return list(splitArguments(g[1]).map(shortValue)) }
+        return piecePhrase(t)
+    }
+
     /// Sortierregel in Worten („nach der Länge, absteigend“).
     static func comparatorPhrase(_ c: String) -> String {
         var text = c.trimmingCharacters(in: .whitespaces)
@@ -1232,12 +1240,12 @@ private enum Syntax {
         if let g = groups(newObject, e) {
             let args = splitArguments(g[3])
             switch g[1] {
-            case "ArrayList": return ("Hier erstellen wir mit new eine neue, leere ArrayList – eine Liste, die wachsen kann wie ein Einkaufszettel –", "sie")
-            case "HashMap": return ("Hier erstellen wir mit new ein neues, leeres Wörterbuch (HashMap)", "es")
-            case "TreeMap": return ("Hier erstellen wir mit new ein neues, leeres Wörterbuch, das seine Schlüssel automatisch alphabetisch sortiert (TreeMap),", "es")
-            case "TreeSet": return ("Hier erstellen wir mit new ein TreeSet – eine Menge, die jeden Eintrag nur einmal aufnimmt und alles automatisch sortiert\(args.isEmpty ? "" : ", gefüllt mit \(list(args.map(argumentPhrase)))") –", "es")
-            case "HashSet": return ("Hier erstellen wir mit new ein HashSet – eine Menge ohne Doppelte\(args.isEmpty ? "" : ", gefüllt mit \(list(args.map(argumentPhrase)))") –", "es")
-            case "ArrayDeque": return ("Hier erstellen wir mit new eine leere ArrayDeque – eine Reihe, die als Stapel oder als Warteschlange dienen kann –", "sie")
+            case "ArrayList": return ("Hier erstellen wir mit new eine ArrayList – eine Liste, die wachsen kann wie ein Einkaufszettel\(args.isEmpty ? " – noch leer" : ", gefüllt mit \(list(args.map(filledWithPhrase)))") –", "sie")
+            case "HashMap": return ("Hier erstellen wir mit new ein Wörterbuch (HashMap)\(args.isEmpty ? " – noch leer" : "")", "es")
+            case "TreeMap": return ("Hier erstellen wir mit new ein Wörterbuch, das seine Schlüssel automatisch alphabetisch sortiert (TreeMap)\(args.isEmpty ? " – noch leer" : ""),", "es")
+            case "TreeSet": return ("Hier erstellen wir mit new ein TreeSet – eine Menge, die jeden Eintrag nur einmal aufnimmt und alles automatisch sortiert\(args.isEmpty ? "" : ", gefüllt mit \(list(args.map(filledWithPhrase)))") –", "es")
+            case "HashSet": return ("Hier erstellen wir mit new ein HashSet – eine Menge ohne Doppelte\(args.isEmpty ? "" : ", gefüllt mit \(list(args.map(filledWithPhrase)))") –", "es")
+            case "ArrayDeque": return ("Hier erstellen wir mit new eine ArrayDeque – eine Reihe, die als Stapel oder als Warteschlange dienen kann\(args.isEmpty ? " – noch leer" : ", gefüllt mit \(list(args.map(filledWithPhrase)))") –", "sie")
             case "StringBuilder": return ("Hier erstellen wir mit new einen Notizblock für Text (StringBuilder)\(args.isEmpty ? "" : ", auf dem schon \(list(args.map(shortValue))) steht,")", "ihn")
             case "Scanner": return ("Hier erstellen wir mit new einen Scanner – ein Lesegerät, das \(list(args.map(argumentPhrase))) Stück für Stück liest –", "ihn")
             case "AtomicInteger": return ("Hier erstellen wir mit new einen sicheren Zähler (AtomicInteger), der bei 0 beginnt,", "ihn")
