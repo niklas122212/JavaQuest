@@ -461,7 +461,9 @@ function codeBlock(schnipsel) {
   if (!schnipsel || !schnipsel.lines) return "";
   const zeilen = schnipsel.lines.map((z, i) =>
     `<span class="nr">${String(i + 1).padStart(2, " ")}</span>  ${sicher(z.code || "")}`).join("\n");
-  return `<pre class="code">${zeilen}</pre>`;
+  // role="img" mit Beschriftung: Sonst buchstabieren Sprachausgaben jedes Sonderzeichen einzeln.
+  // Die Exegese darunter liest den Code Zeile für Zeile in Worten vor.
+  return `<pre class="code" tabindex="0" role="img" aria-label="Java-Code, ${schnipsel.lines.length} Zeilen. Die Erklärung Zeile für Zeile steht darunter.">${zeilen}</pre>`;
 }
 
 function exegese(schnipsel, titel) {
@@ -573,7 +575,11 @@ function umlDiagramm(d) {
     return `<div class="legende"><b>${sicher(r.from)} → ${sicher(r.to)}: ${titel}</b><span class="leise">${sicher(text + v)}</span></div>`;
   }).join("");
 
-  return `<div class="uml"><svg width="${maxBreite}" height="${Math.max(y - LUECKE_Y, 0) + 4}" viewBox="0 0 ${maxBreite} ${Math.max(y - LUECKE_Y, 0) + 4}">${svg}</svg>${legende}</div>`;
+  // Das Diagramm selbst ist ein Bild; was darauf zu sehen ist, steht als Titel und
+  // ausführlich in der Legende darunter – die lesen Sprachausgaben ohnehin vor.
+  const klassen = d.classes.map((k) => k.name).join(", ");
+  const beschreibung = `UML-Klassendiagramm mit ${d.classes.length === 1 ? "der Klasse" : "den Klassen"} ${klassen}.`;
+  return `<div class="uml"><svg width="${maxBreite}" height="${Math.max(y - LUECKE_Y, 0) + 4}" viewBox="0 0 ${maxBreite} ${Math.max(y - LUECKE_Y, 0) + 4}" role="img" aria-label="${sicher(beschreibung)}"><title>${sicher(beschreibung)}</title>${svg}</svg>${legende}</div>`;
 }
 
 // ---------------------------------------------------------------- Bildschirme
@@ -587,10 +593,73 @@ function zeichne() {
   // Die Leiste gibt es überall außer im Einstieg und während einer laufenden Aufgabe –
   // wie in der App, wo die Seitenleiste dort ebenfalls zurücktritt.
   const mitLeiste = !["einstieg", "sitzung", "einstufungErgebnis"].includes(ansicht.name);
+  const vorherigerFokus = document.activeElement;
   el().innerHTML = s() + (mitLeiste ? tableiste() : "");
   document.body.classList.toggle("mit-leiste", mitLeiste);
   bindeEreignisse();
+  fokusSetzen(vorherigerFokus);
   window.scrollTo(0, 0);
+}
+
+/* Beim Neuzeichnen geht der Fokus verloren – wer ohne Maus arbeitet, stünde danach
+   wieder am Seitenanfang. Deshalb: Bei einem echten Seitenwechsel bekommt die
+   Überschrift den Fokus (Sprachausgaben lesen den neuen Bereich vor), innerhalb
+   derselben Aufgabe dagegen der Knopf, der als Nächstes dran ist. */
+let zuletztGezeigt = null;
+
+function fokusSetzen(vorher) {
+  const kennung = ansicht.name + "#" + (sitzung ? `${sitzung.index}:${sitzung.seite}` : "");
+  const seitenwechsel = kennung !== zuletztGezeigt;
+  zuletztGezeigt = kennung;
+
+  if (seitenwechsel) {
+    const kopf = el().querySelector("h1, .kopf .titel");
+    if (kopf) {
+      kopf.setAttribute("tabindex", "-1");
+      kopf.focus({ preventScroll: true });
+    }
+    return;
+  }
+  // Innerhalb einer Aufgabe: dorthin, wo die Bedienung weitergeht.
+  const weiter = hauptaktion();
+  if (weiter) weiter.focus({ preventScroll: true });
+  else if (vorher && vorher.id) document.getElementById(vorher.id)?.focus({ preventScroll: true });
+}
+
+/** Der Knopf, den Strg/⌘ + Enter auslöst – die naheliegende nächste Handlung. */
+function hauptaktion() {
+  for (const wahl of ["[data-theorie]", "[data-weiter]", "[data-pruefen]"]) {
+    const knopf = document.querySelector(wahl);
+    if (knopf && !knopf.disabled) return knopf;
+  }
+  return null;
+}
+
+/* Tastaturkürzel. Bewusst nicht ⌘ + 1 bis 5 wie in der Mac-App: Im Browser wechselt
+   das die Browser-Tabs. Alt ist der Ersatz, den Browser freilassen. */
+function tastenkuerzel(e) {
+  const imTextfeld = /^(INPUT|TEXTAREA)$/.test((document.activeElement || {}).tagName || "");
+
+  if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+    const knopf = hauptaktion();
+    if (knopf) { e.preventDefault(); knopf.click(); }
+    return;
+  }
+  if (e.key === "Escape") {
+    const abbrechen = document.querySelector("[data-abbruch]");
+    if (abbrechen) { e.preventDefault(); abbrechen.click(); }
+    return;
+  }
+  if (e.altKey && /^[1-5]$/.test(e.key)) {
+    const ziel = document.querySelectorAll(".leiste button")[Number(e.key) - 1];
+    if (ziel) { e.preventDefault(); ziel.click(); }
+    return;
+  }
+  // Zifferntasten wählen eine Antwort – aber nicht, während jemand tippt.
+  if (!imTextfeld && !e.ctrlKey && !e.metaKey && !e.altKey && /^[1-4]$/.test(e.key)) {
+    const wahl = document.querySelector(`[data-wahl="${Number(e.key) - 1}"]`);
+    if (wahl && !wahl.disabled) { e.preventDefault(); wahl.click(); }
+  }
 }
 
 function gehe(name, daten) { ansicht = Object.assign({ name }, daten || {}); zeichne(); }
@@ -747,10 +816,14 @@ function tableiste() {
     { seite: "analyse", titel: "Analyse", symbol: "◔" },
     { seite: "profil", titel: "Profil", symbol: "☺" },
   ];
-  return `<nav class="leiste">${bereiche.map((b) =>
-    `<button class="${ansicht.name === b.seite ? "aktiv" : ""}" data-seite="${b.seite}">
-       <span class="zeichen">${b.symbol}</span><span>${b.titel}</span>
-     </button>`).join("")}</nav>`;
+  return `<nav class="leiste" aria-label="Bereiche">${bereiche.map((b, i) => {
+    const aktiv = ansicht.name === b.seite;
+    return `<button class="${aktiv ? "aktiv" : ""}" data-seite="${b.seite}"
+       ${aktiv ? 'aria-current="page"' : ""}
+       aria-label="${b.titel}${aktiv ? ", aktueller Bereich" : ""}. Tastenkürzel Alt plus ${i + 1}">
+       <span class="zeichen" aria-hidden="true">${b.symbol}</span><span>${b.titel}</span>
+     </button>`;
+  }).join("")}</nav>`;
 }
 
 /** Analyse: Stärken, Wissenslücken und was noch unbekannt ist – wie in der App. */
@@ -791,7 +864,7 @@ function analyseSeite() {
       html += `<button class="zeile" data-uebe="${t.id}">
         <span class="haupt"><strong>${sicher(t.title)}</strong>
         <span class="mini">${m === null ? "noch nicht geübt" : `${Math.round(m * 100)} % · ${gesehen} ${gesehen === 1 ? "Aufgabe" : "Aufgaben"}`}</span></span>
-        <span class="mini">üben ›</span>
+        <span class="mini aktion" aria-hidden="true">üben ›</span>
       </button>`;
     });
     html += `</div>`;
@@ -826,6 +899,14 @@ function profilSeite() {
       ${zeile("Aktuelle Serie", aktuelleSerie() === 1 ? "1 Tag" : `${aktuelleSerie()} Tage`)}
       ${zeile("Längste Serie", serie.laengste === 1 ? "1 Tag" : `${serie.laengste} Tage`)}
       ${zeile("Lektionen", `${fertig} von ${alleLektionen().length}`)}
+    </div>
+    <div class="karte"><h3>Bedienung ohne Maus</h3>
+      <p class="leise">Mit der Tabulatortaste springst du von Element zu Element, der Fokus ist
+      immer sichtbar umrandet.</p>
+      ${zeile("Antwort wählen", "Tasten 1 bis 4")}
+      ${zeile("Prüfen und weiter", "Strg + Enter (auf dem Mac ⌘ + Enter)")}
+      ${zeile("Runde abbrechen", "Esc")}
+      ${zeile("Bereich wechseln", "Alt + 1 bis Alt + 5")}
     </div>
     <div class="karte"><h3>🔒 Datenschutz</h3>
       <p class="leise">Alle Daten bleiben auf diesem Gerät. Kein Konto, kein Tracking, keine
@@ -879,11 +960,13 @@ function themenSeite() {
     <p class="leise">Ohne Auswahl kommt alles gemischt. Jedes Thema ist sofort übbar – auch wenn die Lektion noch nicht dran war.</p>
     <div class="karte">
       <h3>Niveau</h3><p class="mini">Ohne Auswahl: alle Niveaus</p>
-      <div class="chips">${[1, 2, 3, 4, 5].map((n) =>
-        `<button class="chip ${niveaus.includes(n) ? "aktiv" : ""}" data-niveau="${n}">${n}</button>`).join("")}</div>
+      <div class="chips" role="group" aria-label="Niveau auswählen">${[1, 2, 3, 4, 5].map((n) =>
+        `<button class="chip ${niveaus.includes(n) ? "aktiv" : ""}" data-niveau="${n}"
+          aria-pressed="${niveaus.includes(n)}" aria-label="Niveau ${n}">${n}</button>`).join("")}</div>
       <h3 style="margin-top:14px">Wie viele Aufgaben?</h3>
-      <div class="chips">${[5, 10, 15, 25].map((n) =>
-        `<button class="chip ${anzahl === n ? "aktiv" : ""}" data-anzahl="${n}">${n}</button>`).join("")}</div>
+      <div class="chips" role="group" aria-label="Anzahl der Aufgaben">${[5, 10, 15, 25].map((n) =>
+        `<button class="chip ${anzahl === n ? "aktiv" : ""}" data-anzahl="${n}"
+          aria-pressed="${anzahl === n}" aria-label="${n} Aufgaben">${n}</button>`).join("")}</div>
       ${gewaehlt.length ? `<button class="knopf still" data-zuruecksetzen="1">Auswahl zurücksetzen</button>` : ""}
     </div>
     <div class="gitter">`;
@@ -897,7 +980,8 @@ function themenSeite() {
     const leiste = st.length ? `<span class="stufen">${st.map((x) =>
       `<span class="stufe ${x.wacklig ? "wacklig" : ""}" title="Stufe ${x.stufe}: ${x.geloest} von ${x.gesehen} richtig">${x.stufe}<i>${x.geloest}/${x.gesehen}</i></span>`).join("")}</span>` : "";
     const wacklig = st.filter((x) => x.wacklig);
-    html += `<button class="kachel ${aktiv ? "aktiv" : ""}" data-thema="${t.id}">
+    html += `<button class="kachel ${aktiv ? "aktiv" : ""}" data-thema="${t.id}" aria-pressed="${aktiv}"
+      aria-label="${sicher(t.title)}, ${anzahl} Aufgaben${aktiv ? ", ausgewählt" : ""}">
       <strong>${sicher(t.title)}</strong>
       <span class="mini">${anzahl} Aufgaben${m === null ? "" : ` · ${Math.round(m * 100)} %`}</span>
       ${leiste}
@@ -915,7 +999,7 @@ function themenSeite() {
 
 function schwaechenSeite() {
   const offen = schwaechen();
-  let html = `<div class="kopf"><button class="zurueck" data-seite="start">‹</button><span class="titel">Meine Schwächen</span></div>`;
+  let html = `<div class="kopf"><button class="zurueck" data-seite="start" aria-label="Zurück zur Übersicht">‹</button><span class="titel">Meine Schwächen</span></div>`;
   if (!offen.length) {
     return html + `<div class="karte"><h2>Alles sitzt</h2><p class="leise">Was du zuletzt geübt hast, hat im ersten Anlauf gesessen.</p></div>`;
   }
@@ -981,7 +1065,7 @@ function sitzungSeite() {
 function theorieSeite() {
   const karte = sitzung.theorie[sitzung.seite];
   return h(`
-    <div class="kopf"><button class="zurueck" data-abbruch="1">✕</button>
+    <div class="kopf"><button class="zurueck" data-abbruch="1" aria-label="Runde abbrechen, Taste Escape">✕</button>
       <span class="titel">${sicher(sitzung.titel)}</span>
       <span class="mini">Happen ${sitzung.seite + 1}/${sitzung.theorie.length}</span></div>
     <div class="karte">
@@ -1004,33 +1088,52 @@ function aufgabenSeite() {
 
   let eingabe = "";
   if (a.type === "singleChoice") {
-    eingabe = a.choices.map((c, i) => {
+    const knoepfe = a.choices.map((c, i) => {
       let klasse = "antwort";
-      if (fertig && i === a.correctIndex) klasse += " richtig";
-      else if (sitzung.entwurf === i) klasse += sitzung.ergebnis && !sitzung.ergebnis.richtig ? " falsch" : " gewaehlt";
-      return `<button class="${klasse}" data-wahl="${i}" ${fertig ? "disabled" : ""}>
-        <span class="buchstabe">${"ABCD"[i]}</span><span>${sicher(c)}</span></button>`;
+      let zusatz = "";
+      if (fertig && i === a.correctIndex) { klasse += " richtig"; zusatz = ", richtige Antwort"; }
+      else if (sitzung.entwurf === i) {
+        const daneben = sitzung.ergebnis && !sitzung.ergebnis.richtig;
+        klasse += daneben ? " falsch" : " gewaehlt";
+        if (daneben) zusatz = ", war leider falsch";
+      }
+      // aria-checked statt reiner Farbe: Ohne Zustand wüsste eine Sprachausgabe nicht,
+      // welche Antwort gewählt ist – die Umrandung allein sieht sie nicht.
+      return `<button class="${klasse}" data-wahl="${i}" role="radio"
+        aria-checked="${sitzung.entwurf === i ? "true" : "false"}"
+        aria-label="Antwort ${"ABCD"[i]}: ${sicher(c)}${zusatz}. Tastenkürzel ${i + 1}"
+        ${fertig ? "disabled" : ""}>
+        <span class="buchstabe" aria-hidden="true">${"ABCD"[i]}</span><span>${sicher(c)}</span></button>`;
     }).join("");
+    eingabe = `<div role="radiogroup" aria-label="Antwortmöglichkeiten">${knoepfe}</div>`;
   } else if (a.type === "fillBlank") {
-    eingabe = a.blanks.map((_, i) => `<div class="luecke"><span class="nummer">${i + 1}</span>
-      <input type="text" data-luecke="${i}" value="${sicher((sitzung.entwurf || [])[i] || "")}" ${fertig ? "disabled" : ""} placeholder="Lücke ${i + 1}"></div>`).join("");
+    eingabe = a.blanks.map((_, i) => `<div class="luecke"><span class="nummer" aria-hidden="true">${i + 1}</span>
+      <input type="text" data-luecke="${i}" value="${sicher((sitzung.entwurf || [])[i] || "")}" ${fertig ? "disabled" : ""}
+        aria-label="Lücke ${i + 1} von ${a.blanks.length}" placeholder="Lücke ${i + 1}"
+        autocapitalize="off" autocorrect="off" spellcheck="false"></div>`).join("");
   } else if (a.type === "predictOutput") {
-    eingabe = `<textarea class="konsole" data-text="1" ${fertig ? "disabled" : ""} placeholder="Ausgabe Zeile für Zeile eintippen …">${sicher(sitzung.entwurf || "")}</textarea>`;
+    eingabe = `<textarea class="konsole" data-text="1" ${fertig ? "disabled" : ""}
+      aria-label="Erwartete Ausgabe, Zeile für Zeile" placeholder="Ausgabe Zeile für Zeile eintippen …"
+      autocapitalize="off" autocorrect="off" spellcheck="false">${sicher(sitzung.entwurf || "")}</textarea>`;
   } else {
     const start = (a.starterCode && a.starterCode.lines.map((z) => z.code).join("\n")) || "";
-    eingabe = `<textarea data-text="1" ${fertig ? "disabled" : ""}>${sicher(sitzung.entwurf === null ? start : sitzung.entwurf)}</textarea>`;
+    eingabe = `<textarea data-text="1" ${fertig ? "disabled" : ""} aria-label="Dein Java-Code"
+      autocapitalize="off" autocorrect="off" spellcheck="false">${sicher(sitzung.entwurf === null ? start : sitzung.entwurf)}</textarea>`;
   }
 
   const zeigeCode = a.code && (a.type === "singleChoice" || a.type === "predictOutput");
   const vorlage = a.type === "fillBlank" ? a.template : null;
 
   return h(`
-    <div class="kopf"><button class="zurueck" data-abbruch="1">✕</button>
+    <div class="kopf"><button class="zurueck" data-abbruch="1" aria-label="Runde abbrechen, Taste Escape">✕</button>
       <span class="titel">${sicher(sitzung.titel)}</span>
       <span class="mini">${sitzung.einstufung
         ? `Frage ${sitzung.einstufung.antworten.length + 1} von ${sitzung.einstufung.anzahl}`
         : `${sitzung.index + 1}/${sitzung.aufgaben.length}`}</span></div>
-    <div class="balken" style="margin-bottom:14px"><i style="width:${sitzung.einstufung
+    <div class="balken" style="margin-bottom:14px" role="progressbar"
+         aria-label="Fortschritt in dieser Runde"
+         aria-valuemin="0" aria-valuemax="${sitzung.einstufung ? sitzung.einstufung.anzahl : sitzung.aufgaben.length}"
+         aria-valuenow="${sitzung.einstufung ? sitzung.einstufung.antworten.length : sitzung.index}"><i style="width:${sitzung.einstufung
       ? (sitzung.einstufung.antworten.length / sitzung.einstufung.anzahl) * 100
       : (sitzung.index / sitzung.aufgaben.length) * 100}%"></i></div>
 
@@ -1051,6 +1154,9 @@ function aufgabenSeite() {
     </div>
 
     ${rueckmeldung(a, fertig)}
+
+    <p class="kuerzel">Ohne Maus: <kbd>1</kbd>–<kbd>4</kbd> wählt eine Antwort,
+       <kbd>Strg</kbd>+<kbd>Enter</kbd> prüft und geht weiter, <kbd>Esc</kbd> bricht ab.</p>
 
     <div class="knopf-reihe">
       ${sitzung.einstufung
@@ -1078,7 +1184,9 @@ function rueckmeldung(a, fertig) {
                       : (sitzung.aufgedeckt ? "Schau dir die Lösung in Ruhe an – beim nächsten Mal klappt’s."
                                             : (rest > 0 ? `Du hast noch ${rest} ${rest === 1 ? "Versuch" : "Versuche"}.` : "Keine Versuche mehr – unten steht, woran es lag."));
 
-  let html = `<div class="rueck ${klasse}"><h3>${kopf}</h3><p class="leise">${unter}</p>`;
+  // role="status" sorgt dafür, dass Sprachausgaben die Rückmeldung von selbst vorlesen –
+  // sonst bliebe sie unbemerkt, weil der Fokus beim Knopf stehen bleibt.
+  let html = `<div class="rueck ${klasse}" role="status" aria-live="polite"><h3>${kopf}</h3><p class="leise">${unter}</p>`;
 
   // Warum die gewählte Antwort nicht stimmt – und was richtig gewesen wäre.
   if (!richtig && a.type === "singleChoice" && sitzung.entwurf !== null && sitzung.entwurf !== a.correctIndex) {
@@ -1296,9 +1404,11 @@ async function los() {
     const antwort = await fetch("java_course.json");
     kurs = await antwort.json();
   } catch (e) {
-    el().innerHTML = `<div class="karte"><h2>Kurs konnte nicht geladen werden</h2><p class="leise">Bitte die Seite neu laden.</p></div>`;
+    el().innerHTML = `<div class="karte" role="alert"><h2>Kurs konnte nicht geladen werden</h2><p class="leise">Bitte die Seite neu laden.</p></div>`;
     return;
   }
+  // Einmal registriert, gilt für die ganze Sitzung – beim Neuzeichnen nicht erneut.
+  document.addEventListener("keydown", tastenkuerzel);
   zeichne();
 
   // Hinweis auf „Zum Home-Bildschirm“ – nur in Safari und nur, solange die App

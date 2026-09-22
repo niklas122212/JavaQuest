@@ -1,8 +1,13 @@
 /* Offline-Betrieb: Beim ersten Besuch wird alles abgelegt, danach lädt die App
    auch ohne Internet – wichtig, wenn sie wie eine App vom Home-Bildschirm startet. */
-const CACHE = "javaquest-v6";
+/* Eine einzige Versionsnummer für alles. Sie steckt auch in den Adressen von app.js und
+   styles.css (siehe index.html) – sonst liefert der Browser aus seinem eigenen Zwischen-
+   speicher die alte Fassung aus, selbst wenn der Service Worker längst erneuert wurde.
+   tools/build_web.sh zieht die Nummer aus dieser Datei und prüft, dass index.html passt. */
+const VERSION = "7";
+const CACHE = `javaquest-v${VERSION}`;
 const DATEIEN = [
-  "./", "./index.html", "./app.js", "./styles.css",
+  "./", "./index.html", `./app.js?v=${VERSION}`, `./styles.css?v=${VERSION}`,
   "./java_course.json", "./manifest.webmanifest",
   "./icons/icon-180.png", "./icons/icon-192.png", "./icons/icon-512.png",
 ];

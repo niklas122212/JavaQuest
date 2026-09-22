@@ -14,6 +14,8 @@ Bildschirme und dieselben Rechenregeln:
 | **Analyse** | Gesamte Beherrschung, Stärken, Im Aufbau, Wissenslücken – mit denselben Schwellen (75 % / 55 %) |
 | **Profil** | Lernprofil, Score und Rang, Serien, Datenschutz, Zurücksetzen |
 | **Lern-Loop** | Theorie mit Code-Exegese, vier Aufgabentypen, Begründung falscher Antworten, Sterne und Score-Zuwachs |
+| **Ohne Maus** | Sprungmarke zum Inhalt, sichtbarer Fokus überall, Tasten 1–4 für Antworten, Strg/⌘ + Enter zum Prüfen, Esc zum Abbrechen, Alt + 1–5 für die Bereiche |
+| **Sprachausgabe** | Antworten als Auswahlgruppe mit Zustand, Rückmeldung wird automatisch vorgelesen, Fortschrittsbalken und UML-Diagramme sind beschriftet |
 
 Gleich sind auch die Zahlen dahinter: Bestehensgrenze 69 %, Stufenfaktor 1,0 / 1,25 / 1,5
 im Master Score, Sterne ab 69 % / 84,5 % / 100 %, Ränge ab 0 / 150 / 350 / 600 / 850,

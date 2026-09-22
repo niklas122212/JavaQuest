@@ -14,15 +14,18 @@
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon-192.png">
-<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="styles.css?v=7">
 </head>
 <body>
-<div id="app" class="app">
+<!-- Erste Tabulator-Station: überspringt die Navigation und führt direkt zum Inhalt. -->
+<a class="sprungmarke" href="#app">Zum Inhalt springen</a>
+
+<main id="app" class="app">
   <p class="laden">JavaQuest wird geladen …</p>
-</div>
+</main>
 
 <!-- Hinweis beim ersten Besuch in Safari: wie die App auf den Home-Bildschirm kommt. -->
-<div id="installieren" class="install" hidden>
+<div id="installieren" class="install" role="region" aria-label="Hinweis zur Installation" hidden>
   <div>
     <strong>Als App installieren</strong>
     <p>Unten auf <span class="teilen">Teilen</span> tippen und dann „Zum Home-Bildschirm“ wählen. Danach startet JavaQuest wie eine normale App – auch ohne Internet.</p>
@@ -30,6 +33,6 @@
   <button type="button" id="installieren-zu">Verstanden</button>
 </div>
 
-<script src="app.js"></script>
+<script src="app.js?v=7"></script>
 </body>
 </html>

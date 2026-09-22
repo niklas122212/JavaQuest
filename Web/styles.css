@@ -6,6 +6,11 @@
   --indigo: #544FE6;
   --violet: #8B5CF6;
   --success: #2EAE61;
+  /* Dieselben Farben, aber dunkel genug für Text und Knopfbeschriftung auf hellem Grund.
+     Gemessen gegen Weiß: 4,55 / 4,58 / 4,60 zu 1 – WCAG AA verlangt 4,5. */
+  --orange-text: #C65209;
+  --success-text: #23864B;
+  --ember-text: #C4232D;
   --screen: #F2F2F7;
   --card: #FFFFFF;
   --field: rgba(118, 118, 128, 0.12);
@@ -23,6 +28,10 @@
     --field: rgba(118, 118, 128, 0.24);
     --text: #F5F5F7;
     --secondary: #9B9BA1;
+    /* Auf dunklem Grund sind die hellen Fassungen kontraststark genug (5,96 / 5,95 / 4,5). */
+    --orange-text: #F57321;
+    --success-text: #2EAE61;
+    --ember-text: #FF6B75;
   }
 }
 
@@ -304,3 +313,74 @@ body.mit-leiste .app { padding-bottom: calc(86px + env(safe-area-inset-bottom));
 
 /* Der Installationshinweis darf die Leiste unten nicht verdecken. */
 body.mit-leiste .install { bottom: calc(80px + env(safe-area-inset-bottom)); }
+
+
+/* ---------------------------------------------------------------- Bedienung ohne Maus
+   Sichtbarer Fokus ist für Tastaturnutzung unverzichtbar: Ohne ihn weiß man nicht,
+   worauf die Eingabetaste gerade wirkt. :focus-visible zeigt ihn nur dann, wenn die
+   Bedienung über Tastatur läuft – bei Mausklicks bleibt die Oberfläche ruhig. */
+:focus-visible {
+  outline: 3px solid var(--indigo);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+.knopf:focus-visible,
+.antwort:focus-visible,
+.kachel:focus-visible,
+.chip:focus-visible {
+  outline-offset: 3px;
+}
+
+/* Nur für Sprachausgaben – sichtbar ist der Text nicht. */
+.nur-vorlesen {
+  position: absolute;
+  width: 1px; height: 1px;
+  margin: -1px; padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Sprungmarke: erste Tabulator-Station, führt direkt zum Inhalt. */
+.sprungmarke {
+  position: absolute;
+  left: 16px; top: -100px;
+  z-index: 20;
+  padding: 12px 18px;
+  border-radius: 12px;
+  background: var(--card);
+  color: var(--orange-text);
+  font-weight: 600;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+  transition: top 0.15s;
+}
+.sprungmarke:focus { top: 16px; }
+
+/* Überschrift bekommt beim Seitenwechsel den Fokus – ohne sichtbaren Rahmen,
+   damit der Wechsel für Sehende unverändert aussieht, für Sprachausgaben aber hörbar wird. */
+[tabindex="-1"]:focus { outline: none; }
+
+/* Textfarben mit geprüftem Kontrast. */
+.knopf { background: linear-gradient(135deg, var(--orange-text), var(--ember-text)); }
+.knopf.zweit { color: var(--orange-text); }
+.knopf.still { color: var(--orange-text); }
+.teilen { color: var(--indigo); }
+.install button { color: var(--orange-text); }
+.zeile .mini.aktion { color: var(--orange-text); font-weight: 600; }
+.leiste button.aktiv { color: var(--orange-text); }
+.stufe.wacklig { color: var(--ember-text); }
+.mini.warn { color: var(--ember-text); }
+details.exegese > summary { color: var(--orange-text); }
+.rueck h3 { color: inherit; }
+
+/* Tastaturkürzel-Hinweis unter der Aufgabe. */
+.kuerzel { color: var(--secondary); font-size: 13px; margin-top: 10px; }
+.kuerzel kbd {
+  display: inline-block;
+  padding: 1px 6px;
+  border: 1px solid var(--field);
+  border-radius: 5px;
+  background: var(--field);
+  font-family: var(--code);
+  font-size: 12px;
+}
