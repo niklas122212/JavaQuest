@@ -7,8 +7,8 @@ Java Master Score von 0 bis 1000.
 
 - **Apple:** iOS/iPadOS 17, macOS 14 · Swift 6 (strict concurrency) · SwiftUI · SwiftData · Swift Charts
 - **Windows:** Windows 10/11 (64 Bit) · Kotlin 2.4 · Compose Multiplatform 1.12 (Desktop) – Ordner `Windows/`
-- **Inhalt:** 13 Module, 32 Lektionen, 160 Lektionsaufgaben + 180 Übungsaufgaben im Pool (340 übbar),
-  1 Einstufungsfrage mit 6 Lücken, 2219 erklärte Codezeilen, Befehlslexikon mit 212 Einträgen (Deutsch),
+- **Inhalt:** 13 Module, 32 Lektionen, 160 Lektionsaufgaben + 220 Übungsaufgaben im Pool (380 übbar),
+  1 Einstufungsfrage mit 6 Lücken, 2398 erklärte Codezeilen, Befehlslexikon mit 212 Einträgen (Deutsch),
   UML-Klassendiagramme, Endlos-Training und freies Lernen – eine gemeinsame Kursdatei für alle Plattformen
 - **Bestanden ab 69 %** (zentral in `LessonSession.passThreshold`)
 
@@ -320,7 +320,7 @@ SHA-256-geprüft) bei.
 |---|---|
 | `swift test` (JavaQuestKit) | 53 Tests in 7 Suites bestanden – u. a. keine Zeile ohne Erklärung, Lexikon vollständig, Bestehensgrenze 68/69/70 %, Varianten-Rotation, freie Themenwahl, UML-Layout, Endlos-Training (falsch Gelöstes kommt über 400 Runden mehr als 3× so oft wie heute Gelöstes) |
 | `Tools/check_course.py` | Keine Befunde: 29 Themen alle mit Aufgaben erreichbar, keine inhaltsgleichen Aufgaben, 32 UML-Diagramme vollständig, Niveaus steigen in jeder Lektion an |
-| `Tools/verify_java_content.py` mit OpenJDK 25 | 271/271 Java-Prüfungen (Lektionen, Übungspool und Theorie-Beispiele), davon 269 mit Ausgabevergleich |
+| `Tools/verify_java_content.py` mit OpenJDK 25 | 301/301 Java-Prüfungen (Lektionen, Übungspool und Theorie-Beispiele), davon 299 mit Ausgabevergleich |
 | `xcodebuild` (Xcode 27) für iOS-Simulator, iOS-Gerät, macOS | BUILD SUCCEEDED, 0 Warnungen |
 | iPhone-Simulator (iOS 27), von Hand durchgeklickt | Onboarding (beide Optionen), Einstufung 5/6 = 83 %, Theorie mit Code-Exegese, alle 4 Aufgabentypen, 78 % → „Fast geschafft“, 100 % → 3 Sterne und +40 Score, Dunkelmodus; Endlos-Training: Runde mit 8 Aufgaben (Niveau 1→5), Lösung aufdecken, Auswertung, „Nächste Runde“, Score bleibt unverändert |
 | Windows-App: `./gradlew test` | 46 Tests bestanden (41 Logik/Speicherung, 5 Klick-Durchläufe der echten Oberfläche mit Screenshots) |

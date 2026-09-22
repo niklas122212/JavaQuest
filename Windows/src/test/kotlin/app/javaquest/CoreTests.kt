@@ -200,13 +200,13 @@ class CourseContentTest {
 
     @Test fun `Jede Codezeile im Kurs hat eine Erklaerung`() {
         val snippets = course.allSnippets
-        assertEquals(364, snippets.size)
+        assertEquals(404, snippets.size)
         var lines = 0
         for ((location, snippet) in snippets) {
             assertTrue(snippet.linesMissingExplanation.isEmpty(), "$location: Zeilen ${snippet.linesMissingExplanation}")
             lines += snippet.explained(course.glossary).size
         }
-        assertTrue(lines >= 2210, "nur $lines erklärte Zeilen")
+        assertTrue(lines >= 2390, "nur $lines erklärte Zeilen")
     }
 
     @Test fun `Jeder Befehl einer Zeile steht im Lexikon`() {
@@ -539,8 +539,9 @@ class ProgressTest {
 
         // Gemessen über viele Runden: Falsches kommt deutlich öfter als heute fehlerfrei Gelöstes.
         val pool = TrainingBuilder.pool(course, course.allLessons.take(6).map { it.id }.toSet())
-        // Zwei Aufgaben aus verschiedenen Lernzielen – sonst verdrängen sich Varianten gegenseitig.
-        val einzelne = VariantSelector.groups(pool).filter { it.second.size == 1 }.map { it.second[0] }
+        // Eine Aufgabe je Lernziel: Sonst würde die Variantenauswahl die gemessene Aufgabe
+        // durch eine ungesehene Schwester ersetzen und die Messung verfälschen.
+        val einzelne = VariantSelector.collapse(pool, emptyMap())
         val wrong = einzelne[0]
         val done = einzelne[1]
         val history = mapOf(
@@ -550,7 +551,7 @@ class ProgressTest {
         var wrongCount = 0
         var doneCount = 0
         for (seed in 1..400) {
-            val ids = TrainingBuilder.round(pool, emptyMap(), history, now, random = Random(seed)).map { it.id }.toSet()
+            val ids = TrainingBuilder.round(einzelne, emptyMap(), history, now, random = Random(seed)).map { it.id }.toSet()
             if (wrong.id in ids) wrongCount++
             if (done.id in ids) doneCount++
         }

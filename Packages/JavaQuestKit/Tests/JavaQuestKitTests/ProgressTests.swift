@@ -337,8 +337,9 @@ struct ProgressTests {
         // Gemessen über viele Runden: eine falsch gelöste Aufgabe kommt deutlich öfter dran
         // als eine, die heute schon fehlerfrei gelöst wurde.
         let pool = TrainingBuilder.pool(course: course, completedLessonIds: Set(course.allLessons.prefix(6).map(\.id)))
-        // Zwei Aufgaben aus verschiedenen Lernzielen – sonst verdrängen sich Varianten gegenseitig.
-        let einzelne = VariantSelector.groups(pool).filter { $0.variants.count == 1 }.map { $0.variants[0] }
+        // Eine Aufgabe je Lernziel: Sonst würde die Variantenauswahl die gemessene Aufgabe
+        // durch eine ungesehene Schwester ersetzen und die Messung verfälschen.
+        let einzelne = VariantSelector.collapse(pool, history: [:])
         let wrong = einzelne[0], done = einzelne[1]
         let history = [
             wrong.id: TaskHistory(attempts: 2, lastCredit: 0, lastDate: now.addingTimeInterval(-86_400)),
@@ -346,7 +347,7 @@ struct ProgressTests {
         ]
         var wrongCount = 0, doneCount = 0
         for seed in 1...400 as ClosedRange<UInt64> {
-            let ids = Set(TrainingBuilder.round(from: pool, topicStats: [:], history: history, now: now, seed: seed).map(\.id))
+            let ids = Set(TrainingBuilder.round(from: einzelne, topicStats: [:], history: history, now: now, seed: seed).map(\.id))
             if ids.contains(wrong.id) { wrongCount += 1 }
             if ids.contains(done.id) { doneCount += 1 }
         }
