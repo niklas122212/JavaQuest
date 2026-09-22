@@ -7,8 +7,9 @@ Java Master Score von 0 bis 1000.
 
 - **Apple:** iOS/iPadOS 17, macOS 14 · Swift 6 (strict concurrency) · SwiftUI · SwiftData · Swift Charts
 - **Windows:** Windows 10/11 (64 Bit) · Kotlin 2.4 · Compose Multiplatform 1.12 (Desktop) – Ordner `Windows/`
-- **Inhalt:** 13 Module, 32 Lektionen, 160 Lektionsaufgaben + 288 Übungsaufgaben im Pool (448 übbar),
-  1 Einstufungsfrage mit 6 Lücken, 2849 erklärte Codezeilen, Befehlslexikon mit 212 Einträgen (Deutsch),
+- **Inhalt:** 13 Module, 32 Lektionen, 160 Lektionsaufgaben + 436 Übungsaufgaben im Pool (596 übbar),
+  jedes der 29 Themen mit mindestens 20 Aufgaben und mindestens zwei je Schwierigkeitsstufe,
+  1 Einstufungsfrage mit 6 Lücken, 3763 erklärte Codezeilen, Befehlslexikon mit 241 Einträgen (Deutsch),
   UML-Klassendiagramme, Endlos-Training und freies Lernen – eine gemeinsame Kursdatei für alle Plattformen
 - **Bestanden ab 69 %** (zentral in `LessonSession.passThreshold`)
 
@@ -327,17 +328,18 @@ Tastatur: Strg + Enter = Prüfen/Weiter, Enter/Tab = nächste Lücke, Tab im Cod
 Bildschirm aller 32 Lektionen, eine Trainingsrunde und eine freie UML-Runde aus der fertigen JAR und legt die geprüfte Java-Laufzeit (Eclipse Temurin 21,
 SHA-256-geprüft) bei.
 
-## Geprüft (Stand 19.09.2026)
+## Geprüft (Stand 22.09.2026)
 
 | Prüfung | Ergebnis |
 |---|---|
-| `swift test` (JavaQuestKit) | 54 Tests in 7 Suites bestanden – u. a. keine Zeile ohne Erklärung, Lexikon vollständig, Bestehensgrenze 68/69/70 %, Varianten-Rotation, freie Themenwahl, UML-Layout, Endlos-Training (falsch Gelöstes kommt über 400 Runden mehr als 3× so oft wie heute Gelöstes) |
-| `Tools/check_course.py` | Keine Befunde: 29 Themen alle mit Aufgaben erreichbar, keine inhaltsgleichen Aufgaben, 32 UML-Diagramme vollständig, Niveaus steigen in jeder Lektion an |
-| `Tools/verify_java_content.py` mit OpenJDK 25 | 351/351 Java-Prüfungen (Lektionen, Übungspool und Theorie-Beispiele), davon 349 mit Ausgabevergleich |
+| `swift test` (JavaQuestKit) | 56 Tests in 7 Suites bestanden – u. a. keine Zeile ohne Erklärung, Lexikon vollständig, jede Musterlösung des Übungspools akzeptiert, Bestehensgrenze 68/69/70 %, Varianten-Rotation, freie Themenwahl, UML-Layout, Endlos-Training (falsch Gelöstes kommt über 400 Runden mehr als 3× so oft wie heute Gelöstes) |
+| `Tools/check_course.py` | Keine Befunde: 29 Themen alle mit Aufgaben erreichbar, keine inhaltsgleichen Aufgaben, 47 UML-Diagramme vollständig, Niveaus steigen in jeder Lektion an |
+| `Tools/verify_java_content.py` mit OpenJDK 25 | 453/453 Java-Prüfungen (Lektionen, Übungspool und Theorie-Beispiele), davon 450 mit Ausgabevergleich |
+| Web-App (`Web/`), im Browser gegen die ausgelieferte Kursdatei | 596/596 Musterlösungen akzeptiert, 1262/1262 falsche Antworten abgelehnt; alle 29 Themen mit mindestens 20 Aufgaben und mindestens zwei je Schwierigkeitsstufe |
 | `xcodebuild` (Xcode 27) für iOS-Simulator, iOS-Gerät, macOS | BUILD SUCCEEDED, 0 Warnungen |
 | iPhone-Simulator (iOS 27), von Hand durchgeklickt | Onboarding (beide Optionen), Einstufung 5/6 = 83 %, Theorie mit Code-Exegese, alle 4 Aufgabentypen, 78 % → „Fast geschafft“, 100 % → 3 Sterne und +40 Score, Dunkelmodus; Endlos-Training: Runde mit 8 Aufgaben (Niveau 1→5), Lösung aufdecken, Auswertung, „Nächste Runde“, Score bleibt unverändert |
 | Windows-App: `./gradlew test` | 47 Tests bestanden (42 Logik/Speicherung, 5 Klick-Durchläufe der echten Oberfläche mit Screenshots) |
-| Windows-Paket: Selbsttest der fertigen JAR | 409 Bildschirme gezeichnet, alle 32 Lektionen und 160 Aufgaben durchgespielt, dazu Endlos-Training und eine freie UML-Runde, Score 1000 |
+| Windows-Paket: Selbsttest der fertigen JAR | 409 Bildschirme gezeichnet, alle 32 Lektionen und 160 Aufgaben durchgespielt, dazu Endlos-Training und eine freie UML-Runde, Score 1000; 3763 erklärte Codezeilen |
 
 Nicht geprüft: Start auf einem echten Windows-PC (hier steht nur ein Mac zur Verfügung – die Windows-Bibliothek
 `skiko-windows-x64.dll` und die Windows-Laufzeit liegen im Paket, laufen aber erst dort) sowie Signierung und Upload.
