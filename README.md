@@ -7,8 +7,8 @@ Java Master Score von 0 bis 1000.
 
 - **Apple:** iOS/iPadOS 17, macOS 14 · Swift 6 (strict concurrency) · SwiftUI · SwiftData · Swift Charts
 - **Windows:** Windows 10/11 (64 Bit) · Kotlin 2.4 · Compose Multiplatform 1.12 (Desktop) – Ordner `Windows/`
-- **Inhalt:** 13 Module, 32 Lektionen, 160 Lektionsaufgaben + 253 Übungsaufgaben im Pool (413 übbar),
-  1 Einstufungsfrage mit 6 Lücken, 2608 erklärte Codezeilen, Befehlslexikon mit 212 Einträgen (Deutsch),
+- **Inhalt:** 13 Module, 32 Lektionen, 160 Lektionsaufgaben + 288 Übungsaufgaben im Pool (448 übbar),
+  1 Einstufungsfrage mit 6 Lücken, 2849 erklärte Codezeilen, Befehlslexikon mit 212 Einträgen (Deutsch),
   UML-Klassendiagramme, Endlos-Training und freies Lernen – eine gemeinsame Kursdatei für alle Plattformen
 - **Bestanden ab 69 %** (zentral in `LessonSession.passThreshold`)
 
@@ -201,6 +201,9 @@ kennt keine feste Aufgabenzahl). Jede Aufgabe darf eine `variantGroup` tragen:
 `VariantSelector` wählt daraus je Lernziel genau eine Aufgabe. Damit erscheint dieselbe Frage nicht zweimal
 in einer Runde – und nach einer falschen Antwort beim nächsten Mal eine andere Variante desselben Lernziels.
 
+**Jedes** der 160 Lernziele hat mindestens zwei Varianten (Median 2, Maximum 8). Ein Test auf beiden
+Plattformen hält das fest: Käme eine neue Lektionsaufgabe ohne Variante dazu, schlägt er fehl.
+
 ### UML-Diagramme
 
 Theorie-Karten und Aufgaben können ein `diagram` tragen. Beide Apps zeichnen es selbst (SwiftUI `Canvas`
@@ -324,12 +327,12 @@ SHA-256-geprüft) bei.
 
 | Prüfung | Ergebnis |
 |---|---|
-| `swift test` (JavaQuestKit) | 53 Tests in 7 Suites bestanden – u. a. keine Zeile ohne Erklärung, Lexikon vollständig, Bestehensgrenze 68/69/70 %, Varianten-Rotation, freie Themenwahl, UML-Layout, Endlos-Training (falsch Gelöstes kommt über 400 Runden mehr als 3× so oft wie heute Gelöstes) |
+| `swift test` (JavaQuestKit) | 54 Tests in 7 Suites bestanden – u. a. keine Zeile ohne Erklärung, Lexikon vollständig, Bestehensgrenze 68/69/70 %, Varianten-Rotation, freie Themenwahl, UML-Layout, Endlos-Training (falsch Gelöstes kommt über 400 Runden mehr als 3× so oft wie heute Gelöstes) |
 | `Tools/check_course.py` | Keine Befunde: 29 Themen alle mit Aufgaben erreichbar, keine inhaltsgleichen Aufgaben, 32 UML-Diagramme vollständig, Niveaus steigen in jeder Lektion an |
-| `Tools/verify_java_content.py` mit OpenJDK 25 | 326/326 Java-Prüfungen (Lektionen, Übungspool und Theorie-Beispiele), davon 324 mit Ausgabevergleich |
+| `Tools/verify_java_content.py` mit OpenJDK 25 | 351/351 Java-Prüfungen (Lektionen, Übungspool und Theorie-Beispiele), davon 349 mit Ausgabevergleich |
 | `xcodebuild` (Xcode 27) für iOS-Simulator, iOS-Gerät, macOS | BUILD SUCCEEDED, 0 Warnungen |
 | iPhone-Simulator (iOS 27), von Hand durchgeklickt | Onboarding (beide Optionen), Einstufung 5/6 = 83 %, Theorie mit Code-Exegese, alle 4 Aufgabentypen, 78 % → „Fast geschafft“, 100 % → 3 Sterne und +40 Score, Dunkelmodus; Endlos-Training: Runde mit 8 Aufgaben (Niveau 1→5), Lösung aufdecken, Auswertung, „Nächste Runde“, Score bleibt unverändert |
-| Windows-App: `./gradlew test` | 46 Tests bestanden (41 Logik/Speicherung, 5 Klick-Durchläufe der echten Oberfläche mit Screenshots) |
+| Windows-App: `./gradlew test` | 47 Tests bestanden (42 Logik/Speicherung, 5 Klick-Durchläufe der echten Oberfläche mit Screenshots) |
 | Windows-Paket: Selbsttest der fertigen JAR | 409 Bildschirme gezeichnet, alle 32 Lektionen und 160 Aufgaben durchgespielt, dazu Endlos-Training und eine freie UML-Runde, Score 1000 |
 
 Nicht geprüft: Start auf einem echten Windows-PC (hier steht nur ein Mac zur Verfügung – die Windows-Bibliothek

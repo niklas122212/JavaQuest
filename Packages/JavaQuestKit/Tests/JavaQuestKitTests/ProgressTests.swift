@@ -379,6 +379,14 @@ struct ProgressTests {
         #expect(VariantSelector.pick(from: group, history: seen)?.id != newest.id)
     }
 
+    @Test("Jedes Lernziel hat mindestens zwei Varianten – sonst käme nach einem Fehler dieselbe Frage")
+    func everyGoalHasAVariant() {
+        let ohneVariante = VariantSelector.groups(course.practiceableTasks)
+            .filter { $0.variants.count < 2 }
+            .map(\.key)
+        #expect(ohneVariante.isEmpty, "Lernziele mit nur einer Aufgabe: \(ohneVariante.sorted())")
+    }
+
     @Test("Eine Runde zeigt kein Lernziel doppelt, auch wenn es Varianten hat")
     func roundHasNoDuplicateGoals() {
         let completed = Set(course.allLessons.prefix(6).map(\.id))

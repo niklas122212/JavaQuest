@@ -200,13 +200,13 @@ class CourseContentTest {
 
     @Test fun `Jede Codezeile im Kurs hat eine Erklaerung`() {
         val snippets = course.allSnippets
-        assertEquals(432, snippets.size)
+        assertEquals(465, snippets.size)
         var lines = 0
         for ((location, snippet) in snippets) {
             assertTrue(snippet.linesMissingExplanation.isEmpty(), "$location: Zeilen ${snippet.linesMissingExplanation}")
             lines += snippet.explained(course.glossary).size
         }
-        assertTrue(lines >= 2600, "nur $lines erklärte Zeilen")
+        assertTrue(lines >= 2840, "nur $lines erklärte Zeilen")
     }
 
     @Test fun `Jeder Befehl einer Zeile steht im Lexikon`() {
@@ -445,6 +445,13 @@ class ProgressTest {
             task.id to TaskHistory(1, 1.0, Instant.now().plusSeconds(index * 60L))
         }.toMap()
         assertTrue(VariantSelector.pick(group, seen)?.id != group.last().id)
+    }
+
+    @Test fun `Jedes Lernziel hat mindestens zwei Varianten`() {
+        val ohneVariante = VariantSelector.groups(course.practiceableTasks)
+            .filter { it.second.size < 2 }
+            .map { it.first }
+        assertTrue(ohneVariante.isEmpty(), "Lernziele mit nur einer Aufgabe: ${ohneVariante.sorted()}")
     }
 
     @Test fun `Eine Runde zeigt kein Lernziel doppelt`() {
