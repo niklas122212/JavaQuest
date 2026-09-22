@@ -36,6 +36,7 @@ struct DashboardContent: View {
                     VStack(spacing: 20) {
                         scoreCard
                         continueCard
+                        weakSpotsCard
                         trainingCard
                         statsGrid
                     }
@@ -47,6 +48,7 @@ struct DashboardContent: View {
             } else {
                 scoreCard
                 continueCard
+                weakSpotsCard
                 trainingCard
                 knowledgeCard
                 pathCard
@@ -74,6 +76,18 @@ struct DashboardContent: View {
             onStart: { if let lesson { router.startLesson(lesson.id) } },
             onPractice: store.knowledgeReport.focusTopic.map { focus in { router.practice(topicId: focus.topic.id) } }
         )
+    }
+
+    @ViewBuilder
+    private var weakSpotsCard: some View {
+        let spots = store.weakSpots
+        if !spots.isEmpty {
+            WeakSpotsCard(
+                spots: spots,
+                topicTitle: { store.course.topic(id: $0)?.title },
+                onPractice: { router.trainWeakSpots() }
+            )
+        }
     }
 
     private var trainingCard: some View {

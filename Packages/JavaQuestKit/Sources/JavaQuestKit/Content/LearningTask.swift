@@ -138,10 +138,29 @@ public enum TaskKind: Sendable, Hashable {
 public struct SingleChoiceSpec: Decodable, Sendable, Hashable {
     public let choices: [String]
     public let correctIndex: Int
+    /// Warum die jeweilige Antwort nicht stimmt – gleiche Reihenfolge wie `choices`,
+    /// beim richtigen Eintrag leer. Wird nach einer falschen Antwort angezeigt.
+    public let wrongExplanations: [String?]
 
-    public init(choices: [String], correctIndex: Int) {
+    enum CodingKeys: String, CodingKey { case choices, correctIndex, whyWrong }
+
+    public init(choices: [String], correctIndex: Int, wrongExplanations: [String?] = []) {
         self.choices = choices
         self.correctIndex = correctIndex
+        self.wrongExplanations = wrongExplanations
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        choices = try container.decode([String].self, forKey: .choices)
+        correctIndex = try container.decode(Int.self, forKey: .correctIndex)
+        wrongExplanations = try container.decodeIfPresent([String?].self, forKey: .whyWrong) ?? []
+    }
+
+    /// Erklärung zur gewählten Antwort – nur für falsche Antworten und nur, wenn hinterlegt.
+    public func whyWrong(_ index: Int) -> String? {
+        guard index != correctIndex, wrongExplanations.indices.contains(index) else { return nil }
+        return wrongExplanations[index]
     }
 }
 

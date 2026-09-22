@@ -89,6 +89,8 @@ private struct CompactShell: View {
         .onChange(of: router.selection) { _, newValue in
             // Modul-Auswahl aus dem Sidebar-Layout gibt es auf dem iPhone nicht.
             if case .module = newValue { router.selection = .path }
+            // „Meine Schwächen“ ist auf dem iPhone kein Tab, sondern hängt an der Übersicht.
+            if newValue == .weakSpots { router.selection = .dashboard }
         }
     }
 
@@ -107,6 +109,7 @@ struct SectionScreen: View {
         case .dashboard: DashboardView()
         case .path: LearningPathView()
         case .topics: TopicCatalogView()
+        case .weakSpots: WeakSpotsView()
         case .analysis: KnowledgeAnalysisView()
         case .profile: ProfileView()
         case .module(let id): LearningPathView(focusModuleId: id)

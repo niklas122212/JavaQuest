@@ -52,6 +52,65 @@ struct ContinueLearningCard: View {
     }
 }
 
+/// Was zuletzt nicht saß – mit direktem Weg zur vollen Übersicht.
+struct WeakSpotsCard: View {
+    let spots: [WeakSpot]
+    let topicTitle: (String) -> String?
+    let onPractice: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 12) {
+                IconTile(systemImage: "arrow.counterclockwise", tint: Theme.ember, size: 44)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("MEINE SCHWÄCHEN")
+                        .font(.caption.weight(.heavy))
+                        .tracking(1.1)
+                        .foregroundStyle(Theme.ember)
+                    Text("\(spots.count) \(spots.count == 1 ? "Lernziel" : "Lernziele") zum Nacharbeiten")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            VStack(alignment: .leading, spacing: 6) {
+                ForEach(spots.prefix(3)) { spot in
+                    HStack(spacing: 8) {
+                        Image(systemName: spot.lastCredit == 0 ? "xmark.circle.fill" : "checkmark.circle")
+                            .foregroundStyle(spot.lastCredit == 0 ? Theme.ember : Theme.orange)
+                            .font(.footnote)
+                        Text(spot.task.prompt)
+                            .font(.footnote)
+                            .lineLimit(1)
+                        Spacer(minLength: 4)
+                        Text(topicTitle(spot.topicId) ?? "")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            Text("Du bekommst nicht dieselbe Frage noch einmal, sondern eine andere Aufgabe zum gleichen Lernziel.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            HStack(spacing: 10) {
+                Button(action: onPractice) {
+                    Label("Schwächen üben", systemImage: "play.fill")
+                }
+                .buttonStyle(.secondary)
+                NavigationLink {
+                    WeakSpotsView()
+                } label: {
+                    Text("Alle ansehen")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Theme.orange)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .card()
+    }
+}
+
 /// Endlos-Training: gemischte Runden über alles, was schon gelernt ist.
 struct TrainingCard: View {
     let poolCount: Int

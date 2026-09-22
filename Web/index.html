@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>JavaQuest</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Java lernen, Level für Level – jede Codezeile in Alltagssprache erklärt.">
+<meta name="theme-color" content="#F57321">
+
+<!-- Damit Safari die Seite nach „Zum Home-Bildschirm“ wie eine App startet: ohne Adressleiste. -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="JavaQuest">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="app" class="app">
+  <p class="laden">JavaQuest wird geladen …</p>
+</div>
+
+<!-- Hinweis beim ersten Besuch in Safari: wie die App auf den Home-Bildschirm kommt. -->
+<div id="installieren" class="install" hidden>
+  <div>
+    <strong>Als App installieren</strong>
+    <p>Unten auf <span class="teilen">Teilen</span> tippen und dann „Zum Home-Bildschirm“ wählen. Danach startet JavaQuest wie eine normale App – auch ohne Internet.</p>
+  </div>
+  <button type="button" id="installieren-zu">Verstanden</button>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

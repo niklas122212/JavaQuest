@@ -12,6 +12,10 @@ struct FeedbackPanel: View {
     let explanation: String
     /// In Übung und Training zählt die Antwort für die Wissensanalyse, nicht für den Score.
     var countsForScore = true
+    /// Die gewählte falsche Antwort und – falls hinterlegt – warum sie nicht stimmt.
+    var wrongChoice: (label: String, reason: String?)?
+    /// Was richtig gewesen wäre. Erscheint erst, wenn die Aufgabe abgeschlossen ist.
+    var correctAnswer: String?
 
     private var isCorrect: Bool { result?.isCorrect == true }
 
@@ -33,9 +37,8 @@ struct FeedbackPanel: View {
             return attempts == 1 ? "Das zählt voll für \(target)." : "Das zählt zur Hälfte für \(target)."
         }
         if isRevealed { return "Schau dir die Lösung in Ruhe an – beim nächsten Mal klappt’s." }
-        return remainingAttempts > 0
-            ? "Du hast noch \(remainingAttempts) \(remainingAttempts == 1 ? "Versuch" : "Versuche")."
-            : "Keine Versuche mehr – deck die Lösung auf."
+        if remainingAttempts == 0 { return "Keine Versuche mehr – unten steht, woran es lag." }
+        return "Du hast noch \(remainingAttempts) \(remainingAttempts == 1 ? "Versuch" : "Versuche")."
     }
 
     var body: some View {
@@ -58,7 +61,40 @@ struct FeedbackPanel: View {
                 }
             }
 
-            // Nach dem Aufdecken steht die Lösung im Eingabefeld – alte Befunde würden nur verwirren.
+                if let wrongChoice, !isCorrect {
+                VStack(alignment: .leading, spacing: 6) {
+                    Label {
+                        Text("Deine Antwort: \(wrongChoice.label)")
+                            .font(.subheadline.weight(.semibold))
+                    } icon: {
+                        Image(systemName: "xmark.circle.fill").foregroundStyle(Theme.ember)
+                    }
+                    if let reason = wrongChoice.reason {
+                        Text(reason)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(12)
+                .background(Theme.ember.opacity(0.08), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            }
+
+            if let correctAnswer, !isCorrect {
+                Label {
+                    Text("Richtig wäre: \(correctAnswer)")
+                        .font(.subheadline.weight(.semibold))
+                        .fixedSize(horizontal: false, vertical: true)
+                } icon: {
+                    Image(systemName: "checkmark.circle.fill").foregroundStyle(Theme.success)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(12)
+                .background(Theme.success.opacity(0.08), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            }
+
+        // Nach dem Aufdecken steht die Lösung im Eingabefeld – alte Befunde würden nur verwirren.
             if !isRevealed, let findings = result?.findings, !findings.isEmpty, !isCorrect || findings.count > 1 {
                 VStack(alignment: .leading, spacing: 7) {
                     ForEach(Array(findings.enumerated()), id: \.offset) { _, finding in

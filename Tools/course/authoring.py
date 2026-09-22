@@ -35,10 +35,19 @@ def base(id, type, topic, d, prompt, explanation, hint=None, code=None, ctx=None
     return t
 
 
-def mc(id, topic, d, prompt, choices, explanation, **kw):
-    """choices[0] ist die richtige Antwort."""
+def mc(id, topic, d, prompt, choices, explanation, why=None, **kw):
+    """choices[0] ist die richtige Antwort.
+
+    why (optional): Begründungen in derselben Reihenfolge wie choices – also why[0]
+    zur richtigen Antwort (bleibt ungenutzt, üblicherweise None). Sie werden mit den
+    Antworten mitgedreht und erscheinen, wenn jemand genau diese Antwort wählt.
+    """
     t = base(id, "singleChoice", topic, d, prompt, explanation, **kw)
     t["choices"], t["correctIndex"] = rotate(choices, id)
+    if why:
+        assert len(why) == len(choices), f"{id}: {len(why)} Begründungen für {len(choices)} Antworten"
+        t["whyWrong"], _ = rotate(why, id)
+        t["whyWrong"][t["correctIndex"]] = None
     return t
 
 

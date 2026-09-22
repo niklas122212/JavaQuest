@@ -128,6 +128,14 @@ final class ProgressStore {
         TrainingBuilder.round(from: trainingPool, topicStats: topicStats, history: taskHistory)
     }
 
+    /// Die Lernziele, die zuletzt nicht saßen – für „Meine Schwächen“.
+    var weakSpots: [WeakSpot] { WeakSpotFinder.spots(course: course, history: taskHistory) }
+
+    /// Eine Runde nur über das Wacklige, mit anderen Varianten als beim Fehler.
+    func weakSpotTasks(count: Int = TrainingBuilder.roundSize) -> [LearningTask] {
+        TrainingBuilder.weakRound(course: course, history: taskHistory, topicStats: topicStats, count: count)
+    }
+
     /// Selbst zusammengestellte Runde: gewählte Themen und Niveaus, unabhängig vom Lernpfad.
     func freeTrainingTasks(topicIds: Set<String>, difficulties: Set<Difficulty>, count: Int) -> [LearningTask] {
         TrainingBuilder.freeRound(

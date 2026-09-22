@@ -1,0 +1,250 @@
+/* Gestaltung der Web-Fassung – dieselbe Bildsprache wie die iPhone- und Windows-App. */
+
+:root {
+  --orange: #F57321;
+  --ember: #E8424D;
+  --indigo: #544FE6;
+  --violet: #8B5CF6;
+  --success: #2EAE61;
+  --screen: #F2F2F7;
+  --card: #FFFFFF;
+  --field: rgba(118, 118, 128, 0.12);
+  --text: #11111A;
+  --secondary: #6C6C70;
+  --radius: 22px;
+  --schrift: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+  --code: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --screen: #000000;
+    --card: #1C1C1E;
+    --field: rgba(118, 118, 128, 0.24);
+    --text: #F5F5F7;
+    --secondary: #9B9BA1;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--screen);
+  color: var(--text);
+  font-family: var(--schrift);
+  font-size: 17px;
+  line-height: 1.45;
+  -webkit-text-size-adjust: 100%;
+}
+
+.app {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: max(16px, env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom));
+}
+
+.laden { color: var(--secondary); text-align: center; padding: 60px 0; }
+
+/* ---------------------------------------------------------------- Bausteine */
+.karte {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+h1 { font-size: 30px; line-height: 1.15; margin: 8px 0 4px; }
+h2 { font-size: 21px; margin: 0 0 8px; }
+h3 { font-size: 17px; margin: 0 0 6px; }
+p { margin: 0 0 10px; }
+.leise { color: var(--secondary); font-size: 15px; }
+.mini { color: var(--secondary); font-size: 13px; }
+
+.knopf {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 50px;
+  padding: 12px 18px;
+  border: none;
+  border-radius: 16px;
+  background: linear-gradient(135deg, var(--orange), var(--ember));
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.knopf:disabled { opacity: 0.45; cursor: default; }
+.knopf.zweit { background: var(--field); color: var(--orange); }
+.knopf.still { background: none; color: var(--orange); min-height: 40px; width: auto; padding: 6px 4px; }
+.knopf-reihe { display: flex; gap: 10px; margin-top: 12px; }
+.knopf-reihe .knopf { flex: 1; }
+
+.marke {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  background: var(--field);
+  color: var(--secondary);
+  font-size: 13px;
+  font-weight: 600;
+}
+.marke.stark { background: rgba(84, 79, 230, 0.14); color: var(--indigo); }
+.marken { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+
+.balken { height: 8px; border-radius: 999px; background: var(--field); overflow: hidden; }
+.balken > i { display: block; height: 100%; background: linear-gradient(90deg, var(--orange), var(--ember)); }
+
+/* ---------------------------------------------------------------- Kopfzeile */
+.kopf { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.kopf .titel { flex: 1; font-weight: 600; font-size: 15px; }
+.zurueck {
+  width: 36px; height: 36px; flex: none;
+  border: none; border-radius: 50%;
+  background: var(--field); color: var(--secondary);
+  font-size: 17px; cursor: pointer;
+}
+
+/* ---------------------------------------------------------------- Score */
+.score {
+  background: linear-gradient(135deg, var(--indigo), var(--violet) 55%, var(--orange));
+  color: #fff;
+  border-radius: var(--radius);
+  padding: 22px;
+  margin-bottom: 16px;
+}
+.score .zahl { font-size: 42px; font-weight: 800; line-height: 1; }
+.score .balken { background: rgba(255, 255, 255, 0.25); margin-top: 12px; }
+.score .balken > i { background: #fff; }
+
+/* ---------------------------------------------------------------- Listen */
+.zeile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 13px 0;
+  border: none;
+  border-bottom: 1px solid var(--field);
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.zeile:last-child { border-bottom: none; }
+.zeile .haupt { flex: 1; min-width: 0; }
+.zeile .haupt strong { display: block; font-weight: 600; }
+.zeile[disabled] { opacity: 0.45; cursor: default; }
+.punkt { width: 26px; height: 26px; flex: none; border-radius: 50%; display: grid; place-items: center; font-size: 14px; background: var(--field); }
+.punkt.fertig { background: var(--success); color: #fff; }
+.punkt.offen { background: var(--orange); color: #fff; }
+
+/* ---------------------------------------------------------------- Aufgaben */
+.antwort {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 14px;
+  border: 2px solid transparent;
+  border-radius: 14px;
+  background: var(--field);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.antwort.gewaehlt { border-color: var(--indigo); }
+.antwort.richtig { border-color: var(--success); background: rgba(46, 174, 97, 0.12); }
+.antwort.falsch { border-color: var(--ember); background: rgba(232, 66, 77, 0.12); }
+.antwort .buchstabe {
+  width: 28px; height: 28px; flex: none;
+  border-radius: 50%; display: grid; place-items: center;
+  background: var(--card); font-size: 14px; font-weight: 700;
+}
+
+textarea, input[type="text"] {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--field);
+  border-radius: 12px;
+  background: var(--card);
+  color: inherit;
+  font-family: var(--code);
+  font-size: 15px;
+}
+textarea { min-height: 130px; resize: vertical; }
+textarea.konsole { background: #16161C; color: #EDEDF2; border-color: transparent; }
+
+.luecke { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.luecke .nummer {
+  width: 26px; height: 26px; flex: none; border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--orange); color: #fff; font-size: 13px; font-weight: 700;
+}
+
+/* ---------------------------------------------------------------- Code */
+.code {
+  background: #16161C;
+  color: #EDEDF2;
+  border-radius: 14px;
+  padding: 14px;
+  overflow-x: auto;
+  font-family: var(--code);
+  font-size: 14px;
+  line-height: 1.6;
+  white-space: pre;
+  margin: 0 0 12px;
+}
+.code .nr { color: #6B6B78; user-select: none; }
+
+.zeilen { margin-top: 10px; }
+.erklaerzeile { padding: 10px 0; border-bottom: 1px solid var(--field); }
+.erklaerzeile:last-child { border-bottom: none; }
+.erklaerzeile code { font-family: var(--code); font-size: 13px; color: var(--secondary); display: block; margin-bottom: 4px; }
+
+details.exegese > summary { cursor: pointer; color: var(--orange); font-weight: 600; padding: 6px 0; }
+
+/* ---------------------------------------------------------------- Rückmeldung */
+.rueck { border-radius: 16px; padding: 16px; margin-top: 16px; }
+.rueck.gut { background: rgba(46, 174, 97, 0.12); }
+.rueck.schlecht { background: rgba(245, 115, 33, 0.12); }
+.rueck.auf { background: rgba(84, 79, 230, 0.12); }
+.rueck h3 { margin-bottom: 2px; }
+.befund { display: flex; gap: 8px; align-items: flex-start; font-size: 15px; margin-top: 6px; }
+.kasten { border-radius: 12px; padding: 12px; margin-top: 12px; font-size: 15px; }
+.kasten.falsch { background: rgba(232, 66, 77, 0.12); }
+.kasten.richtig { background: rgba(46, 174, 97, 0.12); }
+
+/* ---------------------------------------------------------------- UML */
+.uml { background: var(--field); border-radius: var(--radius); padding: 14px; margin-bottom: 12px; overflow-x: auto; }
+.uml svg { display: block; }
+.uml .legende { margin-top: 12px; font-size: 14px; }
+.uml .legende b { display: block; }
+
+/* ---------------------------------------------------------------- Installationshinweis */
+.install {
+  position: fixed;
+  left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom));
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: var(--card);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.18);
+}
+.install p { margin: 4px 0 0; font-size: 14px; color: var(--secondary); }
+.install button { flex: none; border: none; border-radius: 12px; padding: 10px 14px; background: var(--field); color: var(--orange); font: inherit; font-weight: 600; cursor: pointer; }
+.teilen { color: var(--indigo); font-weight: 600; }
+
+.gitter { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.kachel { background: var(--card); border-radius: 16px; padding: 14px; border: 2px solid transparent; cursor: pointer; text-align: left; font: inherit; color: inherit; }
+.kachel.aktiv { border-color: var(--orange); }
+.kachel strong { display: block; margin-bottom: 2px; }

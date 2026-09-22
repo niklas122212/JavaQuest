@@ -59,6 +59,25 @@ public enum TrainingBuilder {
         return weight
     }
 
+    /// Eine Runde nur über das, was zuletzt nicht saß – mit anderen Varianten als beim Fehler.
+    public static func weakRound(
+        course: Course,
+        history: [String: TaskHistory],
+        topicStats: [String: TopicStats] = [:],
+        count: Int = roundSize,
+        now: Date = .now,
+        seed: UInt64 = UInt64.random(in: 1...UInt64.max)
+    ) -> [LearningTask] {
+        round(
+            from: WeakSpotFinder.pool(course: course, history: history),
+            topicStats: topicStats,
+            history: history,
+            now: now,
+            size: count,
+            seed: seed
+        )
+    }
+
     /// Eine Runde freies Training: selbst gewählte Themen und Niveaus, beliebig viele Aufgaben.
     /// Funktioniert auch für Themen, deren Lektion noch nicht freigeschaltet ist.
     public static func freeRound(

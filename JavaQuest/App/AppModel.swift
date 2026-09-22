@@ -56,6 +56,7 @@ enum AppSection: Hashable {
     case dashboard
     case path
     case topics
+    case weakSpots
     case analysis
     case profile
     case module(String)
@@ -69,6 +70,8 @@ struct SessionRequest: Identifiable, Hashable {
         case training
         /// Freies Training: selbst gewählte Themen, Niveaus und Aufgabenzahl.
         case free(topicIds: [String], difficulties: [Int], count: Int)
+        /// Nur das üben, was zuletzt nicht saß.
+        case weakSpots(count: Int)
     }
 
     let id = UUID()
@@ -92,6 +95,11 @@ final class AppRouter {
     /// Startet eine neue Runde Endlos-Training (auch direkt aus der Auswertung heraus).
     func train() {
         activeSession = SessionRequest(kind: .training)
+    }
+
+    /// Übt gezielt die Lernziele, die zuletzt nicht saßen.
+    func trainWeakSpots(count: Int = TrainingBuilder.roundSize) {
+        activeSession = SessionRequest(kind: .weakSpots(count: count))
     }
 
     /// Startet eine selbst zusammengestellte Übungsrunde aus dem freien Lernen.

@@ -28,7 +28,9 @@ struct TaskStepView: View {
                                 remainingAttempts: model.remainingAttempts,
                                 hint: task.hint,
                                 explanation: task.explanation,
-                                countsForScore: !model.isPractice
+                                countsForScore: !model.isPractice,
+                                wrongChoice: model.wrongChoice,
+                                correctAnswer: model.correctAnswer
                             )
                             .id(Self.feedbackAnchor)
                             .transition(.move(edge: .bottom).combined(with: .opacity))

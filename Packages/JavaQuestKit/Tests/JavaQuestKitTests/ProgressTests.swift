@@ -396,6 +396,49 @@ struct ProgressTests {
         #expect(Set(goals).count == goals.count, "jedes Lernziel höchstens einmal je Runde")
     }
 
+    @Test("Meine Schwächen: findet wacklige Lernziele und übt sie mit anderen Varianten")
+    func weakSpots() {
+        let now = Date()
+        let gruppe = course.practiceableTasks.filter { $0.groupKey == "t03-1" }
+        let falsch = gruppe[0]
+        let gutGeloest = course.practiceableTasks.first { $0.groupKey == "t05-1" }!
+
+        let history = [
+            falsch.id: TaskHistory(attempts: 2, lastCredit: 0, lastDate: now),
+            gutGeloest.id: TaskHistory(attempts: 1, lastCredit: 1, lastDate: now),
+        ]
+        let spots = WeakSpotFinder.spots(course: course, history: history)
+
+        // Nur das Wacklige steht drin – Gelöstes nicht.
+        #expect(spots.map(\.id) == ["t03-1"])
+        let spot = spots[0]
+        #expect(spot.lastCredit == 0)
+        #expect(spot.task.id == falsch.id)
+        #expect(spot.otherVariants >= 1, "es gibt etwas anderes zum Üben")
+        #expect(spot.summary == "zuletzt nicht gelöst")
+
+        // Geübt wird das Lernziel – aber nicht mit derselben Frage.
+        let runde = TrainingBuilder.weakRound(course: course, history: history, count: 5, now: now, seed: 5)
+        #expect(!runde.isEmpty)
+        #expect(runde.allSatisfy { $0.groupKey == "t03-1" }, "nur wacklige Lernziele")
+        #expect(runde.allSatisfy { $0.id != falsch.id }, "nicht dieselbe Frage wie beim Fehler")
+    }
+
+    @Test("Halb gelöst zählt auch als wacklig, voll gelöst nicht")
+    func weakSpotThreshold() {
+        let now = Date()
+        let halb = course.practiceableTasks[0]
+        let voll = course.practiceableTasks.first { $0.groupKey != halb.groupKey }!
+        let history = [
+            halb.id: TaskHistory(attempts: 2, lastCredit: 0.5, lastDate: now),
+            voll.id: TaskHistory(attempts: 1, lastCredit: 1, lastDate: now),
+        ]
+        let spots = WeakSpotFinder.spots(course: course, history: history)
+        #expect(spots.map(\.id) == [halb.groupKey])
+        #expect(spots[0].summary == "erst im zweiten Anlauf")
+        #expect(WeakSpotFinder.spots(course: course, history: [:]).isEmpty, "ohne Verlauf keine Schwächen")
+    }
+
     @Test("Freies Training: eigene Themen und Niveaus, ohne Lernpfad-Sperre")
     func freeTraining() {
         // Streams stehen erst am Ende des Kurses – trotzdem sofort übbar.

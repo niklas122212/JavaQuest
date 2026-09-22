@@ -71,6 +71,13 @@ final class LessonFlowModel {
             session = LessonSession(mode: .practice(topicId: topicId), title: title, theory: [], tasks: store.practiceTasks(for: topicId))
         case .training:
             session = LessonSession(mode: .training, title: "Endlos-Training", theory: [], tasks: store.trainingTasks())
+        case .weakSpots(let count):
+            session = LessonSession(
+                mode: .free(topicIds: []),
+                title: "Meine Schwächen",
+                theory: [],
+                tasks: store.weakSpotTasks(count: count)
+            )
         case .free(let topicIds, let difficulties, let count):
             let topics = Set(topicIds)
             let levels = Set(difficulties.compactMap(Difficulty.init(rawValue:)))
@@ -113,6 +120,35 @@ final class LessonFlowModel {
     }
 
     var remainingAttempts: Int { max(LessonSession.maxAttempts - session.attempts, 0) }
+
+    /// Die gewählte falsche Antwort einer Multiple-Choice-Aufgabe – mit Begründung, falls hinterlegt.
+    var wrongChoice: (label: String, reason: String?)? {
+        guard let task = currentTask, case .singleChoice(let spec) = task.kind,
+              let gewaehlt = draft.choice, gewaehlt != spec.correctIndex,
+              spec.choices.indices.contains(gewaehlt),
+              session.lastResult != nil || session.isRevealed
+        else { return nil }
+        return (spec.choices[gewaehlt], spec.whyWrong(gewaehlt))
+    }
+
+    /// Was richtig gewesen wäre – erst, wenn nichts mehr zu versuchen ist.
+    var correctAnswer: String? {
+        guard let task = currentTask, session.isCurrentTaskFinished || remainingAttempts == 0,
+              session.lastResult?.isCorrect != true
+        else { return nil }
+        switch task.kind {
+        case .singleChoice(let spec):
+            return spec.choices.indices.contains(spec.correctIndex) ? spec.choices[spec.correctIndex] : nil
+        case .predictOutput(let spec):
+            return "die Ausgabe\n\(spec.expectedOutput)"
+        case .fillBlank(let spec):
+            let werte = spec.blanks.enumerated().map { "Lücke \($0.offset + 1): \($0.element.accepted.first ?? "")" }
+            return werte.joined(separator: " · ")
+        case .code:
+            // Bei Code steht die Musterlösung ohnehin Zeile für Zeile darunter.
+            return nil
+        }
+    }
 
     /// Die Musterlösung, sobald sie angezeigt werden darf.
     var revealedAnswer: TaskAnswer? {

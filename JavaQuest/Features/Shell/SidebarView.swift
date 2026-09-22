@@ -14,6 +14,8 @@ struct SidebarView: View {
                     .tag(AppSection.path)
                 Label("Alle Themen", systemImage: "square.grid.3x3.fill")
                     .tag(AppSection.topics)
+                Label("Meine Schwächen", systemImage: "arrow.counterclockwise")
+                    .tag(AppSection.weakSpots)
                 Label("Wissensanalyse", systemImage: "brain.head.profile")
                     .tag(AppSection.analysis)
             }

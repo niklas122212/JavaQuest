@@ -1571,6 +1571,7 @@ course = {
 
 # ---------------------------------------------------------------- Didaktik
 from theory_texts import THEORY, TASK_EXPLANATIONS
+from why_wrong import WHY_WRONG
 from line_notes import NOTES
 import subprocess, os
 
@@ -1586,6 +1587,18 @@ all_tasks = ([t for m in course["modules"] for l in m["lessons"] for t in l["tas
 for task in all_tasks:
     if task["id"] in TASK_EXPLANATIONS:
         task["explanation"] = TASK_EXPLANATIONS[task["id"]]
+    # Begründungen zu den falschen Antworten – zugeordnet über den Antworttext,
+    # weil die Antworten beim Erzeugen gedreht werden.
+    if task["id"] in WHY_WRONG:
+        gruende = WHY_WRONG[task["id"]]
+        offen = set(gruende) - set(task["choices"])
+        assert not offen, f"{task['id']}: Begründung passt zu keiner Antwort mehr: {offen}"
+        task["whyWrong"] = [
+            None if i == task["correctIndex"] else gruende.get(antwort)
+            for i, antwort in enumerate(task["choices"])
+        ]
+        fehlend = [a for i, a in enumerate(task["choices"]) if i != task["correctIndex"] and not task["whyWrong"][i]]
+        assert not fehlend, f"{task['id']}: keine Begründung für {fehlend}"
 
 def fill_first(task):
     text = task["template"]
