@@ -234,6 +234,7 @@ details.exegese > summary { cursor: pointer; color: var(--orange); font-weight: 
 .install {
   position: fixed;
   left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom));
+  z-index: 11;
   display: flex; align-items: center; gap: 12px;
   padding: 14px 16px;
   border-radius: 18px;
@@ -260,3 +261,46 @@ details.exegese > summary { cursor: pointer; color: var(--orange); font-weight: 
 .stufe i { font-style: normal; font-size: 9px; font-weight: 600; }
 .stufe.wacklig { background: rgba(232, 66, 77, 0.16); color: var(--ember); }
 .mini.warn { color: var(--ember); display: block; margin-top: 6px; }
+
+/* ---------------------------------------------------------------- Leiste unten */
+body.mit-leiste .app { padding-bottom: calc(86px + env(safe-area-inset-bottom)); }
+
+.leiste {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  display: flex;
+  padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+  background: color-mix(in srgb, var(--card) 92%, transparent);
+  backdrop-filter: saturate(180%) blur(20px);
+  border-top: 1px solid var(--field);
+  z-index: 10;
+}
+.leiste button {
+  flex: 1;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 6px 2px;
+  border: none; background: none;
+  color: var(--secondary);
+  font: inherit; font-size: 11px; font-weight: 600;
+  cursor: pointer;
+}
+.leiste button.aktiv { color: var(--orange); }
+.leiste .zeichen { font-size: 19px; line-height: 1; }
+
+/* ---------------------------------------------------------------- Chips & Sterne */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  min-width: 44px;
+  padding: 9px 16px;
+  border: none; border-radius: 999px;
+  background: var(--field); color: var(--secondary);
+  font: inherit; font-size: 14px; font-weight: 600;
+  cursor: pointer;
+}
+.chip.aktiv { background: var(--orange); color: #fff; }
+
+.sterne { color: var(--orange); font-size: 15px; letter-spacing: 1px; flex: none; }
+.sterne.gross { font-size: 30px; margin-top: 10px; letter-spacing: 3px; }
+
+/* Der Installationshinweis darf die Leiste unten nicht verdecken. */
+body.mit-leiste .install { bottom: calc(80px + env(safe-area-inset-bottom)); }

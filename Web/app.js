@@ -21,7 +21,7 @@ function laden() {
     const roh = localStorage.getItem("javaquest");
     if (roh) return JSON.parse(roh);
   } catch (e) { /* privater Modus o. Ä.: dann eben ohne gespeicherten Stand */ }
-  return { lektionen: {}, verlauf: {}, themen: {}, ziele: {} };
+  return { lektionen: {}, verlauf: {}, themen: {}, ziele: {}, serie: null, profil: null };
 }
 
 /* Ältere gespeicherte Stände kennen „ziele“ noch nicht. Sie werden nicht ersetzt,
@@ -63,6 +63,7 @@ function merkeAufgabe(aufgabe, wertung, versuche) {
   thema.gewichtet += aufgabe.difficulty * wertung;
   thema.gesamt += aufgabe.difficulty;
   stand.themen[aufgabe.topicId] = thema;
+  merkeAktivitaet();
   sichern();
 }
 
@@ -136,17 +137,87 @@ function naechsteLektion() {
   return lektionen.find((l) => !(lektionErgebnis(l.id) || {}).bestanden) || null;
 }
 
+/* Stufenfaktor wie MasterScore.tierFactor: Fortgeschrittene Module zählen mehr.
+   Ohne ihn käme auf demselben Stand im Web eine andere Zahl heraus als in der App. */
+const STUFENFAKTOR = { beginner: 1.0, intermediate: 1.25, advanced: 1.5 };
+
 function score() {
-  // Wie MasterScore: nur bestandene Lektionen zählen, gewichtet nach Niveau.
-  const lektionen = alleLektionen();
+  // Wie MasterScore: nur bestandene Lektionen zählen, gewichtet nach Niveau und Modulstufe.
   let erreicht = 0, gesamt = 0;
-  for (const l of lektionen) {
-    const gewicht = l.tasks.reduce((s, t) => s + t.difficulty, 0);
-    gesamt += gewicht;
-    const e = lektionErgebnis(l.id);
-    if (e && e.bestanden) erreicht += gewicht * e.quote;
+  for (const m of kurs.modules) {
+    const faktor = STUFENFAKTOR[m.tier] || 1;
+    for (const l of m.lessons) {
+      const gewicht = l.tasks.reduce((s, t) => s + t.difficulty, 0) * faktor;
+      gesamt += gewicht;
+      const e = lektionErgebnis(l.id);
+      if (e && e.bestanden) erreicht += gewicht * Math.min(Math.max(e.quote, 0), 1);
+    }
   }
   return gesamt ? Math.round((erreicht / gesamt) * 1000) : 0;
+}
+
+/* Ränge wie MasterScore.ranks. */
+const RAENGE = [
+  { titel: "Neuling", ab: 0, symbol: "🌱" },
+  { titel: "Code-Talent", ab: 150, symbol: "✨" },
+  { titel: "Java-Profi", ab: 350, symbol: "🔨" },
+  { titel: "Architektur-Ass", ab: 600, symbol: "🏛️" },
+  { titel: "Java Master", ab: 850, symbol: "👑" },
+];
+
+const rang = (punkte) => RAENGE.filter((r) => punkte >= r.ab).pop();
+const naechsterRang = (punkte) => RAENGE.find((r) => punkte < r.ab) || null;
+
+/* Sterne wie Stars.forAccuracy – beide Grenzen leiten sich aus der Bestehensgrenze ab. */
+const ZWEI_STERNE_AB = BESTANDEN_AB + (1 - BESTANDEN_AB) / 2;
+
+function sterne(quote) {
+  if (quote >= 0.999) return 3;
+  if (quote >= ZWEI_STERNE_AB) return 2;
+  return quote >= BESTANDEN_AB ? 1 : 0;
+}
+
+/* Tagesserie wie im Kern: aufeinanderfolgende Tage mit mindestens einer gelösten Aufgabe. */
+const heuteAlsTag = () => Math.floor(Date.now() / 86400000);
+
+function merkeAktivitaet() {
+  const heute = heuteAlsTag();
+  const serie = stand.serie || { aktuell: 0, laengste: 0, letzterTag: null };
+  if (serie.letzterTag === heute) return;
+  serie.aktuell = serie.letzterTag !== null && heute - serie.letzterTag === 1 ? serie.aktuell + 1 : 1;
+  serie.laengste = Math.max(serie.laengste, serie.aktuell);
+  serie.letzterTag = heute;
+  stand.serie = serie;
+}
+
+/** Die Serie zählt nur, solange kein Tag ausgelassen wurde. */
+function aktuelleSerie() {
+  const serie = stand.serie;
+  if (!serie || serie.letzterTag === null) return 0;
+  return heuteAlsTag() - serie.letzterTag <= 1 ? serie.aktuell : 0;
+}
+
+/* Wissensanalyse wie KnowledgeAnalyzer – gleiche Schwellen, gleiche Mindestzahlen. */
+const STAERKE_AB = 0.75;
+const LUECKE_UNTER = 0.55;
+
+function themenStatus(themaId) {
+  const t = stand.themen[themaId];
+  if (!t || !t.gesehen) return "unbekannt";
+  const m = beherrschung(themaId);
+  if (t.gesehen >= 3 && m >= STAERKE_AB) return "staerke";
+  if (t.gesehen >= 2 && m < LUECKE_UNTER) return "luecke";
+  return "aufbau";
+}
+
+const STATUS_TITEL = { staerke: "Stärken", aufbau: "Im Aufbau", luecke: "Wissenslücken", unbekannt: "Noch unbekannt" };
+const STATUS_SYMBOL = { staerke: "✓", aufbau: "↗", luecke: "!", unbekannt: "?" };
+
+/** Gesamte Beherrschung über alle Themen – gewichtet nach Niveau. */
+function gesamtBeherrschung() {
+  let gewichtet = 0, gesamt = 0;
+  for (const t of Object.values(stand.themen)) { gewichtet += t.gewichtet; gesamt += t.gesamt; }
+  return gesamt ? (gewichtet + 1) / (gesamt + 2) : null;
 }
 
 // ---------------------------------------------------------------- Varianten
@@ -511,8 +582,13 @@ const el = () => document.getElementById("app");
 function zeichne() {
   const s = { start: startSeite, themen: themenSeite, schwaechen: schwaechenSeite,
               lektionen: lektionenSeite, sitzung: sitzungSeite, einstieg: einstiegSeite,
-              einstufungErgebnis: einstufungErgebnisSeite }[ansicht.name] || startSeite;
-  el().innerHTML = s();
+              einstufungErgebnis: einstufungErgebnisSeite, analyse: analyseSeite,
+              profil: profilSeite }[ansicht.name] || startSeite;
+  // Die Leiste gibt es überall außer im Einstieg und während einer laufenden Aufgabe –
+  // wie in der App, wo die Seitenleiste dort ebenfalls zurücktritt.
+  const mitLeiste = !["einstieg", "sitzung", "einstufungErgebnis"].includes(ansicht.name);
+  el().innerHTML = s() + (mitLeiste ? tableiste() : "");
+  document.body.classList.toggle("mit-leiste", mitLeiste);
   bindeEreignisse();
   window.scrollTo(0, 0);
 }
@@ -533,8 +609,12 @@ function startSeite() {
 
     <div class="score">
       <div class="zahl">${punkte}</div>
-      <div>von 1.000 · ${fertig} von ${alleLektionen().length} Lektionen</div>
+      <div>${rang(punkte).symbol} ${rang(punkte).titel} · ${fertig} von ${alleLektionen().length} Lektionen</div>
       <div class="balken"><i style="width:${punkte / 10}%"></i></div>
+      <div class="mini" style="color:rgba(255,255,255,.8);margin-top:8px">
+        ${naechsterRang(punkte) ? `Noch ${naechsterRang(punkte).ab - punkte} Punkte bis „${naechsterRang(punkte).titel}“` : "Höchster Rang erreicht"}
+        ${aktuelleSerie() ? ` · 🔥 ${aktuelleSerie()} ${aktuelleSerie() === 1 ? "Tag" : "Tage"} in Folge` : ""}
+      </div>
     </div>
 
     ${naechste ? `
@@ -658,20 +738,129 @@ function musterAntwortText(a) {
   return "siehe Musterlösung";
 }
 
+/** Die Leiste unten – dieselben fünf Bereiche wie die Seitenleiste der App. */
+function tableiste() {
+  const bereiche = [
+    { seite: "start", titel: "Übersicht", symbol: "◎" },
+    { seite: "lektionen", titel: "Lernpfad", symbol: "⌘" },
+    { seite: "themen", titel: "Themen", symbol: "▦" },
+    { seite: "analyse", titel: "Analyse", symbol: "◔" },
+    { seite: "profil", titel: "Profil", symbol: "☺" },
+  ];
+  return `<nav class="leiste">${bereiche.map((b) =>
+    `<button class="${ansicht.name === b.seite ? "aktiv" : ""}" data-seite="${b.seite}">
+       <span class="zeichen">${b.symbol}</span><span>${b.titel}</span>
+     </button>`).join("")}</nav>`;
+}
+
+/** Analyse: Stärken, Wissenslücken und was noch unbekannt ist – wie in der App. */
+function analyseSeite() {
+  const gesamt = gesamtBeherrschung();
+  let html = `<h1>Analyse</h1>`;
+
+  if (gesamt === null) {
+    return html + `<div class="karte"><h2>Noch keine Daten</h2>
+      <p class="leise">Sobald du Aufgaben löst, zeigt dir die App hier Stärken und Wissenslücken.</p></div>`;
+  }
+
+  html += `<div class="score">
+    <div class="zahl">${Math.round(gesamt * 100)} %</div>
+    <div>Gesamte Beherrschung</div>
+    <div class="balken"><i style="width:${gesamt * 100}%"></i></div>
+  </div>
+  <div class="karte">
+    <h3>Wie das gerechnet wird</h3>
+    <p class="leise">Gewichtet nach Niveau: Schwere Aufgaben zählen mehr. Wenige Antworten werden
+    vorsichtig bewertet – ein einzelner Treffer macht noch keine Stärke.</p>
+  </div>`;
+
+  const gruppen = { staerke: [], aufbau: [], luecke: [], unbekannt: [] };
+  for (const t of kurs.topics) {
+    if (!uebbareAufgaben().some((a) => a.topicId === t.id)) continue;
+    gruppen[themenStatus(t.id)].push(t);
+  }
+
+  for (const [status, themen] of Object.entries(gruppen)) {
+    if (!themen.length) continue;
+    html += `<div class="karte"><h3>${STATUS_SYMBOL[status]} ${STATUS_TITEL[status]} · ${themen.length}</h3>`;
+    if (status === "staerke") html += `<p class="mini">Ab 75 % bei mindestens 3 Aufgaben.</p>`;
+    if (status === "luecke") html += `<p class="mini">Unter 55 % bei mindestens 2 Aufgaben – hier lohnt sich Üben am meisten.</p>`;
+    themen.forEach((t) => {
+      const m = beherrschung(t.id);
+      const gesehen = (stand.themen[t.id] || {}).gesehen || 0;
+      html += `<button class="zeile" data-uebe="${t.id}">
+        <span class="haupt"><strong>${sicher(t.title)}</strong>
+        <span class="mini">${m === null ? "noch nicht geübt" : `${Math.round(m * 100)} % · ${gesehen} ${gesehen === 1 ? "Aufgabe" : "Aufgaben"}`}</span></span>
+        <span class="mini">üben ›</span>
+      </button>`;
+    });
+    html += `</div>`;
+  }
+  return html;
+}
+
+/** Profil: Lernprofil, Fortschritt, Datenschutz, Zurücksetzen – wie in der App. */
+function profilSeite() {
+  const punkte = score();
+  const r = rang(punkte);
+  const naechster = naechsterRang(punkte);
+  const p = stand.profil || {};
+  const stufenName = { beginner: "Anfänger", intermediate: "Leicht fortgeschritten", advanced: "Erfahren" };
+  const modul = p.stufe ? (kurs.modules.find((m) => m.tier === p.stufe) || {}).title : null;
+  const fertig = alleLektionen().filter((l) => (lektionErgebnis(l.id) || {}).bestanden).length;
+  const serie = stand.serie || { laengste: 0 };
+  const datum = p.seit ? new Date(p.seit).toLocaleDateString("de-DE", { day: "numeric", month: "long", year: "numeric" }) : "–";
+
+  const zeile = (name, wert) => `<div class="erklaerzeile"><strong>${sicher(name)}</strong><div class="mini">${sicher(wert)}</div></div>`;
+
+  return `<h1>Profil</h1>
+    <div class="karte"><h3>Lernprofil</h3>
+      ${zeile("Selbsteinschätzung", stufenName[p.selbsteinschaetzung] || "–")}
+      ${p.einstufung !== null && p.einstufung !== undefined ? zeile("Einstufung", `${p.einstufung} %`) : ""}
+      ${modul ? zeile("Eingestiegen bei", modul) : ""}
+      ${zeile("Dabei seit", datum)}
+    </div>
+    <div class="karte"><h3>Fortschritt</h3>
+      ${zeile("Java Master Score", `${punkte} / 1000`)}
+      ${zeile("Rang", `${r.symbol} ${r.titel}${naechster ? ` · noch ${naechster.ab - punkte} bis ${naechster.titel}` : ""}`)}
+      ${zeile("Aktuelle Serie", aktuelleSerie() === 1 ? "1 Tag" : `${aktuelleSerie()} Tage`)}
+      ${zeile("Längste Serie", serie.laengste === 1 ? "1 Tag" : `${serie.laengste} Tage`)}
+      ${zeile("Lektionen", `${fertig} von ${alleLektionen().length}`)}
+    </div>
+    <div class="karte"><h3>🔒 Datenschutz</h3>
+      <p class="leise">Alle Daten bleiben auf diesem Gerät. Kein Konto, kein Tracking, keine
+      Übertragung – auch die Auswertung deiner Antworten läuft hier im Browser.</p>
+    </div>
+    <div class="karte">
+      <button class="knopf zweit" data-reset="1">Fortschritt zurücksetzen</button>
+      <p class="mini">Score, Lernpfad und Analyse werden gelöscht. Danach startest du wieder mit dem Einstieg.</p>
+    </div>`;
+}
+
 function lektionenSeite() {
   const lektionen = alleLektionen();
-  let html = `<div class="kopf"><button class="zurueck" data-seite="start">‹</button><span class="titel">Alle Lektionen</span></div>`;
+  const stufenName = { beginner: "Grundkurs", intermediate: "Aufbau", advanced: "Fortgeschritten" };
+  let html = `<h1>Lernpfad</h1>
+    <p class="leise">Eine Lektion wird frei, sobald die davor bestanden ist. Frei üben kannst du jedes Thema jederzeit.</p>`;
   kurs.modules.forEach((m) => {
-    html += `<div class="karte"><h3>${sicher(m.title)}</h3><p class="mini">${sicher(m.subtitle)}</p>`;
+    const fertig = m.lessons.filter((l) => (lektionErgebnis(l.id) || {}).bestanden).length;
+    const anteil = fertig / m.lessons.length;
+    html += `<div class="karte">
+      <div class="marken"><span class="marke">${stufenName[m.tier] || m.tier}</span>
+        <span class="marke ${fertig === m.lessons.length ? "stark" : ""}">${fertig}/${m.lessons.length} Lektionen</span></div>
+      <h3>${sicher(m.title)}</h3><p class="mini">${sicher(m.subtitle)}</p>
+      <div class="balken" style="margin:10px 0 4px"><i style="width:${anteil * 100}%"></i></div>`;
     m.lessons.forEach((l) => {
       const index = lektionen.findIndex((x) => x.id === l.id);
       const e = lektionErgebnis(l.id);
       const frei = istFrei(index);
       const zustand = e && e.bestanden ? "fertig" : (frei ? "offen" : "");
+      const st = e && e.bestanden ? sterne(e.quote) : 0;
       html += `<button class="zeile" data-lektion="${l.id}" ${frei ? "" : "disabled"}>
         <span class="punkt ${zustand}">${e && e.bestanden ? "✓" : (frei ? "▸" : "🔒")}</span>
         <span class="haupt"><strong>${sicher(l.title)}</strong>
-        <span class="mini">${e ? `Bestwert ${Math.round(e.quote * 100)} %` : `${l.tasks.length} Aufgaben`}</span></span>
+        <span class="mini">${e ? `Bestwert ${Math.round(e.quote * 100)} %` : `${l.tasks.length} Aufgaben · ${l.estimatedMinutes} Min.`}</span></span>
+        ${st ? `<span class="sterne">${"★".repeat(st)}${"☆".repeat(3 - st)}</span>` : ""}
       </button>`;
     });
     html += `</div>`;
@@ -681,8 +870,22 @@ function lektionenSeite() {
 
 function themenSeite() {
   const gewaehlt = ansicht.gewaehlt || [];
-  let html = `<div class="kopf"><button class="zurueck" data-seite="start">‹</button><span class="titel">Themen wählen</span></div>
+  const niveaus = ansicht.niveaus || [];
+  const anzahl = ansicht.anzahl || 10;
+  const passend = uebbareAufgaben().filter((a) =>
+    (!gewaehlt.length || gewaehlt.includes(a.topicId)) && (!niveaus.length || niveaus.includes(a.difficulty))).length;
+
+  let html = `<h1>Such dir aus, was du üben willst</h1>
     <p class="leise">Ohne Auswahl kommt alles gemischt. Jedes Thema ist sofort übbar – auch wenn die Lektion noch nicht dran war.</p>
+    <div class="karte">
+      <h3>Niveau</h3><p class="mini">Ohne Auswahl: alle Niveaus</p>
+      <div class="chips">${[1, 2, 3, 4, 5].map((n) =>
+        `<button class="chip ${niveaus.includes(n) ? "aktiv" : ""}" data-niveau="${n}">${n}</button>`).join("")}</div>
+      <h3 style="margin-top:14px">Wie viele Aufgaben?</h3>
+      <div class="chips">${[5, 10, 15, 25].map((n) =>
+        `<button class="chip ${anzahl === n ? "aktiv" : ""}" data-anzahl="${n}">${n}</button>`).join("")}</div>
+      ${gewaehlt.length ? `<button class="knopf still" data-zuruecksetzen="1">Auswahl zurücksetzen</button>` : ""}
+    </div>
     <div class="gitter">`;
   kurs.topics.forEach((t) => {
     const anzahl = uebbareAufgaben().filter((a) => a.topicId === t.id).length;
@@ -701,7 +904,12 @@ function themenSeite() {
       ${wacklig.length ? `<span class="mini warn">Es hakt ab Stufe ${wacklig[0].stufe} – die leichteren sitzen.</span>` : ""}
     </button>`;
   });
-  html += `</div><div class="karte"><button class="knopf" data-start="themen">${gewaehlt.length ? `${gewaehlt.length} Thema/Themen üben` : "Gemischt üben"}</button></div>`;
+  html += `</div><div class="karte">
+    <p class="leise">${passend === 0
+      ? "Zu dieser Auswahl gibt es keine Aufgaben – nimm ein Niveau dazu."
+      : `${Math.min(anzahl, passend)} von ${passend} passenden Aufgaben · Niveau: ${niveaus.length ? niveaus.slice().sort().join(", ") : "alle"}`}</p>
+    <button class="knopf" data-start="themen" ${passend === 0 ? "disabled" : ""}>${gewaehlt.length ? `${gewaehlt.length} Thema/Themen üben` : "Gemischt üben"}</button>
+  </div>`;
   return html;
 }
 
@@ -734,6 +942,8 @@ function starteLektion(id) {
 
 function starteRunde(art, themen) {
   let topf, titel;
+  const niveaus = ansicht.niveaus || [];
+  const wunschAnzahl = ansicht.anzahl || RUNDE;
   if (art === "schwaechen") {
     const gruppen = new Set(schwaechen().map((s) => s.gruppe));
     topf = uebbareAufgaben().filter((a) => gruppen.has(gruppe(a)));
@@ -742,15 +952,20 @@ function starteRunde(art, themen) {
     const gruppen = new Set(faelligeZiele(Date.now()));
     topf = uebbareAufgaben().filter((a) => gruppen.has(gruppe(a)));
     titel = "Wiederholung";
-  } else if (art === "themen" && themen && themen.length) {
-    topf = uebbareAufgaben().filter((a) => themen.includes(a.topicId));
-    titel = "Üben: " + themen.map((t) => (thema(t) || {}).title).filter(Boolean).join(", ");
+  } else if (art === "themen") {
+    const gewaehlt = themen && themen.length ? themen : null;
+    topf = uebbareAufgaben().filter((a) =>
+      (!gewaehlt || gewaehlt.includes(a.topicId)) && (!niveaus.length || niveaus.includes(a.difficulty)));
+    titel = gewaehlt
+      ? "Üben: " + gewaehlt.map((t) => (thema(t) || {}).title).filter(Boolean).join(", ")
+      : "Gemischt üben";
   } else {
     topf = uebbareAufgaben();
     titel = "Gemischt üben";
   }
   if (!topf.length) return;
-  sitzung = { titel, lektionId: null, theorie: [], seite: 0, aufgaben: runde(topf, RUNDE),
+  sitzung = { titel, lektionId: null, theorie: [], seite: 0,
+              aufgaben: runde(topf, art === "themen" ? wunschAnzahl : RUNDE),
               index: 0, versuche: 0, ergebnis: null, aufgedeckt: false, entwurf: null, ergebnisse: [] };
   gehe("sitzung");
 }
@@ -899,6 +1114,7 @@ function auswertungSeite() {
   const bestanden = quote >= BESTANDEN_AB;
   const ersterVersuch = sitzung.ergebnisse.filter((r) => r.wertung >= 1 && r.versuche === 1).length;
 
+  const vorher = score();
   if (sitzung.lektionId) {
     const alt = lektionErgebnis(sitzung.lektionId);
     if (!alt || quote > alt.quote) {
@@ -906,6 +1122,8 @@ function auswertungSeite() {
       sichern();
     }
   }
+  const zuwachs = score() - vorher;
+  const st = sitzung.lektionId && bestanden ? sterne(quote) : 0;
 
   return h(`
     <div class="kopf"><span class="titel">${sicher(sitzung.titel)}</span></div>
@@ -915,12 +1133,17 @@ function auswertungSeite() {
       <p class="leise">${sitzung.lektionId && !bestanden
         ? `Ab ${Math.round(BESTANDEN_AB * 100)} % gilt eine Lektion als bestanden. Wiederhole sie – es zählt immer dein Bestwert.`
         : "Was noch hakt, kommt in den nächsten Runden öfter dran – so lange, bis es sitzt."}</p>
+      ${sitzung.lektionId ? `<div class="sterne gross">${"★".repeat(st)}${"☆".repeat(3 - st)}</div>` : ""}
       <div class="gitter" style="margin-top:14px">
         <div class="kachel"><strong>${Math.round(quote * 100)} %</strong><span class="mini">Trefferquote</span></div>
         <div class="kachel"><strong>${ersterVersuch}/${sitzung.ergebnisse.length}</strong><span class="mini">beim ersten Versuch</span></div>
+        ${zuwachs > 0 ? `<div class="kachel"><strong>+${zuwachs}</strong><span class="mini">Score</span></div>` : ""}
       </div>
     </div>
-    <button class="knopf" data-seite="start">Zur Übersicht</button>
+    <div class="knopf-reihe">
+      ${sitzung.lektionId ? "" : `<button class="knopf zweit" data-nochmal="1">Noch eine Runde</button>`}
+      <button class="knopf" data-seite="start">Zur Übersicht</button>
+    </div>
   `);
 }
 
@@ -979,6 +1202,7 @@ function einstufungAbschliessen() {
     }
   }
   stand.start = { fertig: true, stufe, prozent };
+  stand.profil = { selbsteinschaetzung: "intermediate", einstufung: prozent, stufe, seit: Date.now() };
   sichern();
   gehe("einstufungErgebnis", { prozent, stufe, modulId: modul.id, antworten: test.antworten });
 }
@@ -1037,6 +1261,7 @@ function bindeEreignisse() {
   klick("[data-einstieg]", (e) => {
     if (e.currentTarget.dataset.einstieg === "einstufung") return starteEinstufung();
     stand.start = { fertig: true, stufe: "beginner" };
+    stand.profil = { selbsteinschaetzung: "beginner", einstufung: null, stufe: "beginner", seit: Date.now() };
     sichern();
     gehe("start");
   });
@@ -1045,6 +1270,23 @@ function bindeEreignisse() {
     const gewaehlt = ansicht.gewaehlt || [];
     ansicht.gewaehlt = gewaehlt.includes(id) ? gewaehlt.filter((x) => x !== id) : gewaehlt.concat(id);
     zeichne();
+  });
+  klick("[data-niveau]", (e) => {
+    const n = Number(e.currentTarget.dataset.niveau);
+    const niveaus = ansicht.niveaus || [];
+    ansicht.niveaus = niveaus.includes(n) ? niveaus.filter((x) => x !== n) : niveaus.concat(n);
+    zeichne();
+  });
+  klick("[data-anzahl]", (e) => { ansicht.anzahl = Number(e.currentTarget.dataset.anzahl); zeichne(); });
+  klick("[data-zuruecksetzen]", () => { ansicht.gewaehlt = []; zeichne(); });
+  klick("[data-nochmal]", () => starteRunde("training"));
+  // Aus der Analyse heraus direkt das betroffene Thema üben.
+  klick("[data-uebe]", (e) => gehe("themen", { gewaehlt: [e.currentTarget.dataset.uebe] }));
+  klick("[data-reset]", () => {
+    if (!confirm("Gesamten Fortschritt löschen? Score, Lernpfad und Analyse werden entfernt.")) return;
+    stand = { lektionen: {}, verlauf: {}, themen: {}, ziele: {}, serie: null, profil: null };
+    try { localStorage.removeItem("javaquest"); } catch (e) { /* gesperrt: dann bleibt es bei der Sitzung */ }
+    gehe("start");
   });
 }
 
