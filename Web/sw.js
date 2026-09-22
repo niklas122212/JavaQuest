@@ -1,6 +1,6 @@
 /* Offline-Betrieb: Beim ersten Besuch wird alles abgelegt, danach lädt die App
    auch ohne Internet – wichtig, wenn sie wie eine App vom Home-Bildschirm startet. */
-const CACHE = "javaquest-v1";
+const CACHE = "javaquest-v2";
 const DATEIEN = [
   "./", "./index.html", "./app.js", "./styles.css",
   "./java_course.json", "./manifest.webmanifest",

@@ -18,6 +18,9 @@ from pool_deep import POOL_DEEP
 from pool_practice import POOL_PRACTICE
 from pool_extra import POOL_EXTRA
 from pool_gaps import POOL_GAPS
+from pool_level_a import POOL_LEVEL_A
+from pool_level_b import POOL_LEVEL_B
+from pool_level_c import POOL_LEVEL_C
 from uml_content import UML_MODULE, UML_POOL, UML_TOPICS
 
 topics = [
@@ -1560,7 +1563,7 @@ course = {
         {"id": "m5-modern", "title": "Modernes Java", "subtitle": "Lambdas, Streams, Records und Pattern Matching",
          "tier": "advanced", "symbol": "sparkles", "lessons": [l12, l13]},
     ] + ADVANCED_MODULES + [UML_MODULE],
-    "taskPool": POOL + POOL_BASICS + POOL_ADVANCED + POOL_DEEP + POOL_PRACTICE + POOL_EXTRA + POOL_GAPS + UML_POOL,
+    "taskPool": POOL + POOL_BASICS + POOL_ADVANCED + POOL_DEEP + POOL_PRACTICE + POOL_EXTRA + POOL_GAPS + POOL_LEVEL_A + POOL_LEVEL_B + POOL_LEVEL_C + UML_POOL,
     "placement": {
         "passThreshold": 65,
         "questionsPerTest": 1,

@@ -234,6 +234,7 @@ private struct Context {
         }
 
         if let text = typeDeclaration(s) { return (text, false) }
+        if let text = enumConstants(s) { return (text, false) }
         if let text = methodDeclaration(s) { return (text, false) }
         if let text = controlStructure(s) { return (text, false) }
         if let text = printStatement(s) { return (text, false) }
@@ -302,6 +303,31 @@ private struct Context {
     }
 
     // MARK: Klassen, Interfaces, Records
+
+    /// Die Werteliste im Rumpf einer Aufzählung, z. B. „ERDE(6371), MARS(3390);“.
+    /// Sie steht als eigene Zeile da und sieht sonst wie eine Anweisung ohne Verb aus.
+    func enumConstants(_ s: String) -> String? {
+        guard case .type(let kind, let name)? = stack.last, kind == "Enum" else { return nil }
+        let body = (s.hasSuffix(";") || s.hasSuffix(",")) ? String(s.dropLast()).trimmed : s
+        guard !body.isEmpty else { return nil }
+        var namen: [String] = []
+        var mitDaten = false
+        for teil in Syntax.splitArguments(body) {
+            guard let g = Syntax.groups(Syntax.enumConstant, teil) else { return nil }
+            namen.append(g[1])
+            if !g[2].isEmpty { mitDaten = true }
+        }
+        guard !namen.isEmpty else { return nil }
+        var text = "Das sind die erlaubten Werte der Aufzählung „\(name)“: \(Syntax.list(namen)). "
+            + "Andere kann es nicht geben – ein Tippfehler wäre schon beim Übersetzen ein Fehler, anders als bei Text."
+        if mitDaten {
+            text += " Die Angaben in den Klammern gehen an den Konstruktor des enums: Jeder Wert bringt so seine eigenen Daten mit."
+        }
+        if s.hasSuffix(";") {
+            text += " Das Semikolon schließt die Werteliste ab – darunter dürfen Felder und Methoden folgen."
+        }
+        return text
+    }
 
     mutating func typeDeclaration(_ s: String) -> String? {
         guard let g = Syntax.groups(Syntax.typeDecl, s) else { return nil }
@@ -796,6 +822,8 @@ private enum Syntax {
     static let typePattern = rx(#"^([A-Z]\w*)\s+(\w+)$"#)
     static let instanceofPattern = rx(#"(\w+)\s+instanceof\s+([A-Z]\w*)\s+(\w+)"#)
     static let identifier = rx(#"^[A-Za-z_]\w*$"#)
+    /// Ein Wert einer Aufzählung, mit oder ohne eigene Daten: ROT, ERDE(6371).
+    static let enumConstant = rx(#"^([A-Z][A-Z0-9_]*)(\([^)]*\))?$"#)
     static let arrayLength = rx(#"^(\w+)\.length$"#)
     static let counterStart = rx(#"^(?:int|long|var)?\s*(\w+)\s*=\s*(.+)$"#)
     static let newArray = rx(#"^new\s+(\w+)\[(.+)\]$"#)

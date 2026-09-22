@@ -12,7 +12,7 @@ struct CourseContentTests {
     }
 
     var allTasks: [LearningTask] {
-        course.allLessons.flatMap(\.tasks) + ExperienceLevel.allCases.flatMap { course.placement.pool(for: $0) }
+        course.practiceableTasks + ExperienceLevel.allCases.flatMap { course.placement.pool(for: $0) }
     }
 
     @Test("Kursdatei ist konsistent (Validator ohne Befund)")
