@@ -107,17 +107,26 @@ class StoreTest {
         assertTrue(store.knowledgeReport.insights.any { it.mastery != null }, "Analyse zählt trotzdem mit")
     }
 
-    @Test fun `Einstufung rechnet den Grundkurs an`() {
+    @Test fun `Einstufung rechnet die uebersprungenen Lektionen an`() {
         val store = ProgressStore(course, file(), clock(1))
         val test = PlacementTest.create(course, ExperienceLevel.INTERMEDIATE)!!
-        val task = test.currentTask!!
-        test.submit(AnswerEvaluator.evaluate(AnswerEvaluator.referenceAnswer(task), task))
+        val themen = mutableSetOf<String>()
+        while (true) {
+            val task = test.currentTask ?: break
+            themen += task.topicId
+            test.submit(AnswerEvaluator.evaluate(AnswerEvaluator.referenceAnswer(task), task))
+        }
         store.completeOnboarding(ExperienceLevel.INTERMEDIATE, test)
-        assertEquals(6, store.completedLessonCount)
-        assertEquals(course.entryModule(ExperienceLevel.INTERMEDIATE)!!.lessons.first().id, store.nextLesson?.id)
-        assertEquals(ExperienceLevel.INTERMEDIATE, store.placedLevel)
+        // Alles richtig → fortgeschrittener Teil; angerechnet wird genau, was davor liegt.
+        assertEquals(ExperienceLevel.ADVANCED, store.placedLevel)
+        val entry = course.entryModule(ExperienceLevel.ADVANCED)!!
+        val davor = course.modules.takeWhile { it.id != entry.id }.sumOf { it.lessons.size }
+        assertEquals(davor, store.completedLessonCount)
+        assertEquals(entry.lessons.first().id, store.nextLesson?.id)
         assertTrue(store.masterScore > 0)
-        assertTrue(store.knowledgeReport.insights.first { it.topic.id == task.topicId }.mastery != null)
+        for (topic in themen) {
+            assertTrue(store.knowledgeReport.insights.first { it.topic.id == topic }.mastery != null, topic)
+        }
     }
 
     @Test fun `Serie - gestern plus heute ergibt 2, Luecke setzt zurueck, Reset loescht alles`() {

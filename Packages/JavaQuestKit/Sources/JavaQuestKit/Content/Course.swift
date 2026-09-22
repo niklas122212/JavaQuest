@@ -141,10 +141,27 @@ public struct TheoryCard: Decodable, Sendable, Hashable {
 public struct PlacementConfig: Decodable, Sendable, Hashable {
     /// Ab diesem Prozentwert gilt der Test als bestanden (Standard: 65).
     public let passThreshold: Int
+    /// Ab diesem Prozentwert geht es nicht nur am Grundkurs, sondern auch am Mittelteil vorbei.
+    /// Ältere Kursdateien ohne diesen Schlüssel bekommen einen Wert, der nie erreicht wird –
+    /// dann verhält sich die Einstufung wie zuvor.
+    public let advancedThreshold: Int
     public let questionsPerTest: Int
     public let startDifficulty: Int
     /// Fragenpools je Stufe, Schlüssel ist `ExperienceLevel.rawValue`.
     public let pools: [String: [LearningTask]]
+
+    enum CodingKeys: String, CodingKey {
+        case passThreshold, advancedThreshold, questionsPerTest, startDifficulty, pools
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        passThreshold = try container.decode(Int.self, forKey: .passThreshold)
+        advancedThreshold = try container.decodeIfPresent(Int.self, forKey: .advancedThreshold) ?? 101
+        questionsPerTest = try container.decode(Int.self, forKey: .questionsPerTest)
+        startDifficulty = try container.decode(Int.self, forKey: .startDifficulty)
+        pools = try container.decode([String: [LearningTask]].self, forKey: .pools)
+    }
 
     public func pool(for level: ExperienceLevel) -> [LearningTask] { pools[level.rawValue] ?? [] }
 }

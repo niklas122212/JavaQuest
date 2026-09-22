@@ -7,8 +7,9 @@ import Foundation
 /// noch ungestellte Frage mit dem Niveau, das am nächsten am Ziel liegt.
 ///
 /// Score (0–100 %): Σ(Niveau × Teilpunkte) / Σ(Niveau) über alle gestellten Fragen.
-/// Schwere Fragen zählen also mehr. Ab `passThreshold` (65 %) erfolgt die Einstufung
-/// in das Modul der gewählten Stufe, darunter in das Modul der Stufe darunter.
+/// Schwere Fragen zählen also mehr. Daraus folgt eine von drei Einstufungen:
+/// unter `passThreshold` (65 %) der Grundkurs, darüber der Einstieg bei den Objekten,
+/// ab `advancedThreshold` (85 %) der Sprung in den fortgeschrittenen Teil.
 public struct PlacementTest: Sendable {
     public struct Answer: Sendable, Hashable {
         public let task: LearningTask
@@ -18,6 +19,7 @@ public struct PlacementTest: Sendable {
     public let level: ExperienceLevel
     public let questionCount: Int
     public let passThreshold: Int
+    public let advancedThreshold: Int
     public private(set) var answers: [Answer] = []
     public private(set) var currentTask: LearningTask?
     public private(set) var targetDifficulty: Int
@@ -30,6 +32,7 @@ public struct PlacementTest: Sendable {
         self.level = level
         self.questionCount = min(course.placement.questionsPerTest, pool.count)
         self.passThreshold = course.placement.passThreshold
+        self.advancedThreshold = course.placement.advancedThreshold
         self.targetDifficulty = Difficulty.clamped(course.placement.startDifficulty).rawValue
         self.remaining = pool
         self.currentTask = nil
@@ -76,9 +79,15 @@ public struct PlacementTest: Sendable {
         return best.element
     }
 
+    /// Die Stufe, in die das Ergebnis führt – drei Möglichkeiten statt bestanden/durchgefallen.
+    public var placedLevel: ExperienceLevel {
+        if scorePercent >= advancedThreshold { return .advanced }
+        return scorePercent >= passThreshold ? level : level.fallback
+    }
+
     public func outcome(in course: Course) -> PlacementOutcome {
         let score = scorePercent
-        let placedLevel = score >= passThreshold ? level : level.fallback
+        let placedLevel = self.placedLevel
         let entryModule = course.entryModule(for: placedLevel) ?? course.modules[0]
         let entryIndex = course.modules.firstIndex { $0.id == entryModule.id } ?? 0
         let skipped = course.modules.prefix(entryIndex).flatMap(\.lessons).map(\.id)

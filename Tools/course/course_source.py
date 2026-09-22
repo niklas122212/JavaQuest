@@ -21,6 +21,7 @@ from pool_gaps import POOL_GAPS
 from pool_level_a import POOL_LEVEL_A
 from pool_level_b import POOL_LEVEL_B
 from pool_level_c import POOL_LEVEL_C
+from placement import PLACEMENT_POOL
 from uml_content import UML_MODULE, UML_POOL, UML_TOPICS
 
 topics = [
@@ -1566,9 +1567,11 @@ course = {
     "taskPool": POOL + POOL_BASICS + POOL_ADVANCED + POOL_DEEP + POOL_PRACTICE + POOL_EXTRA + POOL_GAPS + POOL_LEVEL_A + POOL_LEVEL_B + POOL_LEVEL_C + UML_POOL,
     "placement": {
         "passThreshold": 65,
-        "questionsPerTest": 1,
+        # Ab hier wird nicht nur der Grundkurs übersprungen, sondern auch der Mittelteil.
+        "advancedThreshold": 85,
+        "questionsPerTest": 5,
         "startDifficulty": 3,
-        "pools": {"intermediate": [placement_question]},
+        "pools": {"intermediate": PLACEMENT_POOL + [placement_question]},
     },
 }
 
@@ -1586,7 +1589,7 @@ for (lesson_id, index), (title, body, kind, text) in THEORY.items():
     if kind:
         card_["callout"] = {"kind": kind, "text": text}
 all_tasks = ([t for m in course["modules"] for l in m["lessons"] for t in l["tasks"]]
-             + course["taskPool"] + [placement_question])
+             + course["taskPool"] + course["placement"]["pools"]["intermediate"])
 for task in all_tasks:
     if task["id"] in TASK_EXPLANATIONS:
         task["explanation"] = TASK_EXPLANATIONS[task["id"]]
@@ -1659,6 +1662,6 @@ tasks = sum(len(l["tasks"]) for m in course["modules"] for l in m["lessons"])
 groups = len({t.get("variantGroup", t["id"]) for t in course["taskPool"]})
 print(f"{len(course['modules'])} Module, {sum(len(m['lessons']) for m in course['modules'])} Lektionen, "
       f"{tasks} Lektionsaufgaben, {len(course['taskPool'])} Übungsaufgaben im Pool "
-      f"({groups} Lernziele), 1 Einstufungsfrage")
+      f"({groups} Lernziele), {len(course['placement']['pools']['intermediate'])} Einstufungsfragen")
 if fallbacks:
     sys.exit(1)

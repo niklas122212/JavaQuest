@@ -22,17 +22,16 @@ struct PlacementTests {
         return test
     }
 
-    /// Beantwortet die einzige Einstufungsfrage mit `correctBlanks` richtigen Lücken.
-    func runPartial(correctBlanks: Int) -> PlacementTest {
-        var test = PlacementTest(course: course, level: .intermediate)!
-        let task = test.currentTask!
-        guard case .fillBlank(let spec) = task.kind else { Issue.record("Einstufungsfrage ist kein Lückentext"); return test }
-        let answers = spec.blanks.enumerated().map { index, blank in index < correctBlanks ? blank.accepted[0] : "falsch" }
-        test.submit(evaluator.evaluate(.blanks(answers), for: task))
-        return test
+    /// Beantwortet die ersten `correct` Fragen richtig und den Rest falsch.
+    func runFirst(correct: Int) -> PlacementTest {
+        var gestellt = 0
+        return run(.intermediate) { _ in
+            gestellt += 1
+            return gestellt <= correct
+        }
     }
 
-    @Test("Nur „Ich habe schon Vorkenntnisse“ führt zur Einstufungsfrage")
+    @Test("Nur „Ich habe schon Vorkenntnisse“ führt zur Einstufung")
     func onlyIntermediateIsPlaced() {
         #expect(ExperienceLevel.onboardingChoices == [.beginner, .intermediate])
         #expect(ExperienceLevel.beginner.onboardingTitle == "Ich habe 0 Erfahrung")
@@ -41,26 +40,46 @@ struct PlacementTests {
         #expect(PlacementTest(course: course, level: .intermediate) != nil)
     }
 
-    @Test("Genau eine Frage mit sechs Lücken, Schwelle 65 %")
-    func singleQuestion() {
+    @Test("Fünf Fragen, Start auf Stufe 3, Schwellen 65 % und 85 %")
+    func testShape() {
         let test = PlacementTest(course: course, level: .intermediate)!
-        #expect(test.questionCount == 1)
+        #expect(test.questionCount == 5)
         #expect(test.passThreshold == 65)
-        guard case .fillBlank(let spec) = test.currentTask?.kind else { Issue.record("kein Lückentext"); return }
-        #expect(spec.blanks.count == 6)
+        #expect(test.advancedThreshold == 85)
+        #expect(test.currentTask?.difficulty.rawValue == 3)
     }
 
-    @Test("Alles richtig → 100 %, Einstieg bei Objekten, Grundkurs angerechnet")
+    @Test("Adaptiv: richtig macht es schwerer, falsch macht es leichter")
+    func adaptsToAnswers() {
+        var hoch = PlacementTest(course: course, level: .intermediate)!
+        let start = hoch.currentTask!.difficulty.rawValue
+        hoch.submit(evaluator.evaluate(evaluator.referenceAnswer(for: hoch.currentTask!), for: hoch.currentTask!))
+        #expect(hoch.currentTask!.difficulty.rawValue > start)
+
+        var runter = PlacementTest(course: course, level: .intermediate)!
+        runter.submit(EvaluationResult(isCorrect: false, score: 0, findings: []))
+        #expect(runter.currentTask!.difficulty.rawValue < start)
+    }
+
+    @Test("Keine Frage wird zweimal gestellt")
+    func noRepeats() {
+        let test = run(.intermediate) { _ in true }
+        let ids = test.answers.map(\.task.id)
+        #expect(Set(ids).count == ids.count)
+    }
+
+    @Test("Alles richtig → 100 %, Sprung in den fortgeschrittenen Teil")
     func allCorrect() {
         let test = run(.intermediate) { _ in true }
-        #expect(test.answers.count == 1)
+        #expect(test.answers.count == 5)
         #expect(test.isFinished)
         #expect(test.scorePercent == 100)
         let outcome = test.outcome(in: course)
         #expect(outcome.passed)
-        #expect(outcome.entryModuleId == "m3-objects")
-        #expect(outcome.creditedLessonIds.count == 6)
+        #expect(outcome.placedLevel == .advanced)
+        #expect(outcome.entryModuleId == "m5-modern")
         #expect(outcome.creditedAccuracy == 1)
+        #expect(!outcome.creditedLessonIds.isEmpty)
     }
 
     @Test("Alles falsch → 0 %, Start im Grundkurs")
@@ -73,17 +92,34 @@ struct PlacementTests {
         #expect(outcome.creditedLessonIds.isEmpty)
     }
 
-    @Test("Teilpunkte: 4 von 6 Lücken (67 %) bestehen, 3 von 6 (50 %) nicht")
-    func partialCredit() {
-        let four = runPartial(correctBlanks: 4)
-        #expect(four.scorePercent == 67)
-        #expect(four.passed)
-        #expect(four.outcome(in: course).entryModuleId == "m3-objects")
+    @Test("Je mehr richtig, desto weiter vorn der Einstieg")
+    func moreCorrectPlacesHigher() {
+        let scores = (0...5).map { runFirst(correct: $0).scorePercent }
+        // Monoton: Eine zusätzliche richtige Antwort darf das Ergebnis nie verschlechtern.
+        #expect(scores == scores.sorted(), "\(scores)")
+        #expect(scores.first == 0)
+        #expect(scores.last == 100)
 
-        let three = runPartial(correctBlanks: 3)
-        #expect(three.scorePercent == 50)
-        #expect(!three.passed)
-        #expect(three.outcome(in: course).placedLevel == .beginner)
+        // Und die Einstufung folgt dem Ergebnis – in genau drei Abstufungen.
+        let stufen = (0...5).map { runFirst(correct: $0).outcome(in: course).placedLevel }
+        #expect(stufen.first == .beginner)
+        #expect(stufen.last == .advanced)
+        #expect(Set(stufen).isSubset(of: [.beginner, .intermediate, .advanced]))
+    }
+
+    @Test("Schwere Fragen zählen mehr als leichte")
+    func harderQuestionsWeighMore() {
+        // Gleiche Anzahl Treffer, aber auf unterschiedlichem Niveau: Wer oben trifft,
+        // steht besser da als wer nur unten trifft.
+        var nurLeichte = PlacementTest(course: course, level: .intermediate)!
+        var nurSchwere = PlacementTest(course: course, level: .intermediate)!
+        // Erst falsch (es wird leichter), dann richtig auf dem leichten Niveau.
+        nurLeichte.submit(EvaluationResult(isCorrect: false, score: 0, findings: []))
+        nurLeichte.submit(evaluator.evaluate(evaluator.referenceAnswer(for: nurLeichte.currentTask!), for: nurLeichte.currentTask!))
+        // Erst richtig (es wird schwerer), dann richtig auf dem schweren Niveau.
+        nurSchwere.submit(evaluator.evaluate(evaluator.referenceAnswer(for: nurSchwere.currentTask!), for: nurSchwere.currentTask!))
+        nurSchwere.submit(evaluator.evaluate(evaluator.referenceAnswer(for: nurSchwere.currentTask!), for: nurSchwere.currentTask!))
+        #expect(nurSchwere.scorePercent > nurLeichte.scorePercent)
     }
 }
 

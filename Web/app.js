@@ -21,7 +21,16 @@ function laden() {
     const roh = localStorage.getItem("javaquest");
     if (roh) return JSON.parse(roh);
   } catch (e) { /* privater Modus o. Ä.: dann eben ohne gespeicherten Stand */ }
-  return { lektionen: {}, verlauf: {}, themen: {} };
+  return { lektionen: {}, verlauf: {}, themen: {}, ziele: {} };
+}
+
+/* Ältere gespeicherte Stände kennen „ziele“ noch nicht. Sie werden nicht ersetzt,
+   sondern nur ergänzt – der bisherige Fortschritt bleibt vollständig erhalten. */
+if (!stand.ziele) stand.ziele = {};
+/* Ebenso beim Einstieg: Wer die App schon benutzt hat, wird nicht nachträglich befragt.
+   Vorhandener Fortschritt gilt als Beleg dafür, dass der Einstieg längst hinter einem liegt. */
+if (!stand.start && (Object.keys(stand.verlauf).length || Object.keys(stand.lektionen).length)) {
+  stand.start = { fertig: true };
 }
 
 function sichern() {
@@ -38,6 +47,16 @@ function merkeAufgabe(aufgabe, wertung, versuche) {
     wertung,
     datum: Date.now(),
   };
+  // Die Wiedervorlage rechnet je Lernziel, nicht je Aufgabe: Wer dasselbe Lernziel dreimal
+  // mit drei Varianten getroffen hat, hat es verstanden – und nicht eine Frage auswendig gelernt.
+  const schluessel = gruppe(aufgabe);
+  const ziel = stand.ziele[schluessel] || { versuche: 0, serie: 0 };
+  stand.ziele[schluessel] = {
+    versuche: ziel.versuche + 1,
+    serie: wertung >= 1 ? ziel.serie + 1 : 0,
+    wertung,
+    datum: Date.now(),
+  };
   const thema = stand.themen[aufgabe.topicId] || { gesehen: 0, richtig: 0, gewichtet: 0, gesamt: 0 };
   thema.gesehen += 1;
   if (wertung >= 1) thema.richtig += 1;
@@ -51,6 +70,50 @@ function beherrschung(themaId) {
   const t = stand.themen[themaId];
   if (!t || t.gesamt === 0) return null;
   return (t.gewichtet + 1) / (t.gesamt + 2);   // Laplace-geglättet wie im Kern
+}
+
+/* ---------------------------------------------------------------- Verteiltes Wiederholen
+   Karteikasten-Prinzip, dieselben Werte wie in der iPhone- und Windows-Fassung:
+   Was dreimal hintereinander saß, kommt nicht morgen wieder dran, sondern in einer Woche –
+   bevor es verblasst. Ein Fehler wirft das Lernziel sofort ganz nach vorn zurück. */
+const PAUSEN = [0, 1, 3, 7, 16, 35];   // Tage je Fach
+const MINDESTFAKTOR = 0.25;
+
+const fach = (ziel) => Math.min(ziel.serie || 0, PAUSEN.length - 1);
+const pause = (ziel) => PAUSEN[fach(ziel)];
+const faellig = (ziel, jetzt) => (jetzt - ziel.datum) / 86400000 >= pause(ziel);
+
+/** Faktor fürs Gewicht: gedämpft vor dem Termin, angehoben danach. */
+function wiedervorlage(schluessel, jetzt) {
+  const ziel = stand.ziele[schluessel];
+  if (!ziel || !ziel.serie) return 1;
+  const p = pause(ziel);
+  if (p <= 0) return 1;
+  const vergangen = Math.max((jetzt - ziel.datum) / 86400000, 0);
+  if (vergangen >= p) return 1 + Math.min((vergangen - p) / p, 1);
+  return MINDESTFAKTOR + (1 - MINDESTFAKTOR) * (vergangen / p);
+}
+
+/** Die Lernziele, deren Pause abgelaufen ist. */
+function faelligeZiele(jetzt) {
+  return Object.keys(stand.ziele).filter((k) => faellig(stand.ziele[k], jetzt));
+}
+
+/** Wie ein Thema auf den einzelnen Schwierigkeitsstufen läuft. */
+function stufen(themaId) {
+  const gesehen = {}, geloest = {};
+  for (const a of uebbareAufgaben()) {
+    if (a.topicId !== themaId) continue;
+    const v = stand.verlauf[a.id];
+    if (!v) continue;
+    gesehen[a.difficulty] = (gesehen[a.difficulty] || 0) + 1;
+    if (v.wertung >= 1) geloest[a.difficulty] = (geloest[a.difficulty] || 0) + 1;
+  }
+  return Object.keys(gesehen).map(Number).sort((a, b) => a - b).map((stufe) => {
+    const s = gesehen[stufe], r = geloest[stufe] || 0;
+    // Wacklig erst ab zwei Versuchen und unter der Bestehensgrenze – ein Fehlversuch zählt nicht.
+    return { stufe, gesehen: s, geloest: r, wacklig: s >= 2 && r / s < BESTANDEN_AB };
+  });
 }
 
 // ---------------------------------------------------------------- Kurs
@@ -117,14 +180,19 @@ function lektionsAufgaben(lektion) {
 
 /** Gewicht wie im Kern: Schwaches, Falsches und lange nicht Gesehenes kommt öfter. */
 function gewicht(aufgabe) {
+  const jetzt = Date.now();
+  const schluessel = gruppe(aufgabe);
   let g = 1;
   const m = beherrschung(aufgabe.topicId);
   g += (1 - (m === null ? 0.5 : m)) * 3;
   const v = stand.verlauf[aufgabe.id];
-  if (!v) return g + 2;
+  // Noch nie geübt – aber vielleicht eine andere Variante desselben Lernziels.
+  if (!v) return (g + 2) * wiedervorlage(schluessel, jetzt);
   g += (1 - Math.min(Math.max(v.wertung, 0), 1)) * 3;
-  const tage = Math.max((Date.now() - v.datum) / 86400000, 0);
+  const tage = Math.max((jetzt - v.datum) / 86400000, 0);
   g += Math.min(tage, 14) / 7;
+  if (stand.ziele[schluessel]) return g * wiedervorlage(schluessel, jetzt);
+  // Ohne Wiedervorlage-Daten bleibt die alte, gröbere Regel als Rückfallebene.
   if (tage < 1 && v.wertung >= 1) g /= 3;
   return g;
 }
@@ -164,6 +232,45 @@ function schwaechen() {
     offen.push({ gruppe: k, aufgabe: juengste, wertung: v.wertung, datum: v.datum, varianten: varianten.length });
   }
   return offen.sort((a, b) => a.wertung - b.wertung || b.datum - a.datum);
+}
+
+/* ---------------------------------------------------------------- Einstufung
+   Adaptiv wie in der iPhone- und Windows-Fassung: Start auf Stufe 3, nach einer richtigen
+   Antwort steigt das Zielniveau, nach einer falschen sinkt es. Gewählt wird jeweils die noch
+   ungestellte Frage, die dem Ziel am nächsten liegt – bei Gleichstand ein neues Thema.
+   Bewertet wird gewichtet: Schwere Fragen zählen mehr. */
+const einstufungPool = () => ((kurs.placement && kurs.placement.pools) || {}).intermediate || [];
+
+function naechsteEinstufungsfrage(test) {
+  const gestellteThemen = new Set(test.antworten.map((x) => x.aufgabe.topicId));
+  let beste = -1;
+  test.rest.forEach((a, i) => {
+    if (beste < 0) { beste = i; return; }
+    const b = test.rest[beste];
+    const da = Math.abs(a.difficulty - test.ziel), db = Math.abs(b.difficulty - test.ziel);
+    if (da !== db) { if (da < db) beste = i; return; }
+    const neuA = !gestellteThemen.has(a.topicId), neuB = !gestellteThemen.has(b.topicId);
+    if (neuA !== neuB && neuA) beste = i;
+  });
+  return beste < 0 ? null : test.rest.splice(beste, 1)[0];
+}
+
+function einstufungProzent(test) {
+  const gesamt = test.antworten.reduce((x, y) => x + y.aufgabe.difficulty, 0);
+  if (!gesamt) return 0;
+  const erreicht = test.antworten.reduce((x, y) => x + y.aufgabe.difficulty * y.wertung, 0);
+  return Math.round(erreicht / gesamt * 100);
+}
+
+/** Drei Ausgänge statt bestanden/durchgefallen. */
+function einstufungStufe(prozent) {
+  const c = kurs.placement;
+  if (prozent >= (c.advancedThreshold || 101)) return "advanced";
+  return prozent >= c.passThreshold ? "intermediate" : "beginner";
+}
+
+function einstiegsModul(stufe) {
+  return kurs.modules.find((m) => m.tier === stufe) || kurs.modules[0];
 }
 
 // ---------------------------------------------------------------- Auswertung
@@ -403,7 +510,8 @@ const el = () => document.getElementById("app");
 
 function zeichne() {
   const s = { start: startSeite, themen: themenSeite, schwaechen: schwaechenSeite,
-              lektionen: lektionenSeite, sitzung: sitzungSeite }[ansicht.name] || startSeite;
+              lektionen: lektionenSeite, sitzung: sitzungSeite, einstieg: einstiegSeite,
+              einstufungErgebnis: einstufungErgebnisSeite }[ansicht.name] || startSeite;
   el().innerHTML = s();
   bindeEreignisse();
   window.scrollTo(0, 0);
@@ -412,6 +520,7 @@ function zeichne() {
 function gehe(name, daten) { ansicht = Object.assign({ name }, daten || {}); zeichne(); }
 
 function startSeite() {
+  if (!stand.start) return einstiegSeite();
   const punkte = score();
   const naechste = naechsteLektion();
   const offen = schwaechen();
@@ -448,6 +557,18 @@ function startSeite() {
       </div>
     </div>` : ""}
 
+    ${(() => {
+      const anzahl = faelligeZiele(Date.now()).length;
+      return anzahl ? `
+    <div class="karte">
+      <div class="marken"><span class="marke stark">Wiederholung</span></div>
+      <h2>${anzahl} ${anzahl === 1 ? "Lernziel ist" : "Lernziele sind"} heute fällig</h2>
+      <p class="leise">Was du kannst, wird in wachsenden Abständen abgefragt – erst am nächsten Tag,
+      dann nach 3, 7, 16 und 35 Tagen. So bleibt es sitzen, ohne dass du dasselbe täglich übst.</p>
+      <button class="knopf" data-start="wiederholung">Wiederholung starten</button>
+    </div>` : "";
+    })()}
+
     <div class="karte">
       <h2>Üben</h2>
       <p class="leise">${uebbareAufgaben().length} Aufgaben über ${kurs.topics.length} Themen – jedes sofort übbar.</p>
@@ -464,6 +585,77 @@ function startSeite() {
       <p class="mini">Der Fortschritt liegt nur auf diesem Gerät.</p>
     </div>
   `);
+}
+
+/** Erster Besuch: Vorkenntnisse ja oder nein – und bei ja eine kurze Einstufung. */
+function einstiegSeite() {
+  const anzahl = Math.min((kurs.placement || {}).questionsPerTest || 0, einstufungPool().length);
+  const c = kurs.placement || {};
+  return h(`
+    <h1>Willkommen bei JavaQuest</h1>
+    <p class="leise">Java lernen, Level für Level – jede Codezeile in Alltagssprache erklärt.
+    Eine Frage vorweg, damit du an der richtigen Stelle anfängst.</p>
+
+    <div class="karte">
+      <h2>Ich habe 0 Erfahrung</h2>
+      <p class="leise">Kein Problem. Du startest mit dem Grundkurs: kurze Theorie, jede Codezeile
+      erklärt, sehr einfache Aufgaben.</p>
+      <button class="knopf" data-einstieg="anfaenger">Mit dem Grundkurs starten</button>
+    </div>
+
+    ${anzahl ? `
+    <div class="karte">
+      <h2>Ich habe schon Vorkenntnisse</h2>
+      <p class="leise">Beantworte ${anzahl} kurze Fragen. Sie passen sich an: Nach einer richtigen
+      Antwort wird es schwerer, nach einer falschen leichter. Schwere Fragen zählen mehr.</p>
+      <p class="mini">Ab ${c.passThreshold} % überspringst du den Grundkurs und startest bei den Objekten,
+      ab ${c.advancedThreshold} % geht es direkt in den fortgeschrittenen Teil.</p>
+      <button class="knopf zweit" data-einstieg="einstufung">Einstufung starten</button>
+    </div>` : ""}
+
+    <p class="mini">Der Fortschritt bleibt auf diesem Gerät. Du kannst jederzeit jedes Thema frei üben.</p>
+  `);
+}
+
+function einstufungErgebnisSeite() {
+  const { prozent, stufe, modulId, antworten } = ansicht;
+  const modul = kurs.modules.find((m) => m.id === modulId);
+  const ueberschrift = { advanced: "Das saß – großer Sprung!", intermediate: "Stark eingestuft!",
+                         beginner: "Guter Startpunkt gefunden" }[stufe];
+  const erklaerung = {
+    advanced: `Auch die schweren Fragen saßen. Du startest direkt in „${modul.title}“ – alles davor wird dir angerechnet.`,
+    intermediate: `Du startest direkt in „${modul.title}“. Die Lektionen davor werden dir angerechnet.`,
+    beginner: `Für den Einstieg bei den Objekten reicht es noch nicht ganz. Du startest mit „${modul.title}“ – dort ist jede Codezeile erklärt.`,
+  }[stufe];
+
+  let html = h(`
+    <div class="score">
+      <div class="zahl">${prozent} %</div>
+      <div>Bestanden ab ${kurs.placement.passThreshold} %</div>
+      <div class="balken"><i style="width:${prozent}%"></i></div>
+    </div>
+    <div class="karte">
+      <h2>${ueberschrift}</h2>
+      <p class="leise">${sicher(erklaerung)}</p>
+    </div>
+    <div class="karte"><h3>Deine Antworten</h3>`);
+  antworten.forEach((x, i) => {
+    html += `<div class="erklaerzeile">
+      <strong>${x.richtig ? "✓" : "✗"} Frage ${i + 1} · Niveau ${x.aufgabe.difficulty}/5</strong>
+      <div class="mini">${sicher(x.aufgabe.prompt)}</div>
+      <div class="mini">${x.richtig ? "richtig" : `richtig wäre: ${sicher(musterAntwortText(x.aufgabe))}`}</div>
+    </div>`;
+  });
+  html += `</div><div class="karte"><button class="knopf" data-seite="start">Loslegen</button></div>`;
+  return html;
+}
+
+/** Die Musterlösung als kurzer Text – für die Nachbesprechung der Einstufung. */
+function musterAntwortText(a) {
+  if (a.type === "singleChoice") return a.choices[a.correctIndex];
+  if (a.type === "predictOutput") return a.expectedOutput;
+  if (a.type === "fillBlank") return a.blanks.map((l, i) => `Lücke ${i + 1}: ${l.accepted[0]}`).join(" · ");
+  return "siehe Musterlösung";
 }
 
 function lektionenSeite() {
@@ -497,9 +689,16 @@ function themenSeite() {
     if (!anzahl) return;
     const m = beherrschung(t.id);
     const aktiv = gewaehlt.includes(t.id);
+    const st = stufen(t.id);
+    // Je Stufe getrennt: Ein Thema kann unten sitzen und oben wackeln.
+    const leiste = st.length ? `<span class="stufen">${st.map((x) =>
+      `<span class="stufe ${x.wacklig ? "wacklig" : ""}" title="Stufe ${x.stufe}: ${x.geloest} von ${x.gesehen} richtig">${x.stufe}<i>${x.geloest}/${x.gesehen}</i></span>`).join("")}</span>` : "";
+    const wacklig = st.filter((x) => x.wacklig);
     html += `<button class="kachel ${aktiv ? "aktiv" : ""}" data-thema="${t.id}">
       <strong>${sicher(t.title)}</strong>
       <span class="mini">${anzahl} Aufgaben${m === null ? "" : ` · ${Math.round(m * 100)} %`}</span>
+      ${leiste}
+      ${wacklig.length ? `<span class="mini warn">Es hakt ab Stufe ${wacklig[0].stufe} – die leichteren sitzen.</span>` : ""}
     </button>`;
   });
   html += `</div><div class="karte"><button class="knopf" data-start="themen">${gewaehlt.length ? `${gewaehlt.length} Thema/Themen üben` : "Gemischt üben"}</button></div>`;
@@ -539,6 +738,10 @@ function starteRunde(art, themen) {
     const gruppen = new Set(schwaechen().map((s) => s.gruppe));
     topf = uebbareAufgaben().filter((a) => gruppen.has(gruppe(a)));
     titel = "Meine Schwächen";
+  } else if (art === "wiederholung") {
+    const gruppen = new Set(faelligeZiele(Date.now()));
+    topf = uebbareAufgaben().filter((a) => gruppen.has(gruppe(a)));
+    titel = "Wiederholung";
   } else if (art === "themen" && themen && themen.length) {
     topf = uebbareAufgaben().filter((a) => themen.includes(a.topicId));
     titel = "Üben: " + themen.map((t) => (thema(t) || {}).title).filter(Boolean).join(", ");
@@ -609,8 +812,12 @@ function aufgabenSeite() {
   return h(`
     <div class="kopf"><button class="zurueck" data-abbruch="1">✕</button>
       <span class="titel">${sicher(sitzung.titel)}</span>
-      <span class="mini">${sitzung.index + 1}/${sitzung.aufgaben.length}</span></div>
-    <div class="balken" style="margin-bottom:14px"><i style="width:${(sitzung.index / sitzung.aufgaben.length) * 100}%"></i></div>
+      <span class="mini">${sitzung.einstufung
+        ? `Frage ${sitzung.einstufung.antworten.length + 1} von ${sitzung.einstufung.anzahl}`
+        : `${sitzung.index + 1}/${sitzung.aufgaben.length}`}</span></div>
+    <div class="balken" style="margin-bottom:14px"><i style="width:${sitzung.einstufung
+      ? (sitzung.einstufung.antworten.length / sitzung.einstufung.anzahl) * 100
+      : (sitzung.index / sitzung.aufgaben.length) * 100}%"></i></div>
 
     <div class="karte">
       <div class="marken">
@@ -631,7 +838,9 @@ function aufgabenSeite() {
     ${rueckmeldung(a, fertig)}
 
     <div class="knopf-reihe">
-      ${fertig
+      ${sitzung.einstufung
+        ? `<button class="knopf" data-pruefen="1">${sitzung.einstufung.antworten.length + 1 === sitzung.einstufung.anzahl ? "Antwort abgeben & auswerten" : "Antwort abgeben"}</button>`
+        : fertig
         ? `<button class="knopf" data-weiter="1">${sitzung.index + 1 < sitzung.aufgaben.length ? "Weiter" : "Zur Auswertung"}</button>`
         : `${sitzung.ergebnis ? `<button class="knopf zweit" data-aufdecken="1">Lösung zeigen</button>` : ""}
            <button class="knopf" data-pruefen="1">${sitzung.ergebnis ? "Erneut prüfen" : "Prüfen"}</button>`}
@@ -641,6 +850,8 @@ function aufgabenSeite() {
 
 function rueckmeldung(a, fertig) {
   const e = sitzung.ergebnis;
+  // In der Einstufung gibt es zwischendurch keine Rückmeldung – die Auswertung kommt am Ende.
+  if (sitzung.einstufung) return "";
   if (!e && !sitzung.aufgedeckt) return "";
   const richtig = e && e.richtig;
   const klasse = richtig ? "gut" : (sitzung.aufgedeckt ? "auf" : "schlecht");
@@ -729,8 +940,63 @@ function pruefen() {
   sitzung.entwurf = antwort;
   sitzung.versuche += 1;
   sitzung.ergebnis = auswerten(a, antwort);
+  if (sitzung.einstufung) return einstufungAntwortAbgeben(a, sitzung.ergebnis);
   if (sitzung.ergebnis.richtig) abschliessen(sitzung.versuche === 1 ? 1 : 0.5);
   zeichne();
+}
+
+/** Eine Einstufungsantwort: keine Rückmeldung, Zielniveau anpassen, nächste Frage holen. */
+function einstufungAntwortAbgeben(aufgabe, ergebnis) {
+  const test = sitzung.einstufung;
+  test.antworten.push({ aufgabe, wertung: ergebnis.wertung, richtig: ergebnis.richtig });
+  test.ziel = Math.min(5, Math.max(1, aufgabe.difficulty + (ergebnis.richtig ? 1 : -1)));
+  const naechste = test.antworten.length < test.anzahl ? naechsteEinstufungsfrage(test) : null;
+  if (naechste) {
+    sitzung.aufgaben.push(naechste);
+    sitzung.index += 1;
+    sitzung.versuche = 0;
+    sitzung.ergebnis = null;
+    sitzung.entwurf = null;
+    zeichne();
+  } else {
+    einstufungAbschliessen();
+  }
+}
+
+/** Ergebnis festhalten und die übersprungenen Lektionen anrechnen. */
+function einstufungAbschliessen() {
+  const test = sitzung.einstufung;
+  const prozent = einstufungProzent(test);
+  const stufe = einstufungStufe(prozent);
+  const modul = einstiegsModul(stufe);
+  const quote = Math.max(prozent, kurs.placement.passThreshold) / 100;
+  if (stufe !== "beginner") {
+    for (const m of kurs.modules) {
+      if (m.id === modul.id) break;
+      for (const l of m.lessons) {
+        if (!stand.lektionen[l.id]) stand.lektionen[l.id] = { quote, bestanden: true, viaEinstufung: true };
+      }
+    }
+  }
+  stand.start = { fertig: true, stufe, prozent };
+  sichern();
+  gehe("einstufungErgebnis", { prozent, stufe, modulId: modul.id, antworten: test.antworten });
+}
+
+function starteEinstufung() {
+  const pool = einstufungPool();
+  if (!pool.length) { stand.start = { fertig: true, stufe: "beginner" }; sichern(); return gehe("start"); }
+  const test = {
+    rest: pool.slice(),
+    antworten: [],
+    ziel: kurs.placement.startDifficulty,
+    anzahl: Math.min(kurs.placement.questionsPerTest, pool.length),
+  };
+  const erste = naechsteEinstufungsfrage(test);
+  sitzung = { titel: "Einstufung", lektionId: null, theorie: [], seite: 0, aufgaben: [erste],
+              index: 0, versuche: 0, ergebnis: null, aufgedeckt: false, entwurf: null,
+              ergebnisse: [], einstufung: test };
+  gehe("sitzung");
 }
 
 function aufdecken() {
@@ -744,7 +1010,8 @@ function aufdecken() {
 function abschliessen(wertung) {
   const a = aktuelleAufgabe();
   sitzung.ergebnisse.push({ id: a.id, gewicht: a.difficulty, wertung, versuche: sitzung.versuche });
-  merkeAufgabe(a, wertung, sitzung.versuche);
+  // Einstufungsfragen gehören nicht zum Übungsstoff – sie dürfen die Wiedervorlage nicht verfälschen.
+  if (!sitzung.einstufung) merkeAufgabe(a, wertung, sitzung.versuche);
 }
 
 function weiter() {
@@ -767,6 +1034,12 @@ function bindeEreignisse() {
   klick("[data-aufdecken]", aufdecken);
   klick("[data-weiter]", weiter);
   klick("[data-abbruch]", () => gehe("start"));
+  klick("[data-einstieg]", (e) => {
+    if (e.currentTarget.dataset.einstieg === "einstufung") return starteEinstufung();
+    stand.start = { fertig: true, stufe: "beginner" };
+    sichern();
+    gehe("start");
+  });
   klick("[data-thema]", (e) => {
     const id = e.currentTarget.dataset.thema;
     const gewaehlt = ansicht.gewaehlt || [];

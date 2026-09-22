@@ -89,6 +89,26 @@ struct PlacementResultView: View {
     private var outcome: PlacementOutcome { test.outcome(in: course) }
     private var entryModule: CourseModule? { course.modules.first { $0.id == outcome.entryModuleId } }
 
+    /// Drei Ausgänge statt zwei: ganz vorn anfangen, bei den Objekten einsteigen oder weiter springen.
+    private func headline(for outcome: PlacementOutcome) -> String {
+        switch outcome.placedLevel {
+        case .advanced: "Das saß – großer Sprung!"
+        case .intermediate: "Stark eingestuft!"
+        case .beginner: "Guter Startpunkt gefunden"
+        }
+    }
+
+    private func explanation(for outcome: PlacementOutcome, entryModule: CourseModule) -> String {
+        switch outcome.placedLevel {
+        case .advanced:
+            "Auch die schweren Fragen saßen. Du startest direkt in „\(entryModule.title)“ – alles davor wird dir angerechnet."
+        case .intermediate:
+            "Du startest direkt in „\(entryModule.title)“. Die Lektionen davor werden dir angerechnet."
+        case .beginner:
+            "Für den Einstieg bei den Objekten reicht es noch nicht ganz. Du startest mit „\(entryModule.title)“ – dort ist jede Codezeile erklärt."
+        }
+    }
+
     var body: some View {
         let outcome = outcome
         VStack(spacing: 22) {
@@ -106,13 +126,11 @@ struct PlacementResultView: View {
             .frame(width: 190, height: 190)
 
             VStack(spacing: 8) {
-                Text(outcome.passed ? "Stark eingestuft!" : "Guter Startpunkt gefunden")
+                Text(headline(for: outcome))
                     .font(.largeTitle.weight(.bold))
                     .multilineTextAlignment(.center)
                 if let entryModule {
-                    Text(outcome.passed
-                         ? "Du startest direkt in „\(entryModule.title)“. Die Lektionen davor werden dir angerechnet."
-                         : "Für den Einstieg bei den Objekten reicht es noch nicht ganz. Du startest mit „\(entryModule.title)“ – dort ist jede Codezeile erklärt.")
+                    Text(explanation(for: outcome, entryModule: entryModule))
                         .font(.body)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)

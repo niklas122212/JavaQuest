@@ -3,12 +3,16 @@ package app.javaquest.data
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import app.javaquest.core.AttemptRecord
 import app.javaquest.core.Course
+import app.javaquest.core.GoalHistory
 import app.javaquest.core.ExperienceLevel
 import app.javaquest.core.KnowledgeAnalyzer
 import app.javaquest.core.KnowledgeReport
 import app.javaquest.core.LearningPath
 import app.javaquest.core.LearningTask
+import app.javaquest.core.LevelAnalyzer
+import app.javaquest.core.LevelPerformance
 import app.javaquest.core.Lesson
 import app.javaquest.core.LessonResult
 import app.javaquest.core.LessonState
@@ -18,6 +22,7 @@ import app.javaquest.core.MasterScore
 import app.javaquest.core.ModuleProgress
 import app.javaquest.core.PlacementTest
 import app.javaquest.core.PracticeBuilder
+import app.javaquest.core.SpacedRepetition
 import app.javaquest.core.TaskHistory
 import app.javaquest.core.TaskOutcome
 import app.javaquest.core.TopicStats
@@ -217,14 +222,42 @@ class ProgressStore(
             return history
         }
 
+    /**
+     * Wie jedes Lernziel über die Zeit lief – Grundlage der Wiedervorlage.
+     * Die Einstufung bleibt außen vor: Sie sagt nichts darüber, ob ein Lernziel sitzt.
+     */
+    val goalHistory: Map<String, GoalHistory>
+        get() = SpacedRepetition.goals(
+            data?.attempts.orEmpty()
+                .filter { it.context != AttemptContext.PLACEMENT.raw }
+                .map { AttemptRecord(it.taskId, it.credit, Instant.parse(it.date)) },
+            course,
+        )
+
+    /** Wie viele Lernziele heute zur Wiederholung anstehen. */
+    val dueGoalCount: Int get() = SpacedRepetition.due(goalHistory, clock.instant()).size
+
+    /** Wie ein Thema auf den einzelnen Schwierigkeitsstufen läuft. */
+    fun levels(topicId: String): List<LevelPerformance> = LevelAnalyzer.levels(course, taskHistory, topicId)
+
+    /** Die Stufen eines Themas, auf denen es hakt – Vorauswahl für „genau das üben“. */
+    fun weakDifficulties(topicId: String): Set<Difficulty> = LevelAnalyzer.weakDifficulties(course, taskHistory, topicId)
+
     /** Wie viele Aufgaben schon im Endlos-Training gelöst oder aufgelöst wurden. */
     val trainingTaskCount: Int get() = data?.attempts?.count { it.context == AttemptContext.TRAINING.raw } ?: 0
 
-    fun trainingTasks(): List<LearningTask> = TrainingBuilder.round(trainingPool, topicStats, taskHistory, clock.instant())
+    fun trainingTasks(): List<LearningTask> =
+        TrainingBuilder.round(trainingPool, topicStats, taskHistory, clock.instant(), goals = goalHistory)
+
+    /** Eine Runde nur über die Lernziele, deren Wiederholung heute ansteht. */
+    fun reviewTasks(count: Int = TrainingBuilder.ROUND_SIZE): List<LearningTask> =
+        TrainingBuilder.reviewRound(course, taskHistory, goalHistory, topicStats, count, clock.instant())
 
     /** Selbst zusammengestellte Runde: gewählte Themen und Niveaus, unabhängig vom Lernpfad. */
     fun freeTrainingTasks(topicIds: Set<String>, difficulties: Set<Difficulty>, count: Int): List<LearningTask> =
-        TrainingBuilder.freeRound(course, topicIds, difficulties, count, topicStats, taskHistory, clock.instant())
+        TrainingBuilder.freeRound(
+            course, topicIds, difficulties, count, topicStats, taskHistory, clock.instant(), goals = goalHistory,
+        )
 
     /** Aufgaben einer Lektion mit passender Variante je Lernziel. */
     fun lessonTasks(lesson: Lesson): List<LearningTask> = VariantSelector.lessonTasks(lesson, course, taskHistory)

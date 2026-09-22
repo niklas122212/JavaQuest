@@ -246,7 +246,7 @@ private fun ProfileRow(label: String, value: String) {
 fun AppShell(state: AppState) {
     val store = state.store
     if (store.needsOnboarding) {
-        OnboardingScreen(store) { lessonId -> state.section = Section.DASHBOARD; lessonId?.let(state::startLesson) }
+        OnboardingScreen(state) { lessonId -> state.section = Section.DASHBOARD; lessonId?.let(state::startLesson) }
         return
     }
     val surfaces = LocalSurfaces.current

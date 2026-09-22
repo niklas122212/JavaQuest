@@ -188,11 +188,13 @@ data class PlacementOutcome(
 
 /**
  * Adaptiver Einstufungstest (hier: eine Frage mit sechs Lücken). Score = Σ(Niveau × Teilpunkte) / Σ(Niveau).
- * Ab `passThreshold` (65 %) Einstieg im Modul der Stufe, sonst eine Stufe darunter.
+ * Daraus folgt eine von drei Einstufungen: unter `passThreshold` (65 %) der Grundkurs, darüber der
+ * Einstieg bei den Objekten, ab `advancedThreshold` (85 %) der Sprung in den fortgeschrittenen Teil.
  */
 class PlacementTest private constructor(course: Course, val level: ExperienceLevel) {
     val questionCount: Int = minOf(course.placement.questionsPerTest, course.placement.pool(level).size)
     val passThreshold: Int = course.placement.passThreshold
+    val advancedThreshold: Int = course.placement.advancedThreshold
     val answers = mutableListOf<PlacementAnswer>()
     var targetDifficulty: Int = Difficulty.clamped(course.placement.startDifficulty).level
         private set
@@ -222,6 +224,14 @@ class PlacementTest private constructor(course: Course, val level: ExperienceLev
 
     val passed: Boolean get() = scorePercent >= passThreshold
 
+    /** Die Stufe, in die das Ergebnis führt – drei Möglichkeiten statt bestanden/durchgefallen. */
+    val placedLevel: ExperienceLevel
+        get() = when {
+            scorePercent >= advancedThreshold -> ExperienceLevel.ADVANCED
+            scorePercent >= passThreshold -> level
+            else -> level.fallback
+        }
+
     fun submit(result: EvaluationResult) {
         val task = currentTask ?: return
         answers += PlacementAnswer(task, result)
@@ -242,7 +252,7 @@ class PlacementTest private constructor(course: Course, val level: ExperienceLev
 
     fun outcome(course: Course): PlacementOutcome {
         val score = scorePercent
-        val placedLevel = if (score >= passThreshold) level else level.fallback
+        val placedLevel = placedLevel
         val entryModule = course.entryModule(placedLevel) ?: course.modules.first()
         val entryIndex = course.modules.indexOfFirst { it.id == entryModule.id }.coerceAtLeast(0)
         val skipped = course.modules.take(entryIndex).flatMap { it.lessons }.map { it.id }
@@ -482,11 +492,128 @@ object PracticeBuilder {
 data class TaskHistory(val attempts: Int, val lastCredit: Double, val lastDate: Instant)
 
 /**
+ * Ein einzelner Eintrag aus dem Aufgaben-Protokoll – die Rohform, aus der die Wiedervorlage entsteht.
+ *
+ * Bewusst nur diese drei Angaben: welche Aufgabe, wie gut sie lief und wann. Damit lässt sich alles
+ * Weitere aus dem berechnen, was ohnehin gespeichert wird – ohne zusätzliches Feld und damit ohne
+ * Wanderung alter Nutzerdaten.
+ */
+data class AttemptRecord(val taskId: String, val credit: Double, val date: Instant)
+
+/** Wie ein Lernziel über die Zeit lief – Grundlage für „wann ist es wieder dran?“. */
+data class GoalHistory(
+    val attempts: Int,
+    /** Wie oft es zuletzt hintereinander auf Anhieb saß. 0 heißt: beim letzten Mal hat es gehakt. */
+    val streak: Int,
+    val lastCredit: Double,
+    val lastDate: Instant,
+) {
+    /** Das Fach, in dem das Lernziel liegt – je höher, desto länger die Pause. */
+    val box: Int get() = minOf(streak, SpacedRepetition.INTERVAL_DAYS.lastIndex)
+
+    val intervalDays: Double get() = SpacedRepetition.INTERVAL_DAYS[box]
+
+    val dueDate: Instant get() = lastDate.plusMillis((intervalDays * 86_400_000).toLong())
+
+    fun isDue(now: Instant): Boolean = !now.isBefore(dueDate)
+}
+
+/**
+ * Verteiltes Wiederholen nach dem Karteikasten-Prinzip.
+ *
+ * Was dreimal hintereinander saß, muss nicht morgen schon wieder abgefragt werden – aber in einer
+ * Woche, bevor es verblasst. Jedes Lernziel wandert bei einem Treffer ein Fach weiter und fällt bei
+ * einem Fehler sofort ganz nach vorn zurück.
+ *
+ * Fach 0: hat zuletzt gehakt, kommt sofort wieder dran. Fächer 1 bis 5: ein Tag bis fünf Wochen Pause.
+ */
+object SpacedRepetition {
+    /** Pause je Fach, in Tagen – dieselben Werte wie in der iPhone- und Mac-Fassung. */
+    val INTERVAL_DAYS = listOf(0.0, 1.0, 3.0, 7.0, 16.0, 35.0)
+
+    /** Wie stark ein noch nicht fälliges Lernziel gedämpft wird. */
+    const val MINIMUM_FACTOR = 0.25
+
+    /** Baut aus dem Aufgaben-Protokoll die Historie je Lernziel (nicht je Aufgabe). */
+    fun goals(attempts: List<AttemptRecord>, course: Course): Map<String, GoalHistory> {
+        val groupKeys = course.practiceableTasks.associate { it.id to it.groupKey }
+        val byGoal = attempts.mapNotNull { a -> groupKeys[a.taskId]?.let { it to a } }
+            .groupBy({ it.first }, { it.second })
+        return byGoal.mapValues { (_, list) ->
+            val sorted = list.sortedBy { it.date }
+            val last = sorted.last()
+            var streak = 0
+            for (attempt in sorted.reversed()) {
+                if (attempt.credit < 1) break
+                streak++
+            }
+            GoalHistory(sorted.size, streak, last.credit, last.date)
+        }
+    }
+
+    /**
+     * Der Faktor, mit dem das Gewicht einer Aufgabe im Training multipliziert wird.
+     *
+     * Was zuletzt gehakt hat (Fach 0), bleibt unangetastet – darum kümmern sich die anderen Regeln.
+     * Was fällig ist, wird bis auf das Doppelte angehoben; was noch Pause hat, sinkt auf bis zu
+     * ein Viertel und steigt mit näher rückendem Termin wieder an.
+     */
+    fun factor(goal: GoalHistory?, now: Instant): Double {
+        if (goal == null || goal.streak <= 0) return 1.0
+        val interval = goal.intervalDays
+        if (interval <= 0) return 1.0
+        val elapsed = maxOf(Duration.between(goal.lastDate, now).toMillis() / 86_400_000.0, 0.0)
+        if (elapsed >= interval) return 1.0 + minOf((elapsed - interval) / interval, 1.0)
+        return MINIMUM_FACTOR + (1 - MINIMUM_FACTOR) * (elapsed / interval)
+    }
+
+    /** Die Lernziele, die heute zur Wiederholung anstehen. */
+    fun due(goals: Map<String, GoalHistory>, now: Instant): List<String> =
+        goals.filterValues { it.isDue(now) }.keys.toList()
+}
+
+/**
+ * Wie ein Thema auf einer einzelnen Schwierigkeitsstufe läuft.
+ *
+ * „Vererbung wackelt“ hilft nicht weiter, wenn die leichten Aufgaben sitzen und erst Stufe 4
+ * danebengeht. Deshalb wird je Stufe getrennt gezählt.
+ */
+data class LevelPerformance(val difficulty: Difficulty, val seen: Int, val solved: Int) {
+    val accuracy: Double get() = if (seen > 0) solved.toDouble() / seen else 0.0
+
+    /** Wacklig erst ab zwei Versuchen und unter der Bestehensgrenze – ein Fehlversuch zählt nicht. */
+    val isWeak: Boolean get() = seen >= 2 && accuracy < LessonSession.PASS_THRESHOLD
+
+    val summary: String get() = "Stufe ${difficulty.level}: $solved von $seen"
+}
+
+/** Findet die Stufen, auf denen ein Thema hakt. */
+object LevelAnalyzer {
+    fun levels(course: Course, history: Map<String, TaskHistory>, topicId: String): List<LevelPerformance> {
+        val seen = mutableMapOf<Difficulty, Int>()
+        val solved = mutableMapOf<Difficulty, Int>()
+        for (task in course.tasksForTopic(topicId)) {
+            val past = history[task.id] ?: continue
+            seen[task.difficulty] = (seen[task.difficulty] ?: 0) + 1
+            if (past.lastCredit >= 1) solved[task.difficulty] = (solved[task.difficulty] ?: 0) + 1
+        }
+        return seen.keys.sortedBy { it.level }
+            .map { LevelPerformance(it, seen[it] ?: 0, solved[it] ?: 0) }
+    }
+
+    /** Nur die Stufen, auf denen es hakt – als Vorauswahl für „genau das üben“. */
+    fun weakDifficulties(course: Course, history: Map<String, TaskHistory>, topicId: String): Set<Difficulty> =
+        levels(course, history, topicId).filter { it.isWeak }.map { it.difficulty }.toSet()
+}
+
+/**
  * Endlos-Training: gemischte Runden über alle abgeschlossenen Lektionen.
  *
  * Jede Aufgabe bekommt ein Gewicht – je höher, desto eher kommt sie dran:
  * schwaches Thema bis zu +3, noch nie geübt +2, zuletzt nicht (voll) gelöst bis zu +3,
- * lange nicht gesehen bis zu +2 (eine Woche = +1); heute schon fehlerfrei gelöst: nur ein Drittel.
+ * lange nicht gesehen bis zu +2 (eine Woche = +1).
+ * Zum Schluss kommt die Wiedervorlage dazu (siehe [SpacedRepetition]): Was gerade erst saß, sinkt
+ * auf bis zu ein Viertel; was wieder fällig ist, steigt auf bis zum Doppelten.
  * Gezogen wird ohne Zurücklegen; die Runde steigt im Niveau an.
  */
 object TrainingBuilder {
@@ -522,21 +649,52 @@ object TrainingBuilder {
         history: Map<String, TaskHistory> = emptyMap(),
         now: Instant = Instant.now(),
         random: Random = Random.Default,
+        goals: Map<String, GoalHistory> = emptyMap(),
     ): List<LearningTask> = round(
-        freePool(course, topicIds, difficulties), topicStats, history, now, count, random,
+        freePool(course, topicIds, difficulties), topicStats, history, now, count, random, goals,
     )
 
-    fun weight(task: LearningTask, topicStats: Map<String, TopicStats>, history: Map<String, TaskHistory>, now: Instant): Double {
+    fun weight(
+        task: LearningTask,
+        topicStats: Map<String, TopicStats>,
+        history: Map<String, TaskHistory>,
+        now: Instant,
+        goals: Map<String, GoalHistory> = emptyMap(),
+    ): Double {
         var weight = 1.0
         val mastery = topicStats[task.topicId]?.takeIf { it.attempts > 0 }?.mastery ?: 0.5
         weight += (1 - mastery) * 3
-        val past = history[task.id] ?: return weight + 2
+        val goal = goals[task.groupKey]
+        // Noch nie geübt – aber vielleicht eine andere Variante desselben Lernziels.
+        val past = history[task.id] ?: return (weight + 2) * SpacedRepetition.factor(goal, now)
         weight += (1 - past.lastCredit.coerceIn(0.0, 1.0)) * 3
         val days = maxOf(Duration.between(past.lastDate, now).toMillis() / 86_400_000.0, 0.0)
         weight += minOf(days, 14.0) / 7
+        if (goal != null) return weight * SpacedRepetition.factor(goal, now)
+        // Ohne Wiedervorlage-Daten bleibt die alte, gröbere Regel als Rückfallebene.
         if (days < 1 && past.lastCredit >= 1) weight /= 3
         return weight
     }
+
+    /**
+     * Aufgabentopf für die Wiederholung: nur Lernziele, deren Pause abgelaufen ist.
+     * Alles mit Schonfrist bleibt draußen – genau das ist der Sinn der Wiedervorlage.
+     */
+    fun reviewPool(course: Course, goals: Map<String, GoalHistory>, now: Instant = Instant.now()): List<LearningTask> {
+        val faellig = SpacedRepetition.due(goals, now).toSet()
+        return course.practiceableTasks.filter { it.groupKey in faellig }
+    }
+
+    /** Eine Runde Wiederholung: was heute wieder dran ist. */
+    fun reviewRound(
+        course: Course,
+        history: Map<String, TaskHistory>,
+        goals: Map<String, GoalHistory>,
+        topicStats: Map<String, TopicStats> = emptyMap(),
+        count: Int = ROUND_SIZE,
+        now: Instant = Instant.now(),
+        random: Random = Random.Default,
+    ): List<LearningTask> = round(reviewPool(course, goals, now), topicStats, history, now, count, random, goals)
 
     /** Eine Runde mit bis zu [size] verschiedenen Aufgaben. Gleicher Zufall → gleiche Runde (für Tests). */
     fun round(
@@ -546,11 +704,12 @@ object TrainingBuilder {
         now: Instant = Instant.now(),
         size: Int = ROUND_SIZE,
         random: Random = Random.Default,
+        goals: Map<String, GoalHistory> = emptyMap(),
     ): List<LearningTask> {
         // Je Lernziel tritt nur eine Variante an – so kommt dieselbe Frage nicht zweimal
         // in einer Runde, und nach einem Fehler kommt beim nächsten Mal eine andere.
         val candidates = VariantSelector.collapse(pool, history)
-            .map { it to weight(it, topicStats, history, now) }.toMutableList()
+            .map { it to weight(it, topicStats, history, now, goals) }.toMutableList()
         val chosen = mutableListOf<LearningTask>()
         while (chosen.size < size && candidates.isNotEmpty()) {
             var ticket = random.nextDouble() * candidates.sumOf { it.second }

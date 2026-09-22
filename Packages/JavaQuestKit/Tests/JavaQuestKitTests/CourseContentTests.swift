@@ -87,11 +87,21 @@ struct CourseContentTests {
         #expect(Set(positions).count >= 3)
     }
 
-    @Test("Einstufung: eine Frage nur für „Vorkenntnisse“")
+    @Test("Einstufung: mehrere Fragen, auf jeder Stufe eine Auswahl")
     func placementPool() {
-        #expect(course.placement.pool(for: .intermediate).count == 1)
-        #expect(course.placement.questionsPerTest == 1)
+        let pool = course.placement.pool(for: .intermediate)
+        #expect(course.placement.questionsPerTest == 5)
         #expect(course.placement.passThreshold == 65)
+        #expect(course.placement.advancedThreshold == 85)
+        // Der Test ist adaptiv: Er braucht auf jeder Stufe etwas zur Auswahl,
+        // sonst kann er nach einer richtigen Antwort nicht schwerer werden.
+        for level in Difficulty.allCases {
+            let count = pool.filter { $0.difficulty == level }.count
+            #expect(count >= 2, "Stufe \(level.rawValue) hat nur \(count) Einstufungsfrage(n)")
+        }
+        // Unterschiedliche Themen, damit nicht eine Wissenslücke das Ergebnis kippt.
+        #expect(Set(pool.map(\.topicId)).count >= 8)
+        #expect(pool.count >= course.placement.questionsPerTest)
     }
 
     @Test("Alle Themen werden in einer Lektion behandelt")

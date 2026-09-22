@@ -78,6 +78,13 @@ final class LessonFlowModel {
                 theory: [],
                 tasks: store.weakSpotTasks(count: count)
             )
+        case .review(let count):
+            session = LessonSession(
+                mode: .free(topicIds: []),
+                title: "Wiederholung",
+                theory: [],
+                tasks: store.reviewTasks(count: count)
+            )
         case .free(let topicIds, let difficulties, let count):
             let topics = Set(topicIds)
             let levels = Set(difficulties.compactMap(Difficulty.init(rawValue:)))

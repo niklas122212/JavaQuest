@@ -45398,10 +45398,768 @@
   ],
   "placement": {
     "passThreshold": 65,
-    "questionsPerTest": 1,
+    "advancedThreshold": 85,
+    "questionsPerTest": 5,
     "startDifficulty": 3,
     "pools": {
       "intermediate": [
+        {
+          "id": "p-1a",
+          "type": "singleChoice",
+          "topicId": "variables",
+          "difficulty": 1,
+          "prompt": "Welcher Datentyp speichert true oder false?",
+          "explanation": "boolean ist der Typ für Ja-Nein-Werte. Er kennt genau zwei Möglichkeiten: true und false.",
+          "choices": [
+            "String",
+            "char",
+            "boolean",
+            "int"
+          ],
+          "correctIndex": 2,
+          "whyWrong": [
+            "String ist für Text. „true“ in Anführungszeichen wäre Text, mit dem if nichts anfangen kann.",
+            "char speichert genau ein Zeichen, etwa 'A'.",
+            null,
+            "int speichert ganze Zahlen. Anders als in manchen Sprachen gilt in Java keine Zahl als „wahr“."
+          ]
+        },
+        {
+          "id": "p-1b",
+          "type": "singleChoice",
+          "topicId": "syntax",
+          "difficulty": 1,
+          "prompt": "Welche Zeile gibt in Java Text auf dem Bildschirm aus?",
+          "explanation": "System.out.println ist der Weg in Java: System.out ist der Bildschirm, println schreibt darauf und beendet die Zeile.",
+          "choices": [
+            "console.log(\"Hi\");",
+            "echo \"Hi\";",
+            "System.out.println(\"Hi\");",
+            "print(\"Hi\");"
+          ],
+          "correctIndex": 2,
+          "whyWrong": [
+            "console.log gehört zu JavaScript.",
+            "echo stammt aus der Kommandozeile und aus PHP.",
+            null,
+            "print allein ohne System.out davor kennt Java nicht – so schreibt man es in Python."
+          ]
+        },
+        {
+          "id": "p-1c",
+          "type": "predictOutput",
+          "topicId": "operators",
+          "difficulty": 1,
+          "prompt": "Was gibt diese Zeile aus?",
+          "code": {
+            "lines": [
+              {
+                "code": "System.out.println(3 + 4 * 2);",
+                "explain": "Schreibt das Ergebnis der Rechnung 3 + 4 * 2 auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+                "terms": [
+                  "System.out",
+                  "println()",
+                  "+",
+                  "*"
+                ]
+              }
+            ]
+          },
+          "explanation": "Punkt vor Strich gilt auch in Java: Erst 4 * 2 = 8, dann 3 + 8 = 11.",
+          "expectedOutput": "11"
+        },
+        {
+          "id": "p-2a",
+          "type": "predictOutput",
+          "topicId": "loops",
+          "difficulty": 2,
+          "prompt": "Was gibt die Schleife aus?",
+          "code": {
+            "lines": [
+              {
+                "code": "for (int i = 0; i < 3; i++) {",
+                "explain": "Eine Schleife: Das Programm wiederholt die Zeilen im Block mehrmals. Der Zähler „i“ startet bei 0. Vor jeder Runde fragt das Programm „i < 3?“ – nur bei „ja“ gibt es eine weitere Runde. Nach jeder Runde wird „i“ um 1 erhöht.",
+                "terms": [
+                  "for",
+                  "int",
+                  "=",
+                  "<",
+                  "++"
+                ]
+              },
+              {
+                "code": "    System.out.print(i);",
+                "explain": "Schreibt den Inhalt der Box „i“ auf den Bildschirm – aber ohne neue Zeile: Die nächste Ausgabe kommt direkt dahinter.",
+                "terms": [
+                  "System.out",
+                  "print()"
+                ]
+              },
+              {
+                "code": "}",
+                "explain": "Hier endet eine Runde der Schleife. Das Programm springt wieder nach oben und prüft, ob noch eine Runde kommt."
+              },
+              {
+                "code": "System.out.println();",
+                "explain": "Schreibt eine leere Zeile auf den Bildschirm.",
+                "terms": [
+                  "System.out",
+                  "println()"
+                ]
+              }
+            ]
+          },
+          "explanation": "i nimmt die Werte 0, 1 und 2 an – bei 3 ist die Bedingung nicht mehr erfüllt. print bleibt in derselben Zeile, deshalb stehen die Ziffern nebeneinander.",
+          "expectedOutput": "012"
+        },
+        {
+          "id": "p-2b",
+          "type": "singleChoice",
+          "topicId": "strings",
+          "difficulty": 2,
+          "prompt": "Was liefert \"Java\".length()?",
+          "explanation": "length() zählt die Zeichen: J, a, v, a – also 4.",
+          "choices": [
+            "4",
+            "3",
+            "5",
+            "Nichts – String hat keine Methode length()"
+          ],
+          "correctIndex": 0,
+          "whyWrong": [
+            null,
+            "3 wäre die Zahl der Buchstaben ohne das letzte a. Gezählt wird jedes Zeichen.",
+            "5 käme heraus, wenn man die Anführungszeichen mitzählte. Die gehören nicht zum Text.",
+            "Die Methode gibt es – bei Arrays heißt es dagegen length ohne Klammern."
+          ]
+        },
+        {
+          "id": "p-2c",
+          "type": "predictOutput",
+          "topicId": "conditionals",
+          "difficulty": 2,
+          "prompt": "Was wird ausgegeben?",
+          "code": {
+            "lines": [
+              {
+                "code": "int x = 5;",
+                "explain": "Hier erstellen wir eine Box namens „x“ und legen die Zahl 5 hinein. Das Etikett int heißt: In diese Box passen nur ganze Zahlen.",
+                "terms": [
+                  "int",
+                  "="
+                ]
+              },
+              {
+                "code": "if (x > 3) {",
+                "explain": "Hier stellt das Programm eine Frage: Stimmt „x > 3“? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
+                "terms": [
+                  "if",
+                  ">"
+                ]
+              },
+              {
+                "code": "    System.out.println(\"gross\");",
+                "explain": "Schreibt den Text „gross“ auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+                "terms": [
+                  "System.out",
+                  "println()"
+                ]
+              },
+              {
+                "code": "} else {",
+                "explain": "Sonst (else): Wenn alle Fragen davor mit „nein“ beantwortet wurden, läuft stattdessen dieser Block.",
+                "terms": [
+                  "else"
+                ]
+              },
+              {
+                "code": "    System.out.println(\"klein\");",
+                "explain": "Schreibt den Text „klein“ auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+                "terms": [
+                  "System.out",
+                  "println()"
+                ]
+              },
+              {
+                "code": "}",
+                "explain": "Hier endet der Sonst-Block (else)."
+              }
+            ]
+          },
+          "explanation": "5 > 3 ist wahr, also läuft der erste Block. Der else-Zweig wird übersprungen.",
+          "expectedOutput": "gross"
+        },
+        {
+          "id": "p-3b",
+          "type": "predictOutput",
+          "topicId": "arrays",
+          "difficulty": 3,
+          "prompt": "Was gibt das Programm aus?",
+          "code": {
+            "lines": [
+              {
+                "code": "int[] zahlen = {3, 1, 4};",
+                "explain": "Hier erstellen wir einen Eierkarton namens „zahlen“ mit 3 nummerierten Fächern und legen 3, 1 und 4 hinein. Die Fächer sind ab 0 nummeriert: In Fach 0 liegt 3.",
+                "terms": [
+                  "int",
+                  "[]",
+                  "="
+                ]
+              },
+              {
+                "code": "int summe = 0;",
+                "explain": "Hier erstellen wir eine Box namens „summe“ und legen die Zahl 0 hinein. Das Etikett int heißt: In diese Box passen nur ganze Zahlen.",
+                "terms": [
+                  "int",
+                  "="
+                ]
+              },
+              {
+                "code": "for (int w : zahlen) {",
+                "explain": "Eine Schleife, die jedes Element aus „zahlen“ der Reihe nach durchgeht – wie beim Durchblättern eines Kartenstapels. In jeder Runde liegt das aktuelle Element in der Box „w“.",
+                "terms": [
+                  "for",
+                  "int"
+                ]
+              },
+              {
+                "code": "    summe += w;",
+                "explain": "Legt w zum Inhalt der Box „summe“ dazu – sie wird um w größer. (Kurzform für summe = summe + w.)",
+                "terms": [
+                  "+="
+                ]
+              },
+              {
+                "code": "}",
+                "explain": "Hier endet eine Runde der Schleife. Das Programm springt wieder nach oben und prüft, ob noch eine Runde kommt."
+              },
+              {
+                "code": "System.out.println(summe);",
+                "explain": "Schreibt den Inhalt der Box „summe“ auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+                "terms": [
+                  "System.out",
+                  "println()"
+                ]
+              }
+            ]
+          },
+          "explanation": "Die for-each-Schleife holt nacheinander jeden Wert: 3 + 1 + 4 = 8.",
+          "expectedOutput": "8"
+        },
+        {
+          "id": "p-3c",
+          "type": "singleChoice",
+          "topicId": "oop",
+          "difficulty": 3,
+          "prompt": "Was bewirkt new Auto();?",
+          "explanation": "new ruft den Konstruktor auf und legt ein neues Objekt im Speicher an. Die Klasse selbst steht schon vorher in der Datei – sie ist der Bauplan.",
+          "choices": [
+            "Es ruft eine Methode namens Auto auf",
+            "Es erzeugt ein neues Objekt der Klasse Auto",
+            "Es legt die Klasse Auto an",
+            "Es löscht ein vorhandenes Auto"
+          ],
+          "correctIndex": 1,
+          "whyWrong": [
+            "Der Konstruktor heißt zwar wie die Klasse, ist aber keine gewöhnliche Methode – er läuft nur zusammen mit new.",
+            null,
+            "Die Klasse entsteht beim Schreiben des Quelltexts, nicht zur Laufzeit.",
+            "Gelöscht wird in Java nichts von Hand; darum kümmert sich die Speicherbereinigung."
+          ]
+        },
+        {
+          "id": "p-3d",
+          "type": "predictOutput",
+          "topicId": "methods",
+          "difficulty": 3,
+          "prompt": "Was gibt main aus?",
+          "code": {
+            "lines": [
+              {
+                "code": "static int quadrat(int n) {",
+                "explain": "Hier beginnt die Methode „quadrat“ – ein Rezept mit Namen. Als Zutaten bekommt sie n (eine ganze Zahl) und liefert am Ende eine ganze Zahl als Ergebnis zurück. static: Das Rezept gehört zur Kuchenform selbst – man braucht kein Objekt, um es zu benutzen.",
+                "terms": [
+                  "static",
+                  "int"
+                ]
+              },
+              {
+                "code": "    return n * n;",
+                "explain": "Das Rezept ist fertig: Es gibt das Ergebnis der Rechnung n * n zurück an die Stelle, die es aufgerufen hat – wie ein Automat, der sein Produkt ausgibt.",
+                "terms": [
+                  "return",
+                  "*"
+                ]
+              },
+              {
+                "code": "}",
+                "explain": "Hier endet die Methode (das Rezept) „quadrat“."
+              },
+              {
+                "code": ""
+              },
+              {
+                "code": "public static void main(String[] args) {",
+                "explain": "Die main-Methode ist der Startknopf des Programms: Hier beginnt Java, die Anweisungen von oben nach unten auszuführen. (public: von außen startbar · static: ohne Objekt nutzbar · void: liefert kein Ergebnis · String[] args: mögliche Startwerte.)",
+                "terms": [
+                  "public",
+                  "static",
+                  "void",
+                  "String",
+                  "[]"
+                ]
+              },
+              {
+                "code": "    System.out.println(quadrat(4) + 1);",
+                "explain": "Schreibt das Ergebnis der Rechnung quadrat(4) + 1 auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+                "terms": [
+                  "System.out",
+                  "println()",
+                  "+"
+                ]
+              },
+              {
+                "code": "}",
+                "explain": "Hier endet die main-Methode – danach ist das Programm fertig."
+              }
+            ]
+          },
+          "explanation": "Erst läuft die Methode: quadrat(4) ergibt 16. Danach kommt die 1 dazu – also 17.",
+          "javaContext": "members",
+          "expectedOutput": "17"
+        },
+        {
+          "id": "p-4a",
+          "type": "predictOutput",
+          "topicId": "inheritance",
+          "difficulty": 4,
+          "prompt": "Was gibt das Programm aus?",
+          "code": {
+            "lines": [
+              {
+                "code": "class Tier {",
+                "explain": "Hier beginnt die Klasse „Tier“. Stell sie dir als Kuchenform vor: Sie beschreibt, welche Eigenschaften und Fähigkeiten jedes Objekt vom Typ Tier hat. Die echten Objekte sind die Kuchen, die später mit new aus dieser Form gebacken werden.",
+                "terms": [
+                  "class"
+                ]
+              },
+              {
+                "code": "    String laut() {",
+                "explain": "Hier beginnt die Methode „laut“ – ein Rezept mit Namen. Sie braucht keine Zutaten und liefert am Ende einen Text als Ergebnis zurück.",
+                "terms": [
+                  "String"
+                ]
+              },
+              {
+                "code": "        return \"...\";",
+                "explain": "Das Rezept ist fertig: Es gibt den Text „...“ zurück an die Stelle, die es aufgerufen hat – wie ein Automat, der sein Produkt ausgibt.",
+                "terms": [
+                  "return"
+                ]
+              },
+              {
+                "code": "    }",
+                "explain": "Hier endet die Methode (das Rezept) „laut“."
+              },
+              {
+                "code": "}",
+                "explain": "Hier endet die Klasse „Tier“ – die Kuchenform ist fertig beschrieben."
+              },
+              {
+                "code": ""
+              },
+              {
+                "code": "class Hund extends Tier {",
+                "explain": "Hier beginnt die Klasse „Hund“. Stell sie dir als Kuchenform vor: Sie beschreibt, welche Eigenschaften und Fähigkeiten jedes Objekt vom Typ Hund hat. Die echten Objekte sind die Kuchen, die später mit new aus dieser Form gebacken werden. extends Tier: „Hund“ ist eine erweiterte Tier-Form. Sie übernimmt (erbt) alles, was Tier hat und kann, und darf Dinge ergänzen oder ändern.",
+                "terms": [
+                  "class",
+                  "extends"
+                ]
+              },
+              {
+                "code": "    @Override",
+                "explain": "@Override ist ein Hinweiszettel: „Die folgende Methode ersetzt die gleichnamige Methode der Eltern-Form.“ Java prüft, ob es diese Methode dort wirklich gibt – so fallen Tippfehler sofort auf.",
+                "terms": [
+                  "Override"
+                ]
+              },
+              {
+                "code": "    String laut() {",
+                "explain": "Hier beginnt die Methode „laut“ – ein Rezept mit Namen. Sie braucht keine Zutaten und liefert am Ende einen Text als Ergebnis zurück.",
+                "terms": [
+                  "String"
+                ]
+              },
+              {
+                "code": "        return \"Wau\";",
+                "explain": "Das Rezept ist fertig: Es gibt den Text „Wau“ zurück an die Stelle, die es aufgerufen hat – wie ein Automat, der sein Produkt ausgibt.",
+                "terms": [
+                  "return"
+                ]
+              },
+              {
+                "code": "    }",
+                "explain": "Hier endet die Methode (das Rezept) „laut“."
+              },
+              {
+                "code": "}",
+                "explain": "Hier endet die Klasse „Hund“ – die Kuchenform ist fertig beschrieben."
+              },
+              {
+                "code": ""
+              },
+              {
+                "code": "public class Main {",
+                "explain": "Hier beginnt die Klasse „Main“. In Java muss jedes Programm in so einer Klasse stehen – hier dient sie nur als Behälter für unser Programm, nicht als Kuchenform für Objekte. Die geschweifte Klammer { öffnet den Behälter.",
+                "terms": [
+                  "public",
+                  "class"
+                ]
+              },
+              {
+                "code": "    public static void main(String[] args) {",
+                "explain": "Die main-Methode ist der Startknopf des Programms: Hier beginnt Java, die Anweisungen von oben nach unten auszuführen. (public: von außen startbar · static: ohne Objekt nutzbar · void: liefert kein Ergebnis · String[] args: mögliche Startwerte.)",
+                "terms": [
+                  "public",
+                  "static",
+                  "void",
+                  "String",
+                  "[]"
+                ]
+              },
+              {
+                "code": "        Tier t = new Hund();",
+                "explain": "Hier backen wir mit new aus der Kuchenform „Hund“ ein neues Objekt und legen es in die Box „t“. Das Etikett Tier heißt: In diese Box passt ein Objekt vom Typ Tier. Achtung, spannend: Das Etikett sagt „Tier“, drin liegt aber ein Hund-Objekt. Das passt, denn jedes Hund-Objekt zählt auch als Tier-Objekt (es wurde aus einer erweiterten Tier-Form gebacken). Fragt man es später etwas, antwortet trotzdem das Hund-Objekt – das nennt man Polymorphie („Vielgestaltigkeit“).",
+                "terms": [
+                  "=",
+                  "new"
+                ]
+              },
+              {
+                "code": "        System.out.println(t.laut());",
+                "explain": "Schreibt das Ergebnis von t.laut() auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+                "terms": [
+                  "System.out",
+                  "println()"
+                ]
+              },
+              {
+                "code": "    }",
+                "explain": "Hier endet die main-Methode – danach ist das Programm fertig."
+              },
+              {
+                "code": "}",
+                "explain": "Hier endet die Klasse „Main“ – der Behälter um unser Programm ist zu."
+              }
+            ]
+          },
+          "explanation": "Links steht Tier, im Speicher liegt aber ein Hund. Beim Aufruf zählt das tatsächliche Objekt – Java nimmt deshalb dessen Fassung von laut().",
+          "javaContext": "file",
+          "expectedOutput": "Wau"
+        },
+        {
+          "id": "p-4b",
+          "type": "predictOutput",
+          "topicId": "collections",
+          "difficulty": 4,
+          "prompt": "Was gibt das Programm aus?",
+          "code": {
+            "lines": [
+              {
+                "code": "Map<String, Integer> punkte = new HashMap<>();",
+                "explain": "Hier erstellen wir mit new ein Wörterbuch (HashMap) – noch leer und legen es in die Box „punkte“. Das Etikett Map<String, Integer> heißt: Darin liegt ein Wörterbuch – zu jedem Schlüssel gehört ein Wert. Auf dem Etikett steht allgemein „Map“, drin liegt eine HashMap – so kann man später leicht eine andere Sorte nehmen.",
+                "terms": [
+                  "Map",
+                  "<>",
+                  "String",
+                  "Integer",
+                  "=",
+                  "new",
+                  "HashMap"
+                ]
+              },
+              {
+                "code": "punkte.put(\"Ada\", 3);",
+                "explain": "Trägt ins Wörterbuch „punkte“ ein: „Ada“ → 3. Stand „Ada“ schon drin, wird der alte Eintrag überschrieben.",
+                "terms": [
+                  "put()"
+                ]
+              },
+              {
+                "code": "punkte.put(\"Ada\", 5);",
+                "explain": "Trägt ins Wörterbuch „punkte“ ein: „Ada“ → 5. Stand „Ada“ schon drin, wird der alte Eintrag überschrieben.",
+                "terms": [
+                  "put()"
+                ]
+              },
+              {
+                "code": "System.out.println(punkte.size());",
+                "explain": "Schreibt das Ergebnis von punkte.size() (die Anzahl der Einträge) auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+                "terms": [
+                  "System.out",
+                  "println()",
+                  "size()"
+                ]
+              },
+              {
+                "code": "System.out.println(punkte.get(\"Ada\"));",
+                "explain": "Schreibt das Ergebnis von punkte.get(\"Ada\") (den gespeicherten Eintrag) auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+                "terms": [
+                  "System.out",
+                  "println()",
+                  "get()"
+                ]
+              }
+            ]
+          },
+          "explanation": "In einer Map ist jeder Schlüssel nur einmal vergeben. Das zweite put legt keinen neuen Eintrag an, sondern überschreibt den alten Wert.",
+          "expectedOutput": "1\n5"
+        },
+        {
+          "id": "p-4c",
+          "type": "predictOutput",
+          "topicId": "exceptions",
+          "difficulty": 4,
+          "prompt": "In welcher Reihenfolge erscheinen die Zeilen?",
+          "code": {
+            "lines": [
+              {
+                "code": "try {",
+                "explain": "Beginnt einen Versuch mit Sicherheitsnetz (try): Geht in diesem Block etwas schief – Java nennt das eine Exception, also einen Alarm –, stürzt das Programm nicht ab. Stattdessen fängt das passende catch den Alarm auf.",
+                "terms": [
+                  "try"
+                ]
+              },
+              {
+                "code": "    System.out.println(\"A\");",
+                "explain": "Schreibt den Text „A“ auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+                "terms": [
+                  "System.out",
+                  "println()"
+                ]
+              },
+              {
+                "code": "    int x = 1 / 0;",
+                "explain": "Hier erstellen wir eine Box namens „x“ und legen das Ergebnis der Rechnung 1 / 0 hinein. Das Etikett int heißt: In diese Box passen nur ganze Zahlen.",
+                "terms": [
+                  "int",
+                  "=",
+                  "/"
+                ]
+              },
+              {
+                "code": "    System.out.println(\"B\");",
+                "explain": "Schreibt den Text „B“ auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+                "terms": [
+                  "System.out",
+                  "println()"
+                ]
+              },
+              {
+                "code": "} catch (ArithmeticException e) {",
+                "explain": "Das Sicherheitsnetz (catch) für den Alarm ArithmeticException – Rechen-Alarm, z. B. bei einer Division durch 0. Wurde im try-Block genau dieser Alarm ausgelöst, landet das Programm hier, statt abzustürzen. In „e“ stehen die Details zum Fehler.",
+                "terms": [
+                  "catch",
+                  "ArithmeticException"
+                ]
+              },
+              {
+                "code": "    System.out.println(\"C\");",
+                "explain": "Schreibt den Text „C“ auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+                "terms": [
+                  "System.out",
+                  "println()"
+                ]
+              },
+              {
+                "code": "} finally {",
+                "explain": "finally: Dieser Block läuft zum Schluss immer – egal, ob ein Alarm kam oder nicht. Wie das Aufräumen nach dem Kochen.",
+                "terms": [
+                  "finally"
+                ]
+              },
+              {
+                "code": "    System.out.println(\"D\");",
+                "explain": "Schreibt den Text „D“ auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+                "terms": [
+                  "System.out",
+                  "println()"
+                ]
+              },
+              {
+                "code": "}",
+                "explain": "Hier endet der Aufräum-Block (finally)."
+              }
+            ]
+          },
+          "explanation": "Nach dem Fehler bei 1 / 0 wird der Rest des try-Blocks übersprungen – „B“ erscheint nie. Es folgt das catch, und finally läuft in jedem Fall zum Schluss.",
+          "expectedOutput": "A\nC\nD"
+        },
+        {
+          "id": "p-5a",
+          "type": "predictOutput",
+          "topicId": "lambdas",
+          "difficulty": 5,
+          "prompt": "Was gibt das Programm aus?",
+          "code": {
+            "lines": [
+              {
+                "code": "List<Integer> zahlen = List.of(1, 2, 3, 4, 5);",
+                "explain": "Hier erstellen wir eine Box namens „zahlen“ und legen einen fertigen Einkaufszettel mit 1, 2, 3, 4 und 5 (List.of – danach unveränderlich) hinein. Das Etikett List<Integer> heißt: Darin liegt eine Liste, und auf ihr dürfen nur ganze Zahlen (Integer) stehen.",
+                "terms": [
+                  "List",
+                  "<>",
+                  "Integer",
+                  "=",
+                  "List.of"
+                ]
+              },
+              {
+                "code": "int summe = zahlen.stream()",
+                "explain": "Hier erstellen wir eine Box namens „summe“. Hineinkommen soll das Ergebnis eines Fließbands (Stream): zahlen.stream() legt alle Elemente von „zahlen“ aufs Band, die nächsten Zeilen sind die Stationen. Das Etikett int heißt: In diese Box passen nur ganze Zahlen.",
+                "terms": [
+                  "int",
+                  "=",
+                  "stream()"
+                ]
+              },
+              {
+                "code": "                  .filter(n -> n % 2 == 0)",
+                "explain": "Station „Sieb“ (filter): Nur die Elemente n, für die „n % 2 == 0“ stimmt, dürfen weiter aufs Band – die anderen fallen heraus.",
+                "terms": [
+                  "filter()",
+                  "->",
+                  "%",
+                  "=="
+                ]
+              },
+              {
+                "code": "                  .mapToInt(n -> n * n)",
+                "explain": "Station „Umformer zu Zahlen“ (mapToInt): Aus jedem n wird die ganze Zahl n * n – damit man danach rechnen kann.",
+                "terms": [
+                  "mapToInt()",
+                  "->",
+                  "*"
+                ]
+              },
+              {
+                "code": "                  .sum();",
+                "explain": "Ende des Bandes (sum): Alle Zahlen werden zusammengezählt. Damit ist das Fließband fertig – das Ergebnis kommt in die Box „summe“.",
+                "terms": [
+                  "sum()"
+                ]
+              },
+              {
+                "code": "System.out.println(summe);",
+                "explain": "Schreibt den Inhalt der Box „summe“ auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+                "terms": [
+                  "System.out",
+                  "println()"
+                ]
+              }
+            ]
+          },
+          "explanation": "Das Sieb lässt nur 2 und 4 durch, der Umformer macht daraus 4 und 16 – zusammen 20.",
+          "expectedOutput": "20"
+        },
+        {
+          "id": "p-5b",
+          "type": "predictOutput",
+          "topicId": "modern",
+          "difficulty": 5,
+          "prompt": "Was gibt das Programm aus?",
+          "code": {
+            "lines": [
+              {
+                "code": "record Punkt(int x, int y) {}",
+                "explain": "Hier definieren wir den Record „Punkt“ – wie ein Formular mit festen Feldern: x (eine ganze Zahl) und y (eine ganze Zahl). Den Rest erledigt Java automatisch: Konstruktor, Lesemethoden x() und y(), Vergleich (equals) und Textdarstellung (toString). Die leeren Klammern {} heißen: Mehr braucht es nicht.",
+                "terms": [
+                  "record",
+                  "int"
+                ]
+              },
+              {
+                "code": ""
+              },
+              {
+                "code": "public class Main {",
+                "explain": "Hier beginnt die Klasse „Main“. In Java muss jedes Programm in so einer Klasse stehen – hier dient sie nur als Behälter für unser Programm, nicht als Kuchenform für Objekte. Die geschweifte Klammer { öffnet den Behälter.",
+                "terms": [
+                  "public",
+                  "class"
+                ]
+              },
+              {
+                "code": "    public static void main(String[] args) {",
+                "explain": "Die main-Methode ist der Startknopf des Programms: Hier beginnt Java, die Anweisungen von oben nach unten auszuführen. (public: von außen startbar · static: ohne Objekt nutzbar · void: liefert kein Ergebnis · String[] args: mögliche Startwerte.)",
+                "terms": [
+                  "public",
+                  "static",
+                  "void",
+                  "String",
+                  "[]"
+                ]
+              },
+              {
+                "code": "        Punkt p = new Punkt(1, 2);",
+                "explain": "Hier backen wir mit new aus der Kuchenform „Punkt“ ein neues Objekt mit den Zutaten 1 und 2 und legen es in die Box „p“. Das Etikett Punkt heißt: In diese Box passt ein Objekt vom Typ Punkt.",
+                "terms": [
+                  "=",
+                  "new"
+                ]
+              },
+              {
+                "code": "        String text = switch (p.x()) {",
+                "explain": "Hier erstellen wir eine Box namens „text“. Was hineinkommt, entscheidet der folgende Weichensteller (switch) anhand von „p.x()“. Das Etikett String heißt: In diese Box passen Texte.",
+                "terms": [
+                  "String",
+                  "=",
+                  "switch"
+                ]
+              },
+              {
+                "code": "            case 1 -> \"eins\";",
+                "explain": "Ist der Wert 1, liefert der Weichensteller den Text „eins“.",
+                "terms": [
+                  "case",
+                  "->"
+                ]
+              },
+              {
+                "code": "            default -> \"anders\";",
+                "explain": "Bei allen anderen Werten liefert der Weichensteller den Text „anders“.",
+                "terms": [
+                  "default",
+                  "->"
+                ]
+              },
+              {
+                "code": "        };",
+                "explain": "Hier endet der Weichensteller (switch-Ausdruck). Das Semikolon beendet die ganze Anweisung."
+              },
+              {
+                "code": "        System.out.println(text + \" \" + p);",
+                "explain": "Schreibt den zusammengesetzten Text aus dem Inhalt der Box „text“, „ “ und dem Inhalt der Box „p“ (das + klebt die Teile aneinander) auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+                "terms": [
+                  "System.out",
+                  "println()",
+                  "+"
+                ]
+              },
+              {
+                "code": "    }",
+                "explain": "Hier endet die main-Methode – danach ist das Programm fertig."
+              },
+              {
+                "code": "}",
+                "explain": "Hier endet die Klasse „Main“ – der Behälter um unser Programm ist zu."
+              }
+            ]
+          },
+          "explanation": "Der Record liefert die Lesemethode x() und eine lesbare toString-Darstellung. Das switch als Ausdruck gibt einen Wert zurück, der direkt in die Variable wandert.",
+          "javaContext": "file",
+          "expectedOutput": "eins Punkt[x=1, y=2]"
+        },
         {
           "id": "p-check",
           "type": "fillBlank",

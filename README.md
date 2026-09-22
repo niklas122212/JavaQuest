@@ -9,7 +9,7 @@ Java Master Score von 0 bis 1000.
 - **Windows:** Windows 10/11 (64 Bit) · Kotlin 2.4 · Compose Multiplatform 1.12 (Desktop) – Ordner `Windows/`
 - **Inhalt:** 13 Module, 32 Lektionen, 160 Lektionsaufgaben + 436 Übungsaufgaben im Pool (596 übbar),
   jedes der 29 Themen mit mindestens 20 Aufgaben und mindestens zwei je Schwierigkeitsstufe,
-  1 Einstufungsfrage mit 6 Lücken, 3763 erklärte Codezeilen, Befehlslexikon mit 241 Einträgen (Deutsch),
+  adaptive Einstufung aus 15 Fragen, 3834 erklärte Codezeilen, Befehlslexikon mit 241 Einträgen (Deutsch),
   UML-Klassendiagramme, Endlos-Training und freies Lernen – eine gemeinsame Kursdatei für alle Plattformen
 - **Bestanden ab 69 %** (zentral in `LessonSession.passThreshold`)
 
@@ -26,7 +26,7 @@ Läuft danach offline, ohne App Store und ohne Konto (siehe [Web/](Web/README.md
 ![iPhone: Code-Exegese – jede Zeile in Alltagssprache](Docs/Screenshots/iphone-code-exegese.png)
 ![Windows: Theorie mit Code-Exegese](Docs/Screenshots/windows-code-exegese.png)
 ![Windows: Dashboard](Docs/Screenshots/windows-dashboard.png)
-![Windows: Ergebnis der Einstufungsfrage](Docs/Screenshots/windows-einstufung.png)
+![Windows: Ergebnis der Einstufung](Docs/Screenshots/windows-einstufung.png)
 
 Die Screenshots zeigen echte App-Views mit echter Logik; die Beispieldaten stammen aus `PreviewSupport`.
 
@@ -65,7 +65,7 @@ JavaQuest.xcodeproj
 │   ├── DesignSystem/              Theme, Karten, Buttons, DifficultyBadge, ProgressRing, CodeBlockView
 │   ├── Features/
 │   │   ├── Shell/                 iPhone: TabView · iPad/Mac: NavigationSplitView mit Sidebar
-│   │   ├── Onboarding/            Zwei Start-Optionen → Einstufungsfrage → Ergebnis mit erklärter Lösung
+│   │   ├── Onboarding/            Zwei Start-Optionen → adaptive Einstufung → Ergebnis mit erklärter Lösung
 │   │   ├── Dashboard/             Master Score, Weiterlernen, Wissenslücken, Lernpfad, Kennzahlen
 │   │   ├── Path/                  Lernpfad als geschwungener Weg mit Stationen
 │   │   ├── Analysis/              Stärken / Lücken / im Aufbau / unbekannt, Diagramm je Thema
@@ -104,12 +104,14 @@ Funktionen des Kerns aufruft.
 ## App-Ablauf
 
 1. **Start mit zwei Optionen:** „Ich habe 0 Erfahrung“ → Grundkurs. „Ich habe schon Vorkenntnisse“ →
-   **eine** Einstufungsfrage (ein Programm mit 6 Lücken, Teilpunkte je Lücke). Ab **≥ 65 %** geht es
-   direkt zu Modul 3 „Daten & Objekte“, der Grundkurs wird angerechnet; darunter startet der Grundkurs.
-   Während der Frage gibt es keine Hilfen – danach wird jede Lücke und die Lösung Zeile für Zeile erklärt.
+   **fünf adaptive Fragen** aus einem Pool von 15 (Start auf Niveau 3; nach einer richtigen Antwort wird
+   es schwerer, nach einer falschen leichter – bei gleichem Abstand kommt ein noch nicht gefragtes Thema).
+   Ab **≥ 65 %** geht es direkt zu Modul 3 „Daten & Objekte“, ab **≥ 85 %** zu Modul 5 „Modernes Java“;
+   alles davor wird angerechnet, darunter startet der Grundkurs. Während der Fragen gibt es keine Hilfen
+   und keine Rückmeldung – danach wird jede Frage einzeln und die Lösung Zeile für Zeile erklärt.
 2. **Lern-Loop je Lektion:** 2–3 Theorie-Karten mit erklärtem Codebeispiel → 5 Aufgaben mit aufsteigendem
    Niveau 1→5 → Auswertung mit Trefferquote, Sternen, Score-Zuwachs und Ergebnis je Aufgabe.
-   **Bestanden ab 90 %.**
+   **Bestanden ab 69 %.**
 3. **Code-Exegese** (überall, wo Code steht): oben der Code mit anklickbaren, nummerierten Zeilen, darunter
    die Erklärungen – umschaltbar zwischen „Schritt für Schritt“ (Vor/Zurück) und „Alle Zeilen“. Die gewählte
    Zeile ist in Code und Erklärung markiert; das Befehlslexikon erklärt jeden Befehl der Zeile.
@@ -173,8 +175,10 @@ sicher, dass keine Zeile ohne Erklärung bleibt und jeder verwendete Befehl im L
 | Größe | Regel |
 |---|---|
 | **Aufgabe** | 1. Versuch richtig = 100 %, später richtig = 50 %, Lösung gezeigt = 0 %. Maximal 3 Versuche. |
-| **Lektion** | Trefferquote = Σ(Niveau × Wertung) / Σ(Niveau). **Bestanden ab 90 %.** Sterne: ab 90 % ★, ab 95 % ★★, 100 % ★★★. Beispiel Lektion 1 (Niveaus 1,1,2,2,3): eine aufgedeckte leichte Aufgabe → 8/9 = 89 % → nicht bestanden. |
-| **Einstufung** | Eine Frage mit 6 Lücken, Teilpunkte je Lücke: 4 von 6 = 67 % → bestanden, 3 von 6 = 50 % → Grundkurs. Bestanden ab 65 %. |
+| **Lektion** | Trefferquote = Σ(Niveau × Wertung) / Σ(Niveau). **Bestanden ab 69 %** (zentral in `LessonSession.passThreshold`, alle weiteren Grenzen leiten sich daraus ab). Sterne: ab 69 % ★, ab 84,5 % ★★, 100 % ★★★. |
+| **Einstufung** | Fünf adaptive Fragen, gewichtet nach Niveau: Σ(Niveau × Wertung) / Σ(Niveau). Ab 65 % Einstieg bei den Objekten, ab 85 % im fortgeschrittenen Teil, darunter Grundkurs. |
+| **Wiedervorlage** | Je Lernziel (nicht je Aufgabe): Fach 0–5 nach der Zahl der Treffer in Folge, Pausen 0/1/3/7/16/35 Tage. Vor dem Termin sinkt das Gewicht auf bis zu ein Viertel, danach steigt es auf bis zum Doppelten. Ein Fehler setzt auf Fach 0 zurück. |
+| **Schwäche je Stufe** | Eine Schwierigkeitsstufe eines Themas gilt als wacklig ab 2 Versuchen und unter der Bestehensgrenze – ein einzelner Fehlversuch zählt nicht. |
 | **Java Master Score** | 0–1000. Jede **bestandene** Lektion zählt mit Gewicht × Bestwert. Gewicht = Summe der Aufgabenniveaus × Stufenfaktor (1,0 / 1,25 / 1,5). Es zählt nur der Bestwert – der Score kann nicht sinken. |
 | **Ränge** | Neuling (0) · Code-Talent (150) · Java-Profi (350) · Architektur-Ass (600) · Java Master (850) |
 | **Themenbeherrschung** | (Σ Niveau × Wertung + 1) / (Σ Niveau + 2), also Laplace-geglättet. **Stärke:** ≥ 75 % bei mind. 3 Aufgaben. **Lücke:** < 55 % bei mind. 2 Aufgaben. **Unbekannt:** noch keine Aufgabe. Sonst **im Aufbau**. |
@@ -332,14 +336,14 @@ SHA-256-geprüft) bei.
 
 | Prüfung | Ergebnis |
 |---|---|
-| `swift test` (JavaQuestKit) | 56 Tests in 7 Suites bestanden – u. a. keine Zeile ohne Erklärung, Lexikon vollständig, jede Musterlösung des Übungspools akzeptiert, Bestehensgrenze 68/69/70 %, Varianten-Rotation, freie Themenwahl, UML-Layout, Endlos-Training (falsch Gelöstes kommt über 400 Runden mehr als 3× so oft wie heute Gelöstes) |
+| `swift test` (JavaQuestKit) | 71 Tests in 9 Suites bestanden – u. a. keine Zeile ohne Erklärung, Lexikon vollständig, jede Musterlösung des Übungspools akzeptiert, Bestehensgrenze 68/69/70 %, Varianten-Rotation, freie Themenwahl, UML-Layout, verteiltes Wiederholen (Fächer 0–5 mit 1/3/7/16/35 Tagen), Schwächen je Schwierigkeitsstufe, adaptive Einstufung, Endlos-Training (falsch Gelöstes kommt über 400 Runden mehr als 3× so oft wie heute Gelöstes) |
 | `Tools/check_course.py` | Keine Befunde: 29 Themen alle mit Aufgaben erreichbar, keine inhaltsgleichen Aufgaben, 47 UML-Diagramme vollständig, Niveaus steigen in jeder Lektion an |
-| `Tools/verify_java_content.py` mit OpenJDK 25 | 453/453 Java-Prüfungen (Lektionen, Übungspool und Theorie-Beispiele), davon 450 mit Ausgabevergleich |
-| Web-App (`Web/`), im Browser gegen die ausgelieferte Kursdatei | 596/596 Musterlösungen akzeptiert, 1262/1262 falsche Antworten abgelehnt; alle 29 Themen mit mindestens 20 Aufgaben und mindestens zwei je Schwierigkeitsstufe |
+| `Tools/verify_java_content.py` mit OpenJDK 25 | 463/463 Java-Prüfungen (Lektionen, Übungspool, Einstufung und Theorie-Beispiele), davon 460 mit Ausgabevergleich |
+| Web-App (`Web/`), im Browser gegen die ausgelieferte Kursdatei | 596/596 Musterlösungen akzeptiert, 1262/1262 falsche Antworten abgelehnt; Wiedervorlage-Faktoren identisch zu Swift und Kotlin (0,25 → 1 → 2); Einstufung über die Oberfläche durchgespielt: 0–5 richtige Antworten ergeben monoton steigende Ergebnisse und alle drei Einstiegsstufen; alte gespeicherte Stände bleiben vollständig erhalten |
 | `xcodebuild` (Xcode 27) für iOS-Simulator, iOS-Gerät, macOS | BUILD SUCCEEDED, 0 Warnungen |
 | iPhone-Simulator (iOS 27), von Hand durchgeklickt | Onboarding (beide Optionen), Einstufung 5/6 = 83 %, Theorie mit Code-Exegese, alle 4 Aufgabentypen, 78 % → „Fast geschafft“, 100 % → 3 Sterne und +40 Score, Dunkelmodus; Endlos-Training: Runde mit 8 Aufgaben (Niveau 1→5), Lösung aufdecken, Auswertung, „Nächste Runde“, Score bleibt unverändert |
-| Windows-App: `./gradlew test` | 47 Tests bestanden (42 Logik/Speicherung, 5 Klick-Durchläufe der echten Oberfläche mit Screenshots) |
-| Windows-Paket: Selbsttest der fertigen JAR | 409 Bildschirme gezeichnet, alle 32 Lektionen und 160 Aufgaben durchgespielt, dazu Endlos-Training und eine freie UML-Runde, Score 1000; 3763 erklärte Codezeilen |
+| Windows-App: `./gradlew test` | 58 Tests bestanden (53 Logik/Speicherung, 5 Klick-Durchläufe der echten Oberfläche mit Screenshots) – darunter dieselben Werte für das verteilte Wiederholen wie auf Apple-Geräten |
+| Windows-Paket: Selbsttest der fertigen JAR | 409 Bildschirme gezeichnet, alle 32 Lektionen und 160 Aufgaben durchgespielt, dazu Endlos-Training und eine freie UML-Runde, Score 1000; 3834 erklärte Codezeilen |
 
 Nicht geprüft: Start auf einem echten Windows-PC (hier steht nur ein Mac zur Verfügung – die Windows-Bibliothek
 `skiko-windows-x64.dll` und die Windows-Laufzeit liegen im Paket, laufen aber erst dort) sowie Signierung und Upload.

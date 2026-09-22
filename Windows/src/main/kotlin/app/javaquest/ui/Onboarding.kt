@@ -66,9 +66,11 @@ private enum class Step { WELCOME, EXPERIENCE, PLACEMENT_INTRO, PLACEMENT, RESUL
 
 /** App-Start: Begrüßung → Erfahrung (2 Optionen) → (Einstufungsfrage → Ergebnis). */
 @Composable
-fun OnboardingScreen(store: ProgressStore, onFinished: (startLessonId: String?) -> Unit) {
+fun OnboardingScreen(state: AppState, onFinished: (startLessonId: String?) -> Unit) {
+    val store = state.store
     var step by remember { mutableStateOf(Step.WELCOME) }
     var level by remember { mutableStateOf<ExperienceLevel?>(null) }
+    // Der Test liegt im AppState, damit die Oberfläche und Klick-Durchläufe denselben sehen.
     var placement by remember { mutableStateOf<PlacementTest?>(null) }
 
     fun finish(startLesson: Boolean) {
@@ -94,6 +96,7 @@ fun OnboardingScreen(store: ProgressStore, onFinished: (startLessonId: String?) 
                         }
                         Step.PLACEMENT_INTRO -> PlacementIntroStep(store, onBack = { step = Step.EXPERIENCE }) {
                             placement = PlacementTest.create(store.course, level ?: ExperienceLevel.INTERMEDIATE)
+                            state.placementTest = placement
                             step = if (placement == null) Step.EXPERIENCE else Step.PLACEMENT
                         }
                         Step.RESULT -> placement?.let { test ->
@@ -174,7 +177,7 @@ private fun ExperienceStep(selection: ExperienceLevel?, onSelect: (ExperienceLev
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Rounded.Checklist, null, tint = tint, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.width(4.dp))
-                            Text("Mit einer Einstufungsfrage", color = tint, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                            Text("Mit kurzer Einstufung", color = tint, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                         }
                     }
                 }
@@ -183,7 +186,7 @@ private fun ExperienceStep(selection: ExperienceLevel?, onSelect: (ExperienceLev
             }
         }
         PrimaryButton(
-            if (selection?.requiresPlacement == true) "Weiter zur Einstufungsfrage" else "Mit dem Grundkurs starten",
+            if (selection?.requiresPlacement == true) "Weiter zur Einstufung" else "Mit dem Grundkurs starten",
             Icons.AutoMirrored.Rounded.ArrowForward,
             Modifier.fillMaxWidth().testTag("experience-continue"),
             enabled = selection != null,
@@ -198,18 +201,18 @@ private fun PlacementIntroStep(store: ProgressStore, onBack: () -> Unit, onStart
     Column(verticalArrangement = Arrangement.spacedBy(22.dp)) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Eyebrow("Schritt 2 von 2")
-            Text("Eine Einstufungsfrage", fontSize = 34.sp, fontWeight = FontWeight.Bold)
+            Text(if (config.questionsPerTest == 1) "Eine Einstufungsfrage" else "Kurze Einstufung", fontSize = 34.sp, fontWeight = FontWeight.Bold)
             Text(ExperienceLevel.INTERMEDIATE.onboardingTitle, fontSize = 19.sp, color = secondaryText)
         }
         Column(Modifier.fillMaxWidth().card(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            InfoLine(Icons.Rounded.EditNote, if (config.questionsPerTest == 1) "Eine Frage: Du ergänzt ein kleines Programm mit mehreren Lücken – etwa 2 Minuten." else "${config.questionsPerTest} Fragen, etwa 3–5 Minuten.")
-            InfoLine(Icons.Rounded.Percent, "Jede richtige Lücke bringt Punkte. Bewertet wird von 0 bis 100 %.")
-            InfoLine(Icons.Rounded.Flag, "Ab ${config.passThreshold} % überspringst du den Grundkurs und startest bei den Objekten. Sonst beginnst du ganz entspannt mit dem Grundkurs.")
+            InfoLine(Icons.Rounded.EditNote, if (config.questionsPerTest == 1) "Eine Frage: Du ergänzt ein kleines Programm mit mehreren Lücken – etwa 2 Minuten." else "${config.questionsPerTest} kurze Fragen, etwa 3–5 Minuten.")
+            InfoLine(Icons.Rounded.Percent, "Die Fragen passen sich an: Nach einer richtigen Antwort kommt eine schwerere, nach einer falschen eine leichtere. Schwere Fragen zählen mehr.")
+            InfoLine(Icons.Rounded.Flag, "Ab ${config.passThreshold} % überspringst du den Grundkurs und startest bei den Objekten, ab ${config.advancedThreshold} % geht es direkt in den fortgeschrittenen Teil. Darunter beginnst du ganz entspannt vorn.")
             InfoLine(Icons.AutoMirrored.Rounded.ManageSearch, "Hilfen gibt es während der Frage nicht – danach siehst du die Lösung Zeile für Zeile erklärt.")
         }
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             SecondaryButton("Zurück", Icons.AutoMirrored.Rounded.KeyboardArrowLeft, Modifier.width(170.dp), onClick = onBack)
-            PrimaryButton("Frage starten", Icons.Rounded.PlayArrow, Modifier.weight(1f).testTag("placement-start"), onClick = onStart)
+            PrimaryButton(if (config.questionsPerTest == 1) "Frage starten" else "Einstufung starten", Icons.Rounded.PlayArrow, Modifier.weight(1f).testTag("placement-start"), onClick = onStart)
         }
     }
 }
@@ -272,11 +275,23 @@ private fun PlacementResultStep(test: PlacementTest, store: ProgressStore, onSta
                 Text("Bestanden ab ${test.passThreshold} %", fontSize = 12.sp, color = secondaryText, fontWeight = FontWeight.SemiBold)
             }
         }
-        Text(if (outcome.passed) "Stark eingestuft!" else "Guter Startpunkt gefunden", fontSize = 34.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+        // Drei Ausgänge statt zwei: ganz vorn anfangen, bei den Objekten einsteigen oder weiter springen.
+        val ueberschrift = when (outcome.placedLevel) {
+            ExperienceLevel.ADVANCED -> "Das saß – großer Sprung!"
+            ExperienceLevel.INTERMEDIATE -> "Stark eingestuft!"
+            ExperienceLevel.BEGINNER -> "Guter Startpunkt gefunden"
+        }
+        Text(ueberschrift, fontSize = 34.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
         entryModule?.let {
             Text(
-                if (outcome.passed) "Du startest direkt in „${it.title}“. Die Lektionen davor werden dir angerechnet."
-                else "Für den Einstieg bei den Objekten reicht es noch nicht ganz. Du startest mit „${it.title}“ – dort ist jede Codezeile erklärt.",
+                when (outcome.placedLevel) {
+                    ExperienceLevel.ADVANCED ->
+                        "Auch die schweren Fragen saßen. Du startest direkt in „${it.title}“ – alles davor wird dir angerechnet."
+                    ExperienceLevel.INTERMEDIATE ->
+                        "Du startest direkt in „${it.title}“. Die Lektionen davor werden dir angerechnet."
+                    ExperienceLevel.BEGINNER ->
+                        "Für den Einstieg bei den Objekten reicht es noch nicht ganz. Du startest mit „${it.title}“ – dort ist jede Codezeile erklärt."
+                },
                 fontSize = 17.sp, color = secondaryText, textAlign = TextAlign.Center,
             )
         }

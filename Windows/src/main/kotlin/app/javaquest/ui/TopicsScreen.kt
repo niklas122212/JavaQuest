@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.BarChart
 import androidx.compose.material.icons.rounded.CheckCircle
@@ -19,6 +20,7 @@ import androidx.compose.material.icons.rounded.Numbers
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.RadioButtonUnchecked
 import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.Update
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -38,6 +40,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.javaquest.core.Difficulty
+import app.javaquest.core.LevelPerformance
 import app.javaquest.core.Topic
 import app.javaquest.core.TrainingBuilder
 import app.javaquest.data.TopicPractice
@@ -64,6 +67,28 @@ fun TopicsScreen(state: AppState) {
                     "Ohne Auswahl kommt alles gemischt.",
                 color = secondaryText, fontSize = 16.sp,
             )
+        }
+
+        val faellig = store.dueGoalCount
+        if (faellig > 0) {
+            Column(Modifier.fillMaxWidth().card(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                SectionTitle(
+                    "Heute zur Wiederholung fällig",
+                    "Was du kannst, wird in wachsenden Abständen abgefragt – bevor es verblasst",
+                    Icons.Rounded.Update,
+                )
+                Text(
+                    "$faellig ${if (faellig == 1) "Lernziel wartet" else "Lernziele warten"}. Je öfter etwas " +
+                        "hintereinander sitzt, desto länger die nächste Pause: erst am nächsten Tag, dann nach " +
+                        "3, 7, 16 und 35 Tagen.",
+                    color = secondaryText, fontSize = 15.sp,
+                )
+                PrimaryButton(
+                    "Wiederholung starten",
+                    Icons.Rounded.Update,
+                    Modifier.fillMaxWidth().testTag("start-review"),
+                ) { state.startReview() }
+            }
         }
 
         Column(Modifier.fillMaxWidth().card(), verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -100,6 +125,7 @@ fun TopicsScreen(state: AppState) {
                                 topic = topic,
                                 practice = store.topicPractice(topic.id),
                                 taskCount = store.course.tasksForTopic(topic.id).size,
+                                levels = store.levels(topic.id),
                                 selected = topic.id in selectedTopics,
                                 modifier = Modifier.weight(1f),
                             ) {
@@ -136,6 +162,7 @@ private fun TopicCard(
     topic: Topic,
     practice: TopicPractice,
     taskCount: Int,
+    levels: List<LevelPerformance>,
     selected: Boolean,
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
@@ -167,9 +194,38 @@ private fun TopicCard(
                 "${practice.correct} von ${practice.seen} richtig · ${(practice.successRate * 100).roundToInt()} %",
                 color = secondaryText, fontSize = 12.sp,
             )
+            if (levels.isNotEmpty()) {
+                // Je Stufe getrennt: Ein Thema kann unten sitzen und oben wackeln.
+                Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                    levels.forEach { LevelPill(it) }
+                }
+                val wacklig = levels.filter { it.isWeak }
+                if (wacklig.isNotEmpty()) {
+                    Text(
+                        "Es hakt ab Stufe ${wacklig.first().difficulty.level} – die leichteren sitzen.",
+                        color = Palette.ember, fontSize = 12.sp,
+                    )
+                }
+            }
         } else {
             Text("Noch nicht geübt", color = secondaryText, fontSize = 12.sp)
         }
+    }
+}
+
+/** Eine Schwierigkeitsstufe mit ihrer Trefferquote – rot, wenn sie unter der Bestehensgrenze liegt. */
+@Composable
+private fun LevelPill(level: LevelPerformance) {
+    Column(
+        Modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(if (level.isWeak) Palette.ember.copy(alpha = 0.16f) else LocalSurfaces.current.field)
+            .padding(horizontal = 7.dp, vertical = 3.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        val tint = if (level.isWeak) Palette.ember else LocalSurfaces.current.secondaryText
+        Text("${level.difficulty.level}", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = tint)
+        Text("${level.solved}/${level.seen}", fontSize = 9.sp, color = tint)
     }
 }
 

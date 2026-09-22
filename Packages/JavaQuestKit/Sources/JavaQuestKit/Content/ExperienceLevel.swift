@@ -51,7 +51,7 @@ public enum ExperienceLevel: String, Codable, CaseIterable, Sendable, Identifiab
         case .beginner:
             "Kein Problem! Du startest mit dem Grundkurs: kurze Theorie, jede Codezeile erklärt, sehr einfache Aufgaben."
         case .intermediate, .advanced:
-            "Beantworte eine Einstufungsfrage. Ab 65 % überspringst du den Grundkurs und startest bei den Objekten."
+            "Beantworte fünf kurze Fragen. Sie passen sich an: Nach einer richtigen Antwort wird es schwerer, nach einer falschen leichter. Ab 65 % überspringst du den Grundkurs, ab 85 % auch den Mittelteil."
         }
     }
 

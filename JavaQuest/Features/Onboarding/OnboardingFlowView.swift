@@ -191,7 +191,7 @@ struct ExperienceStep: View {
                 }
             }
             Button(action: onContinue) {
-                Label(selection?.requiresPlacement == true ? "Weiter zur Einstufungsfrage" : "Mit dem Grundkurs starten",
+                Label(selection?.requiresPlacement == true ? "Weiter zur Einstufung" : "Mit dem Grundkurs starten",
                       systemImage: "arrow.right")
             }
             .buttonStyle(.primary)
@@ -222,7 +222,7 @@ private struct ExperienceOption: View {
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
                     if level.requiresPlacement {
-                        Label("Mit einer Einstufungsfrage", systemImage: "checklist")
+                        Label(level.requiresPlacement ? "Mit kurzer Einstufung" : "Mit einer Einstufungsfrage", systemImage: "checklist")
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(tint)
                             .padding(.top, 2)
@@ -257,15 +257,15 @@ struct PlacementIntroStep: View {
         VStack(alignment: .leading, spacing: 22) {
             VStack(alignment: .leading, spacing: 8) {
                 Text("SCHRITT 2 VON 2").font(.caption.weight(.heavy)).tracking(1.2).foregroundStyle(Theme.orange)
-                Text("Eine Einstufungsfrage").font(.largeTitle.weight(.bold))
+                Text(config.questionsPerTest == 1 ? "Eine Einstufungsfrage" : "Kurze Einstufung").font(.largeTitle.weight(.bold))
                 Text(level.onboardingTitle).font(.title3).foregroundStyle(.secondary)
             }
             VStack(alignment: .leading, spacing: 16) {
                 InfoLine(symbol: "square.and.pencil", text: config.questionsPerTest == 1
                          ? "Eine Frage: Du ergänzt ein kleines Programm mit mehreren Lücken – etwa 2 Minuten."
-                         : "\(config.questionsPerTest) Fragen, etwa 3–5 Minuten.")
-                InfoLine(symbol: "percent", text: "Jede richtige Lücke bringt Punkte. Bewertet wird von 0 bis 100 %.")
-                InfoLine(symbol: "flag.checkered", text: "Ab \(config.passThreshold) % überspringst du den Grundkurs und startest bei den Objekten. Sonst beginnst du ganz entspannt mit dem Grundkurs.")
+                         : "\(config.questionsPerTest) kurze Fragen, etwa 3–5 Minuten.")
+                InfoLine(symbol: "arrow.up.arrow.down", text: "Die Fragen passen sich an: Nach einer richtigen Antwort kommt eine schwerere, nach einer falschen eine leichtere. Schwere Fragen zählen mehr.")
+                InfoLine(symbol: "flag.checkered", text: "Ab \(config.passThreshold) % überspringst du den Grundkurs und startest bei den Objekten, ab \(config.advancedThreshold) % geht es direkt in den fortgeschrittenen Teil. Darunter beginnst du ganz entspannt vorn.")
                 InfoLine(symbol: "text.magnifyingglass", text: "Hilfen gibt es während der Frage nicht – danach siehst du die Lösung Zeile für Zeile erklärt.")
             }
             .card()

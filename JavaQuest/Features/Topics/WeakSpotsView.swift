@@ -13,8 +13,9 @@ struct WeakSpotsView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 header
+                reviewCard
                 if spots.isEmpty {
-                    emptyState
+                    if store.dueGoalCount == 0 { emptyState }
                 } else {
                     weakTopics
                     VStack(alignment: .leading, spacing: 12) {
@@ -54,6 +55,31 @@ struct WeakSpotsView: View {
         }
     }
 
+    /// Wiederholung: Lernziele, die saßen, deren Pause aber abgelaufen ist.
+    /// Bewusst getrennt von den Schwächen – hier geht es nicht um Fehler, sondern ums Vergessen.
+    @ViewBuilder
+    private var reviewCard: some View {
+        let faellig = store.dueGoalCount
+        if faellig > 0 {
+            VStack(alignment: .leading, spacing: 10) {
+                SectionTitle(
+                    title: "Heute zur Wiederholung fällig",
+                    subtitle: "Was du kannst, wird in wachsenden Abständen abgefragt – bevor es verblasst",
+                    systemImage: "calendar.badge.clock"
+                )
+                Text("\(faellig) \(faellig == 1 ? "Lernziel wartet" : "Lernziele warten"). Je öfter etwas hintereinander sitzt, desto länger die nächste Pause: erst am nächsten Tag, dann nach 3, 7, 16 und 35 Tagen.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Button { router.review() } label: {
+                    Label("Wiederholung starten", systemImage: "calendar.badge.clock")
+                }
+                .buttonStyle(.primary)
+            }
+            .card()
+        }
+    }
+
     private var emptyState: some View {
         VStack(alignment: .leading, spacing: 10) {
             Label("Alles sitzt", systemImage: "checkmark.seal.fill")
@@ -76,22 +102,7 @@ struct WeakSpotsView: View {
         return VStack(alignment: .leading, spacing: 12) {
             SectionTitle(title: "Wo es sich häuft", subtitle: nil, systemImage: "chart.bar.fill")
             ForEach(Array(sorted), id: \.key) { topicId, anzahl in
-                let practice = store.topicPractice(for: topicId)
-                HStack(spacing: 10) {
-                    IconTile(systemImage: store.course.topic(id: topicId)?.symbol ?? "questionmark", tint: Theme.ember, size: 34)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(store.course.topic(id: topicId)?.title ?? topicId)
-                            .font(.subheadline.weight(.semibold))
-                        Text("\(anzahl) \(anzahl == 1 ? "Lernziel" : "Lernziele") offen · \(practice.correct) von \(practice.seen) richtig")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    Spacer(minLength: 8)
-                    Button("Üben") { router.train(topicIds: [topicId], difficulties: [], count: 10) }
-                        .font(.subheadline.weight(.semibold))
-                        .buttonStyle(.plain)
-                        .foregroundStyle(Theme.orange)
-                }
+                WeakTopicRow(topicId: topicId, openGoals: anzahl)
             }
         }
         .card()
@@ -113,6 +124,88 @@ struct WeakSpotsView: View {
         .frame(maxWidth: 720)
         .frame(maxWidth: .infinity)
         .background(.bar)
+    }
+}
+
+/// Ein Thema, in dem sich die Schwächen häufen – mit der Aufschlüsselung nach Stufe.
+///
+/// Die Stufen sind der eigentliche Punkt: „Vererbung wackelt“ hilft nicht weiter, wenn die
+/// leichten Aufgaben sitzen und erst Stufe 4 danebengeht. Der Knopf übt dann genau diese Stufen.
+private struct WeakTopicRow: View {
+    @Environment(ProgressStore.self) private var store
+    @Environment(AppRouter.self) private var router
+    let topicId: String
+    let openGoals: Int
+
+    private var topic: Topic? { store.course.topic(id: topicId) }
+    private var levels: [LevelPerformance] { store.levels(forTopic: topicId) }
+    private var weakLevels: [LevelPerformance] { levels.filter(\.isWeak) }
+
+    /// Satz in Alltagssprache: Wo genau hakt es?
+    private var levelSummary: String {
+        guard !weakLevels.isEmpty else {
+            return "Kein Niveau fällt heraus – es verteilt sich gleichmäßig."
+        }
+        let nummern = weakLevels.map { "\($0.difficulty.rawValue)" }
+        let wo = nummern.count == 1 ? "Stufe \(nummern[0])" : "Stufe \(nummern.dropLast().joined(separator: ", ")) und \(nummern.last!)"
+        return "Es hakt ab \(wo) – die leichteren sitzen."
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 10) {
+                IconTile(systemImage: topic?.symbol ?? "questionmark", tint: Theme.ember, size: 34)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(topic?.title ?? topicId)
+                        .font(.subheadline.weight(.semibold))
+                    Text("\(openGoals) \(openGoals == 1 ? "Lernziel" : "Lernziele") offen")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer(minLength: 8)
+                Button(weakLevels.isEmpty ? "Üben" : "Stufen üben") {
+                    router.train(
+                        topicIds: [topicId],
+                        difficulties: Set(weakLevels.map(\.difficulty)),
+                        count: 10
+                    )
+                }
+                .font(.subheadline.weight(.semibold))
+                .buttonStyle(.plain)
+                .foregroundStyle(Theme.orange)
+            }
+            if !levels.isEmpty {
+                HStack(spacing: 6) {
+                    ForEach(levels) { level in
+                        LevelPill(level: level)
+                    }
+                }
+                Text(levelSummary)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+}
+
+/// Eine Stufe mit ihrer Trefferquote – rot, wenn sie unter der Bestehensgrenze liegt.
+private struct LevelPill: View {
+    let level: LevelPerformance
+
+    var body: some View {
+        VStack(spacing: 2) {
+            Text("\(level.difficulty.rawValue)")
+                .font(.caption2.weight(.bold))
+            Text("\(level.solved)/\(level.seen)")
+                .font(.system(size: 10))
+        }
+        .padding(.vertical, 4)
+        .padding(.horizontal, 8)
+        .background(level.isWeak ? Theme.ember.opacity(0.16) : Color.secondary.opacity(0.10), in: .rect(cornerRadius: 8))
+        .foregroundStyle(level.isWeak ? Theme.ember : .secondary)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(level.summary) richtig\(level.isWeak ? ", wacklig" : "")")
     }
 }
 

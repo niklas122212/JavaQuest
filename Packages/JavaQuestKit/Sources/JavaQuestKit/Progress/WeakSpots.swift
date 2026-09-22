@@ -80,3 +80,55 @@ public enum WeakSpotFinder {
         return course.practiceableTasks.filter { gruppen.contains($0.groupKey) }
     }
 }
+
+/// Wie ein Thema auf einer einzelnen Schwierigkeitsstufe läuft.
+///
+/// „Vererbung wackelt“ ist eine unbrauchbare Auskunft, wenn die leichten Aufgaben sitzen
+/// und erst ab Stufe 4 etwas schiefgeht. Deshalb wird je Stufe getrennt gezählt.
+public struct LevelPerformance: Sendable, Hashable, Identifiable {
+    public let difficulty: Difficulty
+    /// Wie viele Aufgaben dieser Stufe schon dran waren.
+    public let seen: Int
+    /// Davon beim letzten Versuch auf Anhieb gelöst.
+    public let solved: Int
+
+    public var id: Int { difficulty.rawValue }
+    public var accuracy: Double { seen > 0 ? Double(solved) / Double(seen) : 0 }
+
+    /// Wacklig ist eine Stufe erst, wenn sie mehrfach dran war und unter der Bestehensgrenze liegt.
+    /// Ein einzelner Fehlversuch macht noch keine Schwäche.
+    public var isWeak: Bool { seen >= 2 && accuracy < LessonSession.passThreshold }
+
+    /// Kurzform für die Anzeige, z. B. „Stufe 4: 1 von 3“.
+    public var summary: String { "Stufe \(difficulty.rawValue): \(solved) von \(seen)" }
+}
+
+public extension WeakSpotFinder {
+    /// Die Leistung eines Themas, aufgeschlüsselt nach Schwierigkeitsstufe.
+    /// Stufen, die noch nie dran waren, fehlen bewusst – über sie lässt sich nichts sagen.
+    static func levels(
+        course: Course,
+        history: [String: TaskHistory],
+        topicId: String
+    ) -> [LevelPerformance] {
+        var seen: [Difficulty: Int] = [:]
+        var solved: [Difficulty: Int] = [:]
+        for task in course.tasks(forTopic: topicId) {
+            guard let past = history[task.id] else { continue }
+            seen[task.difficulty, default: 0] += 1
+            if past.lastCredit >= creditThreshold { solved[task.difficulty, default: 0] += 1 }
+        }
+        return seen.keys.sorted().map {
+            LevelPerformance(difficulty: $0, seen: seen[$0] ?? 0, solved: solved[$0] ?? 0)
+        }
+    }
+
+    /// Nur die Stufen, auf denen es hakt – als Vorauswahl für „genau das üben“.
+    static func weakDifficulties(
+        course: Course,
+        history: [String: TaskHistory],
+        topicId: String
+    ) -> Set<Difficulty> {
+        Set(levels(course: course, history: history, topicId: topicId).filter(\.isWeak).map(\.difficulty))
+    }
+}

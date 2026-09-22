@@ -45,10 +45,11 @@ enum class ExperienceLevel(val raw: String, val title: String) {
         get() = if (this == BEGINNER) {
             "Kein Problem! Du startest mit dem Grundkurs: kurze Theorie, jede Codezeile erklärt, sehr einfache Aufgaben."
         } else {
-            "Beantworte eine Einstufungsfrage. Ab 65 % überspringst du den Grundkurs und startest bei den Objekten."
+            "Beantworte fünf kurze Fragen. Sie passen sich an: Nach einer richtigen Antwort wird es schwerer, " +
+                "nach einer falschen leichter. Ab 65 % überspringst du den Grundkurs, ab 85 % auch den Mittelteil."
         }
 
-    /** Nur mit Vorkenntnissen gibt es die Einstufungsfrage. */
+    /** Nur mit Vorkenntnissen gibt es die Einstufung. */
     val requiresPlacement: Boolean get() = this == INTERMEDIATE
 
     /** Stufe, auf die bei nicht bestandener Einstufung zurückgefallen wird. */
@@ -238,6 +239,8 @@ data class CourseModule(
 
 data class PlacementConfig(
     val passThreshold: Int,
+    /** Ab hier geht es nicht nur am Grundkurs, sondern auch am Mittelteil vorbei. */
+    val advancedThreshold: Int,
     val questionsPerTest: Int,
     val startDifficulty: Int,
     val pools: Map<String, List<LearningTask>>,
@@ -323,6 +326,9 @@ object CourseLoader {
             modules = root.arr("modules").map { parseModule(it.jsonObject) },
             placement = PlacementConfig(
                 passThreshold = placement.int("passThreshold"),
+                // Ältere Kursdateien ohne diesen Schlüssel: ein Wert, der nie erreicht wird –
+                // dann verhält sich die Einstufung wie zuvor.
+                advancedThreshold = placement.optInt("advancedThreshold") ?: 101,
                 questionsPerTest = placement.int("questionsPerTest"),
                 startDifficulty = placement.int("startDifficulty"),
                 pools = placement.obj("pools").mapValues { (_, pool) -> pool.jsonArray.map { parseTask(it.jsonObject) } },
@@ -469,6 +475,9 @@ object CourseLoader {
     private fun JsonObject.str(key: String) = getValue(key).jsonPrimitive.content
     private fun JsonObject.optStr(key: String) = (this[key] as? JsonPrimitive)?.takeIf { it.isString }?.content
     private fun JsonObject.int(key: String) = getValue(key).jsonPrimitive.intOrNull ?: error("$key ist keine Zahl")
+
+    /** Wie [int], aber für Schlüssel, die in älteren Kursdateien noch fehlen dürfen. */
+    private fun JsonObject.optInt(key: String) = this[key]?.jsonPrimitive?.intOrNull
     private fun JsonObject.optBool(key: String) = (this[key] as? JsonPrimitive)?.booleanOrNull
     private fun JsonObject.arr(key: String) = getValue(key).jsonArray
     private fun JsonObject.obj(key: String) = getValue(key).jsonObject

@@ -38,6 +38,9 @@ class AppState(val store: ProgressStore) {
     var flow by mutableStateOf<LessonFlowModel?>(null)
         private set
 
+    /** Der laufende Einstufungstest – gehört zum Onboarding, nicht zu einer Lektion. */
+    var placementTest by mutableStateOf<app.javaquest.core.PlacementTest?>(null)
+
     fun startLesson(lessonId: String) {
         val lesson = store.course.lesson(lessonId) ?: return
         // Varianten je Lernziel: beim Wiederholen kommen andere Aufgaben.
@@ -59,6 +62,13 @@ class AppState(val store: ProgressStore) {
         val tasks = store.trainingTasks()
         if (tasks.isEmpty()) return
         flow = LessonFlowModel(store, LessonSession(LessonSession.Mode.Training, "Endlos-Training", emptyList(), tasks), isPractice = true)
+    }
+
+    /** Wiederholung: die Lernziele, deren Pause abgelaufen ist. */
+    fun startReview(count: Int = app.javaquest.core.TrainingBuilder.ROUND_SIZE) {
+        val tasks = store.reviewTasks(count)
+        if (tasks.isEmpty()) return
+        flow = LessonFlowModel(store, LessonSession(LessonSession.Mode.Training, "Wiederholung", emptyList(), tasks), isPractice = true)
     }
 
     /** Freies Training: selbst gewählte Themen, Niveaus und Anzahl – ohne Lernpfad-Sperre. */

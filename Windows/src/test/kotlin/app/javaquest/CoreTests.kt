@@ -21,6 +21,7 @@ import app.javaquest.core.LessonSummary
 import app.javaquest.core.TaskOutcome
 import app.javaquest.core.MasterRank
 import app.javaquest.core.MasterScore
+import app.javaquest.core.EvaluationResult
 import app.javaquest.core.PlacementTest
 import app.javaquest.core.PracticeBuilder
 import app.javaquest.core.RuleKind
@@ -193,20 +194,20 @@ class CourseContentTest {
         // Der Übungspool speist Übung, Training und freies Lernen.
         assertTrue(course.taskPool.size >= 50, "nur ${course.taskPool.size} Übungsaufgaben")
         assertEquals(course.allLessons.sumOf { it.tasks.size } + course.taskPool.size, course.practiceableTasks.size)
-        assertEquals(1, course.placement.pool(ExperienceLevel.INTERMEDIATE).size)
+        assertTrue(course.placement.pool(ExperienceLevel.INTERMEDIATE).size >= course.placement.questionsPerTest)
         assertEquals("m1-first-steps", course.entryModule(ExperienceLevel.BEGINNER)?.id)
         assertEquals("m3-objects", course.entryModule(ExperienceLevel.INTERMEDIATE)?.id)
     }
 
     @Test fun `Jede Codezeile im Kurs hat eine Erklaerung`() {
         val snippets = course.allSnippets
-        assertEquals(605, snippets.size)
+        assertEquals(615, snippets.size)
         var lines = 0
         for ((location, snippet) in snippets) {
             assertTrue(snippet.linesMissingExplanation.isEmpty(), "$location: Zeilen ${snippet.linesMissingExplanation}")
             lines += snippet.explained(course.glossary).size
         }
-        assertTrue(lines >= 3700, "nur $lines erklärte Zeilen")
+        assertTrue(lines >= 3800, "nur $lines erklärte Zeilen")
     }
 
     @Test fun `Jeder Befehl einer Zeile steht im Lexikon`() {
@@ -253,7 +254,9 @@ class CourseContentTest {
     }
 
     @Test fun `Lueckenzeilen und geloeste Vorlage`() {
-        val kind = course.placement.pool(ExperienceLevel.INTERMEDIATE).first().kind as TaskKind.FillBlank
+        // Die Einstufung hat inzwischen mehrere Fragen – geprüft wird die mit den Lücken.
+        val kind = course.placement.pool(ExperienceLevel.INTERMEDIATE)
+            .firstNotNullOf { it.kind as? TaskKind.FillBlank }
         assertEquals(6, kind.blanks.size)
         assertTrue(kind.blankLineNumbers.isNotEmpty())
         assertFalse("{{" in kind.solvedSnippet.source)
@@ -274,41 +277,64 @@ class CourseContentTest {
 }
 
 class ProgressTest {
-    private fun runPlacement(correctBlanks: Int): PlacementTest {
+    /** Beantwortet die ersten [correct] Fragen richtig und den Rest falsch. */
+    private fun runPlacement(correct: Int): PlacementTest {
         val test = PlacementTest.create(course, ExperienceLevel.INTERMEDIATE)!!
-        val task = test.currentTask!!
-        val kind = task.kind as TaskKind.FillBlank
-        val answers = kind.blanks.mapIndexed { i, blank -> if (i < correctBlanks) blank.accepted.first() else "falsch" }
-        test.submit(AnswerEvaluator.evaluate(TaskAnswer.Blanks(answers), task))
+        var gestellt = 0
+        while (true) {
+            val task = test.currentTask ?: break
+            gestellt++
+            val result = if (gestellt <= correct) {
+                AnswerEvaluator.evaluate(AnswerEvaluator.referenceAnswer(task), task)
+            } else {
+                EvaluationResult(false, 0.0, emptyList())
+            }
+            test.submit(result)
+        }
         return test
     }
 
-    @Test fun `Nur Vorkenntnisse fuehren zur Einstufungsfrage`() {
+    @Test fun `Nur Vorkenntnisse fuehren zur Einstufung`() {
         assertEquals(listOf(ExperienceLevel.BEGINNER, ExperienceLevel.INTERMEDIATE), ExperienceLevel.onboardingChoices)
         assertNull(PlacementTest.create(course, ExperienceLevel.BEGINNER))
         val test = PlacementTest.create(course, ExperienceLevel.INTERMEDIATE)!!
-        assertEquals(1, test.questionCount)
+        assertEquals(5, test.questionCount)
         assertEquals(65, test.passThreshold)
+        assertEquals(85, test.advancedThreshold)
+        assertEquals(3, test.currentTask!!.difficulty.level)
     }
 
-    @Test fun `Einstufung - alles richtig, alles falsch, Teilpunkte`() {
-        val all = runPlacement(6)
+    @Test fun `Einstufung passt sich an und stuft in drei Stufen ein`() {
+        // Richtig macht es schwerer, falsch macht es leichter.
+        val hoch = PlacementTest.create(course, ExperienceLevel.INTERMEDIATE)!!
+        val start = hoch.currentTask!!.difficulty.level
+        hoch.submit(AnswerEvaluator.evaluate(AnswerEvaluator.referenceAnswer(hoch.currentTask!!), hoch.currentTask!!))
+        assertTrue(hoch.currentTask!!.difficulty.level > start)
+
+        val runter = PlacementTest.create(course, ExperienceLevel.INTERMEDIATE)!!
+        runter.submit(EvaluationResult(false, 0.0, emptyList()))
+        assertTrue(runter.currentTask!!.difficulty.level < start)
+
+        // Alles richtig: 100 % und Sprung in den fortgeschrittenen Teil.
+        val all = runPlacement(5)
         assertTrue(all.isFinished)
+        assertEquals(5, all.answers.size)
         assertEquals(100, all.scorePercent)
+        assertEquals(5, all.answers.map { it.task.id }.toSet().size, "eine Frage kam doppelt")
         val outcome = all.outcome(course)
-        assertEquals("m3-objects", outcome.entryModuleId)
-        assertEquals(6, outcome.creditedLessonIds.size)
+        assertEquals(ExperienceLevel.ADVANCED, outcome.placedLevel)
+        assertEquals("m5-modern", outcome.entryModuleId)
         assertEquals(1.0, outcome.creditedAccuracy)
 
+        // Alles falsch: 0 % und Start ganz vorn.
         val none = runPlacement(0).outcome(course)
         assertEquals(0, none.scorePercent)
         assertEquals(ExperienceLevel.BEGINNER, none.placedLevel)
         assertTrue(none.creditedLessonIds.isEmpty())
 
-        assertEquals(67, runPlacement(4).scorePercent)
-        assertTrue(runPlacement(4).passed)
-        assertEquals(50, runPlacement(3).scorePercent)
-        assertFalse(runPlacement(3).passed)
+        // Dazwischen: mehr richtig darf das Ergebnis nie verschlechtern.
+        val scores = (0..5).map { runPlacement(it).scorePercent }
+        assertEquals(scores.sorted(), scores, "$scores")
     }
 
     @Test fun `Lern-Loop - Theorie, Aufgaben, Auswertung`() {

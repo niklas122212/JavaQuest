@@ -149,25 +149,44 @@ class UiFlowTest {
     }
 
     @Test
-    fun `Vorkenntnisse - Einstufungsfrage mit 4 von 6 Luecken ergibt 67 Prozent`() = runDesktopComposeUiTest(1280, 860) {
+    fun `Vorkenntnisse - fuenf adaptive Fragen, alles richtig stuft nach vorn ein`() = runDesktopComposeUiTest(1280, 860) {
         val state = newState()
         show(state)
         click("welcome-start"); click("level-intermediate"); click("experience-continue")
-        onNodeWithText("Eine Einstufungsfrage").assertExists()
+        onNodeWithText("Kurze Einstufung").assertExists()
         click("placement-start")
-        // Während der Frage gibt es keine Erklärungen.
+        // Während der Fragen gibt es keine Erklärungen.
         assertTrue(onAllNodesWithText("Code Zeile für Zeile erklären").fetchSemanticsNodes().isEmpty())
-        val kind = course.placement.pool(app.javaquest.core.ExperienceLevel.INTERMEDIATE).first().kind as TaskKind.FillBlank
-        kind.blanks.forEachIndexed { i, blank -> onNodeWithTag("blank-$i").performScrollTo().performTextInput(if (i < 4) blank.accepted.first() else "falsch") }
-        shot("11-placement-question")
-        click("placement-submit")
-        onNodeWithTag("placement-score").assertTextEquals("67 %")
-        onNodeWithText("Stark eingestuft!").assertExists()
-        onNodeWithText("Die Lösung Zeile für Zeile").assertExists()
+
+        val gestellt = mutableListOf<String>()
+        repeat(course.placement.questionsPerTest) { index ->
+            val task = state.placementTest!!.currentTask!!
+            gestellt += task.id
+            when (val kind = task.kind) {
+                is TaskKind.SingleChoice -> click("choice-${kind.correctIndex}")
+                is TaskKind.FillBlank -> kind.blanks.forEachIndexed { i, blank ->
+                    onNodeWithTag("blank-$i").performScrollTo().performTextInput(blank.accepted.first())
+                }
+                is TaskKind.PredictOutput -> onNodeWithTag("output-editor").performScrollTo().performTextInput(kind.expectedOutput)
+                is TaskKind.Code -> onNodeWithTag("code-editor").performScrollTo().performTextReplacement(kind.solution.source)
+            }
+            waitForIdle()
+            if (index == 0) shot("11-placement-question")
+            click("placement-submit")
+        }
+        // Keine Frage kam doppelt, und der Test ist nach fünf Antworten zu Ende.
+        assertEquals(gestellt.size, gestellt.toSet().size)
+        onNodeWithTag("placement-score").assertTextEquals("100 %")
+        onNodeWithText("Das saß – großer Sprung!").assertExists()
+        // Jede der fünf Fragen wird einzeln nachbesprochen.
+        repeat(course.placement.questionsPerTest) { onNodeWithText("Frage ${it + 1}").performScrollTo().assertExists() }
         shot("12-placement-result")
         click("placement-go")
-        assertEquals(course.entryModule(app.javaquest.core.ExperienceLevel.INTERMEDIATE)!!.lessons.first().id, state.flow?.lessonId)
-        assertEquals(6, state.store.completedLessonCount)
+        // Alles richtig → Sprung in den fortgeschrittenen Teil, alles davor angerechnet.
+        val entry = course.entryModule(app.javaquest.core.ExperienceLevel.ADVANCED)!!
+        assertEquals(entry.lessons.first().id, state.flow?.lessonId)
+        val davor = course.modules.takeWhile { it.id != entry.id }.sumOf { it.lessons.size }
+        assertEquals(davor, state.store.completedLessonCount)
     }
 
     @Test

@@ -72,6 +72,8 @@ struct SessionRequest: Identifiable, Hashable {
         case free(topicIds: [String], difficulties: [Int], count: Int)
         /// Nur das üben, was zuletzt nicht saß.
         case weakSpots(count: Int)
+        /// Wiederholung: Lernziele, deren Pause abgelaufen ist.
+        case review(count: Int)
     }
 
     let id = UUID()
@@ -100,6 +102,11 @@ final class AppRouter {
     /// Übt gezielt die Lernziele, die zuletzt nicht saßen.
     func trainWeakSpots(count: Int = TrainingBuilder.roundSize) {
         activeSession = SessionRequest(kind: .weakSpots(count: count))
+    }
+
+    /// Startet die fällige Wiederholung – das, was sonst langsam verblasst.
+    func review(count: Int = TrainingBuilder.roundSize) {
+        activeSession = SessionRequest(kind: .review(count: count))
     }
 
     /// Startet eine selbst zusammengestellte Übungsrunde aus dem freien Lernen.

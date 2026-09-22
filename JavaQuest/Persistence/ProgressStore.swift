@@ -119,21 +119,54 @@ final class ProgressStore {
         return history
     }
 
+    /// Wie jedes Lernziel über die Zeit lief – Grundlage der Wiedervorlage.
+    /// Die Einstufung bleibt außen vor: Sie sagt nichts darüber, ob ein Lernziel sitzt.
+    var goalHistory: [String: GoalHistory] {
+        let records = (profile?.attempts ?? [])
+            .filter { $0.contextRaw != AttemptContext.placement.rawValue }
+            .map { AttemptRecord(taskId: $0.taskId, credit: $0.credit, date: $0.date) }
+        return SpacedRepetition.goals(from: records, course: course)
+    }
+
+    /// Wie viele Lernziele heute zur Wiederholung anstehen.
+    var dueGoalCount: Int { SpacedRepetition.due(goalHistory, at: .now).count }
+
     /// Wie viele Aufgaben schon im Endlos-Training gelöst oder aufgelöst wurden.
     var trainingTaskCount: Int {
         (profile?.attempts ?? []).filter { $0.contextRaw == AttemptContext.training.rawValue }.count
     }
 
     func trainingTasks() -> [LearningTask] {
-        TrainingBuilder.round(from: trainingPool, topicStats: topicStats, history: taskHistory)
+        TrainingBuilder.round(from: trainingPool, topicStats: topicStats, history: taskHistory, goals: goalHistory)
     }
 
     /// Die Lernziele, die zuletzt nicht saßen – für „Meine Schwächen“.
     var weakSpots: [WeakSpot] { WeakSpotFinder.spots(course: course, history: taskHistory) }
 
+    /// Wie ein Thema auf den einzelnen Schwierigkeitsstufen läuft.
+    func levels(forTopic topicId: String) -> [LevelPerformance] {
+        WeakSpotFinder.levels(course: course, history: taskHistory, topicId: topicId)
+    }
+
+    /// Die Stufen eines Themas, auf denen es hakt – Vorauswahl für „genau das üben“.
+    func weakDifficulties(forTopic topicId: String) -> Set<Difficulty> {
+        WeakSpotFinder.weakDifficulties(course: course, history: taskHistory, topicId: topicId)
+    }
+
     /// Eine Runde nur über das Wacklige, mit anderen Varianten als beim Fehler.
     func weakSpotTasks(count: Int = TrainingBuilder.roundSize) -> [LearningTask] {
-        TrainingBuilder.weakRound(course: course, history: taskHistory, topicStats: topicStats, count: count)
+        TrainingBuilder.weakRound(course: course, history: taskHistory, topicStats: topicStats, goals: goalHistory, count: count)
+    }
+
+    /// Eine Runde nur über die Lernziele, deren Wiederholung heute ansteht.
+    func reviewTasks(count: Int = TrainingBuilder.roundSize) -> [LearningTask] {
+        TrainingBuilder.reviewRound(
+            course: course,
+            history: taskHistory,
+            goals: goalHistory,
+            topicStats: topicStats,
+            count: count
+        )
     }
 
     /// Selbst zusammengestellte Runde: gewählte Themen und Niveaus, unabhängig vom Lernpfad.
@@ -144,7 +177,8 @@ final class ProgressStore {
             difficulties: difficulties,
             count: count,
             topicStats: topicStats,
-            history: taskHistory
+            history: taskHistory,
+            goals: goalHistory
         )
     }
 

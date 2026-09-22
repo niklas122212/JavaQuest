@@ -19,8 +19,9 @@ public struct TaskHistory: Sendable, Hashable {
 /// - schwaches Thema: bis zu +3 (nach der Beherrschung des Themas),
 /// - noch nie geübt: +2,
 /// - zuletzt nicht (voll) gelöst: bis zu +3,
-/// - lange nicht gesehen: bis zu +2 (eine Woche = +1),
-/// - gerade eben (heute) fehlerfrei gelöst: nur noch ein Drittel.
+/// - lange nicht gesehen: bis zu +2 (eine Woche = +1).
+/// Zum Schluss kommt die Wiedervorlage dazu (siehe `SpacedRepetition`): Was gerade erst saß,
+/// sinkt auf bis zu ein Viertel; was wieder fällig ist, steigt auf bis zum Doppelten.
 /// Gezogen wird ohne Zurücklegen; die Runde steigt im Niveau an.
 public enum TrainingBuilder {
     public static let roundSize = 8
@@ -46,17 +47,52 @@ public enum TrainingBuilder {
         for task: LearningTask,
         topicStats: [String: TopicStats],
         history: [String: TaskHistory],
+        goals: [String: GoalHistory] = [:],
         now: Date
     ) -> Double {
         var weight = 1.0
         let mastery = topicStats[task.topicId].map { $0.attempts > 0 ? $0.mastery : 0.5 } ?? 0.5
         weight += (1 - mastery) * 3
-        guard let past = history[task.id] else { return weight + 2 }
+        let goal = goals[task.groupKey]
+        guard let past = history[task.id] else {
+            // Noch nie geübt – aber vielleicht eine andere Variante desselben Lernziels.
+            return (weight + 2) * SpacedRepetition.factor(for: goal, at: now)
+        }
         weight += (1 - min(max(past.lastCredit, 0), 1)) * 3
         let days = max(now.timeIntervalSince(past.lastDate) / 86_400, 0)
         weight += min(days, 14) / 7
+        if goal != nil { return weight * SpacedRepetition.factor(for: goal, at: now) }
+        // Ohne Wiedervorlage-Daten bleibt die alte, gröbere Regel als Rückfallebene.
         if days < 1, past.lastCredit >= 1 { weight /= 3 }
         return weight
+    }
+
+    /// Aufgabentopf für die Wiederholung: nur Lernziele, deren Pause abgelaufen ist.
+    /// Alles, was noch Schonfrist hat, bleibt draußen – genau das ist der Sinn der Wiedervorlage.
+    public static func reviewPool(course: Course, goals: [String: GoalHistory], now: Date = .now) -> [LearningTask] {
+        let faellig = Set(SpacedRepetition.due(goals, at: now))
+        return course.practiceableTasks.filter { faellig.contains($0.groupKey) }
+    }
+
+    /// Eine Runde Wiederholung: was heute wieder dran ist, das am längsten Überfällige zuerst.
+    public static func reviewRound(
+        course: Course,
+        history: [String: TaskHistory],
+        goals: [String: GoalHistory],
+        topicStats: [String: TopicStats] = [:],
+        count: Int = roundSize,
+        now: Date = .now,
+        seed: UInt64 = UInt64.random(in: 1...UInt64.max)
+    ) -> [LearningTask] {
+        round(
+            from: reviewPool(course: course, goals: goals, now: now),
+            topicStats: topicStats,
+            history: history,
+            goals: goals,
+            now: now,
+            size: count,
+            seed: seed
+        )
     }
 
     /// Eine Runde nur über das, was zuletzt nicht saß – mit anderen Varianten als beim Fehler.
@@ -64,6 +100,7 @@ public enum TrainingBuilder {
         course: Course,
         history: [String: TaskHistory],
         topicStats: [String: TopicStats] = [:],
+        goals: [String: GoalHistory] = [:],
         count: Int = roundSize,
         now: Date = .now,
         seed: UInt64 = UInt64.random(in: 1...UInt64.max)
@@ -72,6 +109,7 @@ public enum TrainingBuilder {
             from: WeakSpotFinder.pool(course: course, history: history),
             topicStats: topicStats,
             history: history,
+            goals: goals,
             now: now,
             size: count,
             seed: seed
@@ -87,6 +125,7 @@ public enum TrainingBuilder {
         count: Int = roundSize,
         topicStats: [String: TopicStats] = [:],
         history: [String: TaskHistory] = [:],
+        goals: [String: GoalHistory] = [:],
         now: Date = .now,
         seed: UInt64 = UInt64.random(in: 1...UInt64.max)
     ) -> [LearningTask] {
@@ -94,6 +133,7 @@ public enum TrainingBuilder {
             from: freePool(course: course, topicIds: topicIds, difficulties: difficulties),
             topicStats: topicStats,
             history: history,
+            goals: goals,
             now: now,
             size: count,
             seed: seed
@@ -105,6 +145,7 @@ public enum TrainingBuilder {
         from pool: [LearningTask],
         topicStats: [String: TopicStats],
         history: [String: TaskHistory],
+        goals: [String: GoalHistory] = [:],
         now: Date = .now,
         size: Int = roundSize,
         seed: UInt64 = UInt64.random(in: 1...UInt64.max)
@@ -113,7 +154,9 @@ public enum TrainingBuilder {
         // Je Lernziel tritt nur eine Variante an – so kommt dieselbe Frage nicht zweimal
         // in einer Runde, und nach einem Fehler kommt beim nächsten Mal eine andere.
         let candidateTasks = VariantSelector.collapse(pool, history: history)
-        var candidates = candidateTasks.map { (task: $0, weight: weight(for: $0, topicStats: topicStats, history: history, now: now)) }
+        var candidates = candidateTasks.map {
+            (task: $0, weight: weight(for: $0, topicStats: topicStats, history: history, goals: goals, now: now))
+        }
         var chosen: [LearningTask] = []
         while chosen.count < size, !candidates.isEmpty {
             let total = candidates.reduce(0) { $0 + $1.weight }
