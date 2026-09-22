@@ -12,6 +12,10 @@ Java Master Score von 0 bis 1000.
   UML-Klassendiagramme, Endlos-Training und freies Lernen – eine gemeinsame Kursdatei für alle Plattformen
 - **Bestanden ab 69 %** (zentral in `LessonSession.passThreshold`)
 
+**Sofort ausprobieren – ohne Installation:** <https://niklas122212.github.io/JavaQuest/>
+Im Browser öffnen; auf dem iPhone in Safari über *Teilen → Zum Home-Bildschirm* als App ablegen.
+Läuft danach offline, ohne App Store und ohne Konto (siehe [Web/](Web/README.md)).
+
 **Windows sofort ausprobieren:** `dist/JavaQuest-Windows-1.0.0.zip` entpacken und
 „JavaQuest starten.bat“ doppelklicken – ohne Installation, Java liegt bei (siehe [Windows](#windows)).
 
