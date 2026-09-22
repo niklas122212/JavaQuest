@@ -200,13 +200,13 @@ class CourseContentTest {
 
     @Test fun `Jede Codezeile im Kurs hat eine Erklaerung`() {
         val snippets = course.allSnippets
-        assertEquals(338, snippets.size)
+        assertEquals(364, snippets.size)
         var lines = 0
         for ((location, snippet) in snippets) {
             assertTrue(snippet.linesMissingExplanation.isEmpty(), "$location: Zeilen ${snippet.linesMissingExplanation}")
             lines += snippet.explained(course.glossary).size
         }
-        assertTrue(lines >= 2050, "nur $lines erklärte Zeilen")
+        assertTrue(lines >= 2210, "nur $lines erklärte Zeilen")
     }
 
     @Test fun `Jeder Befehl einer Zeile steht im Lexikon`() {
