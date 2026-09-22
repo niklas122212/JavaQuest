@@ -28835,6 +28835,2261 @@
       ]
     },
     {
+      "id": "u-gen-1",
+      "type": "predictOutput",
+      "topicId": "generics",
+      "difficulty": 3,
+      "prompt": "Was wird ausgegeben?",
+      "variantGroup": "t11-2",
+      "code": {
+        "lines": [
+          {
+            "code": "Map<String, List<String>> regale = new HashMap<>();",
+            "explain": "Hier erstellen wir mit new ein Wörterbuch (HashMap) – noch leer und legen es in die Box „regale“. Das Etikett Map<String, List<String>> heißt: Darin liegt ein Wörterbuch – zu jedem Schlüssel gehört ein Wert. Auf dem Etikett steht allgemein „Map“, drin liegt eine HashMap – so kann man später leicht eine andere Sorte nehmen.",
+            "terms": [
+              "Map",
+              "<>",
+              "String",
+              "List",
+              "=",
+              "new",
+              "HashMap"
+            ]
+          },
+          {
+            "code": "regale.put(\"Obst\", List.of(\"Apfel\", \"Birne\"));",
+            "explain": "Trägt ins Wörterbuch „regale“ ein: „Obst“ → List.of(\"Apfel\", \"Birne\"). Stand „Obst“ schon drin, wird der alte Eintrag überschrieben.",
+            "terms": [
+              "put()",
+              "List.of"
+            ]
+          },
+          {
+            "code": "System.out.println(regale.get(\"Obst\").size());",
+            "explain": "Schreibt das Ergebnis einer Kette von Schritten auf den Bildschirm: Wir starten mit „regale“, dann get(\"Obst\") (liefert den gespeicherten Eintrag), dann size() (liefert die Anzahl der Einträge). Danach springt die Ausgabe in eine neue Zeile.",
+            "terms": [
+              "System.out",
+              "println()",
+              "get()",
+              "size()"
+            ]
+          }
+        ]
+      },
+      "explanation": "Auch verschachtelte Etiketten sind erlaubt: Zu jedem Schlüssel gehört hier eine ganze Liste.",
+      "expectedOutput": "2"
+    },
+    {
+      "id": "u-gen-2",
+      "type": "singleChoice",
+      "topicId": "generics",
+      "difficulty": 2,
+      "prompt": "Welche Schreibweise legt eine Liste nur für Zahlen an?",
+      "variantGroup": "t11-2",
+      "explanation": "In die spitzen Klammern dürfen nur Klassen – deshalb Integer statt int. Rechts reichen die leeren Klammern.",
+      "choices": [
+        "List zahlen = new ArrayList<int>();",
+        "ArrayList<> zahlen = new List<Integer>();",
+        "List<Integer> zahlen = new ArrayList<>();",
+        "List<int> zahlen = new ArrayList<>();"
+      ],
+      "correctIndex": 2
+    },
+    {
+      "id": "u-gen-3",
+      "type": "fillBlank",
+      "topicId": "generics",
+      "difficulty": 3,
+      "prompt": "Ergänze das Etikett, damit nur Texte in die Liste dürfen.",
+      "variantGroup": "t11-2",
+      "explanation": "Das Etikett in den spitzen Klammern legt fest, was hinein darf – hier Texte.",
+      "verify": {
+        "output": "Ada"
+      },
+      "template": {
+        "lines": [
+          {
+            "code": "List<{{0}}> namen = new ArrayList<>();",
+            "explain": "Hier erstellen wir mit new eine ArrayList – eine Liste, die wachsen kann wie ein Einkaufszettel – noch leer – und legen sie in die Box „namen“. Das Etikett List<String> heißt: Darin liegt eine Liste, und auf ihr dürfen nur Texte (String) stehen. Auf dem Etikett steht allgemein „List“, drin liegt eine ArrayList – so kann man später leicht eine andere Sorte nehmen.",
+            "terms": [
+              "List",
+              "<>",
+              "=",
+              "new",
+              "ArrayList"
+            ]
+          },
+          {
+            "code": "namen.add(\"Ada\");",
+            "explain": "Schreibt „Ada“ ans Ende der Liste „namen“ – wie ein neuer Eintrag auf dem Einkaufszettel.",
+            "terms": [
+              "add()"
+            ]
+          },
+          {
+            "code": "System.out.println(namen.get(0));",
+            "explain": "Schreibt das Ergebnis von namen.get(0) (den gespeicherten Eintrag) auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()",
+              "get()"
+            ]
+          }
+        ]
+      },
+      "blanks": [
+        {
+          "accepted": [
+            "String"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "u-gen-4",
+      "type": "code",
+      "topicId": "generics",
+      "difficulty": 5,
+      "prompt": "Schreibe die generische Methode anzahl, die zählt, wie viele Elemente eine Liste hat.",
+      "variantGroup": "t11-5",
+      "explanation": "Der Platzhalter macht die Methode für jede Sorte nutzbar – gezählt wird immer gleich.",
+      "javaContext": "members",
+      "verify": {
+        "context": "members",
+        "main": "System.out.println(anzahl(List.of(\"a\", \"b\", \"c\")));",
+        "output": "3"
+      },
+      "starterCode": {
+        "lines": [
+          {
+            "code": "// Deine generische Methode hier",
+            "explain": "Ein Notizzettel als Platzhalter („Deine generische Methode hier“): Genau an dieser Stelle schreibst du deinen eigenen Code hin. Java überliest Kommentare."
+          },
+          {
+            "code": ""
+          }
+        ]
+      },
+      "sampleSolution": {
+        "lines": [
+          {
+            "code": "static <T> int anzahl(List<T> liste) {",
+            "explain": "Hier beginnt die Methode „anzahl“ – ein Rezept mit Namen. Als Zutaten bekommt sie liste (eine Liste) und liefert am Ende eine ganze Zahl als Ergebnis zurück. static: Das Rezept gehört zur Kuchenform selbst – man braucht kein Objekt, um es zu benutzen. <T> ist ein Platzhalter-Etikett: T steht für einen beliebigen Typ, der erst beim Benutzen feststeht.",
+            "terms": [
+              "static",
+              "int",
+              "List",
+              "<>"
+            ]
+          },
+          {
+            "code": "    return liste.size();",
+            "explain": "Das Rezept ist fertig: Es gibt das Ergebnis von liste.size() (die Anzahl der Einträge) zurück an die Stelle, die es aufgerufen hat – wie ein Automat, der sein Produkt ausgibt.",
+            "terms": [
+              "return",
+              "size()"
+            ]
+          },
+          {
+            "code": "}",
+            "explain": "Hier endet die Methode (das Rezept) „anzahl“."
+          }
+        ]
+      },
+      "rules": [
+        {
+          "rule": "require",
+          "pattern": "<T>",
+          "message": "Nutze den Platzhalter <T>."
+        },
+        {
+          "rule": "require",
+          "pattern": "int\\s+anzahl\\s*\\(\\s*List<T>",
+          "message": "Die Methode heißt anzahl und nimmt eine List<T>."
+        },
+        {
+          "rule": "require",
+          "pattern": "\\.size\\(\\)",
+          "message": "Nutze size()."
+        }
+      ]
+    },
+    {
+      "id": "u-dat-1",
+      "type": "singleChoice",
+      "topicId": "datetime",
+      "difficulty": 2,
+      "prompt": "Was speichert ein LocalDate?",
+      "variantGroup": "t17-2",
+      "explanation": "LocalDate ist reiner Kalender: Jahr, Monat, Tag. Für die Uhrzeit gibt es LocalTime.",
+      "choices": [
+        "Die Zeit seit 1970 in Millisekunden",
+        "Ein Kalenderdatum ohne Uhrzeit",
+        "Datum und Uhrzeit",
+        "Nur die Uhrzeit"
+      ],
+      "correctIndex": 1
+    },
+    {
+      "id": "u-dat-2",
+      "type": "predictOutput",
+      "topicId": "datetime",
+      "difficulty": 3,
+      "prompt": "Was wird ausgegeben?",
+      "variantGroup": "t17-2",
+      "code": {
+        "lines": [
+          {
+            "code": "LocalDate tag = LocalDate.of(2026, 2, 28);",
+            "explain": "Hier erstellen wir eine Box namens „tag“ und legen das Datum 28.02.2026 (LocalDate.of(Jahr, Monat, Tag)) hinein. Das Etikett LocalDate heißt: Darin liegt ein Kalenderdatum (ohne Uhrzeit).",
+            "terms": [
+              "LocalDate",
+              "=",
+              "LocalDate.of"
+            ]
+          },
+          {
+            "code": "System.out.println(tag.plusDays(2));",
+            "explain": "Schreibt das Datum 2 Tage nach „tag“ auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()",
+              "plusDays()"
+            ]
+          }
+        ]
+      },
+      "explanation": "2026 ist kein Schaltjahr: Auf den 28. Februar folgt direkt der 1. März, zwei Tage später also der 2.",
+      "expectedOutput": "2026-03-02"
+    },
+    {
+      "id": "u-dat-3",
+      "type": "fillBlank",
+      "topicId": "datetime",
+      "difficulty": 3,
+      "prompt": "Ergänze die Methode, die 7 Tage dazuzählt.",
+      "variantGroup": "t17-2",
+      "explanation": "plusDays rechnet Tage dazu und kümmert sich selbst um Monats- und Jahreswechsel.",
+      "verify": {
+        "output": "2026-06-08"
+      },
+      "template": {
+        "lines": [
+          {
+            "code": "LocalDate heute = LocalDate.of(2026, 6, 1);",
+            "explain": "Hier erstellen wir eine Box namens „heute“ und legen das Datum 01.06.2026 (LocalDate.of(Jahr, Monat, Tag)) hinein. Das Etikett LocalDate heißt: Darin liegt ein Kalenderdatum (ohne Uhrzeit).",
+            "terms": [
+              "LocalDate",
+              "=",
+              "LocalDate.of"
+            ]
+          },
+          {
+            "code": "System.out.println(heute.{{0}}(7));",
+            "explain": "Schreibt das Datum 7 Tage nach „heute“ auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()"
+            ]
+          }
+        ]
+      },
+      "blanks": [
+        {
+          "accepted": [
+            "plusDays"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "u-test-1",
+      "type": "fillBlank",
+      "topicId": "testing",
+      "difficulty": 3,
+      "prompt": "Ergänze die Prüfung: Erwartet wird 12, geliefert wird summe.",
+      "variantGroup": "t21-2",
+      "explanation": "Erst der erwartete Wert, dann das tatsächliche Ergebnis – in dieser Reihenfolge liest sich die Meldung richtig.",
+      "javaContext": "members",
+      "verify": {
+        "context": "members",
+        "output": "OK: summe"
+      },
+      "template": {
+        "lines": [
+          {
+            "code": "static void pruefe(String name, int erwartet, int erhalten) {",
+            "explain": "Hier beginnt die Methode „pruefe“ – ein Rezept mit Namen. Als Zutaten bekommt sie name (einen Text), erwartet (eine ganze Zahl) und erhalten (eine ganze Zahl) und liefert kein Ergebnis zurück (void = „leer“) – sie erledigt nur eine Aufgabe. static: Das Rezept gehört zur Kuchenform selbst – man braucht kein Objekt, um es zu benutzen.",
+            "terms": [
+              "static",
+              "void",
+              "String",
+              "int"
+            ]
+          },
+          {
+            "code": "    if (erwartet == erhalten) {",
+            "explain": "Hier stellt das Programm eine Frage: Stimmt „erwartet == erhalten“? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
+            "terms": [
+              "if",
+              "=="
+            ]
+          },
+          {
+            "code": "        System.out.println(\"OK: \" + name);",
+            "explain": "Schreibt den zusammengesetzten Text aus „OK: “ und dem Inhalt der Box „name“ (das + klebt die Teile aneinander) auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()",
+              "+"
+            ]
+          },
+          {
+            "code": "    } else {",
+            "explain": "Sonst (else): Wenn alle Fragen davor mit „nein“ beantwortet wurden, läuft stattdessen dieser Block.",
+            "terms": [
+              "else"
+            ]
+          },
+          {
+            "code": "        System.out.println(\"FEHLER: \" + name);",
+            "explain": "Schreibt den zusammengesetzten Text aus „FEHLER: “ und dem Inhalt der Box „name“ (das + klebt die Teile aneinander) auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()",
+              "+"
+            ]
+          },
+          {
+            "code": "    }",
+            "explain": "Hier endet der Sonst-Block (else)."
+          },
+          {
+            "code": "}",
+            "explain": "Hier endet die Methode (das Rezept) „pruefe“."
+          },
+          {
+            "code": ""
+          },
+          {
+            "code": "public static void main(String[] args) {",
+            "explain": "Die main-Methode ist der Startknopf des Programms: Hier beginnt Java, die Anweisungen von oben nach unten auszuführen. (public: von außen startbar · static: ohne Objekt nutzbar · void: liefert kein Ergebnis · String[] args: mögliche Startwerte.)",
+            "terms": [
+              "public",
+              "static",
+              "void",
+              "String",
+              "[]"
+            ]
+          },
+          {
+            "code": "    int summe = 5 + 7;",
+            "explain": "Hier erstellen wir eine Box namens „summe“ und legen das Ergebnis der Rechnung 5 + 7 hinein. Das Etikett int heißt: In diese Box passen nur ganze Zahlen.",
+            "terms": [
+              "int",
+              "=",
+              "+"
+            ]
+          },
+          {
+            "code": "    pruefe(\"summe\", {{0}}, summe);",
+            "explain": "Ruft das Rezept (die Methode) „pruefe“ auf und gibt ihm „summe“, 12 und summe als Zutat mit. Jetzt läuft der Code, der darin steht."
+          },
+          {
+            "code": "}",
+            "explain": "Hier endet die main-Methode – danach ist das Programm fertig."
+          }
+        ]
+      },
+      "blanks": [
+        {
+          "accepted": [
+            "12"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "u-test-2",
+      "type": "singleChoice",
+      "topicId": "testing",
+      "difficulty": 3,
+      "prompt": "Warum testet man auch den Fall „leere Liste“?",
+      "variantGroup": "t21-1",
+      "explanation": "Die meisten Fehler sitzen an den Rändern: leer, null, 0, negativ. Der Normalfall läuft oft schon.",
+      "choices": [
+        "Leere Listen kommen am häufigsten vor",
+        "Damit der Test länger wird",
+        "Weil Java das verlangt",
+        "Randfälle decken Fehler auf, die im Normalfall nicht auffallen"
+      ],
+      "correctIndex": 3
+    },
+    {
+      "id": "u-test-3",
+      "type": "code",
+      "topicId": "testing",
+      "difficulty": 4,
+      "prompt": "Prüfe mit pruefe(…), dass die Methode laenge für „Java“ den Wert 4 liefert.",
+      "variantGroup": "t21-5",
+      "explanation": "Ein Test vergleicht immer erwartet mit tatsächlich – hier 4 mit dem Ergebnis von laenge(\"Java\").",
+      "javaContext": "members",
+      "starterCode": {
+        "lines": [
+          {
+            "code": "static int laenge(String text) {",
+            "explain": "Hier beginnt die Methode „laenge“ – ein Rezept mit Namen. Als Zutaten bekommt sie text (einen Text) und liefert am Ende eine ganze Zahl als Ergebnis zurück. static: Das Rezept gehört zur Kuchenform selbst – man braucht kein Objekt, um es zu benutzen.",
+            "terms": [
+              "static",
+              "int",
+              "String"
+            ]
+          },
+          {
+            "code": "    return text.length();",
+            "explain": "Das Rezept ist fertig: Es gibt das Ergebnis von text.length() (die Anzahl der Zeichen) zurück an die Stelle, die es aufgerufen hat – wie ein Automat, der sein Produkt ausgibt.",
+            "terms": [
+              "return",
+              "length()"
+            ]
+          },
+          {
+            "code": "}",
+            "explain": "Hier endet die Methode (das Rezept) „laenge“."
+          },
+          {
+            "code": ""
+          },
+          {
+            "code": "static void pruefe(String name, int erwartet, int erhalten) {",
+            "explain": "Hier beginnt die Methode „pruefe“ – ein Rezept mit Namen. Als Zutaten bekommt sie name (einen Text), erwartet (eine ganze Zahl) und erhalten (eine ganze Zahl) und liefert kein Ergebnis zurück (void = „leer“) – sie erledigt nur eine Aufgabe. static: Das Rezept gehört zur Kuchenform selbst – man braucht kein Objekt, um es zu benutzen.",
+            "terms": [
+              "static",
+              "void",
+              "String",
+              "int"
+            ]
+          },
+          {
+            "code": "    if (erwartet == erhalten) {",
+            "explain": "Hier stellt das Programm eine Frage: Stimmt „erwartet == erhalten“? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
+            "terms": [
+              "if",
+              "=="
+            ]
+          },
+          {
+            "code": "        System.out.println(\"OK: \" + name);",
+            "explain": "Schreibt den zusammengesetzten Text aus „OK: “ und dem Inhalt der Box „name“ (das + klebt die Teile aneinander) auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()",
+              "+"
+            ]
+          },
+          {
+            "code": "    } else {",
+            "explain": "Sonst (else): Wenn alle Fragen davor mit „nein“ beantwortet wurden, läuft stattdessen dieser Block.",
+            "terms": [
+              "else"
+            ]
+          },
+          {
+            "code": "        System.out.println(\"FEHLER: \" + name);",
+            "explain": "Schreibt den zusammengesetzten Text aus „FEHLER: “ und dem Inhalt der Box „name“ (das + klebt die Teile aneinander) auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()",
+              "+"
+            ]
+          },
+          {
+            "code": "    }",
+            "explain": "Hier endet der Sonst-Block (else)."
+          },
+          {
+            "code": "}",
+            "explain": "Hier endet die Methode (das Rezept) „pruefe“."
+          },
+          {
+            "code": ""
+          },
+          {
+            "code": "public static void main(String[] args) {",
+            "explain": "Die main-Methode ist der Startknopf des Programms: Hier beginnt Java, die Anweisungen von oben nach unten auszuführen. (public: von außen startbar · static: ohne Objekt nutzbar · void: liefert kein Ergebnis · String[] args: mögliche Startwerte.)",
+            "terms": [
+              "public",
+              "static",
+              "void",
+              "String",
+              "[]"
+            ]
+          },
+          {
+            "code": "    // Deine Prüfung hier",
+            "explain": "Ein Notizzettel als Platzhalter („Deine Prüfung hier“): Genau an dieser Stelle schreibst du deinen eigenen Code hin. Java überliest Kommentare."
+          },
+          {
+            "code": "}",
+            "explain": "Hier endet die main-Methode – danach ist das Programm fertig."
+          },
+          {
+            "code": ""
+          }
+        ]
+      },
+      "sampleSolution": {
+        "lines": [
+          {
+            "code": "static int laenge(String text) {",
+            "explain": "Hier beginnt die Methode „laenge“ – ein Rezept mit Namen. Als Zutaten bekommt sie text (einen Text) und liefert am Ende eine ganze Zahl als Ergebnis zurück. static: Das Rezept gehört zur Kuchenform selbst – man braucht kein Objekt, um es zu benutzen.",
+            "terms": [
+              "static",
+              "int",
+              "String"
+            ]
+          },
+          {
+            "code": "    return text.length();",
+            "explain": "Das Rezept ist fertig: Es gibt das Ergebnis von text.length() (die Anzahl der Zeichen) zurück an die Stelle, die es aufgerufen hat – wie ein Automat, der sein Produkt ausgibt.",
+            "terms": [
+              "return",
+              "length()"
+            ]
+          },
+          {
+            "code": "}",
+            "explain": "Hier endet die Methode (das Rezept) „laenge“."
+          },
+          {
+            "code": ""
+          },
+          {
+            "code": "static void pruefe(String name, int erwartet, int erhalten) {",
+            "explain": "Hier beginnt die Methode „pruefe“ – ein Rezept mit Namen. Als Zutaten bekommt sie name (einen Text), erwartet (eine ganze Zahl) und erhalten (eine ganze Zahl) und liefert kein Ergebnis zurück (void = „leer“) – sie erledigt nur eine Aufgabe. static: Das Rezept gehört zur Kuchenform selbst – man braucht kein Objekt, um es zu benutzen.",
+            "terms": [
+              "static",
+              "void",
+              "String",
+              "int"
+            ]
+          },
+          {
+            "code": "    if (erwartet == erhalten) {",
+            "explain": "Hier stellt das Programm eine Frage: Stimmt „erwartet == erhalten“? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
+            "terms": [
+              "if",
+              "=="
+            ]
+          },
+          {
+            "code": "        System.out.println(\"OK: \" + name);",
+            "explain": "Schreibt den zusammengesetzten Text aus „OK: “ und dem Inhalt der Box „name“ (das + klebt die Teile aneinander) auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()",
+              "+"
+            ]
+          },
+          {
+            "code": "    } else {",
+            "explain": "Sonst (else): Wenn alle Fragen davor mit „nein“ beantwortet wurden, läuft stattdessen dieser Block.",
+            "terms": [
+              "else"
+            ]
+          },
+          {
+            "code": "        System.out.println(\"FEHLER: \" + name);",
+            "explain": "Schreibt den zusammengesetzten Text aus „FEHLER: “ und dem Inhalt der Box „name“ (das + klebt die Teile aneinander) auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()",
+              "+"
+            ]
+          },
+          {
+            "code": "    }",
+            "explain": "Hier endet der Sonst-Block (else)."
+          },
+          {
+            "code": "}",
+            "explain": "Hier endet die Methode (das Rezept) „pruefe“."
+          },
+          {
+            "code": ""
+          },
+          {
+            "code": "public static void main(String[] args) {",
+            "explain": "Die main-Methode ist der Startknopf des Programms: Hier beginnt Java, die Anweisungen von oben nach unten auszuführen. (public: von außen startbar · static: ohne Objekt nutzbar · void: liefert kein Ergebnis · String[] args: mögliche Startwerte.)",
+            "terms": [
+              "public",
+              "static",
+              "void",
+              "String",
+              "[]"
+            ]
+          },
+          {
+            "code": "    pruefe(\"laenge(Java)\", 4, laenge(\"Java\"));",
+            "explain": "Ruft das Rezept (die Methode) „pruefe“ auf und gibt ihm „laenge(Java)“, 4 und laenge(\"Java\") als Zutat mit. Jetzt läuft der Code, der darin steht."
+          },
+          {
+            "code": "}",
+            "explain": "Hier endet die main-Methode – danach ist das Programm fertig."
+          }
+        ]
+      },
+      "expectedOutput": "OK: laenge(Java)",
+      "rules": [
+        {
+          "rule": "require",
+          "pattern": "pruefe\\s*\\(",
+          "message": "Rufe pruefe(…) auf."
+        },
+        {
+          "rule": "require",
+          "pattern": "laenge\\s*\\(",
+          "message": "Rufe die zu prüfende Methode auf."
+        },
+        {
+          "rule": "require",
+          "pattern": "\\b4\\b",
+          "message": "Der erwartete Wert ist 4."
+        }
+      ]
+    },
+    {
+      "id": "u-tool-1",
+      "type": "singleChoice",
+      "topicId": "tooling",
+      "difficulty": 2,
+      "prompt": "Warum sieht ein Paketname oft aus wie eine umgedrehte Internetadresse?",
+      "variantGroup": "t22-1",
+      "explanation": "de.schule.mathe gehört zur Domain schule.de. So kollidieren Pakete verschiedener Anbieter nicht.",
+      "choices": [
+        "Damit das Programm schneller lädt",
+        "Damit man die Datei leichter findet",
+        "Damit er weltweit eindeutig bleibt",
+        "Weil Java das erzwingt"
+      ],
+      "correctIndex": 2
+    },
+    {
+      "id": "u-tool-2",
+      "type": "predictOutput",
+      "topicId": "tooling",
+      "difficulty": 3,
+      "prompt": "Was wird ausgegeben?",
+      "variantGroup": "t22-3",
+      "code": {
+        "lines": [
+          {
+            "code": "List<String> liste = new ArrayList<>();",
+            "explain": "Hier erstellen wir mit new eine ArrayList – eine Liste, die wachsen kann wie ein Einkaufszettel – noch leer – und legen sie in die Box „liste“. Das Etikett List<String> heißt: Darin liegt eine Liste, und auf ihr dürfen nur Texte (String) stehen. Auf dem Etikett steht allgemein „List“, drin liegt eine ArrayList – so kann man später leicht eine andere Sorte nehmen.",
+            "terms": [
+              "List",
+              "<>",
+              "String",
+              "=",
+              "new",
+              "ArrayList"
+            ]
+          },
+          {
+            "code": "try {",
+            "explain": "Beginnt einen Versuch mit Sicherheitsnetz (try): Geht in diesem Block etwas schief – Java nennt das eine Exception, also einen Alarm –, stürzt das Programm nicht ab. Stattdessen fängt das passende catch den Alarm auf.",
+            "terms": [
+              "try"
+            ]
+          },
+          {
+            "code": "    System.out.println(liste.get(0));",
+            "explain": "Schreibt das Ergebnis von liste.get(0) (den gespeicherten Eintrag) auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()",
+              "get()"
+            ]
+          },
+          {
+            "code": "} catch (IndexOutOfBoundsException e) {",
+            "explain": "Das Sicherheitsnetz (catch) für den Alarm IndexOutOfBoundsException. Wurde im try-Block genau dieser Alarm ausgelöst, landet das Programm hier, statt abzustürzen. In „e“ stehen die Details zum Fehler.",
+            "terms": [
+              "catch"
+            ]
+          },
+          {
+            "code": "    System.out.println(\"Liste ist leer\");",
+            "explain": "Schreibt den Text „Liste ist leer“ auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()"
+            ]
+          },
+          {
+            "code": "}",
+            "explain": "Hier endet das Sicherheitsnetz (catch)."
+          }
+        ]
+      },
+      "explanation": "In der leeren Liste gibt es kein Fach 0. Der Alarm nennt genau das – das Netz fängt ihn auf.",
+      "expectedOutput": "Liste ist leer"
+    },
+    {
+      "id": "u-tool-3",
+      "type": "predictOutput",
+      "topicId": "tooling",
+      "difficulty": 4,
+      "prompt": "Der Code soll jeden zweiten Buchstaben ausgeben, liefert aber zu viel. Was kommt heraus?",
+      "variantGroup": "t22-5",
+      "code": {
+        "lines": [
+          {
+            "code": "String wort = \"Java\";",
+            "explain": "Hier erstellen wir eine Box namens „wort“ und legen den Text „Java“ hinein. Das Etikett String heißt: In diese Box passen Texte.",
+            "terms": [
+              "String",
+              "="
+            ]
+          },
+          {
+            "code": "for (int i = 0; i < wort.length(); i++) {",
+            "explain": "Eine Schleife: Das Programm wiederholt die Zeilen im Block mehrmals. Der Zähler „i“ startet bei 0. Vor jeder Runde fragt das Programm „i < wort.length()?“ – nur bei „ja“ gibt es eine weitere Runde. Nach jeder Runde wird „i“ um 1 erhöht.",
+            "terms": [
+              "for",
+              "int",
+              "=",
+              "<",
+              "length()",
+              "++"
+            ]
+          },
+          {
+            "code": "    System.out.print(wort.charAt(i));",
+            "explain": "Schreibt das Ergebnis von wort.charAt(i) (das Zeichen an dieser Position) auf den Bildschirm – aber ohne neue Zeile: Die nächste Ausgabe kommt direkt dahinter.",
+            "terms": [
+              "System.out",
+              "print()",
+              "charAt()"
+            ]
+          },
+          {
+            "code": "}",
+            "explain": "Hier endet eine Runde der Schleife. Das Programm springt wieder nach oben und prüft, ob noch eine Runde kommt."
+          }
+        ]
+      },
+      "explanation": "Der Schritt i++ geht jede Stelle durch. Für jeden zweiten Buchstaben müsste dort i += 2 stehen.",
+      "expectedOutput": "Java"
+    },
+    {
+      "id": "u-inh-1",
+      "type": "predictOutput",
+      "topicId": "inheritance",
+      "difficulty": 3,
+      "prompt": "Was wird ausgegeben?",
+      "variantGroup": "t09-4",
+      "code": {
+        "lines": [
+          {
+            "code": "interface Zahlbar {",
+            "explain": "Hier beginnt das Interface „Zahlbar“ – ein Vertrag: Es legt nur fest, WAS eine Klasse können muss (welche Methoden), aber nicht WIE.",
+            "terms": [
+              "interface"
+            ]
+          },
+          {
+            "code": "    double betrag();",
+            "explain": "Hier steht nur der Name des Rezepts „betrag“ – ohne Anleitung. Sie braucht keine Zutaten und liefert am Ende eine Kommazahl als Ergebnis zurück. Jede Klasse, die den Vertrag „Zahlbar“ unterschreibt, muss die Anleitung selbst liefern.",
+            "terms": [
+              "double"
+            ]
+          },
+          {
+            "code": "}",
+            "explain": "Hier endet das Interface (der Vertrag) „Zahlbar“."
+          },
+          {
+            "code": ""
+          },
+          {
+            "code": "class Rechnung implements Zahlbar {",
+            "explain": "Hier beginnt die Klasse „Rechnung“. Stell sie dir als Kuchenform vor: Sie beschreibt, welche Eigenschaften und Fähigkeiten jedes Objekt vom Typ Rechnung hat. Die echten Objekte sind die Kuchen, die später mit new aus dieser Form gebacken werden. implements Zahlbar: Die Klasse unterschreibt einen Vertrag – sie verspricht, alle Methoden anzubieten, die Zahlbar verlangt.",
+            "terms": [
+              "class",
+              "implements"
+            ]
+          },
+          {
+            "code": "    public double betrag() {",
+            "explain": "Hier beginnt die Methode „betrag“ – ein Rezept mit Namen. Sie braucht keine Zutaten und liefert am Ende eine Kommazahl als Ergebnis zurück. public: Jeder darf dieses Rezept benutzen.",
+            "terms": [
+              "public",
+              "double"
+            ]
+          },
+          {
+            "code": "        return 19.99;",
+            "explain": "Das Rezept ist fertig: Es gibt die Kommazahl 19.99 zurück an die Stelle, die es aufgerufen hat – wie ein Automat, der sein Produkt ausgibt.",
+            "terms": [
+              "return"
+            ]
+          },
+          {
+            "code": "    }",
+            "explain": "Hier endet die Methode (das Rezept) „betrag“."
+          },
+          {
+            "code": "}",
+            "explain": "Hier endet die Klasse „Rechnung“ – die Kuchenform ist fertig beschrieben."
+          },
+          {
+            "code": ""
+          },
+          {
+            "code": "public class Main {",
+            "explain": "Hier beginnt die Klasse „Main“. In Java muss jedes Programm in so einer Klasse stehen – hier dient sie nur als Behälter für unser Programm, nicht als Kuchenform für Objekte. Die geschweifte Klammer { öffnet den Behälter.",
+            "terms": [
+              "public",
+              "class"
+            ]
+          },
+          {
+            "code": "    public static void main(String[] args) {",
+            "explain": "Die main-Methode ist der Startknopf des Programms: Hier beginnt Java, die Anweisungen von oben nach unten auszuführen. (public: von außen startbar · static: ohne Objekt nutzbar · void: liefert kein Ergebnis · String[] args: mögliche Startwerte.)",
+            "terms": [
+              "public",
+              "static",
+              "void",
+              "String",
+              "[]"
+            ]
+          },
+          {
+            "code": "        Zahlbar z = new Rechnung();",
+            "explain": "Hier backen wir mit new aus der Kuchenform „Rechnung“ ein neues Objekt und legen es in die Box „z“. Das Etikett Zahlbar heißt: In diese Box passt ein Objekt vom Typ Zahlbar. Achtung, spannend: Das Etikett sagt „Zahlbar“, drin liegt aber ein Rechnung-Objekt. Das passt, denn jedes Rechnung-Objekt zählt auch als Zahlbar-Objekt (es wurde aus einer erweiterten Zahlbar-Form gebacken). Fragt man es später etwas, antwortet trotzdem das Rechnung-Objekt – das nennt man Polymorphie („Vielgestaltigkeit“).",
+            "terms": [
+              "=",
+              "new"
+            ]
+          },
+          {
+            "code": "        System.out.println(z.betrag());",
+            "explain": "Schreibt das Ergebnis von z.betrag() auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()"
+            ]
+          },
+          {
+            "code": "    }",
+            "explain": "Hier endet die main-Methode – danach ist das Programm fertig."
+          },
+          {
+            "code": "}",
+            "explain": "Hier endet die Klasse „Main“ – der Behälter um unser Programm ist zu."
+          }
+        ]
+      },
+      "explanation": "Auf dem Etikett steht der Vertrag (Zahlbar), drin liegt eine Rechnung – aufgerufen wird ihre Methode.",
+      "javaContext": "file",
+      "expectedOutput": "19.99"
+    },
+    {
+      "id": "u-inh-2",
+      "type": "singleChoice",
+      "topicId": "inheritance",
+      "difficulty": 3,
+      "prompt": "Was passiert, wenn eine Klasse ein Interface umsetzt, aber eine Methode vergisst?",
+      "variantGroup": "t09-4",
+      "explanation": "Ein Vertrag gilt vollständig: Fehlt eine verlangte Methode, lässt Java die Klasse gar nicht erst übersetzen.",
+      "choices": [
+        "Das Programm startet, stürzt aber ab",
+        "Der Compiler meldet einen Fehler",
+        "Die Methode wird automatisch ergänzt",
+        "Sie gibt beim Aufruf null zurück"
+      ],
+      "correctIndex": 1
+    },
+    {
+      "id": "u-inh-3",
+      "type": "fillBlank",
+      "topicId": "inheritance",
+      "difficulty": 4,
+      "prompt": "Ergänze den Aufruf des Eltern-Konstruktors.",
+      "variantGroup": "t09-5",
+      "explanation": "super(…) reicht die Startwerte an die Eltern-Klasse weiter, bevor die Kind-Klasse weitermacht.",
+      "javaContext": "file",
+      "verify": {
+        "context": "file",
+        "output": "Rex"
+      },
+      "template": {
+        "lines": [
+          {
+            "code": "class Tier {",
+            "explain": "Hier beginnt die Klasse „Tier“. Stell sie dir als Kuchenform vor: Sie beschreibt, welche Eigenschaften und Fähigkeiten jedes Objekt vom Typ Tier hat. Die echten Objekte sind die Kuchen, die später mit new aus dieser Form gebacken werden.",
+            "terms": [
+              "class"
+            ]
+          },
+          {
+            "code": "    String name;",
+            "explain": "Jedes Objekt, das aus dieser Kuchenform gebacken wird, bekommt ein eigenes Fach namens „name“. Das Etikett String heißt: In dieses Fach passen Texte.",
+            "terms": [
+              "String"
+            ]
+          },
+          {
+            "code": ""
+          },
+          {
+            "code": "    Tier(String name) {",
+            "explain": "Das ist der Konstruktor – die Backanleitung, die automatisch abläuft, sobald mit new Tier(…) ein neues Objekt gebacken wird. Als Zutaten bekommt er name (einen Text). Hier bekommt das neue Objekt seine Startwerte.",
+            "terms": [
+              "String"
+            ]
+          },
+          {
+            "code": "        this.name = name;",
+            "explain": "Legt die mitgegebene Zutat „name“ in das Fach „name“ genau dieses Objekts. this.name meint das Fach („dieser Kuchen hier“), name allein die mitgegebene Zutat.",
+            "terms": [
+              "this",
+              "="
+            ]
+          },
+          {
+            "code": "    }",
+            "explain": "Hier endet der Konstruktor (die Backanleitung)."
+          },
+          {
+            "code": "}",
+            "explain": "Hier endet die Klasse „Tier“ – die Kuchenform ist fertig beschrieben."
+          },
+          {
+            "code": ""
+          },
+          {
+            "code": "class Hund extends Tier {",
+            "explain": "Hier beginnt die Klasse „Hund“. Stell sie dir als Kuchenform vor: Sie beschreibt, welche Eigenschaften und Fähigkeiten jedes Objekt vom Typ Hund hat. Die echten Objekte sind die Kuchen, die später mit new aus dieser Form gebacken werden. extends Tier: „Hund“ ist eine erweiterte Tier-Form. Sie übernimmt (erbt) alles, was Tier hat und kann, und darf Dinge ergänzen oder ändern.",
+            "terms": [
+              "class",
+              "extends"
+            ]
+          },
+          {
+            "code": "    Hund(String name) {",
+            "explain": "Das ist der Konstruktor – die Backanleitung, die automatisch abläuft, sobald mit new Hund(…) ein neues Objekt gebacken wird. Als Zutaten bekommt er name (einen Text). Hier bekommt das neue Objekt seine Startwerte.",
+            "terms": [
+              "String"
+            ]
+          },
+          {
+            "code": "        {{0}}(name);",
+            "explain": "Ruft zuerst die Backanleitung (den Konstruktor) der Eltern-Form auf und gibt ihr name als Zutaten mit. Damit sind die geerbten Fächer gefüllt."
+          },
+          {
+            "code": "    }",
+            "explain": "Hier endet der Konstruktor (die Backanleitung)."
+          },
+          {
+            "code": "}",
+            "explain": "Hier endet die Klasse „Hund“ – die Kuchenform ist fertig beschrieben."
+          },
+          {
+            "code": ""
+          },
+          {
+            "code": "public class Main {",
+            "explain": "Hier beginnt die Klasse „Main“. In Java muss jedes Programm in so einer Klasse stehen – hier dient sie nur als Behälter für unser Programm, nicht als Kuchenform für Objekte. Die geschweifte Klammer { öffnet den Behälter.",
+            "terms": [
+              "public",
+              "class"
+            ]
+          },
+          {
+            "code": "    public static void main(String[] args) {",
+            "explain": "Die main-Methode ist der Startknopf des Programms: Hier beginnt Java, die Anweisungen von oben nach unten auszuführen. (public: von außen startbar · static: ohne Objekt nutzbar · void: liefert kein Ergebnis · String[] args: mögliche Startwerte.)",
+            "terms": [
+              "public",
+              "static",
+              "void",
+              "String",
+              "[]"
+            ]
+          },
+          {
+            "code": "        System.out.println(new Hund(\"Rex\").name);",
+            "explain": "Schreibt das Ergebnis von new Hund(\"Rex\").name auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()",
+              "new"
+            ]
+          },
+          {
+            "code": "    }",
+            "explain": "Hier endet die main-Methode – danach ist das Programm fertig."
+          },
+          {
+            "code": "}",
+            "explain": "Hier endet die Klasse „Main“ – der Behälter um unser Programm ist zu."
+          }
+        ]
+      },
+      "blanks": [
+        {
+          "accepted": [
+            "super"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "u-mod-1",
+      "type": "predictOutput",
+      "topicId": "modern",
+      "difficulty": 3,
+      "prompt": "Was wird ausgegeben?",
+      "variantGroup": "t13-1",
+      "code": {
+        "lines": [
+          {
+            "code": "record Person(String name, int alter) {}",
+            "explain": "Hier definieren wir den Record „Person“ – wie ein Formular mit festen Feldern: name (einen Text) und alter (eine ganze Zahl). Den Rest erledigt Java automatisch: Konstruktor, Lesemethoden name() und alter(), Vergleich (equals) und Textdarstellung (toString). Die leeren Klammern {} heißen: Mehr braucht es nicht.",
+            "terms": [
+              "record",
+              "String",
+              "int"
+            ]
+          },
+          {
+            "code": ""
+          },
+          {
+            "code": "public class Main {",
+            "explain": "Hier beginnt die Klasse „Main“. In Java muss jedes Programm in so einer Klasse stehen – hier dient sie nur als Behälter für unser Programm, nicht als Kuchenform für Objekte. Die geschweifte Klammer { öffnet den Behälter.",
+            "terms": [
+              "public",
+              "class"
+            ]
+          },
+          {
+            "code": "    public static void main(String[] args) {",
+            "explain": "Die main-Methode ist der Startknopf des Programms: Hier beginnt Java, die Anweisungen von oben nach unten auszuführen. (public: von außen startbar · static: ohne Objekt nutzbar · void: liefert kein Ergebnis · String[] args: mögliche Startwerte.)",
+            "terms": [
+              "public",
+              "static",
+              "void",
+              "String",
+              "[]"
+            ]
+          },
+          {
+            "code": "        Person p = new Person(\"Ada\", 36);",
+            "explain": "Hier backen wir mit new aus der Kuchenform „Person“ ein neues Objekt mit den Zutaten „Ada“ und 36 und legen es in die Box „p“. Das Etikett Person heißt: In diese Box passt ein Objekt vom Typ Person.",
+            "terms": [
+              "=",
+              "new"
+            ]
+          },
+          {
+            "code": "        System.out.println(p.name() + \" ist \" + p.alter());",
+            "explain": "Schreibt den zusammengesetzten Text aus dem Ergebnis von p.name(), „ ist “ und dem Ergebnis von p.alter() (das + klebt die Teile aneinander) auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()",
+              "+"
+            ]
+          },
+          {
+            "code": "    }",
+            "explain": "Hier endet die main-Methode – danach ist das Programm fertig."
+          },
+          {
+            "code": "}",
+            "explain": "Hier endet die Klasse „Main“ – der Behälter um unser Programm ist zu."
+          }
+        ]
+      },
+      "explanation": "Der Record erzeugt zu jedem Feld eine Lesemethode – p.name() und p.alter().",
+      "javaContext": "file",
+      "expectedOutput": "Ada ist 36"
+    },
+    {
+      "id": "u-mod-2",
+      "type": "predictOutput",
+      "topicId": "modern",
+      "difficulty": 4,
+      "prompt": "Was wird ausgegeben?",
+      "variantGroup": "t13-3",
+      "code": {
+        "lines": [
+          {
+            "code": "Optional<String> leer = Optional.empty();",
+            "explain": "Hier erstellen wir eine Box namens „leer“ und legen eine leere Schachtel (Optional) hinein. Das Etikett Optional<String> heißt: Darin liegt eine Schachtel (Optional), die etwas enthalten kann – oder leer ist.",
+            "terms": [
+              "Optional",
+              "<>",
+              "String",
+              "=",
+              "Optional.empty"
+            ]
+          },
+          {
+            "code": "System.out.println(leer.isPresent());",
+            "explain": "Schreibt das Ergebnis von leer.isPresent() (true, wenn etwas drin ist) auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()",
+              "isPresent()"
+            ]
+          },
+          {
+            "code": "System.out.println(leer.orElse(\"nichts da\"));",
+            "explain": "Schreibt das Ergebnis von leer.orElse(\"nichts da\") (den Inhalt oder den Ersatzwert) auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()",
+              "orElse()"
+            ]
+          }
+        ]
+      },
+      "explanation": "isPresent fragt, ob etwas in der Schachtel liegt. orElse liefert den Ersatz, wenn sie leer ist.",
+      "expectedOutput": "false\nnichts da"
+    },
+    {
+      "id": "u-mod-3",
+      "type": "singleChoice",
+      "topicId": "modern",
+      "difficulty": 3,
+      "prompt": "Warum haben Records keine Setter?",
+      "variantGroup": "t13-1",
+      "explanation": "Ein Record ist wie ein ausgefülltes Formular: Wer etwas ändern will, füllt ein neues aus.",
+      "choices": [
+        "Setter sind in Java abgeschafft",
+        "Records haben keine Felder",
+        "Setter müsste man selbst schreiben, sie fehlen nur zufällig",
+        "Ein Record ist unveränderlich – die Werte stehen nach dem Erzeugen fest"
+      ],
+      "correctIndex": 3
+    },
+    {
+      "id": "u-enum-1",
+      "type": "fillBlank",
+      "topicId": "enums",
+      "difficulty": 3,
+      "prompt": "Ergänze den switch über das enum.",
+      "variantGroup": "t14-3",
+      "explanation": "Beim enum kennt Java alle Fälle – deshalb braucht dieser switch keinen default-Zweig.",
+      "javaContext": "file",
+      "verify": {
+        "context": "file",
+        "output": "Schirm"
+      },
+      "template": {
+        "lines": [
+          {
+            "code": "enum Wetter { SONNE, REGEN }",
+            "explain": "Hier legen wir die Aufzählung (enum) „Wetter“ an – eine feste Auswahl mit genau 2 erlaubten Werten: SONNE und REGEN. Andere Werte kann es nicht geben.",
+            "terms": [
+              "enum"
+            ]
+          },
+          {
+            "code": ""
+          },
+          {
+            "code": "public class Main {",
+            "explain": "Hier beginnt die Klasse „Main“. In Java muss jedes Programm in so einer Klasse stehen – hier dient sie nur als Behälter für unser Programm, nicht als Kuchenform für Objekte. Die geschweifte Klammer { öffnet den Behälter.",
+            "terms": [
+              "public",
+              "class"
+            ]
+          },
+          {
+            "code": "    public static void main(String[] args) {",
+            "explain": "Die main-Methode ist der Startknopf des Programms: Hier beginnt Java, die Anweisungen von oben nach unten auszuführen. (public: von außen startbar · static: ohne Objekt nutzbar · void: liefert kein Ergebnis · String[] args: mögliche Startwerte.)",
+            "terms": [
+              "public",
+              "static",
+              "void",
+              "String",
+              "[]"
+            ]
+          },
+          {
+            "code": "        Wetter heute = Wetter.REGEN;",
+            "explain": "Hier erstellen wir eine Box namens „heute“ und legen den festen Wert REGEN aus „Wetter“ hinein. Das Etikett Wetter heißt: In diese Box passt nur einer der festen Wetter-Werte.",
+            "terms": [
+              "="
+            ]
+          },
+          {
+            "code": "        String tipp = {{0}} (heute) {",
+            "explain": "Hier erstellen wir eine Box namens „tipp“. Was hineinkommt, entscheidet der folgende Weichensteller (switch) anhand von „heute“. Das Etikett String heißt: In diese Box passen Texte.",
+            "terms": [
+              "String",
+              "="
+            ]
+          },
+          {
+            "code": "            case SONNE -> \"Sonnenbrille\";",
+            "explain": "Ist der Wert SONNE, liefert der Weichensteller den Text „Sonnenbrille“.",
+            "terms": [
+              "case",
+              "->"
+            ]
+          },
+          {
+            "code": "            case REGEN -> \"Schirm\";",
+            "explain": "Ist der Wert REGEN, liefert der Weichensteller den Text „Schirm“.",
+            "terms": [
+              "case",
+              "->"
+            ]
+          },
+          {
+            "code": "        };",
+            "explain": "Hier endet der Weichensteller (switch-Ausdruck). Das Semikolon beendet die ganze Anweisung."
+          },
+          {
+            "code": "        System.out.println(tipp);",
+            "explain": "Schreibt den Inhalt der Box „tipp“ auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()"
+            ]
+          },
+          {
+            "code": "    }",
+            "explain": "Hier endet die main-Methode – danach ist das Programm fertig."
+          },
+          {
+            "code": "}",
+            "explain": "Hier endet die Klasse „Main“ – der Behälter um unser Programm ist zu."
+          }
+        ]
+      },
+      "blanks": [
+        {
+          "accepted": [
+            "switch"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "u-enum-2",
+      "type": "predictOutput",
+      "topicId": "enums",
+      "difficulty": 3,
+      "prompt": "Was wird ausgegeben?",
+      "variantGroup": "t14-5",
+      "code": {
+        "lines": [
+          {
+            "code": "enum Stufe { LEICHT, MITTEL, SCHWER }",
+            "explain": "Hier legen wir die Aufzählung (enum) „Stufe“ an – eine feste Auswahl mit genau 3 erlaubten Werten: LEICHT, MITTEL und SCHWER. Andere Werte kann es nicht geben.",
+            "terms": [
+              "enum"
+            ]
+          },
+          {
+            "code": ""
+          },
+          {
+            "code": "public class Main {",
+            "explain": "Hier beginnt die Klasse „Main“. In Java muss jedes Programm in so einer Klasse stehen – hier dient sie nur als Behälter für unser Programm, nicht als Kuchenform für Objekte. Die geschweifte Klammer { öffnet den Behälter.",
+            "terms": [
+              "public",
+              "class"
+            ]
+          },
+          {
+            "code": "    public static void main(String[] args) {",
+            "explain": "Die main-Methode ist der Startknopf des Programms: Hier beginnt Java, die Anweisungen von oben nach unten auszuführen. (public: von außen startbar · static: ohne Objekt nutzbar · void: liefert kein Ergebnis · String[] args: mögliche Startwerte.)",
+            "terms": [
+              "public",
+              "static",
+              "void",
+              "String",
+              "[]"
+            ]
+          },
+          {
+            "code": "        System.out.println(Stufe.values().length);",
+            "explain": "Schreibt die Anzahl der Werte in Stufe.values() auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()",
+              "values()",
+              "length()"
+            ]
+          },
+          {
+            "code": "        System.out.println(Stufe.SCHWER.ordinal());",
+            "explain": "Schreibt das Ergebnis von Stufe.SCHWER.ordinal() (die Position, gezählt ab 0) auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()",
+              "ordinal()"
+            ]
+          },
+          {
+            "code": "    }",
+            "explain": "Hier endet die main-Methode – danach ist das Programm fertig."
+          },
+          {
+            "code": "}",
+            "explain": "Hier endet die Klasse „Main“ – der Behälter um unser Programm ist zu."
+          }
+        ]
+      },
+      "explanation": "values() liefert alle Werte – hier drei. ordinal() zählt ab 0, SCHWER steht an dritter Stelle.",
+      "javaContext": "file",
+      "expectedOutput": "3\n2"
+    },
+    {
+      "id": "u-enum-3",
+      "type": "singleChoice",
+      "topicId": "enums",
+      "difficulty": 4,
+      "prompt": "Wann lohnt sich ein static-Feld?",
+      "variantGroup": "t14-4",
+      "explanation": "static gehört der Kuchenform selbst – etwa ein Zähler, der über alle Objekte hinweg mitläuft.",
+      "choices": [
+        "Wenn der Wert sich nie ändern darf",
+        "Wenn das Feld privat sein soll",
+        "Wenn sich alle Objekte denselben Wert teilen sollen",
+        "Wenn jedes Objekt einen eigenen Wert braucht"
+      ],
+      "correctIndex": 2
+    },
+    {
+      "id": "u-obj-1",
+      "type": "predictOutput",
+      "topicId": "objectmethods",
+      "difficulty": 4,
+      "prompt": "Was wird ausgegeben?",
+      "variantGroup": "t15-4",
+      "code": {
+        "lines": [
+          {
+            "code": "abstract class Form {",
+            "explain": "Hier beginnt die Klasse „Form“. Stell sie dir als Kuchenform vor: Sie beschreibt, welche Eigenschaften und Fähigkeiten jedes Objekt vom Typ Form hat. Die echten Objekte sind die Kuchen, die später mit new aus dieser Form gebacken werden. abstract: Eine unfertige Form – aus ihr selbst kann man keine Kuchen backen, nur aus ihren Erweiterungen.",
+            "terms": [
+              "abstract",
+              "class"
+            ]
+          },
+          {
+            "code": "    abstract double flaeche();",
+            "explain": "Hier steht nur der Name des Rezepts „flaeche“ – ohne Anleitung (abstract). Sie braucht keine Zutaten und liefert am Ende eine Kommazahl als Ergebnis zurück. Jede Kind-Klasse, die „Form“ erweitert (extends), muss die fehlende Anleitung selbst liefern.",
+            "terms": [
+              "abstract",
+              "double"
+            ]
+          },
+          {
+            "code": ""
+          },
+          {
+            "code": "    @Override",
+            "explain": "@Override ist ein Hinweiszettel: „Die folgende Methode ersetzt die gleichnamige Methode der Eltern-Form.“ Java prüft, ob es diese Methode dort wirklich gibt – so fallen Tippfehler sofort auf.",
+            "terms": [
+              "Override"
+            ]
+          },
+          {
+            "code": "    public String toString() {",
+            "explain": "Hier beginnt die Methode „toString“ – ein Rezept mit Namen. Sie braucht keine Zutaten und liefert am Ende einen Text als Ergebnis zurück. public: Jeder darf dieses Rezept benutzen.",
+            "terms": [
+              "public",
+              "String",
+              "toString()"
+            ]
+          },
+          {
+            "code": "        return \"Flaeche: \" + flaeche();",
+            "explain": "Das Rezept ist fertig: Es gibt den zusammengesetzten Text aus „Flaeche: “ und dem Ergebnis von flaeche() (das + klebt die Teile aneinander) zurück an die Stelle, die es aufgerufen hat – wie ein Automat, der sein Produkt ausgibt.",
+            "terms": [
+              "return",
+              "+"
+            ]
+          },
+          {
+            "code": "    }",
+            "explain": "Hier endet die Methode (das Rezept) „toString“."
+          },
+          {
+            "code": "}",
+            "explain": "Hier endet die Klasse „Form“ – die Kuchenform ist fertig beschrieben."
+          },
+          {
+            "code": ""
+          },
+          {
+            "code": "class Quadrat extends Form {",
+            "explain": "Hier beginnt die Klasse „Quadrat“. Stell sie dir als Kuchenform vor: Sie beschreibt, welche Eigenschaften und Fähigkeiten jedes Objekt vom Typ Quadrat hat. Die echten Objekte sind die Kuchen, die später mit new aus dieser Form gebacken werden. extends Form: „Quadrat“ ist eine erweiterte Form-Form. Sie übernimmt (erbt) alles, was Form hat und kann, und darf Dinge ergänzen oder ändern.",
+            "terms": [
+              "class",
+              "extends"
+            ]
+          },
+          {
+            "code": "    private double seite = 4;",
+            "explain": "Jedes Objekt, das aus dieser Kuchenform gebacken wird, bekommt ein eigenes Fach namens „seite“ und darin zu Beginn die Zahl 4. Das Etikett double heißt: In dieses Fach passen Kommazahlen (mit Punkt geschrieben, z. B. 9.99). private: Nur die Klasse selbst darf in dieses Fach schauen – von außen ist es verschlossen.",
+            "terms": [
+              "private",
+              "double",
+              "="
+            ]
+          },
+          {
+            "code": ""
+          },
+          {
+            "code": "    @Override",
+            "explain": "@Override ist ein Hinweiszettel: „Die folgende Methode ersetzt die gleichnamige Methode der Eltern-Form.“ Java prüft, ob es diese Methode dort wirklich gibt – so fallen Tippfehler sofort auf.",
+            "terms": [
+              "Override"
+            ]
+          },
+          {
+            "code": "    double flaeche() {",
+            "explain": "Hier beginnt die Methode „flaeche“ – ein Rezept mit Namen. Sie braucht keine Zutaten und liefert am Ende eine Kommazahl als Ergebnis zurück.",
+            "terms": [
+              "double"
+            ]
+          },
+          {
+            "code": "        return seite * seite;",
+            "explain": "Das Rezept ist fertig: Es gibt das Ergebnis der Rechnung seite * seite zurück an die Stelle, die es aufgerufen hat – wie ein Automat, der sein Produkt ausgibt.",
+            "terms": [
+              "return",
+              "*"
+            ]
+          },
+          {
+            "code": "    }",
+            "explain": "Hier endet die Methode (das Rezept) „flaeche“."
+          },
+          {
+            "code": "}",
+            "explain": "Hier endet die Klasse „Quadrat“ – die Kuchenform ist fertig beschrieben."
+          },
+          {
+            "code": ""
+          },
+          {
+            "code": "public class Main {",
+            "explain": "Hier beginnt die Klasse „Main“. In Java muss jedes Programm in so einer Klasse stehen – hier dient sie nur als Behälter für unser Programm, nicht als Kuchenform für Objekte. Die geschweifte Klammer { öffnet den Behälter.",
+            "terms": [
+              "public",
+              "class"
+            ]
+          },
+          {
+            "code": "    public static void main(String[] args) {",
+            "explain": "Die main-Methode ist der Startknopf des Programms: Hier beginnt Java, die Anweisungen von oben nach unten auszuführen. (public: von außen startbar · static: ohne Objekt nutzbar · void: liefert kein Ergebnis · String[] args: mögliche Startwerte.)",
+            "terms": [
+              "public",
+              "static",
+              "void",
+              "String",
+              "[]"
+            ]
+          },
+          {
+            "code": "        System.out.println(new Quadrat());",
+            "explain": "Schreibt ein frisch gebackenes Objekt aus der Kuchenform „Quadrat“ auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()",
+              "new"
+            ]
+          },
+          {
+            "code": "    }",
+            "explain": "Hier endet die main-Methode – danach ist das Programm fertig."
+          },
+          {
+            "code": "}",
+            "explain": "Hier endet die Klasse „Main“ – der Behälter um unser Programm ist zu."
+          }
+        ]
+      },
+      "explanation": "Die abstrakte Klasse liefert schon toString, die Kind-Klasse ergänzt nur die fehlende Rechnung.",
+      "javaContext": "file",
+      "expectedOutput": "Flaeche: 16.0"
+    },
+    {
+      "id": "u-obj-2",
+      "type": "singleChoice",
+      "topicId": "objectmethods",
+      "difficulty": 3,
+      "prompt": "Was liefert == bei zwei Objekten mit gleichem Inhalt?",
+      "variantGroup": "t15-2",
+      "explanation": "== fragt: derselbe Kuchen? Zwei getrennt gebackene Kuchen sind nie derselbe – dafür gibt es equals.",
+      "choices": [
+        "Das hängt vom Typ ab",
+        "false, solange es zwei verschiedene Objekte sind",
+        "Immer true",
+        "Immer false"
+      ],
+      "correctIndex": 1
+    },
+    {
+      "id": "u-io-1",
+      "type": "predictOutput",
+      "topicId": "io",
+      "difficulty": 3,
+      "prompt": "Was wird ausgegeben?",
+      "variantGroup": "t16-5",
+      "code": {
+        "lines": [
+          {
+            "code": "StringBuilder sb = new StringBuilder();",
+            "explain": "Hier erstellen wir mit new einen Notizblock für Text (StringBuilder) und legen ihn in die Box „sb“. Das Etikett StringBuilder heißt: Darin liegt ein Notizblock für Text, auf dem man immer weiterschreiben kann.",
+            "terms": [
+              "StringBuilder",
+              "=",
+              "new"
+            ]
+          },
+          {
+            "code": "for (int i = 1; i <= 3; i++) {",
+            "explain": "Eine Schleife: Das Programm wiederholt die Zeilen im Block mehrmals. Der Zähler „i“ startet bei 1. Vor jeder Runde fragt das Programm „i <= 3?“ – nur bei „ja“ gibt es eine weitere Runde. Nach jeder Runde wird „i“ um 1 erhöht.",
+            "terms": [
+              "for",
+              "int",
+              "=",
+              "<=",
+              "++"
+            ]
+          },
+          {
+            "code": "    sb.append(i);",
+            "explain": "Hängt i an den Notizblock „sb“ an.",
+            "terms": [
+              "append()"
+            ]
+          },
+          {
+            "code": "}",
+            "explain": "Hier endet eine Runde der Schleife. Das Programm springt wieder nach oben und prüft, ob noch eine Runde kommt."
+          },
+          {
+            "code": "System.out.println(sb.toString());",
+            "explain": "Schreibt das Ergebnis von sb.toString() (den Text) auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()",
+              "toString()"
+            ]
+          }
+        ]
+      },
+      "explanation": "Der Notizblock sammelt in der Schleife alles ein – erst am Ende wird daraus ein Text.",
+      "expectedOutput": "123"
+    },
+    {
+      "id": "u-io-2",
+      "type": "fillBlank",
+      "topicId": "io",
+      "difficulty": 3,
+      "prompt": "Ergänze die Methode, die etwas an den Notizblock hängt.",
+      "variantGroup": "t16-1",
+      "explanation": "append hängt hinten an, ohne jedes Mal einen neuen Text zu erzeugen – das ist der Vorteil gegenüber +.",
+      "verify": {
+        "output": "JavaQuest"
+      },
+      "template": {
+        "lines": [
+          {
+            "code": "StringBuilder sb = new StringBuilder(\"Java\");",
+            "explain": "Hier erstellen wir mit new einen Notizblock für Text (StringBuilder), auf dem schon „Java“ steht, und legen ihn in die Box „sb“. Das Etikett StringBuilder heißt: Darin liegt ein Notizblock für Text, auf dem man immer weiterschreiben kann.",
+            "terms": [
+              "StringBuilder",
+              "=",
+              "new"
+            ]
+          },
+          {
+            "code": "sb.{{0}}(\"Quest\");",
+            "explain": "Hängt „Quest“ an den Notizblock „sb“ an."
+          },
+          {
+            "code": "System.out.println(sb);",
+            "explain": "Schreibt den Inhalt der Box „sb“ auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()"
+            ]
+          }
+        ]
+      },
+      "blanks": [
+        {
+          "accepted": [
+            "append"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "u-io-3",
+      "type": "predictOutput",
+      "topicId": "io",
+      "difficulty": 4,
+      "prompt": "Was wird ausgegeben?",
+      "variantGroup": "t16-3",
+      "code": {
+        "lines": [
+          {
+            "code": "Scanner scanner = new Scanner(\"7 3\");",
+            "explain": "Hier erstellen wir mit new einen Scanner – ein Lesegerät, das „7 3“ Stück für Stück liest – und legen ihn in die Box „scanner“. Das Etikett Scanner heißt: Darin liegt ein Lesegerät, das Text Stück für Stück liest.",
+            "terms": [
+              "Scanner",
+              "=",
+              "new"
+            ]
+          },
+          {
+            "code": "int a = scanner.nextInt();",
+            "explain": "Hier erstellen wir eine Box namens „a“ und legen das Ergebnis von scanner.nextInt() (die nächste Zahl) hinein. Das Etikett int heißt: In diese Box passen nur ganze Zahlen.",
+            "terms": [
+              "int",
+              "=",
+              "nextInt()"
+            ]
+          },
+          {
+            "code": "int b = scanner.nextInt();",
+            "explain": "Hier erstellen wir eine Box namens „b“ und legen das Ergebnis von scanner.nextInt() (die nächste Zahl) hinein. Das Etikett int heißt: In diese Box passen nur ganze Zahlen.",
+            "terms": [
+              "int",
+              "=",
+              "nextInt()"
+            ]
+          },
+          {
+            "code": "System.out.println(a - b);",
+            "explain": "Schreibt das Ergebnis der Rechnung a - b auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()",
+              "-"
+            ]
+          }
+        ]
+      },
+      "explanation": "nextInt() liest die nächste Zahl im Text. Zwei Aufrufe holen 7 und 3 – die Differenz ist 4.",
+      "expectedOutput": "4"
+    },
+    {
+      "id": "u-rec-1",
+      "type": "predictOutput",
+      "topicId": "recursion",
+      "difficulty": 4,
+      "prompt": "Was wird ausgegeben?",
+      "variantGroup": "t18-3",
+      "code": {
+        "lines": [
+          {
+            "code": "static int fib(int n) {",
+            "explain": "Hier beginnt die Methode „fib“ – ein Rezept mit Namen. Als Zutaten bekommt sie n (eine ganze Zahl) und liefert am Ende eine ganze Zahl als Ergebnis zurück. static: Das Rezept gehört zur Kuchenform selbst – man braucht kein Objekt, um es zu benutzen.",
+            "terms": [
+              "static",
+              "int"
+            ]
+          },
+          {
+            "code": "    if (n <= 1) {",
+            "explain": "Hier stellt das Programm eine Frage: Stimmt „n <= 1“? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
+            "terms": [
+              "if",
+              "<="
+            ]
+          },
+          {
+            "code": "        return n;",
+            "explain": "Das Rezept ist fertig: Es gibt den Inhalt der Box „n“ zurück an die Stelle, die es aufgerufen hat – wie ein Automat, der sein Produkt ausgibt.",
+            "terms": [
+              "return"
+            ]
+          },
+          {
+            "code": "    }",
+            "explain": "Hier endet der Block, der nur bei „ja“ ausgeführt wird."
+          },
+          {
+            "code": "    return fib(n - 1) + fib(n - 2);",
+            "explain": "Das Rezept ist fertig: Es gibt das Ergebnis der Rechnung fib(n - 1) + fib(n - 2) zurück an die Stelle, die es aufgerufen hat – wie ein Automat, der sein Produkt ausgibt. Achtung, spannend: Hier ruft das Rezept „fib“ sich selbst auf (Rekursion) – mit einer kleineren Aufgabe. Das wiederholt sich, bis der Basisfall greift.",
+            "terms": [
+              "return",
+              "-",
+              "+"
+            ]
+          },
+          {
+            "code": "}",
+            "explain": "Hier endet die Methode (das Rezept) „fib“."
+          },
+          {
+            "code": ""
+          },
+          {
+            "code": "public static void main(String[] args) {",
+            "explain": "Die main-Methode ist der Startknopf des Programms: Hier beginnt Java, die Anweisungen von oben nach unten auszuführen. (public: von außen startbar · static: ohne Objekt nutzbar · void: liefert kein Ergebnis · String[] args: mögliche Startwerte.)",
+            "terms": [
+              "public",
+              "static",
+              "void",
+              "String",
+              "[]"
+            ]
+          },
+          {
+            "code": "    System.out.println(fib(7));",
+            "explain": "Schreibt das Ergebnis von fib(7) auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()"
+            ]
+          },
+          {
+            "code": "}",
+            "explain": "Hier endet die main-Methode – danach ist das Programm fertig."
+          }
+        ]
+      },
+      "explanation": "Die Folge lautet 0, 1, 1, 2, 3, 5, 8, 13 – an Position 7 steht die 13.",
+      "javaContext": "members",
+      "expectedOutput": "13"
+    },
+    {
+      "id": "u-rec-2",
+      "type": "fillBlank",
+      "topicId": "recursion",
+      "difficulty": 4,
+      "prompt": "Ergänze den rekursiven Aufruf für die Potenz.",
+      "variantGroup": "t18-4",
+      "explanation": "Die Methode ruft sich selbst mit einem kleineren Exponenten auf: 2⁵ = 32.",
+      "javaContext": "members",
+      "verify": {
+        "context": "members",
+        "output": "32"
+      },
+      "template": {
+        "lines": [
+          {
+            "code": "static int potenz(int basis, int exponent) {",
+            "explain": "Hier beginnt die Methode „potenz“ – ein Rezept mit Namen. Als Zutaten bekommt sie basis (eine ganze Zahl) und exponent (eine ganze Zahl) und liefert am Ende eine ganze Zahl als Ergebnis zurück. static: Das Rezept gehört zur Kuchenform selbst – man braucht kein Objekt, um es zu benutzen.",
+            "terms": [
+              "static",
+              "int"
+            ]
+          },
+          {
+            "code": "    if (exponent == 0) {",
+            "explain": "Hier stellt das Programm eine Frage: Stimmt „exponent == 0“? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
+            "terms": [
+              "if",
+              "=="
+            ]
+          },
+          {
+            "code": "        return 1;",
+            "explain": "Das Rezept ist fertig: Es gibt die Zahl 1 zurück an die Stelle, die es aufgerufen hat – wie ein Automat, der sein Produkt ausgibt.",
+            "terms": [
+              "return"
+            ]
+          },
+          {
+            "code": "    }",
+            "explain": "Hier endet der Block, der nur bei „ja“ ausgeführt wird."
+          },
+          {
+            "code": "    return basis * {{0}}(basis, exponent - 1);",
+            "explain": "Das Rezept ist fertig: Es gibt das Ergebnis der Rechnung basis * potenz(basis, exponent - 1) zurück an die Stelle, die es aufgerufen hat – wie ein Automat, der sein Produkt ausgibt. Achtung, spannend: Hier ruft das Rezept „potenz“ sich selbst auf (Rekursion) – mit einer kleineren Aufgabe. Das wiederholt sich, bis der Basisfall greift.",
+            "terms": [
+              "return",
+              "*",
+              "-"
+            ]
+          },
+          {
+            "code": "}",
+            "explain": "Hier endet die Methode (das Rezept) „potenz“."
+          },
+          {
+            "code": ""
+          },
+          {
+            "code": "public static void main(String[] args) {",
+            "explain": "Die main-Methode ist der Startknopf des Programms: Hier beginnt Java, die Anweisungen von oben nach unten auszuführen. (public: von außen startbar · static: ohne Objekt nutzbar · void: liefert kein Ergebnis · String[] args: mögliche Startwerte.)",
+            "terms": [
+              "public",
+              "static",
+              "void",
+              "String",
+              "[]"
+            ]
+          },
+          {
+            "code": "    System.out.println(potenz(2, 5));",
+            "explain": "Schreibt das Ergebnis von potenz(2, 5) auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()"
+            ]
+          },
+          {
+            "code": "}",
+            "explain": "Hier endet die main-Methode – danach ist das Programm fertig."
+          }
+        ]
+      },
+      "blanks": [
+        {
+          "accepted": [
+            "potenz"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "u-alg-1",
+      "type": "predictOutput",
+      "topicId": "algorithms",
+      "difficulty": 4,
+      "prompt": "Was wird ausgegeben?",
+      "variantGroup": "t19-1",
+      "code": {
+        "lines": [
+          {
+            "code": "int[] zahlen = {1, 4, 7, 9};",
+            "explain": "Hier erstellen wir einen Eierkarton namens „zahlen“ mit 4 nummerierten Fächern und legen 1, 4, 7 und 9 hinein. Die Fächer sind ab 0 nummeriert: In Fach 0 liegt 1.",
+            "terms": [
+              "int",
+              "[]",
+              "="
+            ]
+          },
+          {
+            "code": "int ziel = 7;",
+            "explain": "Hier erstellen wir eine Box namens „ziel“ und legen die Zahl 7 hinein. Das Etikett int heißt: In diese Box passen nur ganze Zahlen.",
+            "terms": [
+              "int",
+              "="
+            ]
+          },
+          {
+            "code": "int links = 0;",
+            "explain": "Hier erstellen wir eine Box namens „links“ und legen die Zahl 0 hinein. Das Etikett int heißt: In diese Box passen nur ganze Zahlen.",
+            "terms": [
+              "int",
+              "="
+            ]
+          },
+          {
+            "code": "int rechts = zahlen.length - 1;",
+            "explain": "Hier erstellen wir eine Box namens „rechts“ und legen das Ergebnis der Rechnung zahlen.length - 1 hinein. Das Etikett int heißt: In diese Box passen nur ganze Zahlen.",
+            "terms": [
+              "int",
+              "=",
+              ".length",
+              "-"
+            ]
+          },
+          {
+            "code": "int schritte = 0;",
+            "explain": "Hier erstellen wir eine Box namens „schritte“ und legen die Zahl 0 hinein. Das Etikett int heißt: In diese Box passen nur ganze Zahlen.",
+            "terms": [
+              "int",
+              "="
+            ]
+          },
+          {
+            "code": "while (links <= rechts) {",
+            "explain": "Eine Schleife: Solange die Frage „links <= rechts?“ mit „ja“ beantwortet wird, wiederholt das Programm die Zeilen im Block. Ist die Antwort schon am Anfang „nein“, läuft der Block gar nicht.",
+            "terms": [
+              "while",
+              "<="
+            ]
+          },
+          {
+            "code": "    int mitte = (links + rechts) / 2;",
+            "explain": "Hier erstellen wir eine Box namens „mitte“ und legen das Ergebnis der Rechnung (links + rechts) / 2 hinein. Das Etikett int heißt: In diese Box passen nur ganze Zahlen.",
+            "terms": [
+              "int",
+              "=",
+              "+",
+              "/"
+            ]
+          },
+          {
+            "code": "    schritte++;",
+            "explain": "Zählt die Box „schritte“ um 1 hoch – wie ein Klick auf einen Handzähler. (Kurzform für schritte = schritte + 1.)",
+            "terms": [
+              "++"
+            ]
+          },
+          {
+            "code": "    if (zahlen[mitte] == ziel) {",
+            "explain": "Hier stellt das Programm eine Frage: Stimmt „zahlen[mitte] == ziel“? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
+            "terms": [
+              "if",
+              "=="
+            ]
+          },
+          {
+            "code": "        break;",
+            "explain": "Mit break geht es sofort raus aus der Schleife – auch wenn noch Runden übrig wären.",
+            "terms": [
+              "break"
+            ]
+          },
+          {
+            "code": "    } else if (zahlen[mitte] < ziel) {",
+            "explain": "Falls die Antwort oben „nein“ war, stellt das Programm die nächste Frage: Stimmt „zahlen[mitte] < ziel“? Nur bei „ja“ läuft der folgende Block.",
+            "terms": [
+              "else",
+              "if",
+              "<"
+            ]
+          },
+          {
+            "code": "        links = mitte + 1;",
+            "explain": "Wir nehmen den alten Inhalt aus der Box „links“ heraus und legen stattdessen das Ergebnis der Rechnung mitte + 1 hinein.",
+            "terms": [
+              "=",
+              "+"
+            ]
+          },
+          {
+            "code": "    } else {",
+            "explain": "Sonst (else): Wenn alle Fragen davor mit „nein“ beantwortet wurden, läuft stattdessen dieser Block.",
+            "terms": [
+              "else"
+            ]
+          },
+          {
+            "code": "        rechts = mitte - 1;",
+            "explain": "Wir nehmen den alten Inhalt aus der Box „rechts“ heraus und legen stattdessen das Ergebnis der Rechnung mitte - 1 hinein.",
+            "terms": [
+              "=",
+              "-"
+            ]
+          },
+          {
+            "code": "    }",
+            "explain": "Hier endet der Sonst-Block (else)."
+          },
+          {
+            "code": "}",
+            "explain": "Hier endet eine Runde der Schleife. Das Programm springt wieder nach oben und prüft, ob noch eine Runde kommt."
+          },
+          {
+            "code": "System.out.println(schritte);",
+            "explain": "Schreibt den Inhalt der Box „schritte“ auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()"
+            ]
+          }
+        ]
+      },
+      "explanation": "Erster Blick in die Mitte (Fach 1, Wert 4) – zu klein. Zweiter Blick trifft die 7. Zwei Schritte genügen.",
+      "expectedOutput": "2"
+    },
+    {
+      "id": "u-alg-2",
+      "type": "code",
+      "topicId": "algorithms",
+      "difficulty": 4,
+      "prompt": "Sortiere die Namen alphabetisch und gib die Liste aus.",
+      "variantGroup": "t19-5",
+      "explanation": "naturalOrder sortiert Texte alphabetisch. Für eigene Regeln nimmt man Comparator.comparing.",
+      "starterCode": {
+        "lines": [
+          {
+            "code": "List<String> namen = new ArrayList<>(List.of(\"Mia\", \"Ada\", \"Zoe\"));",
+            "explain": "Hier erstellen wir mit new eine ArrayList – eine Liste, die wachsen kann wie ein Einkaufszettel, gefüllt mit „Mia“, „Ada“ und „Zoe“ – und legen sie in die Box „namen“. Das Etikett List<String> heißt: Darin liegt eine Liste, und auf ihr dürfen nur Texte (String) stehen. Auf dem Etikett steht allgemein „List“, drin liegt eine ArrayList – so kann man später leicht eine andere Sorte nehmen.",
+            "terms": [
+              "List",
+              "<>",
+              "String",
+              "=",
+              "new",
+              "ArrayList",
+              "List.of"
+            ]
+          },
+          {
+            "code": "// Sortieren und ausgeben",
+            "explain": "Das ist ein Kommentar – ein Notizzettel für Menschen: „Sortieren und ausgeben“. Java überliest diese Zeile komplett."
+          },
+          {
+            "code": ""
+          }
+        ]
+      },
+      "sampleSolution": {
+        "lines": [
+          {
+            "code": "List<String> namen = new ArrayList<>(List.of(\"Mia\", \"Ada\", \"Zoe\"));",
+            "explain": "Hier erstellen wir mit new eine ArrayList – eine Liste, die wachsen kann wie ein Einkaufszettel, gefüllt mit „Mia“, „Ada“ und „Zoe“ – und legen sie in die Box „namen“. Das Etikett List<String> heißt: Darin liegt eine Liste, und auf ihr dürfen nur Texte (String) stehen. Auf dem Etikett steht allgemein „List“, drin liegt eine ArrayList – so kann man später leicht eine andere Sorte nehmen.",
+            "terms": [
+              "List",
+              "<>",
+              "String",
+              "=",
+              "new",
+              "ArrayList",
+              "List.of"
+            ]
+          },
+          {
+            "code": "namen.sort(Comparator.naturalOrder());",
+            "explain": "Sortiert die Liste „namen“ nach der Regel Comparator.naturalOrder(), aufsteigend.",
+            "terms": [
+              "sort()",
+              "Comparator.naturalOrder"
+            ]
+          },
+          {
+            "code": "System.out.println(namen);",
+            "explain": "Schreibt den Inhalt der Box „namen“ auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()"
+            ]
+          }
+        ]
+      },
+      "expectedOutput": "[Ada, Mia, Zoe]",
+      "rules": [
+        {
+          "rule": "require",
+          "pattern": "\\.sort\\(",
+          "message": "Nutze sort."
+        },
+        {
+          "rule": "require",
+          "pattern": "System\\.out\\.println",
+          "message": "Gib die Liste aus."
+        }
+      ]
+    },
+    {
+      "id": "u-pat-1",
+      "type": "fillBlank",
+      "topicId": "patterns",
+      "difficulty": 4,
+      "prompt": "Ergänze die Schlüsselwörter für die geschlossene Familie.",
+      "variantGroup": "t25-4",
+      "explanation": "sealed schließt die Familie, permits zählt die erlaubten Mitglieder auf – dadurch deckt der switch alles ab.",
+      "javaContext": "file",
+      "verify": {
+        "context": "file",
+        "output": "Pfefferminz-Tee"
+      },
+      "template": {
+        "lines": [
+          {
+            "code": "{{0}} interface Getraenk {{1}} Tee, Saft {}",
+            "explain": "Hier beginnt das Interface „Getraenk“ – ein Vertrag: Es legt nur fest, WAS eine Klasse können muss (welche Methoden), aber nicht WIE. sealed … permits: Die Familie ist geschlossen – nur Tee und Saft dürfen dazugehören. So weiß Java genau, welche Sorten es gibt. Die leeren Klammern {} heißen: Mehr braucht es nicht.",
+            "terms": [
+              "interface"
+            ]
+          },
+          {
+            "code": "record Tee(String sorte) implements Getraenk {}",
+            "explain": "Hier definieren wir den Record „Tee“ – wie ein Formular mit festen Feldern: sorte (einen Text). Den Rest erledigt Java automatisch: Konstruktor, Lesemethoden sorte(), Vergleich (equals) und Textdarstellung (toString). Die leeren Klammern {} heißen: Mehr braucht es nicht. implements Getraenk: Der Record unterschreibt einen Vertrag – er verspricht, alle Methoden anzubieten, die Getraenk verlangt.",
+            "terms": [
+              "record",
+              "String",
+              "implements"
+            ]
+          },
+          {
+            "code": "record Saft(String frucht) implements Getraenk {}",
+            "explain": "Hier definieren wir den Record „Saft“ – wie ein Formular mit festen Feldern: frucht (einen Text). Den Rest erledigt Java automatisch: Konstruktor, Lesemethoden frucht(), Vergleich (equals) und Textdarstellung (toString). Die leeren Klammern {} heißen: Mehr braucht es nicht. implements Getraenk: Der Record unterschreibt einen Vertrag – er verspricht, alle Methoden anzubieten, die Getraenk verlangt.",
+            "terms": [
+              "record",
+              "String",
+              "implements"
+            ]
+          },
+          {
+            "code": ""
+          },
+          {
+            "code": "public class Main {",
+            "explain": "Hier beginnt die Klasse „Main“. In Java muss jedes Programm in so einer Klasse stehen – hier dient sie nur als Behälter für unser Programm, nicht als Kuchenform für Objekte. Die geschweifte Klammer { öffnet den Behälter.",
+            "terms": [
+              "public",
+              "class"
+            ]
+          },
+          {
+            "code": "    public static void main(String[] args) {",
+            "explain": "Die main-Methode ist der Startknopf des Programms: Hier beginnt Java, die Anweisungen von oben nach unten auszuführen. (public: von außen startbar · static: ohne Objekt nutzbar · void: liefert kein Ergebnis · String[] args: mögliche Startwerte.)",
+            "terms": [
+              "public",
+              "static",
+              "void",
+              "String",
+              "[]"
+            ]
+          },
+          {
+            "code": "        Getraenk g = new Tee(\"Pfefferminz\");",
+            "explain": "Hier backen wir mit new aus der Kuchenform „Tee“ ein neues Objekt mit den Zutaten „Pfefferminz“ und legen es in die Box „g“. Das Etikett Getraenk heißt: In diese Box passt ein Objekt vom Typ Getraenk. Achtung, spannend: Das Etikett sagt „Getraenk“, drin liegt aber ein Tee-Objekt. Das passt, denn jedes Tee-Objekt zählt auch als Getraenk-Objekt (es wurde aus einer erweiterten Getraenk-Form gebacken). Fragt man es später etwas, antwortet trotzdem das Tee-Objekt – das nennt man Polymorphie („Vielgestaltigkeit“).",
+            "terms": [
+              "=",
+              "new"
+            ]
+          },
+          {
+            "code": "        String text = switch (g) {",
+            "explain": "Hier erstellen wir eine Box namens „text“. Was hineinkommt, entscheidet der folgende Weichensteller (switch) anhand von „g“. Das Etikett String heißt: In diese Box passen Texte.",
+            "terms": [
+              "String",
+              "=",
+              "switch"
+            ]
+          },
+          {
+            "code": "            case Tee t -> t.sorte() + \"-Tee\";",
+            "explain": "Ist der Wert ein Tee (er bekommt das Namensschild „t“), liefert der Weichensteller den zusammengesetzten Text aus dem Ergebnis von t.sorte() und „-Tee“ (das + klebt die Teile aneinander).",
+            "terms": [
+              "case",
+              "->",
+              "+"
+            ]
+          },
+          {
+            "code": "            case Saft s -> s.frucht() + \"-Saft\";",
+            "explain": "Ist der Wert ein Saft (er bekommt das Namensschild „s“), liefert der Weichensteller den zusammengesetzten Text aus dem Ergebnis von s.frucht() und „-Saft“ (das + klebt die Teile aneinander).",
+            "terms": [
+              "case",
+              "->",
+              "+"
+            ]
+          },
+          {
+            "code": "        };",
+            "explain": "Hier endet der Weichensteller (switch-Ausdruck). Das Semikolon beendet die ganze Anweisung."
+          },
+          {
+            "code": "        System.out.println(text);",
+            "explain": "Schreibt den Inhalt der Box „text“ auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()"
+            ]
+          },
+          {
+            "code": "    }",
+            "explain": "Hier endet die main-Methode – danach ist das Programm fertig."
+          },
+          {
+            "code": "}",
+            "explain": "Hier endet die Klasse „Main“ – der Behälter um unser Programm ist zu."
+          }
+        ]
+      },
+      "blanks": [
+        {
+          "accepted": [
+            "sealed"
+          ]
+        },
+        {
+          "accepted": [
+            "permits"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "u-pat-2",
+      "type": "predictOutput",
+      "topicId": "patterns",
+      "difficulty": 4,
+      "prompt": "Was wird ausgegeben?",
+      "variantGroup": "t25-3",
+      "code": {
+        "lines": [
+          {
+            "code": "Object o = 7;",
+            "explain": "Hier erstellen wir eine Box namens „o“ und legen die Zahl 7 hinein. Das Etikett Object passt für jedes beliebige Objekt.",
+            "terms": [
+              "Object",
+              "="
+            ]
+          },
+          {
+            "code": "String text = switch (o) {",
+            "explain": "Hier erstellen wir eine Box namens „text“. Was hineinkommt, entscheidet der folgende Weichensteller (switch) anhand von „o“. Das Etikett String heißt: In diese Box passen Texte.",
+            "terms": [
+              "String",
+              "=",
+              "switch"
+            ]
+          },
+          {
+            "code": "    case Integer i when i > 10 -> \"grosse Zahl\";",
+            "explain": "Ist der Wert ein Integer (er bekommt das Namensschild „i“) und stimmt zusätzlich „i > 10“ (when), liefert der Weichensteller den Text „grosse Zahl“.",
+            "terms": [
+              "case",
+              "Integer",
+              "when",
+              ">",
+              "->"
+            ]
+          },
+          {
+            "code": "    case Integer i -> \"kleine Zahl \" + i;",
+            "explain": "Ist der Wert ein Integer (er bekommt das Namensschild „i“), liefert der Weichensteller den zusammengesetzten Text aus „kleine Zahl “ und dem Inhalt der Box „i“ (das + klebt die Teile aneinander).",
+            "terms": [
+              "case",
+              "Integer",
+              "->",
+              "+"
+            ]
+          },
+          {
+            "code": "    default -> \"keine Zahl\";",
+            "explain": "Bei allen anderen Werten liefert der Weichensteller den Text „keine Zahl“.",
+            "terms": [
+              "default",
+              "->"
+            ]
+          },
+          {
+            "code": "};",
+            "explain": "Hier endet der Weichensteller (switch-Ausdruck). Das Semikolon beendet die ganze Anweisung."
+          },
+          {
+            "code": "System.out.println(text);",
+            "explain": "Schreibt den Inhalt der Box „text“ auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+            "terms": [
+              "System.out",
+              "println()"
+            ]
+          }
+        ]
+      },
+      "explanation": "Der erste Fall verlangt zusätzlich i > 10. Für die 7 greift deshalb der zweite Fall.",
+      "expectedOutput": "kleine Zahl 7"
+    },
+    {
       "id": "p-uml-1a",
       "type": "singleChoice",
       "topicId": "umlbasics",
@@ -29417,6 +31672,10 @@
     {
       "meaning": "Baut eine Sortierregel: vergleiche nach diesem Merkmal (z. B. der Länge).",
       "term": "Comparator.comparing"
+    },
+    {
+      "meaning": "Die übliche Reihenfolge: Zahlen aufsteigend, Texte alphabetisch.",
+      "term": "Comparator.naturalOrder"
     },
     {
       "meaning": "Eine Formatvorlage: So soll ein Datum als Text aussehen.",

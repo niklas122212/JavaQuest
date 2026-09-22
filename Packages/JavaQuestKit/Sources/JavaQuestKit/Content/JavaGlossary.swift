@@ -128,6 +128,7 @@ public enum JavaGlossary {
         "Arrays.toString": "Zeigt den Inhalt eines Eierkartons als Text, z. B. [1, 2, 3].",
         "Arrays.stream": "Legt alle Werte eines Eierkartons aufs Fließband (Stream).",
         "Comparator.comparing": "Baut eine Sortierregel: vergleiche nach diesem Merkmal (z. B. der Länge).",
+        "Comparator.naturalOrder": "Die übliche Reihenfolge: Zahlen aufsteigend, Texte alphabetisch.",
         "Collectors.groupingBy": "Sortiert am Ende des Fließbands alles in Fächer – heraus kommt ein Wörterbuch.",
         "Collectors.counting": "Zählt, wie viele Elemente in einem Fach liegen.",
         "Collectors.toList": "Sammelt die Elemente in einer Liste.",
