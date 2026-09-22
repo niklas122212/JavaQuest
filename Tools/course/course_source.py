@@ -21,6 +21,8 @@ from pool_gaps import POOL_GAPS
 from pool_level_a import POOL_LEVEL_A
 from pool_level_b import POOL_LEVEL_B
 from pool_level_c import POOL_LEVEL_C
+from pool_variety import POOL_VARIETY
+from pool_depth import POOL_DEPTH
 from placement import PLACEMENT_POOL
 from uml_content import UML_MODULE, UML_POOL, UML_TOPICS
 
@@ -1564,7 +1566,7 @@ course = {
         {"id": "m5-modern", "title": "Modernes Java", "subtitle": "Lambdas, Streams, Records und Pattern Matching",
          "tier": "advanced", "symbol": "sparkles", "lessons": [l12, l13]},
     ] + ADVANCED_MODULES + [UML_MODULE],
-    "taskPool": POOL + POOL_BASICS + POOL_ADVANCED + POOL_DEEP + POOL_PRACTICE + POOL_EXTRA + POOL_GAPS + POOL_LEVEL_A + POOL_LEVEL_B + POOL_LEVEL_C + UML_POOL,
+    "taskPool": POOL + POOL_BASICS + POOL_ADVANCED + POOL_DEEP + POOL_PRACTICE + POOL_EXTRA + POOL_GAPS + POOL_LEVEL_A + POOL_LEVEL_B + POOL_LEVEL_C + POOL_VARIETY + POOL_DEPTH + UML_POOL,
     "placement": {
         "passThreshold": 65,
         # Ab hier wird nicht nur der Grundkurs übersprungen, sondern auch der Mittelteil.

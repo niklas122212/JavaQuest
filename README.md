@@ -7,9 +7,10 @@ Java Master Score von 0 bis 1000.
 
 - **Apple:** iOS/iPadOS 17, macOS 14 · Swift 6 (strict concurrency) · SwiftUI · SwiftData · Swift Charts
 - **Windows:** Windows 10/11 (64 Bit) · Kotlin 2.4 · Compose Multiplatform 1.12 (Desktop) – Ordner `Windows/`
-- **Inhalt:** 13 Module, 32 Lektionen, 160 Lektionsaufgaben + 436 Übungsaufgaben im Pool (596 übbar),
-  jedes der 29 Themen mit mindestens 20 Aufgaben und mindestens zwei je Schwierigkeitsstufe,
-  adaptive Einstufung aus 15 Fragen, 3834 erklärte Codezeilen, Befehlslexikon mit 241 Einträgen (Deutsch),
+- **Inhalt:** 13 Module, 32 Lektionen, 160 Lektionsaufgaben + 525 Übungsaufgaben im Pool (685 übbar),
+  jedes der 29 Themen mit mindestens 20 Aufgaben, mindestens zwei je Schwierigkeitsstufe und immer
+  mehreren Aufgabentypen je Stufe; jedes Lernziel mit mindestens drei Varianten,
+  adaptive Einstufung aus 15 Fragen, 4528 erklärte Codezeilen, Befehlslexikon mit 245 Einträgen (Deutsch),
   UML-Klassendiagramme, Endlos-Training und freies Lernen – eine gemeinsame Kursdatei für alle Plattformen
 - **Bestanden ab 69 %** (zentral in `LessonSession.passThreshold`)
 
@@ -337,13 +338,13 @@ SHA-256-geprüft) bei.
 | Prüfung | Ergebnis |
 |---|---|
 | `swift test` (JavaQuestKit) | 73 Tests in 9 Suites bestanden – u. a. keine Zeile ohne Erklärung, Lexikon vollständig, jede Musterlösung des Übungspools akzeptiert, Bestehensgrenze 68/69/70 %, Varianten-Rotation, freie Themenwahl, UML-Layout, verteiltes Wiederholen (Fächer 0–5 mit 1/3/7/16/35 Tagen), Schwächen je Schwierigkeitsstufe, adaptive Einstufung, Erklärungslänge und Begründung jeder falschen Antwort, Endlos-Training (falsch Gelöstes kommt über 400 Runden mehr als 3× so oft wie heute Gelöstes) |
-| `Tools/check_course.py` | Keine Befunde: jede Erklärung mindestens 90 Zeichen, jede falsche Antwort mit Begründung, 29 Themen alle mit Aufgaben erreichbar, keine inhaltsgleichen Aufgaben, 47 UML-Diagramme vollständig, Niveaus steigen in jeder Lektion an |
-| `Tools/verify_java_content.py` mit OpenJDK 25 | 463/463 Java-Prüfungen (Lektionen, Übungspool, Einstufung und Theorie-Beispiele), davon 460 mit Ausgabevergleich |
-| Web-App (`Web/`), im Browser gegen die ausgelieferte Kursdatei | 596/596 Musterlösungen akzeptiert, 1262/1262 falsche Antworten abgelehnt. Gegen den Kern nachgerechnet und in allen Fällen gleich: Master Score (1000 / 109 / 363 / 0 in vier Beispielständen, inklusive Stufenfaktor 1,0/1,25/1,5), Sterne (69 % ★, 84,5 % ★★, 100 % ★★★), Ränge ab 0/150/350/600/850, Themenstatus (Stärke ab 75 % bei ≥ 3 Aufgaben, Lücke unter 55 % bei ≥ 2), Tagesserie (Lücke setzt zurück, Bestwert bleibt) und die Wiedervorlage-Faktoren (0,25 → 1 → 2). Einstufung über die Oberfläche durchgespielt: 0–5 richtige Antworten ergeben monoton steigende Ergebnisse und alle drei Einstiegsstufen; alte gespeicherte Stände bleiben vollständig erhalten |
+| `Tools/check_course.py` | Keine Befunde: jede Erklärung mindestens 90 Zeichen, jede falsche Antwort mit Begründung, keine Stufe aus nur einem Aufgabentyp, kein Thema überwiegend „Was gibt das aus?“, jedes Lernziel mit mindestens drei Varianten, 29 Themen alle mit Aufgaben erreichbar, keine inhaltsgleichen Aufgaben, 55 UML-Diagramme vollständig, Niveaus steigen in jeder Lektion an |
+| `Tools/verify_java_content.py` mit OpenJDK 25 | 547/547 Java-Prüfungen (Lektionen, Übungspool, Einstufung und Theorie-Beispiele), davon 544 mit Ausgabevergleich |
+| Web-App (`Web/`), im Browser gegen die ausgelieferte Kursdatei | 685/685 Musterlösungen akzeptiert, 1433/1433 falsche Antworten abgelehnt. Gegen den Kern nachgerechnet und in allen Fällen gleich: Master Score (1000 / 109 / 363 / 0 in vier Beispielständen, inklusive Stufenfaktor 1,0/1,25/1,5), Sterne (69 % ★, 84,5 % ★★, 100 % ★★★), Ränge ab 0/150/350/600/850, Themenstatus (Stärke ab 75 % bei ≥ 3 Aufgaben, Lücke unter 55 % bei ≥ 2), Tagesserie (Lücke setzt zurück, Bestwert bleibt) und die Wiedervorlage-Faktoren (0,25 → 1 → 2). Einstufung über die Oberfläche durchgespielt: 0–5 richtige Antworten ergeben monoton steigende Ergebnisse und alle drei Einstiegsstufen; alte gespeicherte Stände bleiben vollständig erhalten |
 | `xcodebuild` (Xcode 27) für iOS-Simulator, iOS-Gerät, macOS | BUILD SUCCEEDED, 0 Warnungen |
 | iPhone-Simulator (iOS 27), von Hand durchgeklickt | Onboarding (beide Optionen), Einstufung 5/6 = 83 %, Theorie mit Code-Exegese, alle 4 Aufgabentypen, 78 % → „Fast geschafft“, 100 % → 3 Sterne und +40 Score, Dunkelmodus; Endlos-Training: Runde mit 8 Aufgaben (Niveau 1→5), Lösung aufdecken, Auswertung, „Nächste Runde“, Score bleibt unverändert |
 | Windows-App: `./gradlew test` | 60 Tests bestanden (55 Logik/Speicherung, 5 Klick-Durchläufe der echten Oberfläche mit Screenshots) – darunter dieselben Werte für das verteilte Wiederholen wie auf Apple-Geräten |
-| Windows-Paket: Selbsttest der fertigen JAR | 409 Bildschirme gezeichnet, alle 32 Lektionen und 160 Aufgaben durchgespielt, dazu Endlos-Training und eine freie UML-Runde, Score 1000; 3834 erklärte Codezeilen |
+| Windows-Paket: Selbsttest der fertigen JAR | 409 Bildschirme gezeichnet, alle 32 Lektionen und 160 Aufgaben durchgespielt, dazu Endlos-Training und eine freie UML-Runde, Score 1000; 4528 erklärte Codezeilen |
 
 Nicht geprüft: Start auf einem echten Windows-PC (hier steht nur ein Mac zur Verfügung – die Windows-Bibliothek
 `skiko-windows-x64.dll` und die Windows-Laufzeit liegen im Paket, laufen aber erst dort) sowie Signierung und Upload.

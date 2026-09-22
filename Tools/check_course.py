@@ -79,6 +79,32 @@ def main():
     lesson_ids = {t["id"] for t in lesson_tasks}
     findings += [f"Variantengruppe ohne Lektionsaufgabe: {g}" for g in sorted(pool_groups - lesson_ids)]
 
+    # Abwechslung: keine Stufe eines Themas darf aus einem einzigen Aufgabentyp bestehen.
+    # Ankreuzen prüft Wiedererkennen, selbst schreiben prüft Können – wer nur eines davon
+    # bekommt, übt einseitig.
+    je_stufe = defaultdict(list)
+    for task in tasks:
+        je_stufe[(task["topicId"], task["difficulty"])].append(task)
+    for (topic, level), gleiche in sorted(je_stufe.items()):
+        typen = {t["type"] for t in gleiche}
+        if len(gleiche) >= 3 and len(typen) == 1:
+            findings.append(f"{topic} Stufe {level}: {len(gleiche)} Aufgaben, alle vom Typ {typen.pop()}")
+
+    # Und kein Thema darf überwiegend aus „Was gibt das aus?“ bestehen.
+    je_thema = defaultdict(Counter)
+    for task in tasks:
+        je_thema[task["topicId"]][task["type"]] += 1
+    for topic, zaehler in sorted(je_thema.items()):
+        gesamt = sum(zaehler.values())
+        if gesamt >= 10 and zaehler["predictOutput"] / gesamt > 0.5:
+            findings.append(f"{topic}: {zaehler['predictOutput']} von {gesamt} Aufgaben sind „Was gibt das aus?“")
+
+    # Tiefe: Ab drei Varianten wiederholt sich auch im dritten Anlauf keine Frage.
+    duenn = [key for key, variants in groups.items() if len(variants) < 3]
+    if duenn:
+        findings.append(f"{len(duenn)} Lernziel(e) mit weniger als drei Varianten: "
+                        f"{', '.join(sorted(duenn)[:8])}" + (" …" if len(duenn) > 8 else ""))
+
     # Multiple Choice: genug Auswahl, richtige Antwort vorhanden
     for task in tasks:
         if task["type"] != "singleChoice":
