@@ -1,0 +1,32 @@
+# Veröffentlicht die Web-Fassung unter github.io – der Link zum Verschicken.
+name: Web-App veröffentlichen
+
+on:
+  push:
+    branches: [main]
+    paths: ["Web/**", ".github/workflows/web.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  veroeffentlichen:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.pages.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: Web
+      - id: pages
+        uses: actions/deploy-pages@v4
