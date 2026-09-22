@@ -132,6 +132,24 @@ class LessonFlowModel(val store: ProgressStore, private val session: LessonSessi
     val currentTask: LearningTask? get() = read { session.currentTask }
     val lastResult: EvaluationResult? get() = read { session.lastResult }
     val isRevealed: Boolean get() = read { session.isRevealed }
+
+    /** Die gewählte falsche Antwort samt Begründung – für die Rückmeldung nach einem Fehler. */
+    val wrongChoice: Pair<String, String?>? get() {
+        val kind = currentTask?.kind as? TaskKind.SingleChoice ?: return null
+        if (lastResult?.isCorrect != false) return null
+        val index = draft.choice ?: return null
+        if (index == kind.correctIndex) return null
+        return kind.choices[index] to kind.whyWrong(index)
+    }
+
+    /** Was richtig gewesen wäre – erst, wenn die Aufgabe abgeschlossen ist. */
+    val correctAnswer: String? get() {
+        if (!isCurrentTaskFinished) return null
+        return when (val kind = currentTask?.kind) {
+            is TaskKind.SingleChoice -> kind.choices.getOrNull(kind.correctIndex)
+            else -> null
+        }
+    }
     val attempts: Int get() = read { session.attempts }
     val isCurrentTaskFinished: Boolean get() = read { session.isCurrentTaskFinished }
     val canRetry: Boolean get() = read { session.canRetry }

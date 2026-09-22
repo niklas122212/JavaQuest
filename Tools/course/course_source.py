@@ -1578,6 +1578,13 @@ course = {
 # ---------------------------------------------------------------- Didaktik
 from theory_texts import THEORY, TASK_EXPLANATIONS
 from why_wrong import WHY_WRONG
+from why_wrong_more import WHY_WRONG_MORE
+
+# Beide Sammlungen gelten gleichrangig; doppelte IDs wären ein Autorenfehler.
+_doppelt = set(WHY_WRONG) & set(WHY_WRONG_MORE)
+assert not _doppelt, f"Begründungen doppelt definiert: {sorted(_doppelt)}"
+WHY_WRONG = {**WHY_WRONG, **WHY_WRONG_MORE}
+from explanations import BETTER_EXPLANATIONS, MINDESTLAENGE
 from line_notes import NOTES
 import subprocess, os
 
@@ -1590,9 +1597,19 @@ for (lesson_id, index), (title, body, kind, text) in THEORY.items():
         card_["callout"] = {"kind": kind, "text": text}
 all_tasks = ([t for m in course["modules"] for l in m["lessons"] for t in l["tasks"]]
              + course["taskPool"] + course["placement"]["pools"]["intermediate"])
+bekannte_ids = {t["id"] for t in all_tasks}
+unbekannt = set(BETTER_EXPLANATIONS) - bekannte_ids
+assert not unbekannt, f"Erklärung für nicht vorhandene Aufgabe(n): {sorted(unbekannt)}"
+
 for task in all_tasks:
     if task["id"] in TASK_EXPLANATIONS:
         task["explanation"] = TASK_EXPLANATIONS[task["id"]]
+    # Ausgeführte Fassung: sagt zusätzlich, WARUM es so ist.
+    if task["id"] in BETTER_EXPLANATIONS:
+        besser = BETTER_EXPLANATIONS[task["id"]]
+        assert len(besser) >= MINDESTLAENGE, f"{task['id']}: Erklärung zu knapp ({len(besser)} Zeichen)"
+        assert len(besser) > len(task["explanation"]), f"{task['id']}: neue Erklärung ist nicht ausführlicher"
+        task["explanation"] = besser
     # Begründungen zu den falschen Antworten – zugeordnet über den Antworttext,
     # weil die Antworten beim Erzeugen gedreht werden.
     if task["id"] in WHY_WRONG:

@@ -6,6 +6,7 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonArray
@@ -131,8 +132,17 @@ data class CodeRule(
 sealed interface TaskKind {
     val type: TaskType
 
-    data class SingleChoice(val choices: List<String>, val correctIndex: Int) : TaskKind {
+    data class SingleChoice(
+        val choices: List<String>,
+        val correctIndex: Int,
+        /** Warum die jeweilige Antwort nicht stimmt – null bei der richtigen. */
+        val whyWrong: List<String?> = emptyList(),
+    ) : TaskKind {
         override val type get() = TaskType.SINGLE_CHOICE
+
+        /** Die Begründung zu einer falschen Antwort, sofern hinterlegt. */
+        fun whyWrong(index: Int): String? =
+            if (index == correctIndex) null else whyWrong.getOrNull(index)
     }
 
     /** Lückentext: die Vorlage enthält Platzhalter {{0}}, {{1}} … */
@@ -400,7 +410,11 @@ object CourseLoader {
 
     fun parseTask(t: JsonObject): LearningTask {
         val kind: TaskKind = when (val type = t.str("type")) {
-            "singleChoice" -> TaskKind.SingleChoice(t.arr("choices").map { it.jsonPrimitive.content }, t.int("correctIndex"))
+            "singleChoice" -> TaskKind.SingleChoice(
+                t.arr("choices").map { it.jsonPrimitive.content },
+                t.int("correctIndex"),
+                t["whyWrong"]?.jsonArray?.map { it.jsonPrimitive.contentOrNull } ?: emptyList(),
+            )
             "fillBlank" -> TaskKind.FillBlank(
                 template = parseSnippet(t.getValue("template")),
                 blanks = t.arr("blanks").map { b ->

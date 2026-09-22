@@ -14,6 +14,9 @@ import sys
 from collections import Counter, defaultdict
 from pathlib import Path
 
+# Untergrenze für Erklärungen – dieselbe Zahl wie in Tools/course/explanations.py.
+MIN_ERKLAERUNG = 90
+
 COURSE = Path(__file__).resolve().parent.parent / "Packages/JavaQuestKit/Sources/JavaQuestKit/Resources/java_course.json"
 
 
@@ -36,8 +39,19 @@ def main():
     tasks = lesson_tasks + pool
     findings = []
 
-    # Erklärungen
+    # Erklärungen: vorhanden – und ausführlich genug, um ein „Warum“ zu enthalten.
+    # Die Länge ist kein Qualitätsmaß, sondern eine Untergrenze: Ein Satz wie
+    # „int steht für ganze Zahlen.“ sagt nur das WAS und hilft beim Lernen nicht weiter.
     findings += [f"{t['id']}: keine Erklärung" for t in tasks if not t.get("explanation", "").strip()]
+    findings += [f"{t['id']}: Erklärung zu knapp ({len(t['explanation'])} Zeichen, mindestens {MIN_ERKLAERUNG})"
+                 for t in tasks if 0 < len(t.get("explanation", "").strip()) < MIN_ERKLAERUNG]
+
+    # Auswahlaufgaben: Nach einer falschen Antwort muss dastehen, warum sie falsch war.
+    ohne_begruendung = [t["id"] for t in tasks if t["type"] == "singleChoice" and not t.get("whyWrong")]
+    if ohne_begruendung:
+        findings.append(f"{len(ohne_begruendung)} Auswahlaufgabe(n) ohne Begründung der falschen Antworten: "
+                        f"{', '.join(sorted(ohne_begruendung)[:8])}"
+                        + (" …" if len(ohne_begruendung) > 8 else ""))
 
     # Eindeutige IDs
     findings += [f"ID doppelt vergeben: {i}" for i, n in Counter(t["id"] for t in tasks).items() if n > 1]

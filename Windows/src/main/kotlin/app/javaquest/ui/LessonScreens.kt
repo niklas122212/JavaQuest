@@ -232,7 +232,9 @@ private fun TaskStep(model: LessonFlowModel) {
                 val feedback: @Composable ColumnScope.() -> Unit = {
                     if (model.lastResult != null || model.isRevealed) {
                         Box(Modifier.bringIntoViewRequester(feedbackRequester)) {
-                            FeedbackPanel(model.lastResult, model.isRevealed, model.attempts, model.remainingAttempts, task.hint, task.explanation, countsForScore = !model.isPractice)
+                            FeedbackPanel(model.lastResult, model.isRevealed, model.attempts, model.remainingAttempts,
+                                task.hint, task.explanation, countsForScore = !model.isPractice,
+                                wrongChoice = model.wrongChoice, correctAnswer = model.correctAnswer)
                         }
                     }
                     val kind = task.kind
@@ -559,6 +561,10 @@ fun FeedbackPanel(
     explanation: String,
     // In Übung und Training zählt die Antwort für die Wissensanalyse, nicht für den Score.
     countsForScore: Boolean = true,
+    /** Die gewählte falsche Antwort und – falls hinterlegt – warum sie nicht stimmt. */
+    wrongChoice: Pair<String, String?>? = null,
+    /** Was richtig gewesen wäre. */
+    correctAnswer: String? = null,
 ) {
     val isCorrect = result?.isCorrect == true
     val tint = when { isCorrect -> Palette.success; isRevealed -> Palette.indigo; else -> Palette.orange }
@@ -608,6 +614,25 @@ fun FeedbackPanel(
                 Icon(Icons.Rounded.Lightbulb, null, tint = Palette.orange, modifier = Modifier.size(20.dp))
                 Spacer(Modifier.width(8.dp))
                 Text(hint, fontSize = 15.sp)
+            }
+        }
+        // Nach einer falschen Auswahl: erst der eigene Denkfehler, dann die richtige Antwort.
+        wrongChoice?.let { (antwort, grund) ->
+            Column(
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
+                    .background(Palette.ember.copy(alpha = 0.12f)).padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Text("Deine Antwort: $antwort", fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+                if (grund != null) Text(grund, color = secondaryText, fontSize = 14.sp, lineHeight = 20.sp)
+            }
+        }
+        if (!isCorrect && correctAnswer != null) {
+            Row(
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
+                    .background(Palette.success.copy(alpha = 0.12f)).padding(12.dp),
+            ) {
+                Text("Richtig wäre: $correctAnswer", fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
             }
         }
         if (isCorrect || isRevealed) {

@@ -199,6 +199,24 @@ class CourseContentTest {
         assertEquals("m3-objects", course.entryModule(ExperienceLevel.INTERMEDIATE)?.id)
     }
 
+    @Test fun `Jede Erklaerung sagt nicht nur WAS, sondern auch WARUM`() {
+        // Untergrenze gegen Rückfälle: „int steht für ganze Zahlen.“ nennt nur den Begriff.
+        val knapp = course.practiceableTasks.filter { it.explanation.length < 90 }
+        assertTrue(knapp.isEmpty(), "zu knapp: ${knapp.map { "${it.id} (${it.explanation.length})" }}")
+    }
+
+    @Test fun `Nach einer falschen Antwort steht da, warum sie falsch war`() {
+        for (task in course.practiceableTasks) {
+            val kind = task.kind as? TaskKind.SingleChoice ?: continue
+            kind.choices.indices.filter { it != kind.correctIndex }.forEach { index ->
+                assertTrue(
+                    !kind.whyWrong(index).isNullOrBlank(),
+                    "${task.id}: keine Begründung für „${kind.choices[index]}“",
+                )
+            }
+        }
+    }
+
     @Test fun `Jede Codezeile im Kurs hat eine Erklaerung`() {
         val snippets = course.allSnippets
         assertEquals(615, snippets.size)

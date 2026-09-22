@@ -319,7 +319,7 @@
               "topicId": "syntax",
               "difficulty": 1,
               "prompt": "Wo beginnt die Ausführung eines Java-Programms?",
-              "explanation": "Die JVM sucht die Methode public static void main(String[] args) und startet dort.",
+              "explanation": "Java liest die Datei zwar von oben nach unten, führt aber nichts davon aus, bevor es main gefunden hat. Der Grund: Eine Klasse ist nur ein Bauplan – irgendwo muss festgelegt sein, welche Anweisungen den Anfang machen. Darauf haben sich alle Java-Programme geeinigt: Es ist immer public static void main(String[] args).",
               "choices": [
                 "In der Methode main",
                 "In der ersten Zeile der Datei",
@@ -362,7 +362,7 @@
               "difficulty": 2,
               "prompt": "Ergänze die Zeile, damit „Hallo, Java!“ ausgegeben wird.",
               "hint": "Die Methode heißt „print line“ – nur zusammengeschrieben und abgekürzt.",
-              "explanation": "System.out.println gibt den Text aus und beendet die Zeile.",
+              "explanation": "println heißt „print line“: Es schreibt den Text und hängt danach einen Zeilenumbruch an. Das ist wichtig, weil die nächste Ausgabe sonst direkt dahinterklebt. Wer mehrere Teile in einer Zeile braucht, nimmt print – und erst zum Schluss einmal println.",
               "verify": {
                 "output": "Hallo, Java!"
               },
@@ -439,7 +439,7 @@
               "difficulty": 3,
               "prompt": "Schreibe eine Anweisung, die genau den Text „Ich lerne Java“ ausgibt.",
               "hint": "System.out.println(\"…\"); – und das Semikolon am Ende.",
-              "explanation": "Text gehört in doppelte Anführungszeichen, die Anweisung endet mit einem Semikolon.",
+              "explanation": "Die Anführungszeichen sagen Java: Alles dazwischen ist Text und kein Befehl. Ohne sie würde Java „Ich“ für einen Variablennamen halten und den Fehler melden, dass es ihn nicht kennt. Das Semikolon markiert, wo die Anweisung aufhört – Zeilenumbrüche sind für Java nur Optik.",
               "starterCode": {
                 "lines": [
                   {
@@ -586,7 +586,7 @@
               "topicId": "variables",
               "difficulty": 1,
               "prompt": "Welcher Datentyp speichert eine ganze Zahl?",
-              "explanation": "int steht für integer, also ganze Zahlen ohne Nachkommastellen.",
+              "explanation": "int steht für „integer“, also ganze Zahlen. Warum nicht gleich double für alles? Weil eine int-Box exakt rechnet und beim Lesen sofort verrät, dass hier nie Nachkommastellen auftauchen. double rechnet dagegen mit winzigen Rundungsfehlern – 0.1 + 0.2 ergibt dort nicht genau 0.3.",
               "choices": [
                 "boolean",
                 "double",
@@ -608,7 +608,7 @@
               "difficulty": 2,
               "prompt": "Deklariere eine Variable für einen Preis mit Nachkommastellen.",
               "hint": "Der Typ für Kommazahlen mit doppelter Genauigkeit.",
-              "explanation": "Kommazahlen speicherst du in double. float würde ein f am Ende verlangen (4.99f).",
+              "explanation": "double ist in Java die Standardwahl für Kommazahlen: Eine Zahl wie 4.99 ist von sich aus ein double. float wäre kleiner und ungenauer und verlangt ein f am Ende (4.99f), sonst meldet der Compiler einen Fehler. Deshalb nimmt man im Zweifel double.",
               "template": {
                 "lines": [
                   {
@@ -671,7 +671,7 @@
                   }
                 ]
               },
-              "explanation": "punkte wird auf 15 erhöht. Mit + werden Strings und Zahlen zu einem Text verbunden.",
+              "explanation": "Erst wird gerechnet: punkte steht danach auf 15. Beim Ausgeben hat das Pluszeichen dann eine andere Bedeutung – sobald einer der beiden Teile Text ist, klebt es zusammen statt zu addieren. Deshalb wird aus der Zahl 15 das Textstück „15“.",
               "expectedOutput": "Ada hat 15 Punkte"
             },
             {
@@ -702,7 +702,7 @@
               "difficulty": 5,
               "prompt": "Tausche die Werte von a und b mithilfe einer Hilfsvariablen tmp. Die Ausgabe soll danach 7 3 lauten.",
               "hint": "Drei Zuweisungen: sichern, überschreiben, zurückholen.",
-              "explanation": "Ohne tmp würde der erste Wert beim Überschreiben verloren gehen: tmp = a; a = b; b = tmp;",
+              "explanation": "Eine Zuweisung überschreibt den alten Inhalt unwiderruflich. Stünde a = b zuerst, wäre der ursprüngliche Wert von a weg, und b = a würde ihn nur zurückkopieren – beide Boxen hätten denselben Wert. tmp bewahrt ihn genau so lange auf, bis er gebraucht wird.",
               "starterCode": {
                 "lines": [
                   {
@@ -948,7 +948,7 @@
               "topicId": "operators",
               "difficulty": 1,
               "prompt": "Was ergibt 7 % 3?",
-              "explanation": "% liefert den Rest der Division: 7 = 2 · 3 + 1.",
+              "explanation": "% ist nicht das Prozentzeichen, sondern der Rest-Operator: Er fragt, was nach der Ganzzahldivision übrig bleibt. 3 passt zweimal in die 7, das macht 6 – es bleibt 1. Genau dieser Rest verrät zum Beispiel, ob eine Zahl gerade ist: Rest 0 bei Division durch 2.",
               "choices": [
                 "2.33",
                 "0",
@@ -1007,7 +1007,7 @@
                   }
                 ]
               },
-              "explanation": "Ganzzahldivision schneidet ab: 7 / 2 = 3. Der Rest ist 1.",
+              "explanation": "Teilt Java zwei ganze Zahlen, ist auch das Ergebnis eine ganze Zahl – die Nachkommastelle wird nicht gerundet, sondern abgeschnitten. Das überrascht oft: 7 / 2 ergibt 3, nicht 3,5. Wer genau rechnen will, muss eine Seite zur Kommazahl machen, etwa 7 / 2.0.",
               "expectedOutput": "3\n1"
             },
             {
@@ -1016,7 +1016,7 @@
               "topicId": "operators",
               "difficulty": 3,
               "prompt": "Erhöhe zaehler um genau 1 – mit dem kürzesten Operator.",
-              "explanation": "zaehler++ erhöht den Wert um 1. zaehler += 1 wäre gleichwertig, nur länger.",
+              "explanation": "++ erhöht den Wert der Box um genau 1. Diesen Operator gibt es, weil Hochzählen so häufig vorkommt – vor allem in Schleifen. zaehler += 1 und zaehler = zaehler + 1 tun dasselbe, sind nur länger zu schreiben.",
               "verify": {
                 "output": "6"
               },
@@ -1113,7 +1113,7 @@
                   }
                 ]
               },
-              "explanation": "x wird 8, dann 16. 16 > 10 und 16 ist gerade – beide Bedingungen sind wahr.",
+              "explanation": "x += 3 macht 8 daraus, x *= 2 verdoppelt auf 16. && verlangt, dass beide Seiten stimmen: 16 ist größer als 10, und 16 % 2 ergibt 0, also gerade. Nur weil beides zutrifft, kommt true heraus – bei && genügt eine falsche Hälfte, um alles falsch zu machen.",
               "expectedOutput": "16\ntrue"
             },
             {
@@ -1424,7 +1424,7 @@
               "topicId": "conditionals",
               "difficulty": 1,
               "prompt": "Was gehört in die Klammern von if (…)?",
-              "explanation": "if erwartet einen booleschen Ausdruck, der true oder false ergibt.",
+              "explanation": "if muss eine Ja-Nein-Entscheidung treffen und braucht dafür etwas, das genau zwei Werte kennt: true oder false. Anders als in C oder JavaScript gilt in Java keine Zahl und kein Text als „wahr“. Das verhindert Fehler wie if (x = 5), wo versehentlich zugewiesen statt verglichen wird – Java lehnt das ab, weil eine Zahl keine Bedingung ist.",
               "choices": [
                 "Ein String",
                 "Der Name einer Methode",
@@ -1492,7 +1492,7 @@
                   }
                 ]
               },
-              "explanation": "16 >= 18 ist false, deshalb läuft der else-Zweig.",
+              "explanation": "16 >= 18 ergibt false, also wird der erste Block übersprungen und der else-Zweig läuft. Von beiden Blöcken kommt immer genau einer dran – nie beide und nie keiner. Die Zeile hinter der schließenden Klammer läuft dann wieder in jedem Fall.",
               "expectedOutput": "Minderjährig"
             },
             {
@@ -1501,7 +1501,7 @@
               "topicId": "conditionals",
               "difficulty": 3,
               "prompt": "Ergänze die Bedingung: Eine Zahl ist gerade, wenn der Rest bei Division durch 2 null ist.",
-              "explanation": "zahl % 2 liefert den Rest. Ist er 0, ist die Zahl gerade.",
+              "explanation": "Gerade heißt: durch 2 teilbar ohne Rest. Genau das beantwortet zahl % 2 – kommt 0 heraus, ist die Zahl gerade. Mit / ginge es nicht, denn die Ganzzahldivision verschluckt genau die Information, auf die es hier ankommt.",
               "verify": {
                 "output": "gerade"
               },
@@ -1632,7 +1632,7 @@
                   }
                 ]
               },
-              "explanation": "72 >= 90 ist falsch, 72 >= 70 ist wahr. Danach wird nichts mehr geprüft.",
+              "explanation": "Java geht die Kette von oben nach unten durch und steigt bei der ersten wahren Bedingung aus. Deshalb muss die strengste Bedingung oben stehen: Stünde punkte >= 70 zuerst, bekäme auch ein Ergebnis von 95 nur „gut“, weil danach gar nicht mehr geprüft wird.",
               "expectedOutput": "gut"
             },
             {
@@ -1642,7 +1642,7 @@
               "difficulty": 5,
               "prompt": "Schreibe ein switch mit Pfeil-Syntax: Für monat 12, 1 und 2 soll „Winter“ ausgegeben werden, für alle anderen Werte „Kein Winter“.",
               "hint": "case 12, 1, 2 -> …; default -> …;",
-              "explanation": "case 12, 1, 2 fasst drei Werte zusammen, default fängt alle übrigen ab.",
+              "explanation": "Die Pfeil-Schreibweise braucht kein break: Es läuft genau ein Zweig, danach ist das switch zu Ende. Bei der alten Schreibweise mit Doppelpunkt lief ohne break der nächste Fall einfach mit – eine der häufigsten Fehlerquellen überhaupt. default fängt alles ab, woran man nicht gedacht hat.",
               "starterCode": {
                 "lines": [
                   {
@@ -1889,7 +1889,7 @@
               "topicId": "loops",
               "difficulty": 1,
               "prompt": "Wie oft läuft for (int i = 0; i < 3; i++)?",
-              "explanation": "i nimmt die Werte 0, 1 und 2 an – bei 3 ist die Bedingung falsch.",
+              "explanation": "Die Bedingung wird vor jeder Runde geprüft, nicht danach. i startet bei 0 und läuft durch 0, 1 und 2 – bei 3 ist i < 3 falsch und die Schleife endet, ohne noch einmal zu laufen. Deshalb sind es drei Runden, obwohl im Code eine 3 steht: Gezählt wird ab 0.",
               "choices": [
                 "Endlos",
                 "3-mal",
@@ -1938,7 +1938,7 @@
                   }
                 ]
               },
-              "explanation": "print schreibt alles in eine Zeile, getrennt durch Leerzeichen.",
+              "explanation": "print schreibt weiter in dieselbe Zeile, println würde sie beenden. Deshalb stehen die Zahlen nebeneinander statt untereinander. Das Leerzeichen im Text ist nötig – sonst klebten sie als „123“ aneinander.",
               "expectedOutput": "1 2 3"
             },
             {
@@ -1947,7 +1947,7 @@
               "topicId": "loops",
               "difficulty": 3,
               "prompt": "Ergänze die while-Schleife so, dass sie von 5 bis 1 herunterzählt.",
-              "explanation": "Die Schleife läuft, solange n größer als 0 ist, und verringert n in jedem Durchlauf.",
+              "explanation": "Die Bedingung steht vor dem Block und wird vor jeder Runde neu geprüft. Deshalb muss im Block etwas passieren, das sie irgendwann falsch macht – hier n--. Fehlt das Herunterzählen, bleibt die Bedingung für immer wahr und die Schleife läuft endlos.",
               "verify": {
                 "output": "5\n4\n3\n2\n1"
               },
@@ -2088,7 +2088,7 @@
                   }
                 ]
               },
-              "explanation": "Gerade Zahlen werden übersprungen. Addiert werden 1, 3, 5 und 7; bei 9 greift break.",
+              "explanation": "continue überspringt den Rest der Runde und macht mit der nächsten weiter, break verlässt die Schleife ganz. Gerade Zahlen fallen also heraus; addiert werden 1, 3, 5 und 7. Bei 9 greift break – die 9 wird nicht mehr mitgezählt, obwohl sie ungerade ist.",
               "expectedOutput": "16"
             },
             {
@@ -2098,7 +2098,7 @@
               "difficulty": 5,
               "prompt": "Berechne mit einer Schleife die Summe der Zahlen von 1 bis 100 und gib sie aus.",
               "hint": "for (int i = 1; i <= 100; i++) { summe += i; }",
-              "explanation": "Die Schleife addiert i = 1 bis 100 auf. Das Ergebnis ist 5050.",
+              "explanation": "Der Zähler muss außerhalb der Schleife stehen. Stünde int summe = 0 innerhalb, begänne er in jeder Runde von vorn und am Ende käme nur 100 heraus. Das ist das Grundmuster für jedes Aufsummieren: Speicher draußen anlegen, drinnen füllen.",
               "starterCode": {
                 "lines": [
                   {
@@ -2327,7 +2327,7 @@
               "topicId": "methods",
               "difficulty": 1,
               "prompt": "Was bedeutet void als Rückgabetyp?",
-              "explanation": "void heißt „nichts“ – ein return ohne Wert ist erlaubt, aber keiner mit Wert.",
+              "explanation": "Eine Methode ohne Rückgabe ist nicht nutzlos: Sie tut etwas – ausgeben, ein Feld ändern – liefert aber nichts an die aufrufende Stelle zurück. void zwingt dazu, das klar zu sagen. Dadurch kann man das Ergebnis auch nicht versehentlich in eine Variable legen, denn es gibt keines.",
               "choices": [
                 "Die Methode gibt 0 zurück",
                 "Die Methode gibt keinen Wert zurück",
@@ -2399,7 +2399,7 @@
                   }
                 ]
               },
-              "explanation": "doppelt(4) liefert 8, doppelt(1) liefert 2 – zusammen 10.",
+              "explanation": "Beide Aufrufe laufen zu Ende, bevor addiert wird: Java rechnet von innen nach außen. doppelt(4) wird zu 8, doppelt(1) zu 2 – erst dann steht 8 + 2 da. Dass eine Methode mitten in einem Ausdruck stehen darf, ist der Grund, warum return praktischer ist als println.",
               "javaContext": "members",
               "expectedOutput": "10"
             },
@@ -2409,7 +2409,7 @@
               "topicId": "methods",
               "difficulty": 3,
               "prompt": "Ergänze Rückgabetyp und Rückgabe der Methode maximum.",
-              "explanation": "Die Methode liefert eine ganze Zahl (int) und gibt sie mit return zurück.",
+              "explanation": "Der Rückgabetyp vor dem Namen ist ein Versprechen: Diese Methode liefert genau einen int. Java prüft, dass auf jedem möglichen Weg ein return steht – fehlt einer, gibt es schon beim Übersetzen einen Fehler statt später eine Überraschung.",
               "javaContext": "members",
               "verify": {
                 "main": "System.out.println(maximum(3, 9));",
@@ -2783,7 +2783,7 @@
               "topicId": "arrays",
               "difficulty": 1,
               "prompt": "Welchen Index hat das erste Element eines Arrays?",
-              "explanation": "Java zählt Indizes ab 0.",
+              "explanation": "Der Index ist kein Abzählen, sondern ein Abstand vom Anfang: Das erste Fach liegt 0 Schritte hinter dem Anfang, das zweite einen. Deshalb hat das letzte Fach immer die Nummer length - 1 – genau hier entsteht der häufigste Anfängerfehler.",
               "choices": [
                 "Das hängt von der Länge ab",
                 "0",
@@ -2843,7 +2843,7 @@
                   }
                 ]
               },
-              "explanation": "Das Wort hat 6 Zeichen, Index 1 ist das zweite Zeichen 'a'.",
+              "explanation": "length() zählt alle Zeichen, charAt zählt ab 0 – Index 1 ist deshalb das zweite Zeichen. toUpperCase verändert den Text nicht, sondern liefert einen neuen zurück: wort selbst steht danach unverändert da.",
               "expectedOutput": "6\na\nKAFFEE"
             },
             {
@@ -2976,7 +2976,7 @@
               "difficulty": 5,
               "prompt": "Finde das größte Element im Array zahlen und gib es aus – ohne das Array zu sortieren.",
               "hint": "for (int z : zahlen) { if (z > max) { max = z; } }",
-              "explanation": "Du merkst dir den bisher größten Wert und ersetzt ihn, sobald ein größerer auftaucht.",
+              "explanation": "Das Muster heißt „bisher bester Wert“: Man startet mit dem ersten Element und ersetzt es, sobald ein größeres auftaucht. Mit 0 zu starten wäre ein Fehler – bei lauter negativen Zahlen käme sonst 0 heraus, obwohl die 0 gar nicht im Array steht.",
               "starterCode": {
                 "lines": [
                   {
@@ -3280,7 +3280,7 @@
               "topicId": "oop",
               "difficulty": 1,
               "prompt": "Womit erzeugst du ein neues Objekt der Klasse Auto?",
-              "explanation": "Das Schlüsselwort new ruft den Konstruktor auf und legt ein neues Objekt an.",
+              "explanation": "new macht zwei Dinge auf einmal: Es besorgt Platz im Speicher und ruft dann den Konstruktor auf, der die Felder füllt. Ohne new hätte man nur den Bauplan – Auto() allein sucht Java als Methode, und die gibt es nicht.",
               "choices": [
                 "Auto.create()",
                 "Auto()",
@@ -3455,7 +3455,7 @@
                   }
                 ]
               },
-              "explanation": "a und b sind zwei unabhängige Objekte. a wurde zweimal geklickt, b einmal.",
+              "explanation": "Jedes new legt einen eigenen Satz Felder an. Deshalb zählen a und b getrennt: a wurde zweimal geklickt, b einmal. Wäre stand static, gäbe es den Zähler nur einmal für alle Objekte – dann stünde dort 3 und 3.",
               "javaContext": "file",
               "expectedOutput": "2 1"
             },
@@ -3465,7 +3465,7 @@
               "topicId": "oop",
               "difficulty": 4,
               "prompt": "Ergänze den Konstruktor und den Getter der Klasse Konto.",
-              "explanation": "Der Konstruktor trägt den Namen der Klasse. Der Getter gibt das Feld mit return zurück.",
+              "explanation": "Der Konstruktor heißt wie die Klasse und hat keinen Rückgabetyp – daran erkennt Java ihn. Schriebe man void davor, wäre es eine ganz normale Methode namens Konto, die beim new nie aufgerufen würde.",
               "javaContext": "file",
               "verify": {
                 "main": "System.out.println(new Konto(12.5).getSaldo());",
@@ -3852,7 +3852,7 @@
               "topicId": "inheritance",
               "difficulty": 1,
               "prompt": "Mit welchem Schlüsselwort erbt eine Klasse von einer anderen?",
-              "explanation": "extends erweitert eine Klasse. implements nutzt man für Interfaces.",
+              "explanation": "extends heißt: Diese Klasse ist eine besondere Art der anderen und hat alles schon, ohne es abzuschreiben. implements ist etwas anderes – dort verspricht man nur, bestimmte Methoden zu liefern, erbt aber keinen fertigen Code.",
               "choices": [
                 "inherits",
                 "super",
@@ -4584,7 +4584,7 @@
               "topicId": "exceptions",
               "difficulty": 1,
               "prompt": "Welcher Block fängt eine Exception ab?",
-              "explanation": "Im try-Block steht der riskante Code, catch fängt die Exception ab.",
+              "explanation": "Die Aufteilung hat einen Grund: Im try steht, was schiefgehen kann, im catch, was dann passieren soll. So bleibt der normale Ablauf lesbar und die Fehlerbehandlung steht gebündelt daneben – statt einer Prüfung nach jeder einzelnen Zeile.",
               "choices": [
                 "throw",
                 "final",
@@ -4706,7 +4706,7 @@
               "topicId": "exceptions",
               "difficulty": 4,
               "prompt": "Ergänze: Bei negativem Alter soll eine IllegalArgumentException geworfen werden.",
-              "explanation": "throw wirft eine Exception. throws (mit s) steht dagegen in der Methodensignatur.",
+              "explanation": "throw löst den Alarm sofort aus: Die Methode bricht an dieser Stelle ab, die Zeilen danach laufen nicht mehr. Nicht zu verwechseln mit throws im Methodenkopf – das kündigt nur an, dass ein Fehler kommen könnte.",
               "javaContext": "members",
               "verify": {
                 "main": "setzeAlter(30);\ntry {\n    setzeAlter(-1);\n} catch (IllegalArgumentException e) {\n    System.out.println(e.getMessage());\n}",
@@ -5027,7 +5027,7 @@
               "topicId": "collections",
               "difficulty": 1,
               "prompt": "Welche Methode fügt ein Element zu einer ArrayList hinzu?",
-              "explanation": "Listen nutzen add. put gehört zu Maps.",
+              "explanation": "add gehört zu allen Sammlungen, die Elemente einfach aneinanderreihen. put gäbe es nur bei einer Map, weil dort jeder Eintrag zusätzlich einen Schlüssel braucht. Die Methodennamen verraten also, womit man es zu tun hat.",
               "choices": [
                 "push",
                 "insert",
@@ -5148,7 +5148,7 @@
               "topicId": "collections",
               "difficulty": 4,
               "prompt": "Zähle mit einer HashMap, wie oft jedes Wort vorkommt.",
-              "explanation": "put überschreibt den alten Zählerstand mit dem erhöhten Wert.",
+              "explanation": "getOrDefault löst das Henne-Ei-Problem: Beim ersten Vorkommen steht noch nichts in der Map, und null + 1 würde abstürzen. Die 0 als Ersatzwert macht die erste Runde zur ganz normalen. put schreibt den erhöhten Stand dann zurück.",
               "verify": {
                 "output": "2"
               },
@@ -5439,7 +5439,7 @@
               "topicId": "lambdas",
               "difficulty": 1,
               "prompt": "Welche Schreibweise ist ein gültiger Lambda-Ausdruck in Java?",
-              "explanation": "Java nutzt den Pfeil ->. => kennst du aus JavaScript, lambda x: aus Python.",
+              "explanation": "Der Pfeil trennt Zutaten von Arbeit: links, was hereinkommt, rechts, was damit passiert. => stammt aus JavaScript, lambda x: aus Python – beides lehnt der Java-Compiler ab, auch wenn man es von woanders gewohnt ist.",
               "choices": [
                 "x => x * 2",
                 "function(x) { x * 2 }",
@@ -5486,7 +5486,7 @@
                   }
                 ]
               },
-              "explanation": "forEach ruft das Lambda für jedes Element in Listenreihenfolge auf.",
+              "explanation": "forEach übernimmt das Durchlaufen und ruft für jedes Element den kurzen Block rechts vom Pfeil auf – in der Reihenfolge der Liste. Man sagt also nur noch, WAS mit jedem Element passieren soll, nicht mehr, wie man durchzählt.",
               "expectedOutput": "ADA\nLINUS\nGRACE"
             },
             {
@@ -5555,7 +5555,7 @@
                   }
                 ]
               },
-              "explanation": "Nur 2, 4 und 6 passieren den Filter, danach wird jede Zahl mit 10 multipliziert.",
+              "explanation": "Die Reihenfolge der Stationen entscheidet: Erst siebt filter die ungeraden aus, dann verzehnfacht map, was übrig bleibt. Umgekehrt käme etwas anderes heraus. Passieren tut übrigens gar nichts, bis am Ende toList die Ergebnisse einsammelt.",
               "expectedOutput": "[20, 40, 60]"
             },
             {
@@ -5564,7 +5564,7 @@
               "topicId": "lambdas",
               "difficulty": 4,
               "prompt": "Ergänze die Pipeline: nur Wörter mit mehr als 3 Buchstaben, in Großbuchstaben, kommagetrennt.",
-              "explanation": "filter behält passende Elemente, map(String::toUpperCase) wandelt jedes Wort um.",
+              "explanation": "filter entscheidet, WAS durchkommt, map, WIE es sich verändert – zwei Aufgaben, zwei Stationen. String::toUpperCase ist dabei nur eine Kurzschreibweise für w -> w.toUpperCase().",
               "verify": {
                 "output": "JAVA, SUPER, COOL"
               },
@@ -5913,7 +5913,7 @@
               "topicId": "modern",
               "difficulty": 1,
               "prompt": "Was erzeugt record Punkt(int x, int y) {} automatisch?",
-              "explanation": "Records sind unveränderlich: Es gibt Lesemethoden (x(), y()), aber keine Setter.",
+              "explanation": "Ein Record hält Werte zusammen und ist dabei unveränderlich – deshalb gibt es Lesemethoden, aber bewusst keine Setter. Wer andere Werte braucht, legt einen neuen an. Das erspart eine ganze Klasse voller immer gleichem Code.",
               "choices": [
                 "Setter-Methoden für x und y",
                 "Nichts – Records müssen alles selbst definieren",
@@ -6078,7 +6078,7 @@
                   }
                 ]
               },
-              "explanation": "orElse greift nur beim leeren Optional. map wendet length auf „Java“ an.",
+              "explanation": "Optional ist eine Schachtel, die leer sein darf – das zwingt dazu, den leeren Fall zu behandeln, statt ihn zu vergessen. orElse greift nur, wenn nichts drin ist; map arbeitet nur, wenn etwas drin ist. Genau das verhindert die NullPointerException.",
               "expectedOutput": "unbekannt\n4\nfalse"
             },
             {
@@ -6087,7 +6087,7 @@
               "topicId": "modern",
               "difficulty": 4,
               "prompt": "Ergänze den switch-Ausdruck, der für jede Note einen Text liefert.",
-              "explanation": "Ein switch-Ausdruck muss alle Fälle abdecken – default fängt den Rest ab.",
+              "explanation": "Ein switch-Ausdruck liefert einen Wert und braucht deshalb für jeden möglichen Fall eine Antwort – sonst wüsste Java nicht, was in die Variable soll. Bei einem enum kann der Compiler die Fälle nachzählen, bei int nicht: Dort muss default her.",
               "verify": {
                 "output": "gut"
               },
@@ -6516,7 +6516,13 @@
                 "Für beliebig viele Zahlen",
                 "Für lange Texte"
               ],
-              "correctIndex": 1
+              "correctIndex": 1,
+              "whyWrong": [
+                "Dateien liest und schreibt man mit Klassen wie Files oder Scanner. Ein enum ist ein Typ mit festen Werten und hat damit nichts zu tun.",
+                null,
+                "Die Werte eines enums stehen im Quelltext fest und lassen sich zur Laufzeit nicht vermehren. Für beliebig viele Zahlen nimmt man eine Liste.",
+                "Text speichert ein String. Ein enum hat zwar Namen, aber das sind Bezeichner für feste Möglichkeiten – kein frei wählbarer Inhalt."
+              ]
             },
             {
               "id": "t14-2",
@@ -6571,7 +6577,7 @@
               "topicId": "enums",
               "difficulty": 3,
               "prompt": "Heute regnet es. Ergänze den Wert und das Wort, das den passenden Tipp auswählt.",
-              "explanation": "Wetter.REGEN ist der Wert für Regen; der switch wählt dazu den Tipp „Schirm“.",
+              "explanation": "Der switch über ein enum kommt ohne den Vornamen aus: case REGEN genügt, Wetter.REGEN wäre sogar ein Fehler. Weil alle Werte aufgezählt sind, prüft Java, dass keiner fehlt – bei Text statt enum ginge das nicht.",
               "verify": {
                 "output": "Schirm"
               },
@@ -7219,7 +7225,13 @@
                 "hashCode()",
                 "main()"
               ],
-              "correctIndex": 0
+              "correctIndex": 0,
+              "whyWrong": [
+                null,
+                "equals entscheidet, ob zwei Objekte inhaltlich gleich sind. Mit der Ausgabe hat das nichts zu tun.",
+                "hashCode liefert eine Zahl für Hash-Tabellen wie HashMap. Sie erscheint zwar in der Standardausgabe von Object, steuert diese aber nicht.",
+                "main ist der Startpunkt des Programms. Was beim Ausgeben eines Objekts erscheint, entscheidet es nicht."
+              ]
             },
             {
               "id": "t15-2",
@@ -7234,7 +7246,13 @@
                 "== vergleicht nur Texte",
                 "== fragt „dasselbe Objekt?“, equals fragt „inhaltlich gleich?“"
               ],
-              "correctIndex": 3
+              "correctIndex": 3,
+              "whyWrong": [
+                "Der Unterschied ist erheblich: Zwei Texte mit gleichem Inhalt können zwei verschiedene Objekte sein – dann liefert == false und equals true.",
+                "Für Grundtypen wie int gibt es gar kein equals – dort nimmt man ==. equals ist gerade für Objekte gedacht.",
+                "== funktioniert für alles, fragt aber immer nach der Identität. Bei Texten ist das fast nie die Frage, die man beantwortet haben will.",
+                null
+              ]
             },
             {
               "id": "t15-3",
@@ -7481,7 +7499,7 @@
               "difficulty": 5,
               "prompt": "Ergänze in der Klasse Buch eine toString-Methode, die „Titel von Autor“ liefert – z. B. „Momo von Michael Ende“.",
               "hint": "return titel + \" von \" + autor;",
-              "explanation": "println ruft toString() auf – und die liefert jetzt „Momo von Michael Ende“.",
+              "explanation": "println fragt jedes Objekt nach seiner toString-Methode. Ohne eigene Fassung greift die von Object und zeigt Klassennamen und eine kryptische Zahl. Wer toString schreibt, bestimmt also selbst, was beim Ausgeben erscheint.",
               "javaContext": "file",
               "starterCode": {
                 "lines": [
@@ -7884,7 +7902,13 @@
                 "Er ist die einzige Art, Texte auszugeben",
                 "Er übersetzt Texte"
               ],
-              "correctIndex": 0
+              "correctIndex": 0,
+              "whyWrong": [
+                null,
+                "Die Schreibweise ändert toUpperCase. Der StringBuilder verändert nur den Aufbau des Textes.",
+                "Ausgegeben wird weiterhin mit System.out.println. Der StringBuilder setzt den Text nur zusammen.",
+                "Übersetzen kann Java von sich aus nicht. Der StringBuilder ist ein Bauplatz zum Zusammensetzen."
+              ]
             },
             {
               "id": "t16-2",
@@ -8072,7 +8096,7 @@
               "difficulty": 5,
               "prompt": "Baue mit einem StringBuilder und einer Schleife den Text „*****“ (fünf Sterne) und gib ihn aus – ohne die fünf Sterne direkt hinzuschreiben.",
               "hint": "for (int i = 0; i < 5; i++) { sb.append(\"*\"); }",
-              "explanation": "Fünf Runden, in jeder hängt append einen Stern an.",
+              "explanation": "Ein String lässt sich nicht verändern: Bei text += \"*\" entsteht jedes Mal ein komplett neuer Text. Der StringBuilder ist dagegen ein Bauplatz, an den angehängt wird – bei fünf Runden egal, bei Tausenden ein spürbarer Unterschied.",
               "starterCode": {
                 "lines": [
                   {
@@ -8341,7 +8365,13 @@
                 "Weil dabei Fehler passieren können und Java verlangt, dass man darauf reagiert",
                 "Weil Dateien sonst langsamer sind"
               ],
-              "correctIndex": 2
+              "correctIndex": 2,
+              "whyWrong": [
+                "Speichern muss man selbst. try sorgt dafür, dass ein Fehler abgefangen wird – und schließt bei try-with-resources die Datei wieder.",
+                "Bei IOException hat man keine Wahl: Sie ist eine checked Exception, und ohne catch oder throws übersetzt Java die Klasse gar nicht erst.",
+                null,
+                "Auf die Geschwindigkeit hat try keinen Einfluss. Es geht allein darum, auf Fehler vorbereitet zu sein."
+              ]
             },
             {
               "id": "t17-2",
@@ -8541,7 +8571,7 @@
               "topicId": "datetime",
               "difficulty": 5,
               "prompt": "Gib das Datum 3. Oktober 2026 im deutschen Format „03.10.2026“ aus – mit einem DateTimeFormatter.",
-              "explanation": "dd = Tag zweistellig, MM = Monat zweistellig, yyyy = Jahr – so entsteht 03.10.2026.",
+              "explanation": "Das Datum selbst weiß nichts von deutscher Schreibweise – es speichert nur Jahr, Monat und Tag. Erst die Formatvorlage bestimmt die Darstellung: dd zweistelliger Tag, MM zweistelliger Monat, yyyy vierstelliges Jahr. Klein geschriebenes mm wären Minuten.",
               "starterCode": {
                 "lines": [
                   {
@@ -8773,14 +8803,20 @@
               "topicId": "recursion",
               "difficulty": 1,
               "prompt": "Was braucht jede rekursive Methode unbedingt?",
-              "explanation": "Ohne Basisfall würde sich die Methode endlos selbst aufrufen.",
+              "explanation": "Jeder Aufruf belegt Platz auf dem Aufruf-Stapel. Ohne Abbruchbedingung wächst dieser Stapel, bis der Platz aufgebraucht ist – das Programm endet mit StackOverflowError. Der Basisfall ist also nicht Kür, sondern das Einzige, was die Kette beenden kann.",
               "choices": [
                 "Eine for-Schleife",
                 "Einen Parameter vom Typ String",
                 "Ein static-Feld",
                 "Eine Abbruchbedingung (Basisfall)"
               ],
-              "correctIndex": 3
+              "correctIndex": 3,
+              "whyWrong": [
+                "Gerade nicht – Rekursion ersetzt die Schleife. Die Wiederholung entsteht durch den Aufruf der Methode selbst.",
+                "Der Typ spielt keine Rolle. Wichtig ist nur, dass sich der Wert Schritt für Schritt dem Basisfall nähert.",
+                "Ein gemeinsames Feld bräuchte man gerade nicht – jeder Aufruf arbeitet mit seinen eigenen Werten.",
+                null
+              ]
             },
             {
               "id": "t18-2",
@@ -8858,7 +8894,7 @@
                   }
                 ]
               },
-              "explanation": "summe(4) = 4 + summe(3) = 4 + 3 + summe(2) = … = 4 + 3 + 2 + 1 + 0 = 10.",
+              "explanation": "Jeder Aufruf wartet auf den nächsten: summe(4) kann erst rechnen, wenn summe(3) fertig ist, und so weiter bis summe(0). Erst dann lösen sich die wartenden Aufrufe von innen nach außen auf – 0, 1, 3, 6, 10.",
               "javaContext": "members",
               "expectedOutput": "10"
             },
@@ -8948,7 +8984,7 @@
               "topicId": "recursion",
               "difficulty": 4,
               "prompt": "Ergänze den Basisfall und den rekursiven Aufruf: potenz(2, 5) soll 32 ergeben.",
-              "explanation": "Hoch 0 ist immer 1 (Basisfall). Sonst: basis mal potenz mit einem kleineren Exponenten.",
+              "explanation": "Der Basisfall muss vor dem Aufruf stehen, sonst wird er nie erreicht. Exponent 0 liefert 1, weil jede Zahl hoch 0 genau 1 ergibt – und weil 1 der Wert ist, der beim Multiplizieren nichts verändert.",
               "javaContext": "members",
               "verify": {
                 "output": "32"
@@ -9421,7 +9457,13 @@
                 "Es dürfen höchstens 10 Elemente sein",
                 "Man braucht eine HashMap"
               ],
-              "correctIndex": 0
+              "correctIndex": 0,
+              "whyWrong": [
+                null,
+                "Die Sorte ist egal, solange sich die Werte vergleichen lassen. Entscheidend ist allein die Sortierung.",
+                "Gerade bei vielen Elementen lohnt sie sich. Bei zehn wäre der Unterschied zur linearen Suche kaum spürbar.",
+                "Eine HashMap findet über den Schlüssel direkt – da braucht es gar keine Suche. Die binäre Suche arbeitet auf sortierten Listen oder Arrays."
+              ]
             },
             {
               "id": "t19-2",
@@ -9436,7 +9478,13 @@
                 "Genau 1 000 000",
                 "Etwa 20"
               ],
-              "correctIndex": 3
+              "correctIndex": 3,
+              "whyWrong": [
+                "Das wäre ein Tausendstel – immer noch viel zu viel. Weil sich der Bereich bei jedem Schritt halbiert, wächst die Zahl der Schritte extrem langsam.",
+                "Die Hälfte anzuschauen ist der Durchschnitt der linearen Suche, nicht der binären.",
+                "Alles anzusehen wäre der schlimmste Fall der linearen Suche – genau das vermeidet die binäre.",
+                null
+              ]
             },
             {
               "id": "t19-3",
@@ -9482,7 +9530,7 @@
                   }
                 ]
               },
-              "explanation": "Nach dem Sortieren liegt die kleinste Zahl in Fach 0, die größte in Fach 3.",
+              "explanation": "Arrays.sort ordnet das Array an Ort und Stelle – es entsteht kein neues, das alte ist danach verändert. Deshalb liegt in Fach 0 nun die kleinste Zahl. Wer die ursprüngliche Reihenfolge noch braucht, muss vorher eine Kopie anlegen.",
               "expectedOutput": "15 40\n[15, 25, 30, 40]"
             },
             {
@@ -9862,14 +9910,20 @@
               "topicId": "datastructures",
               "difficulty": 1,
               "prompt": "Welche Datenstruktur passt für „Rückgängig“ in einem Textprogramm – die letzte Änderung wird zuerst zurückgenommen?",
-              "explanation": "Was zuletzt passiert ist, wird zuerst zurückgenommen – genau wie beim Tellerstapel.",
+              "explanation": "Rückgängig heißt: zuletzt Gemachtes zuerst zurücknehmen. Genau das leistet ein Stapel – oben drauflegen, oben herunternehmen. Eine Warteschlange würde die älteste Änderung zuerst zurücknehmen, also genau die falsche.",
               "choices": [
                 "Eine Warteschlange (Queue)",
                 "Ein Set",
                 "Ein Array fester Länge",
                 "Ein Stapel (Stack)"
               ],
-              "correctIndex": 3
+              "correctIndex": 3,
+              "whyWrong": [
+                "Die Warteschlange gibt das Älteste zuerst heraus – sie würde also die allererste Änderung zurücknehmen statt der letzten.",
+                "Ein Set kennt weder Reihenfolge noch Doppelte. Beides bräuchte man hier.",
+                "Ein Array könnte die Änderungen zwar halten, aber das Verwalten müsste man von Hand schreiben – genau das nimmt einem der Stapel ab.",
+                null
+              ]
             },
             {
               "id": "t20-2",
@@ -9911,7 +9965,7 @@
                   }
                 ]
               },
-              "explanation": "Das TreeSet behält jede Zahl nur einmal und sortiert sie. Die 4 war nie dabei.",
+              "explanation": "Das Set wirft Doppelte weg, weil eine Menge jeden Wert nur einmal kennt – aus fünf Zahlen werden drei. Das TreeSet hält sie zusätzlich sortiert; ein HashSet hätte dieselben Zahlen, aber in unvorhersagbarer Reihenfolge.",
               "expectedOutput": "[1, 3, 5]\nfalse"
             },
             {
@@ -9991,7 +10045,7 @@
               "topicId": "datastructures",
               "difficulty": 4,
               "prompt": "Ergänze die Warteschlange an der Kasse: hinten anstellen, vorne abholen.",
-              "explanation": "offer stellt hinten an, poll holt die Person von vorne ab – Ada war zuerst da.",
+              "explanation": "offer und poll arbeiten an entgegengesetzten Enden: hinten anstellen, vorne abholen. Genau das macht eine Warteschlange aus – wer zuerst kommt, wird zuerst bedient. Beim Stapel wären es push und pop, beide am selben Ende.",
               "verify": {
                 "output": "Ada ist dran, 2 warten"
               },
@@ -10068,7 +10122,7 @@
               "topicId": "datastructures",
               "difficulty": 5,
               "prompt": "Zähle mit einem Set, wie viele verschiedene Wörter in woerter stehen, und gib die Zahl aus.",
-              "explanation": "Das Set behält ja, nein und vielleicht je einmal – size() ist 3.",
+              "explanation": "Das Set beantwortet „wie viele verschiedene“ ohne eine einzige Vergleichsschleife: Doppelte fallen beim Einfügen von selbst weg. Mit einer Liste müsste man jedes Wort mit allen vorherigen vergleichen.",
               "starterCode": {
                 "lines": [
                   {
@@ -10375,7 +10429,13 @@
                 "Er macht das Programm schneller",
                 "Er übersetzt Java in eine andere Sprache"
               ],
-              "correctIndex": 1
+              "correctIndex": 1,
+              "whyWrong": [
+                "Ein Test findet Fehler, er behebt sie nicht. Was mit dem Befund passiert, entscheidet der Mensch.",
+                null,
+                "Tests laufen getrennt vom Programm und haben auf dessen Geschwindigkeit keinen Einfluss.",
+                "Übersetzt wird von javac – und zwar in Bytecode. Damit hat ein Test nichts zu tun."
+              ]
             },
             {
               "id": "t21-2",
@@ -10401,7 +10461,13 @@
                 "Die Werte stehen in zwei getrennten Zeilen",
                 "Erst der erwartete Wert (8), dann das tatsächliche Ergebnis"
               ],
-              "correctIndex": 3
+              "correctIndex": 3,
+              "whyWrong": [
+                "Der Test besteht dann zwar trotzdem – aber wenn er scheitert, steht die Meldung auf dem Kopf: erwartet und tatsächlich wären vertauscht.",
+                "Die 0 hat keine Sonderstellung. Zuerst steht immer der erwartete Wert, welcher auch immer das ist.",
+                "assertEquals nimmt beide Werte in einem einzigen Aufruf, getrennt durch ein Komma.",
+                null
+              ]
             },
             {
               "id": "t21-3",
@@ -10599,7 +10665,7 @@
               "difficulty": 5,
               "prompt": "Schreibe drei Prüfungen für verdopple mit pruefe(…): für 0, 5 und -2. Alle drei sollen „OK“ ausgeben.",
               "hint": "pruefe(\"verdopple(5)\", 10, verdopple(5));",
-              "explanation": "Jede Prüfung nennt den erwarteten Wert und ruft die Methode auf: 0 → 0, 5 → 10, -2 → -4.",
+              "explanation": "Gute Tests nehmen die Ränder mit: die 0 als Grenzfall, eine gewöhnliche positive und eine negative Zahl. Gerade negative Werte werden beim Programmieren oft vergessen – ein Test, der nur die 5 prüft, übersieht solche Fehler.",
               "javaContext": "members",
               "starterCode": {
                 "lines": [
@@ -10987,14 +11053,20 @@
               "topicId": "tooling",
               "difficulty": 1,
               "prompt": "Was bewirkt die Zeile package de.schule.mathe; ganz oben in einer Datei?",
-              "explanation": "package ordnet die Klasse in einen Ordner ein – hier de/schule/mathe.",
+              "explanation": "Das Paket ist der Nachname der Klasse: Zwei Projekte dürfen beide eine Klasse Liste haben, solange die Pakete verschieden sind. Deshalb muss die Datei auch im passenden Ordner liegen – Java sucht sie genau dort.",
               "choices": [
                 "Sie legt fest, in welchem Paket (Ordner) die Klasse liegt",
                 "Sie lädt eine Bibliothek aus dem Internet",
                 "Sie startet das Programm",
                 "Sie macht die Klasse unsichtbar"
               ],
-              "correctIndex": 0
+              "correctIndex": 0,
+              "whyWrong": [
+                null,
+                "Das ist Sache des Build-Werkzeugs. package sagt nur, wo die eigene Klasse einsortiert ist.",
+                "Gestartet wird über die Methode main. package steht zwar ganz oben, führt aber nichts aus.",
+                "Sichtbarkeit regeln public und private. Ein Paket ordnet nur ein."
+              ]
             },
             {
               "id": "t22-2",
@@ -11002,14 +11074,20 @@
               "topicId": "tooling",
               "difficulty": 2,
               "prompt": "Wozu dient ein Build-Werkzeug wie Maven oder Gradle?",
-              "explanation": "Build-Werkzeuge erledigen alle wiederkehrenden Schritte mit einem einzigen Befehl.",
+              "explanation": "Ohne Build-Werkzeug müsste man Bibliotheken von Hand herunterladen, Versionen selbst im Blick behalten und die Übersetzungsbefehle jedes Mal neu tippen. Ein Bauplan im Projekt macht daraus einen einzigen Befehl – und jeder im Team bekommt dasselbe Ergebnis.",
               "choices": [
                 "Es ist ein Texteditor",
                 "Es macht Java-Code kürzer",
                 "Es holt Bibliotheken, übersetzt den Code, startet Tests und packt das Programm",
                 "Es ersetzt die main-Methode"
               ],
-              "correctIndex": 2
+              "correctIndex": 2,
+              "whyWrong": [
+                "Geschrieben wird der Code weiterhin im Editor. Das Build-Werkzeug übernimmt erst danach.",
+                "Am Code ändert es nichts – es automatisiert die Schritte drumherum.",
+                null,
+                "Die main-Methode bleibt der Startpunkt. Das Werkzeug ruft sie nur auf."
+              ]
             },
             {
               "id": "t22-3",
@@ -11465,14 +11543,20 @@
               "topicId": "concurrency",
               "difficulty": 1,
               "prompt": "Was macht join() bei einem Thread?",
-              "explanation": "start() lässt den Thread loslaufen, join() wartet auf sein Ende.",
+              "explanation": "Ein gestarteter Thread läuft nebenher weiter; das Hauptprogramm wartet nicht von selbst auf ihn. Ohne join stünde man womöglich vor einem Ergebnis, das es noch gar nicht gibt. join hält an, bis der Thread wirklich fertig ist.",
               "choices": [
                 "Es verbindet zwei Threads zu einem",
                 "Es wartet, bis der Thread fertig ist",
                 "Es startet den Thread",
                 "Es beendet das Programm sofort"
               ],
-              "correctIndex": 1
+              "correctIndex": 1,
+              "whyWrong": [
+                "Der Name führt in die Irre: Zusammengelegt wird nichts. join heißt hier „sich wieder treffen“.",
+                null,
+                "Gestartet wird mit start(). join kommt danach, wenn man auf das Ende warten will.",
+                "Beendet wird nichts – im Gegenteil, das Hauptprogramm wartet ab."
+              ]
             },
             {
               "id": "t23-2",
@@ -11487,7 +11571,13 @@
                 "Sie ist nicht vorhersehbar – mal A zuerst, mal B",
                 "Immer A zuerst"
               ],
-              "correctIndex": 2
+              "correctIndex": 2,
+              "whyWrong": [
+                "Eine feste Reihenfolge gibt es nicht. Wer zuerst drankommt, entscheidet das Betriebssystem – und das kann bei jedem Lauf anders ausfallen.",
+                "Beide Threads laufen und geben aus. Unbestimmt ist allein die Reihenfolge.",
+                null,
+                "Dass A im Code zuerst gestartet wird, heißt nicht, dass es zuerst ausgibt. Genau darin liegt die Tücke der Nebenläufigkeit."
+              ]
             },
             {
               "id": "t23-3",
@@ -11967,7 +12057,13 @@
                 "Ein Thread, der nie endet",
                 "Eine Liste aller Threads"
               ],
-              "correctIndex": 1
+              "correctIndex": 1,
+              "whyWrong": [
+                "Der Name klingt danach, meint aber das Gegenteil: ein Ergebnis, das noch kommt.",
+                null,
+                "Ein Future ist kein Thread, sondern der Zettel, mit dem man dessen Ergebnis abholt.",
+                "Ein Future gehört zu genau einer Aufgabe, nicht zu vielen."
+              ]
             },
             {
               "id": "t24-2",
@@ -11975,14 +12071,20 @@
               "topicId": "concurrency",
               "difficulty": 2,
               "prompt": "Wofür eignen sich virtuelle Threads besonders?",
-              "explanation": "Virtuelle Threads kosten fast nichts – ideal, wenn Tausende Aufgaben gleichzeitig warten.",
+              "explanation": "Ein gewöhnlicher Thread belegt Speicher vom Betriebssystem – ein paar tausend davon bringen den Rechner an die Grenze. Virtuelle Threads verwaltet Java selbst und legt sie beim Warten beiseite. Deshalb lohnen sie sich genau dort, wo viel gewartet wird.",
               "choices": [
                 "Für genau eine Aufgabe pro Programm",
                 "Um den Arbeitsspeicher zu löschen",
                 "Für sehr viele Aufgaben, die oft warten – z. B. auf Antworten aus dem Netzwerk",
                 "Nur für Grafik"
               ],
-              "correctIndex": 2
+              "correctIndex": 2,
+              "whyWrong": [
+                "Für eine einzige Aufgabe bräuchte man gar keine Threads. Der Vorteil zeigt sich erst bei sehr vielen.",
+                "Aufräumen ist Sache der Speicherbereinigung. Threads führen Code aus.",
+                null,
+                "Mit Grafik haben sie nichts zu tun. Es geht um viele gleichzeitig wartende Aufgaben."
+              ]
             },
             {
               "id": "t24-3",
@@ -12043,7 +12145,7 @@
                   }
                 ]
               },
-              "explanation": "Beide Aufgaben laufen im Team; get() wartet jeweils, bis das Ergebnis fertig ist.",
+              "explanation": "submit gibt sofort einen Abholschein (Future) zurück, nicht das Ergebnis – die Arbeit läuft erst noch. get holt es ab und wartet dabei, falls nötig. Dadurch können beide Aufgaben gleichzeitig laufen statt nacheinander.",
               "expectedOutput": "Hallo 42"
             },
             {
@@ -12119,7 +12221,7 @@
               "difficulty": 5,
               "prompt": "Reiche drei Aufgaben ein, die 10, 20 und 30 liefern, und gib die Summe aller Ergebnisse aus (60).",
               "hint": "Future<Integer> a = team.submit(() -> 10);",
-              "explanation": "Drei Abholscheine, drei get() – 10 + 20 + 30 = 60.",
+              "explanation": "Erst alle drei einreichen, dann einsammeln: So laufen sie nebeneinander. Würde man nach jedem submit sofort get aufrufen, wartete man jedes Mal – und hätte den Vorteil der Nebenläufigkeit verschenkt.",
               "starterCode": {
                 "lines": [
                   {
@@ -12369,14 +12471,20 @@
               "topicId": "patterns",
               "difficulty": 1,
               "prompt": "Was bedeutet sealed interface Tier permits Hund, Katze?",
-              "explanation": "sealed schließt die Familie; permits zählt alle erlaubten Mitglieder auf.",
+              "explanation": "sealed schließt die Familie: Nur die nach permits genannten Typen dürfen dazugehören. Der Gewinn zeigt sich beim switch – weil Java alle Möglichkeiten kennt, meldet es, wenn ein Fall fehlt. Bei einem offenen Interface ginge das nicht.",
               "choices": [
                 "Nur Hund und Katze dürfen Tier umsetzen",
                 "Tier kann nicht benutzt werden",
                 "Hund und Katze sind privat",
                 "Tier darf beliebig viele Umsetzungen haben"
               ],
-              "correctIndex": 0
+              "correctIndex": 0,
+              "whyWrong": [
+                null,
+                "Benutzen darf man es ganz normal. Eingeschränkt ist nur, wer es umsetzen darf.",
+                "Sichtbarkeit regelt private. permits sagt nur, wer zur Familie gehört.",
+                "Genau das verhindert sealed – nur die aufgezählten Typen sind erlaubt."
+              ]
             },
             {
               "id": "t25-2",
@@ -12600,7 +12708,7 @@
                   }
                 ]
               },
-              "explanation": "Das Auto hat 300 PS – der Fall mit when passt zuerst. Das Fahrrad passt zum dritten Fall.",
+              "explanation": "Die Reihenfolge entscheidet: Der Zweig mit when ist der engere und muss oben stehen, sonst fängt der allgemeinere ihn vorher ab. Java prüft von oben nach unten und nimmt den ersten Treffer.",
               "javaContext": "file",
               "expectedOutput": "schnelles Auto\nFahrrad mit 21 Gängen"
             },
@@ -12748,7 +12856,7 @@
               "difficulty": 5,
               "prompt": "Ergänze flaeche mit einem switch über die Form: Kreis → π · r · r, Quadrat → seite · seite. Ausgegeben wird die Fläche des Quadrats mit Seite 3.",
               "hint": "return switch (f) { case Kreis k -> …; case Quadrat q -> …; };",
-              "explanation": "Der switch erkennt die Sorte und rechnet passend: Quadrat mit Seite 3 → 9.0.",
+              "explanation": "Weil Fahrzeug sealed ist, genügen die aufgezählten Zweige – Java rechnet nach, dass nichts fehlt, und verlangt kein default. Kommt später eine Form dazu, meldet der Compiler jedes switch, das sie noch nicht behandelt.",
               "javaContext": "file",
               "starterCode": {
                 "lines": [
@@ -13149,14 +13257,20 @@
               "topicId": "lambdas",
               "difficulty": 1,
               "prompt": "Was liefert Collectors.groupingBy?",
-              "explanation": "groupingBy sortiert in Fächer – das Ergebnis ist eine Map von Fach zu Inhalt.",
+              "explanation": "groupingBy beantwortet „welche gehören zusammen?“ in einem Schritt. Das Ergebnis ist eine Map: der Schlüssel das gemeinsame Merkmal, der Wert die Liste der Elemente dazu. Von Hand bräuchte es eine Schleife und eine Abfrage, ob der Schlüssel schon existiert.",
               "choices": [
                 "Einen sortierten Text",
                 "Nichts – es gibt nur aus",
                 "Ein Wörterbuch (Map): zu jedem Schlüssel die passenden Elemente",
                 "Eine einzelne Zahl"
               ],
-              "correctIndex": 2
+              "correctIndex": 2,
+              "whyWrong": [
+                "Sortieren macht sorted, Text entsteht mit joining. groupingBy legt Fächer an.",
+                "Ausgeben tut es gar nichts. Es sammelt ein und gibt das Ergebnis zurück.",
+                null,
+                "Eine einzelne Zahl käme von count oder sum. Hier kommt eine ganze Map heraus."
+              ]
             },
             {
               "id": "t26-2",
@@ -13202,7 +13316,7 @@
                   }
                 ]
               },
-              "explanation": "sorted ordnet aufsteigend; reduce startet bei 0 und zählt alles zusammen: 4 + 1 + 3 = 8.",
+              "explanation": "sorted verändert die ursprüngliche Liste nicht – sie ist unveränderlich, und das Fließband arbeitet auf einer Kopie. reduce faltet alles zu einem einzigen Wert zusammen; die 0 am Anfang ist der Startwert, der bei einer leeren Liste herauskäme.",
               "expectedOutput": "[1, 3, 4]\n8"
             },
             {
@@ -13270,7 +13384,7 @@
               "topicId": "lambdas",
               "difficulty": 4,
               "prompt": "Ergänze: Alle Namen aus beiden Klassen in einer flachen, sortierten Liste.",
-              "explanation": "flatMap macht aus zwei Listen eine, sorted ordnet alphabetisch.",
+              "explanation": "flatMap macht aus einem Fließband von Listen ein Fließband von Elementen – mit map bliebe es eine Liste von Listen. Erst danach kann sorted alle Namen gemeinsam ordnen statt nur innerhalb jeder Klasse.",
               "verify": {
                 "output": "[Ada, Grace, Linus]"
               },
@@ -13617,14 +13731,20 @@
               "topicId": "projects",
               "difficulty": 1,
               "prompt": "Welcher Datentyp passt für den Durchschnitt der Noten 2, 1 und 2?",
-              "explanation": "Ein Durchschnitt ist selten eine ganze Zahl – dafür braucht es eine Kommazahl (double).",
+              "explanation": "Ein Durchschnitt ist selten eine ganze Zahl. Mit int käme hier 1 heraus, weil die Ganzzahldivision abschneidet – aus 1,67 würde 1. Zu beachten: Auch die Rechnung selbst muss mit Kommazahlen laufen, sonst hilft die double-Box nichts.",
               "choices": [
                 "int",
                 "boolean",
                 "char",
                 "double – der Schnitt hat Nachkommastellen (1,67)"
               ],
-              "correctIndex": 3
+              "correctIndex": 3,
+              "whyWrong": [
+                "Mit int fiele die Nachkommastelle weg: Aus 1,67 würde 1. Genau die Information, um die es beim Durchschnitt geht, ginge verloren.",
+                "boolean kennt nur true und false – damit lässt sich kein Durchschnitt darstellen.",
+                "char hält genau ein Zeichen. Ein Durchschnitt ist keine Buchstabenangabe.",
+                null
+              ]
             },
             {
               "id": "t27-2",
@@ -13800,7 +13920,7 @@
                   }
                 ]
               },
-              "explanation": "Die Noten 2, 4 und 1 sind höchstens 4 – das sind 3 von 5.",
+              "explanation": "<= 4 statt < 4 ist der springende Punkt: Note 4 gilt noch als bestanden. Solche Grenzfälle sind die häufigste Fehlerquelle überhaupt – deshalb prüft man beim Testen zuerst genau sie.",
               "javaContext": "members",
               "expectedOutput": "3 von 5 bestanden"
             },
@@ -13876,7 +13996,7 @@
               "difficulty": 5,
               "prompt": "Schreibe bericht(int[] noten): Er gibt „Schnitt: …, beste Note: …“ aus. Aufgerufen wird er mit {2, 3, 1, 2}.",
               "hint": "double schnitt = Arrays.stream(noten).average().orElse(0);",
-              "explanation": "Durchschnitt (8 / 4 = 2.0) und kleinste Note (1) – fertig ist der Bericht.",
+              "explanation": "Zwei Dinge in einem Durchlauf: aufsummieren und die kleinste Note merken. Beim Durchschnitt muss mindestens eine Seite eine Kommazahl sein, sonst schneidet die Ganzzahldivision das Ergebnis ab.",
               "javaContext": "members",
               "starterCode": {
                 "lines": [
@@ -14217,7 +14337,13 @@
                 "Er speichert Daten automatisch in einer Datei",
                 "Er ist schneller als jede Liste"
               ],
-              "correctIndex": 0
+              "correctIndex": 0,
+              "whyWrong": [
+                null,
+                "Gerade nicht: Ein Record ist unveränderlich. Abhaken heißt, einen neuen zu erzeugen.",
+                "Speichern muss man selbst. Ein Record hält die Daten nur im Arbeitsspeicher zusammen.",
+                "Record und Liste lösen verschiedene Aufgaben – der eine bündelt Felder, die andere reiht Elemente aneinander."
+              ]
             },
             {
               "id": "t28-2",
@@ -14266,7 +14392,7 @@
                   }
                 ]
               },
-              "explanation": "titel() liest das Feld; das automatische toString zeigt alle Felder mit Namen.",
+              "explanation": "Die Lesemethode heißt wie das Feld, nicht getTitel() – das ist die Record-Schreibweise. Das mitgelieferte toString zeigt Klassennamen und alle Felder mit Namen, was beim Suchen von Fehlern viel wert ist.",
               "expectedOutput": "Sport\nAufgabe[titel=Sport, erledigt=false]"
             },
             {
@@ -14372,7 +14498,7 @@
               "topicId": "projects",
               "difficulty": 4,
               "prompt": "Ergänze: Aufgabe hinzufügen und dann abhaken (durch eine neue Version ersetzen).",
-              "explanation": "add hängt die Aufgabe an, set ersetzt sie an Position 0 durch eine abgehakte Version.",
+              "explanation": "Ein Record lässt sich nicht verändern – abhaken heißt deshalb: neuen Record bauen und den alten ersetzen. set tauscht ihn an Ort und Stelle aus. Das klingt umständlich, verhindert aber, dass ein Objekt sich unbemerkt hinter dem Rücken ändert.",
               "verify": {
                 "output": "true"
               },
@@ -14460,7 +14586,7 @@
               "difficulty": 5,
               "prompt": "Gib die Liste nummeriert aus: „1. [ ] Einkaufen“ und „2. [x] Java lernen“ – [x] für erledigte Aufgaben.",
               "hint": "String haken = a.erledigt() ? \"[x]\" : \"[ ]\";",
-              "explanation": "Die Nummer ist i + 1, das Häkchen kommt aus erledigt(), der Titel aus titel().",
+              "explanation": "Die laufende Nummer ist i + 1, weil Listen ab 0 zählen, Menschen aber ab 1. Das Häkchen entsteht aus einer Ja-Nein-Entscheidung mitten im Ausgabetext – dafür eignet sich der Fragezeichen-Operator.",
               "starterCode": {
                 "lines": [
                   {
@@ -14778,7 +14904,13 @@
                 "Es gibt nur eine feste Auswahl an Räumen – Tippfehler fallen sofort auf",
                 "Strings können keine Räume speichern"
               ],
-              "correctIndex": 2
+              "correctIndex": 2,
+              "whyWrong": [
+                "Ein Wörterbuch wäre eine Map mit Schlüsseln und Werten. Ein enum ist eine Aufzählung fester Möglichkeiten.",
+                "Auf die Ladezeit hat das keinen Einfluss. Der Gewinn liegt in der Sicherheit schon beim Übersetzen.",
+                null,
+                "Könnten sie – nur würde ein Tippfehler wie „Kueche“ erst beim Spielen auffallen statt beim Übersetzen."
+              ]
             },
             {
               "id": "t29-2",
@@ -14948,7 +15080,7 @@
                   }
                 ]
               },
-              "explanation": "Der switch liefert zu jedem Raum seine Beschreibung – erst Küche, dann Garten.",
+              "explanation": "Der switch über ein enum liefert hier einen Wert zurück, statt nur etwas zu tun. Weil alle Räume aufgezählt sind, weiß Java, dass jeder Fall abgedeckt ist – ein default wäre überflüssig.",
               "javaContext": "members",
               "expectedOutput": "Es riecht nach Kuchen.\nDie Sonne scheint."
             },
@@ -14958,7 +15090,7 @@
               "topicId": "projects",
               "difficulty": 4,
               "prompt": "Ergänze die Spielschleife: jeden Befehl durchgehen und über die Karte laufen.",
-              "explanation": "Norden führt in die Küche, von dort Osten in den Garten.",
+              "explanation": "Die verschachtelte Map ist die Landkarte: zu jedem Raum die Richtungen und wohin sie führen. getOrDefault fängt Befehle ab, für die es keinen Weg gibt – dann bleibt man einfach stehen, statt abzustürzen.",
               "verify": {
                 "output": "GARTEN"
               },
@@ -15059,7 +15191,7 @@
               "difficulty": 5,
               "prompt": "Ergänze die Spielschleife: Geh alle Befehle durch, bewege dich über wege und gib am Ende den Raum aus. Unbekannte Richtungen lassen dich stehen bleiben.",
               "hint": "for (String befehl : befehle) { hier = wege.get(hier).getOrDefault(befehl, hier); }",
-              "explanation": "norden → Küche, sueden → Flur, springen → bleibt im Flur, osten → Garten.",
+              "explanation": "getOrDefault(befehl, hier) ist der Kern: Gibt es den Weg, geht es weiter; gibt es ihn nicht, bleibt man im selben Raum. Ohne diesen Ersatzwert käme null zurück und der nächste Schritt würde abstürzen.",
               "starterCode": {
                 "lines": [
                   {
@@ -15452,7 +15584,13 @@
                 "Der Name der Klasse",
                 "Die Attribute"
               ],
-              "correctIndex": 2
+              "correctIndex": 2,
+              "whyWrong": [
+                "Die Methoden stehen im untersten Fach, nicht im obersten.",
+                "Der Konstruktor taucht in einem einfachen Klassendiagramm meist gar nicht auf – und wenn, dann bei den Methoden.",
+                null,
+                "Die Attribute stehen im mittleren Fach, zwischen Name und Methoden."
+              ]
             },
             {
               "id": "t30-2",
@@ -15499,7 +15637,13 @@
                 "Das Attribut ist gelöscht",
                 "privat – nur innerhalb der Klasse nutzbar"
               ],
-              "correctIndex": 3
+              "correctIndex": 3,
+              "whyWrong": [
+                "Öffentlich wäre ein Pluszeichen. Das Minus bedeutet genau das Gegenteil.",
+                "Geschützt wäre ein Doppelkreuz #. Das Minus schließt auch Kind-Klassen aus.",
+                "Gelöschte Dinge stehen gar nicht erst im Diagramm. Das Minus ist eine Sichtbarkeitsangabe.",
+                null
+              ]
             },
             {
               "id": "t30-3",
@@ -15546,7 +15690,13 @@
                 "void – sie liefert nichts",
                 "Person"
               ],
-              "correctIndex": 0
+              "correctIndex": 0,
+              "whyWrong": [
+                null,
+                "int stünde dort, wenn die Methode eine ganze Zahl lieferte. Hinter dem Doppelpunkt steht aber String.",
+                "Bei void stünde hinter dem Namen gar kein Typ. Hier steht einer.",
+                "Person ist die Klasse, zu der die Methode gehört – nicht das, was sie zurückgibt."
+              ]
             },
             {
               "id": "t30-4",
@@ -15588,7 +15738,13 @@
                 "private stand: double;",
                 "private double stand;"
               ],
-              "correctIndex": 3
+              "correctIndex": 3,
+              "whyWrong": [
+                "public wäre ein Pluszeichen im Diagramm. Dort steht ein Minus, also private.",
+                "Die runden Klammern machen daraus eine Methode. Im Kasten steht hinter stand keine Klammer.",
+                "Das ist die UML-Reihenfolge, nicht die von Java. In Java steht der Typ vor dem Namen.",
+                null
+              ]
             },
             {
               "id": "t30-5",
@@ -15937,14 +16093,20 @@
                   }
                 ]
               },
-              "explanation": "Die Dreiecksspitze zeigt zur Eltern-Klasse. In Java: class Hund extends Tier.",
+              "explanation": "Die Dreiecksspitze zeigt immer zur allgemeineren Klasse – man liest den Pfeil als „ist ein“. Ein Hund ist ein Tier, aber nicht jedes Tier ist ein Hund. Deshalb wäre der Pfeil andersherum schlicht falsch.",
               "choices": [
                 "Tier erbt von Hund",
                 "Hund besteht aus Tieren",
                 "Hund benutzt Tier kurzzeitig",
                 "Hund erbt von Tier – ein Hund ist ein Tier"
               ],
-              "correctIndex": 3
+              "correctIndex": 3,
+              "whyWrong": [
+                "Die Spitze zeigt zur allgemeineren Klasse. Sie zeigt hier auf Tier, also erbt Hund.",
+                "„Besteht aus“ wäre eine Raute, keine Dreiecksspitze.",
+                "Kurzzeitiges Benutzen wäre ein gestrichelter Pfeil ohne Dreiecksspitze.",
+                null
+              ]
             },
             {
               "id": "t31-2",
@@ -15998,7 +16160,13 @@
                 "extends",
                 "new"
               ],
-              "correctIndex": 1
+              "correctIndex": 1,
+              "whyWrong": [
+                "import holt eine Klasse aus einem anderen Paket herein. Im Diagramm taucht das gar nicht auf.",
+                null,
+                "extends wäre eine durchgezogene Linie. Gestrichelt bedeutet: Vertrag statt Erbe.",
+                "new erzeugt ein Objekt. Eine Beziehung zwischen Klassen beschreibt es nicht."
+              ]
             },
             {
               "id": "t31-3",
@@ -16055,7 +16223,13 @@
                 "Abhängigkeit: Die Schulklasse benutzt Schüler nur kurz",
                 "Aggregation: Die Schüler gibt es auch ohne die Schulklasse"
               ],
-              "correctIndex": 3
+              "correctIndex": 3,
+              "whyWrong": [
+                "Das wäre die gefüllte Raute. Die leere sagt gerade, dass die Teile unabhängig weiterleben.",
+                "Vererbung hätte eine Dreiecksspitze statt einer Raute – und inhaltlich ist ein Schüler keine Schulklasse.",
+                "Kurzes Benutzen wäre ein gestrichelter Pfeil. Die Raute steht für ein dauerhaftes Enthalten.",
+                null
+              ]
             },
             {
               "id": "t31-4",
@@ -16106,7 +16280,13 @@
                 "Ein Haus hat genau einen Raum",
                 "Ein Haus hat keine oder einen Raum"
               ],
-              "correctIndex": 0
+              "correctIndex": 0,
+              "whyWrong": [
+                null,
+                "Der Stern steht für „beliebig viele“. Eine Obergrenze gibt es hier nicht.",
+                "Genau einer wäre die Vielfachheit 1. Der Stern erlaubt mehr.",
+                "Keiner wäre 0..1. Die 1 vor den Punkten verlangt mindestens einen."
+              ]
             },
             {
               "id": "t31-5",
@@ -16155,7 +16335,13 @@
                 "Vererbung – Dreiecksspitze",
                 "Aggregation – leere Raute"
               ],
-              "correctIndex": 0
+              "correctIndex": 0,
+              "whyWrong": [
+                null,
+                "Komposition hieße: Das Ganze erzeugt die Teile und sie vergehen mit ihm. Ein Parameter lebt aber unabhängig weiter.",
+                "Vererbung hieße, eine Rechnung wäre ein Drucker. Sie benutzt ihn nur.",
+                "Aggregation wäre ein dauerhaftes Feld. Hier existiert der Drucker nur während des Methodenaufrufs."
+              ]
             }
           ]
         },
@@ -16503,7 +16689,13 @@
                 "class Hund extends Tier { }",
                 "class Tier extends Hund { }"
               ],
-              "correctIndex": 2
+              "correctIndex": 2,
+              "whyWrong": [
+                "implements gehört zur gestrichelten Linie. Hier ist sie durchgezogen, also Vererbung.",
+                "Ein Feld wäre eine Assoziation – eine einfache Linie ohne Dreiecksspitze.",
+                null,
+                "Die Richtung stimmt nicht: Die Spitze zeigt auf Tier, also erbt Hund von Tier."
+              ]
             },
             {
               "id": "t32-2",
@@ -16545,7 +16737,13 @@
                 "# einzahlen(): void",
                 "+ einzahlen()"
               ],
-              "correctIndex": 3
+              "correctIndex": 3,
+              "whyWrong": [
+                "Das Minus bedeutet privat. Die Methode ist aber public, also ein Plus.",
+                "Hinter dem Doppelpunkt stünde der Rückgabetyp. Die Methode ist void, deshalb entfällt er.",
+                "Das Doppelkreuz steht für protected. Hier ist die Methode public.",
+                null
+              ]
             },
             {
               "id": "t32-3",
@@ -16810,7 +17008,7 @@
                   }
                 ]
               },
-              "explanation": "Die gestrichelte Linie mit Dreiecksspitze auf ein Interface heißt implements.",
+              "explanation": "Gestrichelt heißt: Hier wird nichts geerbt, sondern ein Vertrag unterschrieben. Das Interface gibt nur vor, welche Methoden es geben muss – den Inhalt liefert die Klasse. Bei durchgezogener Linie stünde extends.",
               "javaContext": "file",
               "verify": {
                 "context": "file",
@@ -17112,14 +17310,20 @@
       "difficulty": 1,
       "prompt": "Welcher Typ speichert eine Zahl mit Nachkommastellen?",
       "variantGroup": "t02-2",
-      "explanation": "double speichert Kommazahlen. int kann nur ganze Zahlen ohne Nachkommastellen.",
+      "explanation": "Das Etikett bestimmt, was hineinpasst: In eine int-Box passt keine Nachkommastelle – Java schneidet sie nicht etwa ab, sondern lehnt die Zuweisung gleich ab. double ist die Standardwahl für Kommazahlen; float wäre ungenauer und verlangte ein f am Ende.",
       "choices": [
         "boolean",
         "char",
         "double",
         "int"
       ],
-      "correctIndex": 2
+      "correctIndex": 2,
+      "whyWrong": [
+        "boolean kennt nur true und false – Zahlen passen dort nicht hinein.",
+        "char hält genau ein Zeichen, etwa 'A'. Eine Kommazahl ist kein Zeichen.",
+        null,
+        "int speichert nur ganze Zahlen. Eine Kommazahl lehnt Java dort ab, statt sie zu runden."
+      ]
     },
     {
       "id": "p-var-1b",
@@ -17128,14 +17332,20 @@
       "difficulty": 1,
       "prompt": "Was passt in eine Box mit dem Etikett boolean?",
       "variantGroup": "t02-1",
-      "explanation": "boolean kennt nur zwei Werte: true (ja) und false (nein).",
+      "explanation": "boolean kennt genau zwei Werte, weil es Ja-Nein-Fragen beantwortet. Diese Beschränkung ist Absicht: Weil in Java keine Zahl als „wahr“ gilt, kann man nicht versehentlich eine Zuweisung statt eines Vergleichs in ein if schreiben.",
       "choices": [
         "Ein einzelnes Zeichen",
         "Beliebiger Text",
         "true oder false",
         "Jede ganze Zahl"
       ],
-      "correctIndex": 2
+      "correctIndex": 2,
+      "whyWrong": [
+        "Ein Zeichen gehört in eine char-Box, in einfachen Anführungszeichen.",
+        "Text gehört in einen String. „true“ in Anführungszeichen wäre Text, kein Wahrheitswert.",
+        null,
+        "Anders als in manchen anderen Sprachen gilt in Java keine Zahl als wahr oder falsch."
+      ]
     },
     {
       "id": "p-var-2a",
@@ -17173,7 +17383,7 @@
           }
         ]
       },
-      "explanation": "punkte wird auf 10 gesetzt. Mit + klebt Java Text und Zahl zu einem Text zusammen.",
+      "explanation": "Erst wird gerechnet, dann ausgegeben: punkte steht auf 10. Beim Ausgeben hat das Pluszeichen eine zweite Bedeutung – sobald links Text steht, klebt es zusammen statt zu addieren, und aus der Zahl 10 wird das Textstück „10“.",
       "expectedOutput": "Punkte: 10"
     },
     {
@@ -17212,7 +17422,7 @@
           }
         ]
       },
-      "explanation": "Sobald eine Kommazahl beteiligt ist, rechnet Java in double – deshalb 10.0 und nicht 10.",
+      "explanation": "Trifft eine Kommazahl auf eine ganze Zahl, rechnet Java in der genaueren von beiden weiter – also in double. Deshalb erscheint 10.0 statt 10. Der Punkt in der Ausgabe verrät den Typ des Ergebnisses.",
       "expectedOutput": "10.0"
     },
     {
@@ -17222,14 +17432,20 @@
       "difficulty": 3,
       "prompt": "Warum lässt sich der Inhalt einer final-Box nicht mehr ändern?",
       "variantGroup": "t02-4",
-      "explanation": "final heißt: einmal gefüllt, für immer gleich. Genau richtig für Konstanten wie MWST.",
+      "explanation": "final versiegelt die Box: Nach der ersten Füllung lehnt der Compiler jede weitere Zuweisung ab. Das schützt nicht vor Angreifern, sondern vor einem selbst – wer eine Konstante wie MWST versehentlich überschreibt, merkt es sonst erst an falschen Zahlen.",
       "choices": [
         "final versiegelt die Box – der Wert bleibt für immer",
         "final macht die Box kleiner",
         "final wandelt die Box in Text um",
         "final löscht den Inhalt nach der Nutzung"
       ],
-      "correctIndex": 0
+      "correctIndex": 0,
+      "whyWrong": [
+        null,
+        "Mit dem Speicherbedarf hat final nichts zu tun – der hängt nur am Typ.",
+        "Der Typ bleibt derselbe. final betrifft nur, ob neu zugewiesen werden darf.",
+        "Gelöscht wird nichts – im Gegenteil, der Wert bleibt dauerhaft erhalten."
+      ]
     },
     {
       "id": "p-op-1a",
@@ -17251,7 +17467,7 @@
           }
         ]
       },
-      "explanation": "% liefert den Rest der Division: 9 = 2 · 4 + 1.",
+      "explanation": "% fragt nach dem Rest, nicht nach dem Ergebnis: 4 passt zweimal in die 9, das macht 8 – es bleibt 1. Genau dieser Rest verrät Teilbarkeit: Rest 0 heißt, es geht glatt auf.",
       "expectedOutput": "1"
     },
     {
@@ -17274,7 +17490,7 @@
           }
         ]
       },
-      "explanation": "10 geht genau 2-mal in 5 · 2 auf – es bleibt kein Rest. Rest 0 heißt: teilbar.",
+      "explanation": "Rest 0 heißt: Es geht glatt auf, 5 ist ein Teiler von 10. Genau so prüft man Teilbarkeit – mit / ginge es nicht, weil die Ganzzahldivision den Rest verschluckt.",
       "expectedOutput": "0"
     },
     {
@@ -17322,7 +17538,7 @@
           }
         ]
       },
-      "explanation": "Ganzzahldivision schneidet ab: 9 / 4 = 2. Der Rest 1 kommt mit % heraus.",
+      "explanation": "Zwei ganze Zahlen ergeben bei / wieder eine ganze Zahl – gerundet wird nicht, abgeschnitten schon. Die weggefallene Hälfte steckt im Rest: / liefert 2, % liefert 1. Zusammen beschreiben die beiden die Division vollständig.",
       "expectedOutput": "2\n1"
     },
     {
@@ -17366,7 +17582,7 @@
           }
         ]
       },
-      "explanation": "+= 3 macht 8 daraus, ++ zählt eins weiter: 9.",
+      "explanation": "Beide Kurzformen verändern dieselbe Box: += 3 macht aus 5 die 8, ++ zählt auf 9 weiter. Sie sind nur Schreiberleichterung für zaehler = zaehler + 3 – das Ergebnis landet jedes Mal wieder in derselben Box.",
       "expectedOutput": "9"
     },
     {
@@ -17383,7 +17599,13 @@
         "7 / 2.0",
         "7 / 2"
       ],
-      "correctIndex": 2
+      "correctIndex": 2,
+      "whyWrong": [
+        "% liefert den Rest, hier also 1. Nach dem Ergebnis der Division fragt es gar nicht.",
+        "Der Cast macht die 7 wieder zu einer ganzen Zahl – die Ganzzahldivision bleibt, es kommt 3 heraus.",
+        null,
+        "Zwei ganze Zahlen ergeben eine ganze Zahl: 3, nicht 3.5. Eine Seite muss eine Kommazahl sein."
+      ]
     },
     {
       "id": "p-if-1a",
@@ -17439,7 +17661,7 @@
           }
         ]
       },
-      "explanation": "20 >= 18 ist wahr, deshalb läuft der if-Block und der else-Block wird übersprungen.",
+      "explanation": "Von if und else läuft immer genau einer – nie beide und nie keiner. Weil 20 >= 18 wahr ist, wird der else-Block übersprungen. Die Zeilen hinter der schließenden Klammer laufen danach wieder in jedem Fall.",
       "expectedOutput": "volljaehrig"
     },
     {
@@ -17513,7 +17735,7 @@
           }
         ]
       },
-      "explanation": "3 > 20 ist falsch, 3 > 10 auch – deshalb bleibt nur der else-Block übrig.",
+      "explanation": "Java prüft die Kette von oben nach unten und steigt beim ersten Treffer aus. Hier trifft keine Bedingung zu, also bleibt der else-Block – er ist der Auffangkorb für alles, was übrig bleibt.",
       "expectedOutput": "kalt"
     },
     {
@@ -17523,7 +17745,7 @@
       "difficulty": 3,
       "prompt": "Ergänze die Bedingung: Eine Zahl ist durch 3 teilbar, wenn der Rest bei Division durch 3 null ist.",
       "variantGroup": "t04-3",
-      "explanation": "zahl % 3 liefert den Rest. Ist er 0, ist die Zahl durch 3 teilbar.",
+      "explanation": "Teilbar heißt: kein Rest. % liefert genau diesen Rest, und der Vergleich mit 0 macht daraus eine Ja-Nein-Frage. Mit / ginge es nicht – die Ganzzahldivision wirft die Information weg, auf die es hier ankommt.",
       "verify": {
         "output": "teilbar"
       },
@@ -17655,7 +17877,7 @@
           }
         ]
       },
-      "explanation": "Java prüft von oben nach unten. Die erste wahre Bedingung gewinnt: 55 >= 50.",
+      "explanation": "Die Reihenfolge ist entscheidend: Java nimmt den ersten Treffer und prüft danach nichts mehr. Stünde punkte >= 50 oben, bekäme auch ein Ergebnis von 95 nur „bestanden“.",
       "expectedOutput": "bestanden"
     },
     {
@@ -17692,7 +17914,7 @@
           }
         ]
       },
-      "explanation": "i startet bei 1 und läuft, solange i <= 3 gilt – also 1, 2, 3.",
+      "explanation": "Die Bedingung wird vor jeder Runde geprüft: Bei i = 4 ist i <= 3 falsch und die Schleife endet. Weil hier ab 1 gezählt wird und <= steht, kommen genau drei Runden heraus.",
       "expectedOutput": "1\n2\n3"
     },
     {
@@ -17742,7 +17964,7 @@
           }
         ]
       },
-      "explanation": "Die Schleife läuft rückwärts: n wird in jeder Runde um 1 kleiner, bei 0 endet sie.",
+      "explanation": "Anders als bei for steht hier nichts über das Herunterzählen im Kopf – n-- muss im Block passieren. Fehlt es, bleibt n für immer 3 und die Schleife läuft endlos.",
       "expectedOutput": "3 2 1 "
     },
     {
@@ -17794,7 +18016,7 @@
           }
         ]
       },
-      "explanation": "1 + 2 + 3 + 4 + 5 = 15. Die Box summe sammelt das Ergebnis über alle Runden ein.",
+      "explanation": "Die Box summe muss außerhalb der Schleife stehen, sonst begänne sie in jeder Runde wieder bei 0 und am Ende stünde nur 5 da. Das ist das Grundmuster für jedes Aufsummieren.",
       "expectedOutput": "15"
     },
     {
@@ -17852,7 +18074,7 @@
           }
         ]
       },
-      "explanation": "continue überspringt den Rest der Runde. Gerade Zahlen werden also nicht ausgegeben.",
+      "explanation": "continue springt zum Anfang der nächsten Runde und überspringt alles darunter – die Ausgabe wird für gerade Zahlen gar nicht erst erreicht. Die Schleife läuft trotzdem alle sechs Runden.",
       "expectedOutput": "1 3 5 "
     },
     {
@@ -17977,7 +18199,7 @@
           }
         ]
       },
-      "explanation": "Das Rezept „verdreifache“ bekommt 4 als Zutat und gibt 4 * 3 = 12 zurück.",
+      "explanation": "Weil die Methode ihr Ergebnis mit return zurückgibt, darf der Aufruf mitten in einer anderen Anweisung stehen. Mit einem println innerhalb der Methode ginge das nicht – dann könnte man mit dem Wert nicht weiterrechnen.",
       "javaContext": "members",
       "expectedOutput": "12"
     },
@@ -17988,14 +18210,20 @@
       "difficulty": 2,
       "prompt": "Was bedeutet void als Rückgabetyp?",
       "variantGroup": "t06-1",
-      "explanation": "void heißt „nichts“: Das Rezept erledigt etwas, liefert aber kein Ergebnis zurück.",
+      "explanation": "void heißt: Diese Methode liefert nichts zurück. Nutzlos ist sie deshalb nicht – sie kann ausgeben oder ein Feld ändern. Aber ihr Aufruf lässt sich nicht in eine Variable legen, weil es kein Ergebnis gibt.",
       "choices": [
         "Die Methode gibt keinen Wert zurück",
         "Die Methode gibt immer 0 zurück",
         "Die Methode darf nicht aufgerufen werden",
         "Die Methode gibt einen leeren Text zurück"
       ],
-      "correctIndex": 0
+      "correctIndex": 0,
+      "whyWrong": [
+        null,
+        "0 zurückzugeben wäre ein int. void heißt, dass gar nichts zurückkommt.",
+        "Aufrufen darf man sie ganz normal – man kann ihr Ergebnis nur nicht verwenden, weil es keines gibt.",
+        "Ein leerer Text wäre ein String. void ist etwas anderes: gar kein Wert."
+      ]
     },
     {
       "id": "p-meth-2a",
@@ -18004,7 +18232,7 @@
       "difficulty": 3,
       "prompt": "Ergänze die Methode: Sie soll das Quadrat einer Zahl zurückgeben.",
       "variantGroup": "t06-3",
-      "explanation": "Die Methode liefert eine ganze Zahl (int) und gibt sie mit return zurück: 6 · 6 = 36.",
+      "explanation": "Der Typ vor dem Namen ist ein Versprechen: Hier kommt genau ein int heraus. Java prüft schon beim Übersetzen, dass auf jedem Weg ein return steht – fehlt einer, gibt es einen Fehler statt später eine Überraschung.",
       "javaContext": "members",
       "verify": {
         "context": "members",
@@ -18079,7 +18307,7 @@
       "difficulty": 4,
       "prompt": "Schreibe die Methode istPositiv(int zahl), die true liefert, wenn die Zahl größer als 0 ist.",
       "variantGroup": "t06-5",
-      "explanation": "Der Vergleich zahl > 0 ist selbst schon ein boolean und kann direkt zurückgegeben werden.",
+      "explanation": "Ein Vergleich wie zahl > 0 ist selbst schon ein Wahrheitswert und kann direkt zurückgegeben werden. Der Umweg über if (…) return true; else return false; sagt dasselbe mit vier Zeilen mehr – und lenkt vom Kern ab.",
       "javaContext": "members",
       "verify": {
         "context": "members",
@@ -18163,7 +18391,7 @@
           }
         ]
       },
-      "explanation": "Java zählt die Fächer ab 0: In Fach 0 liegt die 10.",
+      "explanation": "Der Index ist ein Abstand vom Anfang, kein Abzählen: Fach 0 liegt null Schritte hinter dem Anfang. Deshalb liegt in zahlen[0] die erste Zahl und das letzte Fach hat die Nummer length - 1.",
       "expectedOutput": "10"
     },
     {
@@ -18195,7 +18423,7 @@
           }
         ]
       },
-      "explanation": "length ist die Anzahl der Fächer im Eierkarton – hier 3.",
+      "explanation": "length steht ohne Klammern, weil es bei einem Array ein Feld ist und keine Methode. Der Wert steht beim Anlegen fest – ein Array kann später nicht wachsen. Bei einem String hieße es dagegen length().",
       "expectedOutput": "3"
     },
     {
@@ -18239,7 +18467,7 @@
           }
         ]
       },
-      "explanation": "Die for-each-Schleife geht jedes Fach der Reihe nach durch – ganz ohne Zähler.",
+      "explanation": "Die for-each-Schleife holt die Werte selbst aus dem Array – ohne Zähler und ohne Index. Dadurch kann man sich nicht vertun, zahlt aber mit einem Verzicht: Welche Position gerade dran ist, weiß man nicht.",
       "expectedOutput": "2 4 6 "
     },
     {
@@ -18270,7 +18498,7 @@
           }
         ]
       },
-      "explanation": "length() zählt die Zeichen: J-a-v-a-Q-u-e-s-t sind 9.",
+      "explanation": "length() zählt alle Zeichen, auch Leerzeichen und Satzzeichen. Die Klammern gehören dazu, weil es bei einem String eine Methode ist – beim Array wäre es das Feld length ohne Klammern.",
       "expectedOutput": "9"
     },
     {
@@ -18301,7 +18529,7 @@
           }
         ]
       },
-      "explanation": "substring(0, 7) liefert die Zeichen ab Fach 0 bis vor Fach 7 – also die ersten sieben.",
+      "explanation": "Die zweite Zahl ist das Ende und gehört nicht mehr dazu: von 0 bis vor 7 sind sieben Zeichen. Diese Regel gilt in Java überall gleich – so ergibt Ende minus Anfang immer direkt die Länge.",
       "expectedOutput": "Program"
     },
     {
@@ -18318,7 +18546,13 @@
         "compare",
         "="
       ],
-      "correctIndex": 0
+      "correctIndex": 0,
+      "whyWrong": [
+        null,
+        "== fragt, ob es dasselbe Objekt ist. Zwei Texte mit gleichem Inhalt können verschiedene Objekte sein – dann kommt false heraus.",
+        "compare gibt es bei String nicht. Zum Sortieren gäbe es compareTo, zum Vergleichen equals.",
+        "Ein einzelnes Gleichheitszeichen vergleicht nichts, es weist zu."
+      ]
     },
     {
       "id": "p-oop-1a",
@@ -18334,7 +18568,13 @@
         "Er gibt dem neuen Objekt seine Startwerte",
         "Er löscht ein Objekt aus dem Speicher"
       ],
-      "correctIndex": 2
+      "correctIndex": 2,
+      "whyWrong": [
+        "Vergleichen ist Sache von equals. Der Konstruktor läuft nur beim Erzeugen.",
+        "Das macht toString. Der Konstruktor füllt die Felder.",
+        null,
+        "Löschen übernimmt die Speicherbereinigung von selbst. Der Konstruktor ist der Anfang, nicht das Ende."
+      ]
     },
     {
       "id": "p-oop-1b",
@@ -18494,7 +18734,13 @@
         "Weil Java sonst einen Fehler meldet",
         "Damit die Klasse selbst bestimmt, welche Werte erlaubt sind"
       ],
-      "correctIndex": 3
+      "correctIndex": 3,
+      "whyWrong": [
+        "Auf die Geschwindigkeit hat private keinen Einfluss.",
+        "Der Speicherbedarf hängt am Typ, nicht an der Sichtbarkeit.",
+        "Öffentliche Felder sind erlaubt. Sie nehmen der Klasse nur die Kontrolle darüber, was hineingeschrieben wird.",
+        null
+      ]
     },
     {
       "id": "p-inh-1a",
@@ -18503,14 +18749,20 @@
       "difficulty": 2,
       "prompt": "Mit welchem Schlüsselwort setzt eine Klasse ein Interface um?",
       "variantGroup": "t09-1",
-      "explanation": "extends erweitert eine Eltern-Klasse, implements unterschreibt einen Vertrag (Interface).",
+      "explanation": "implements verspricht nur, bestimmte Methoden zu liefern; den Inhalt schreibt die Klasse selbst. extends übernimmt dagegen fertigen Code. Deshalb darf man beliebig viele Verträge unterschreiben, aber nur von einer Klasse erben.",
       "choices": [
         "super",
         "new",
         "implements",
         "extends"
       ],
-      "correctIndex": 2
+      "correctIndex": 2,
+      "whyWrong": [
+        "super greift auf die Eltern-Klasse zu. Eine Beziehung zu einem Interface stellt es nicht her.",
+        "new erzeugt ein Objekt. Mit Interfaces hat es nichts zu tun.",
+        null,
+        "extends ist für Klassen – man erbt fertigen Code. Bei einem Interface unterschreibt man nur einen Vertrag."
+      ]
     },
     {
       "id": "p-inh-1b",
@@ -18656,7 +18908,13 @@
         "Es erzeugt ein zweites Objekt",
         "Es löscht geerbte Methoden"
       ],
-      "correctIndex": 1
+      "correctIndex": 1,
+      "whyWrong": [
+        "Abstrakt wird eine Klasse mit dem Wort abstract.",
+        null,
+        "Es entsteht nur ein Objekt. super füllt lediglich den geerbten Teil davon.",
+        "Gelöscht wird nichts. Ersetzen ginge mit einer gleichnamigen Methode."
+      ]
     },
     {
       "id": "p-exc-1a",
@@ -18738,7 +18996,13 @@
         "Sie tritt nur beim Rechnen auf",
         "Sie beendet das Programm immer sofort"
       ],
-      "correctIndex": 1
+      "correctIndex": 1,
+      "whyWrong": [
+        "Fangen kann man sie sehr wohl – man muss es sogar.",
+        null,
+        "Beim Rechnen entsteht die ArithmeticException. IOException kommt von Dateien und Netzwerk.",
+        "Nur wenn sie niemand fängt. Genau deshalb verlangt Java, dass man sich vorher darum kümmert."
+      ]
     },
     {
       "id": "p-exc-2a",
@@ -18747,7 +19011,7 @@
       "difficulty": 3,
       "prompt": "Ergänze das Sicherheitsnetz für die Division durch 0.",
       "variantGroup": "t10-1",
-      "explanation": "Im try-Block steht der riskante Code, catch fängt den Alarm auf.",
+      "explanation": "Die Trennung ist der Sinn der Sache: Im try steht, was schiefgehen kann, im catch, was dann passieren soll. So bleibt der normale Ablauf lesbar, statt nach jeder Zeile eine Prüfung einzustreuen.",
       "verify": {
         "output": "Fehler aufgefangen"
       },
@@ -18846,7 +19110,7 @@
           }
         ]
       },
-      "explanation": "add hängt hinten an, size zählt die Einträge – hier 2.",
+      "explanation": "add hängt immer hinten an, size zählt nach. Im Unterschied zum Array muss man die Größe nicht vorher kennen – die Liste besorgt sich bei Bedarf selbst mehr Platz.",
       "expectedOutput": "2"
     },
     {
@@ -18955,7 +19219,13 @@
         "Die Liste wandelt alles in Text um",
         "Die Liste ist nach Text sortiert"
       ],
-      "correctIndex": 0
+      "correctIndex": 0,
+      "whyWrong": [
+        null,
+        "Eine Größe steht dort nie. Eine Liste wächst nach Bedarf.",
+        "Umgewandelt wird nichts. Was nicht passt, lehnt der Compiler ab.",
+        "Über die Reihenfolge sagen die spitzen Klammern nichts. Sortiert wird mit sort."
+      ]
     },
     {
       "id": "p-col-3a",
@@ -18997,7 +19267,7 @@
           }
         ]
       },
-      "explanation": "Den Schlüssel „b“ gibt es nicht – getOrDefault liefert dann den Ersatzwert 0 statt null.",
+      "explanation": "get würde hier null liefern, und damit weiterzurechnen führt zum Absturz. getOrDefault nimmt einem die Abfrage ab: Fehlt der Schlüssel, kommt der Ersatzwert. Deshalb eignet es sich so gut zum Zählen.",
       "expectedOutput": "0"
     },
     {
@@ -19050,7 +19320,7 @@
           }
         ]
       },
-      "explanation": "filter lässt nur gerade Zahlen aufs Band, forEach gibt jede davon aus.",
+      "explanation": "Das Fließband arbeitet erst, wenn am Ende jemand etwas abholt: filter merkt sich nur die Regel, forEach setzt alles in Gang. Ohne diese Endstation würde gar nichts passieren.",
       "expectedOutput": "2 4 "
     },
     {
@@ -19111,7 +19381,7 @@
           }
         ]
       },
-      "explanation": "map wandelt jedes Element um – hier jedes Wort in Großbuchstaben.",
+      "explanation": "map formt jedes Element um und lässt die ursprüngliche Liste unangetastet – sie ist unveränderlich. String::toUpperCase ist dabei nur die Kurzform für w -> w.toUpperCase().",
       "expectedOutput": "[HUT, BUS]"
     },
     {
@@ -19169,7 +19439,7 @@
           }
         ]
       },
-      "explanation": "Jede Zahl wird quadriert (4, 9, 16) und dann zusammengezählt: 29.",
+      "explanation": "mapToInt wechselt von Objekten zu echten Zahlen – erst dadurch gibt es überhaupt ein sum(). Mit map bliebe es ein Fließband von Integer-Objekten, das Summieren nicht kennt.",
       "expectedOutput": "29"
     },
     {
@@ -19238,7 +19508,7 @@
           }
         ]
       },
-      "explanation": "Der Record erzeugt automatisch die Lesemethode titel() – Setter gibt es bewusst nicht.",
+      "explanation": "Die Lesemethode heißt wie das Feld, nicht getTitel() – das ist die Record-Schreibweise. Setter fehlen bewusst: Ein Record ist unveränderlich, wer andere Werte braucht, legt einen neuen an.",
       "javaContext": "file",
       "expectedOutput": "Momo"
     },
@@ -19273,7 +19543,7 @@
           }
         ]
       },
-      "explanation": "Die Schachtel ist leer – orElse liefert dann den Ersatzwert statt eines Alarms.",
+      "explanation": "Optional zwingt dazu, den leeren Fall zu behandeln, statt ihn zu vergessen. Genau darin liegt der Gewinn gegenüber null: Der Compiler erinnert an die Stelle, an der sonst später die NullPointerException käme.",
       "expectedOutput": "Ersatz"
     },
     {
@@ -19574,7 +19844,7 @@
           }
         ]
       },
-      "explanation": "Beim Tellerstapel kommt zuerst weg, was zuletzt draufkam: pop liefert die 2.",
+      "explanation": "push und pop arbeiten beide am selben Ende – deshalb kommt zuerst herunter, was zuletzt drauflag. Genau diese Reihenfolge braucht man für „Rückgängig“. Bei einer Warteschlange wäre es umgekehrt.",
       "expectedOutput": "2"
     },
     {
@@ -19591,7 +19861,13 @@
         "static void run()",
         "public static begin()"
       ],
-      "correctIndex": 0
+      "correctIndex": 0,
+      "whyWrong": [
+        null,
+        "Der Name start hat für Java keine besondere Bedeutung – niemand würde die Methode aufrufen.",
+        "run gehört zu Threads. Als Startpunkt des Programms sucht Java ausschließlich main.",
+        "Hier fehlt außerdem der Rückgabetyp – und begin kennt Java gar nicht."
+      ]
     },
     {
       "id": "q-syn-1b",
@@ -19600,14 +19876,20 @@
       "difficulty": 1,
       "prompt": "Was macht System.out.print im Unterschied zu System.out.println?",
       "variantGroup": "t01-2",
-      "explanation": "Das ln in println steht für „line“: Es beendet die Zeile, wie ein Druck auf Enter.",
+      "explanation": "Das ln steht für „line“: println hängt hinter dem Text einen Zeilenumbruch an. Deshalb nimmt man print, solange man in derselben Zeile weiterschreiben will – und erst ganz am Ende einmal println.",
       "choices": [
         "print ist schneller, sonst gleich",
         "print schreibt in eine Datei, println auf den Bildschirm",
         "print bleibt in der Zeile, println springt danach in eine neue",
         "print schreibt nur Zahlen, println nur Text"
       ],
-      "correctIndex": 2
+      "correctIndex": 2,
+      "whyWrong": [
+        "Mit Geschwindigkeit hat es nichts zu tun. Der Unterschied ist der Zeilenumbruch am Ende.",
+        "Beide schreiben nach System.out, also auf den Bildschirm.",
+        null,
+        "Beide nehmen alles entgegen – Zahlen wie Text."
+      ]
     },
     {
       "id": "q-syn-2a",
@@ -19678,7 +19960,7 @@
           }
         ]
       },
-      "explanation": "Alles hinter // ist ein Notizzettel für Menschen. Java überliest die Zeile komplett.",
+      "explanation": "Alles hinter // ist ein Notizzettel für Menschen; Java überliest den Rest der Zeile. Das nutzt man beim Fehlersuchen: eine Zeile kurz stilllegen, ohne sie zu löschen.",
       "expectedOutput": "oben\nunten"
     },
     {
@@ -19688,7 +19970,7 @@
       "difficulty": 2,
       "prompt": "Ergänze die Zeile, damit „Guten Morgen“ ohne Zeilenumbruch danach ausgegeben wird.",
       "variantGroup": "t01-3",
-      "explanation": "print schreibt den Text und bleibt in der Zeile – println würde danach umbrechen.",
+      "explanation": "print und println unterscheiden sich nur im Zeilenumbruch am Ende. Wer mehrere Teile nebeneinander braucht, nimmt print – sonst stünde jeder Teil in einer eigenen Zeile.",
       "verify": {
         "output": "Guten Morgen"
       },
@@ -19799,7 +20081,7 @@
           }
         ]
       },
-      "explanation": "Mit + werden Textstücke aneinandergeklebt: „Hallo, “ + Inhalt der Box + „!“.",
+      "explanation": "Das Pluszeichen hat bei Text eine zweite Bedeutung: Es klebt aneinander, statt zu rechnen. Die Leerzeichen müssen dabei im Text stehen – Java fügt von sich aus keine ein.",
       "expectedOutput": "Hallo, Ada!"
     },
     {
@@ -19861,7 +20143,13 @@
         "Die Variable hat noch keinen Typ",
         "Java erkennt den Typ selbst – hier int"
       ],
-      "correctIndex": 3
+      "correctIndex": 3,
+      "whyWrong": [
+        "Der Typ steht nach der ersten Zuweisung fest. var spart nur das Hinschreiben.",
+        "Unveränderlich macht sie erst final. var allein nicht.",
+        "Sie hat einen – Java liest ihn nur aus dem Wert rechts ab.",
+        null
+      ]
     },
     {
       "id": "q-var-2b",
@@ -19900,7 +20188,7 @@
           }
         ]
       },
-      "explanation": "char hält genau ein Zeichen in einfachen Anführungszeichen, boolean nur true oder false.",
+      "explanation": "char nimmt genau ein Zeichen und steht in einfachen Anführungszeichen – doppelte wären ein String. Beim Ausgeben wird beides zu Text, deshalb erscheint true als Wort und nicht als Zahl.",
       "expectedOutput": "J true"
     },
     {
@@ -19954,14 +20242,20 @@
       "difficulty": 3,
       "prompt": "Wann ist (alter >= 18 && hatAusweis) wahr?",
       "variantGroup": "t03-4",
-      "explanation": "&& heißt „und“: Beide Seiten müssen ja sein. || wäre „oder“ – da reicht eine Seite.",
+      "explanation": "&& verlangt beide Seiten: Fehlt eine, ist das Ganze falsch. Praktisch nebenbei – Java prüft die rechte Seite gar nicht mehr, wenn die linke schon falsch ist. Das verhindert Abstürze bei Prüfungen wie obj != null && obj.wert > 0.",
       "choices": [
         "Wenn mindestens eine Bedingung wahr ist",
         "Wenn beide Bedingungen falsch sind",
         "Immer, wenn alter mindestens 18 ist",
         "Nur wenn beide Bedingungen wahr sind"
       ],
-      "correctIndex": 3
+      "correctIndex": 3,
+      "whyWrong": [
+        "Das wäre ||. Bei && müssen beide stimmen.",
+        "Dann ist das Ganze falsch. && verlangt zweimal wahr.",
+        "Die zweite Bedingung zählt genauso. Ohne Ausweis kommt false heraus.",
+        null
+      ]
     },
     {
       "id": "q-op-2b",
@@ -20010,7 +20304,7 @@
           }
         ]
       },
-      "explanation": "7 > 5 ist wahr. 7 % 2 ergibt 1, also ist der Vergleich mit 0 falsch – 7 ist ungerade.",
+      "explanation": "Ein Vergleich liefert selbst schon true oder false und lässt sich deshalb direkt in einer boolean-Box speichern. 7 % 2 ergibt 1, und 1 == 0 ist falsch – also ungerade.",
       "expectedOutput": "true false"
     },
     {
@@ -20165,7 +20459,7 @@
           }
         ]
       },
-      "explanation": "Der Weichensteller switch vergleicht den Wert mit jedem case und nimmt den passenden Weg.",
+      "explanation": "switch vergleicht den Wert der Reihe nach mit jedem case. Bei Text nimmt es dabei den Inhalt und nicht die Objektgleichheit – man braucht hier also kein equals.",
       "expectedOutput": "Miau"
     },
     {
@@ -20228,7 +20522,7 @@
           }
         ]
       },
-      "explanation": "Ein case darf mehrere Werte zusammenfassen: 6, 7 und 8 führen alle zum selben Weg.",
+      "explanation": "Mehrere Werte in einem Zweig sparen die Wiederholung: case 6, 7, 8 statt drei getrennter Fälle mit demselben Inhalt. Getrennt werden sie durch Kommas.",
       "expectedOutput": "Sommer"
     },
     {
@@ -20376,7 +20670,7 @@
           }
         ]
       },
-      "explanation": "Der Zähler springt in Zweierschritten: i += 2 statt i++.",
+      "explanation": "Der dritte Teil im Schleifenkopf bestimmt die Schrittweite – sie muss nicht 1 sein. i += 2 überspringt jede zweite Zahl; mit i-- liefe die Schleife rückwärts.",
       "expectedOutput": "2 4 6 8 10 "
     },
     {
@@ -20430,7 +20724,7 @@
           }
         ]
       },
-      "explanation": "Die do-while-Schleife läuft mindestens einmal und prüft erst am Ende. Bei 32 ist Schluss.",
+      "explanation": "Bei do-while steht die Prüfung hinten: Der Block läuft deshalb mindestens einmal, auch wenn die Bedingung von Anfang an falsch wäre. Genau das braucht man bei Eingaben, die erst einmal gelesen werden müssen.",
       "expectedOutput": "1 2 4 8 16 "
     },
     {
@@ -20487,7 +20781,7 @@
           }
         ]
       },
-      "explanation": "break verlässt die Schleife sofort – ab der 4 läuft keine Runde mehr.",
+      "explanation": "break verlässt die Schleife sofort und ganz – die restlichen Runden fallen aus. Das unterscheidet es von continue, das nur die laufende Runde abbricht und mit der nächsten weitermacht.",
       "expectedOutput": "1 2 3 "
     },
     {
@@ -20824,7 +21118,7 @@
           }
         ]
       },
-      "explanation": "Ein neuer int-Eierkarton startet überall mit 0. Nur Fach 1 wurde gefüllt.",
+      "explanation": "Ein mit new angelegtes Array ist nie undefiniert: Zahlenfächer starten bei 0, boolean-Fächer bei false, Objektfächer bei null. Deshalb steht in Fach 0 eine 0, obwohl dort nie etwas hineingelegt wurde.",
       "expectedOutput": "0 7"
     },
     {
@@ -20882,7 +21176,7 @@
           }
         ]
       },
-      "explanation": "Die for-each-Schleife holt jedes Fach einmal ab: 3 + 8 + 1 = 12.",
+      "explanation": "Die Box summe steht außerhalb der Schleife – sonst begänne sie in jeder Runde von vorn. Die for-each-Schleife übernimmt das Durchzählen, man muss sich nur noch ums Aufaddieren kümmern.",
       "expectedOutput": "12"
     },
     {
@@ -20892,7 +21186,7 @@
       "difficulty": 4,
       "prompt": "Finde den kleinsten Wert im Eierkarton und gib ihn aus.",
       "variantGroup": "t07-5",
-      "explanation": "Man merkt sich den bisher kleinsten Wert und ersetzt ihn, sobald ein kleinerer auftaucht.",
+      "explanation": "Der Startwert ist entscheidend: Man beginnt mit dem ersten Element, nicht mit 0. Sonst käme bei lauter Zahlen über 0 immer die 0 heraus – ein Wert, der gar nicht im Array steht.",
       "starterCode": {
         "lines": [
           {
@@ -21068,7 +21362,7 @@
           }
         ]
       },
-      "explanation": "equals vergleicht den Inhalt – der ist gleich. length() zählt die Zeichen: H-a-l-l-o.",
+      "explanation": "equals vergleicht Zeichen für Zeichen, == fragt dagegen, ob es dasselbe Objekt im Speicher ist. Bei Texten will man fast immer den Inhalt wissen – deshalb ist equals hier die richtige Wahl.",
       "expectedOutput": "true\n5"
     },
     {
@@ -21078,7 +21372,7 @@
       "difficulty": 3,
       "prompt": "Ergänze: Der Text soll auf sein erstes Zeichen geprüft werden.",
       "variantGroup": "t07-2",
-      "explanation": "charAt(0) holt das Zeichen aus Fach 0 – Java zählt auch bei Text ab 0.",
+      "explanation": "charAt zählt ab 0, genau wie beim Array: Fach 0 ist das erste Zeichen. Zurück kommt ein char, kein String – für ein einzelnes Zeichen nimmt Java den kleineren Typ.",
       "verify": {
         "output": "B"
       },
@@ -21225,7 +21519,13 @@
         "Für das Elternobjekt",
         "Für das Objekt, das gerade gebaut wird"
       ],
-      "correctIndex": 3
+      "correctIndex": 3,
+      "whyWrong": [
+        "Die Klasse ist der Bauplan. this meint das konkrete Objekt, das gerade entsteht.",
+        "Mit Werten hat this nichts zu tun – es zeigt auf das Objekt.",
+        "Auf die Eltern-Klasse greift super zu, nicht this.",
+        null
+      ]
     },
     {
       "id": "q-oop-2a",
@@ -21489,14 +21789,20 @@
       "difficulty": 2,
       "prompt": "Wie viele Interfaces darf eine Java-Klasse umsetzen?",
       "variantGroup": "t09-2",
-      "explanation": "Verträge darf eine Klasse viele unterschreiben – aber nur eine Eltern-Klasse haben.",
+      "explanation": "Verträge darf man beliebig viele unterschreiben, weil ein Interface nur vorgibt, was es geben muss – es bringt keinen Code mit, der sich widersprechen könnte. Bei mehreren Eltern-Klassen wäre dagegen unklar, welche geerbte Methode gilt.",
       "choices": [
         "Höchstens zwei",
         "Keines, wenn sie schon erbt",
         "Beliebig viele",
         "Genau eines"
       ],
-      "correctIndex": 2
+      "correctIndex": 2,
+      "whyWrong": [
+        "Eine Obergrenze gibt es nicht. Nur bei Klassen ist bei einer Eltern-Klasse Schluss.",
+        "Beides geht gleichzeitig: erst extends, dann implements.",
+        null,
+        "Genau eine gilt für die Eltern-Klasse. Verträge darf es beliebig viele geben."
+      ]
     },
     {
       "id": "q-exc-1a",
@@ -21585,7 +21891,13 @@
         "throw löst einen Alarm aus, throws kündigt ihn in der Methode an",
         "throw kündigt an, throws löst aus"
       ],
-      "correctIndex": 2
+      "correctIndex": 2,
+      "whyWrong": [
+        "Der Unterschied ist grundlegend: throw löst aus, throws kündigt nur an.",
+        "Gefangen wird im catch. throws reicht die Verantwortung weiter nach oben.",
+        null,
+        "Genau andersherum. Das s am Ende gehört zur Ankündigung im Methodenkopf."
+      ]
     },
     {
       "id": "q-exc-2a",
@@ -21809,7 +22121,13 @@
         "Die Methode kann keine Zahlen verarbeiten",
         "Die Methode funktioniert mit jeder Sorte von Inhalt"
       ],
-      "correctIndex": 3
+      "correctIndex": 3,
+      "whyWrong": [
+        "Auf die Geschwindigkeit hat der Platzhalter keinen Einfluss.",
+        "Das wäre String statt T. Der Platzhalter lässt gerade alles zu.",
+        "Zahlen gehen genauso – beim Aufruf wird T einfach zu Integer.",
+        null
+      ]
     },
     {
       "id": "q-gen-1b",
@@ -22009,7 +22327,13 @@
         "Es sortiert die Liste",
         "Es beschreibt eine kleine Rechnung, die später ausgeführt wird"
       ],
-      "correctIndex": 3
+      "correctIndex": 3,
+      "whyWrong": [
+        "Gerechnet wird erst, wenn jemand das Lambda aufruft – etwa map für jedes Element.",
+        "z ist die Zutat, die bei jedem Aufruf hereinkommt – wie ein Parameter.",
+        "Sortieren macht sorted. Ein Lambda beschreibt nur, was mit einem einzelnen Wert passiert.",
+        null
+      ]
     },
     {
       "id": "q-mod-1a",
@@ -22130,7 +22454,13 @@
         "Immer nur eine Ausgabe auf dem Bildschirm",
         "Eine Liste aller Fälle"
       ],
-      "correctIndex": 1
+      "correctIndex": 1,
+      "whyWrong": [
+        "Der Pfeil ist mehr als Schreiberleichterung: Das switch liefert einen Wert und darf rechts vom Gleichheitszeichen stehen.",
+        null,
+        "Ausgeben kann man damit auch, aber der eigentliche Gewinn ist der zurückgegebene Wert.",
+        "Zurück kommt genau ein Wert – der des passenden Zweigs."
+      ]
     },
     {
       "id": "q-enum-1a",
@@ -22212,14 +22542,20 @@
       "difficulty": 2,
       "prompt": "Was liefert ordinal() bei einem enum-Wert?",
       "variantGroup": "t14-2",
-      "explanation": "Die Aufzählung ist geordnet: Der erste Wert hat ordinal() 0, der zweite 1 und so weiter.",
+      "explanation": "Die Reihenfolge im enum ist verbindlich: Der erste Wert hat die Position 0. Darauf sollte man sich im Programm aber nicht verlassen – schiebt jemand später einen Wert dazwischen, verschieben sich alle Zahlen dahinter.",
       "choices": [
         "Seine Position in der Aufzählung, gezählt ab 0",
         "Seinen Namen als Text",
         "Die Anzahl aller Werte",
         "Eine Zufallszahl"
       ],
-      "correctIndex": 0
+      "correctIndex": 0,
+      "whyWrong": [
+        null,
+        "Den Namen liefert name() oder toString(). ordinal() gibt eine Zahl zurück.",
+        "Die Anzahl bekommt man über values().length. ordinal() betrifft nur den einen Wert.",
+        "Die Zahl steht fest: Sie ergibt sich aus der Reihenfolge im Quelltext."
+      ]
     },
     {
       "id": "q-enum-2a",
@@ -22531,7 +22867,13 @@
         "Sonst lässt sich das Objekt nicht ausgeben",
         "Sonst kann man das Objekt nicht erzeugen"
       ],
-      "correctIndex": 1
+      "correctIndex": 1,
+      "whyWrong": [
+        "equals arbeitet weiterhin korrekt. Das Problem entsteht erst in Hash-Sammlungen.",
+        null,
+        "Ausgeben regelt toString. hashCode hat damit nichts zu tun.",
+        "Erzeugen geht immer. Die Regel betrifft nur das Wiederfinden in HashSet und HashMap."
+      ]
     },
     {
       "id": "q-obj-2b",
@@ -22547,7 +22889,13 @@
         "Aus ihr selbst kann man kein Objekt erzeugen",
         "Sie darf keine Felder haben"
       ],
-      "correctIndex": 2
+      "correctIndex": 2,
+      "whyWrong": [
+        "Sie darf beliebig viele haben – abstrakte wie fertige. Genau eine Methode wäre ein funktionales Interface.",
+        "Vererbt werden muss sie sogar: Nur über eine Kind-Klasse kommt man an Objekte.",
+        null,
+        "Felder sind erlaubt und üblich – das unterscheidet sie von einem Interface."
+      ]
     },
     {
       "id": "q-io-1a",
@@ -22624,7 +22972,7 @@
           }
         ]
       },
-      "explanation": "reverse() dreht die Reihenfolge aller Zeichen des Notizblocks um.",
+      "explanation": "reverse verändert den Notizblock selbst und gibt ihn zurück – anders als bei einem String, der immer unangetastet bleibt. Genau deshalb nimmt man für solche Umbauten einen StringBuilder.",
       "expectedOutput": "desserts"
     },
     {
@@ -22683,7 +23031,7 @@
           }
         ]
       },
-      "explanation": "next() liest immer bis zum nächsten Leerzeichen, nextInt() liest die nächste Zahl.",
+      "explanation": "next() liest bis zum nächsten Leerzeichen, nextInt() liest die nächste Zahl. Der Scanner merkt sich dabei, wie weit er gekommen ist – jeder Aufruf setzt dort fort, wo der letzte aufhörte.",
       "expectedOutput": "Lovelace, Ada (1815)"
     },
     {
@@ -22821,7 +23169,7 @@
           }
         ]
       },
-      "explanation": "plusDays rechnet über das Monatsende hinweg: Vom 15. März sind 20 Tage der 4. April.",
+      "explanation": "plusDays kennt die Länge jedes Monats und rechnet über das Monatsende hinweg richtig. Wichtig: Das Datum wird nicht verändert – es kommt ein neues zurück, denn LocalDate ist unveränderlich.",
       "expectedOutput": "2026-04-04"
     },
     {
@@ -22996,7 +23344,7 @@
           }
         ]
       },
-      "explanation": "4 · 3 · 2 · 1 = 24. Der Basisfall n <= 1 stoppt die Kette, sonst würde sie nie enden.",
+      "explanation": "Der Basisfall n <= 1 ist das Einzige, was die Kette beendet – ohne ihn liefe sie bis zum StackOverflowError. Dass dort <= und nicht == steht, fängt zusätzlich die 0 ab, deren Fakultät ebenfalls 1 ist.",
       "javaContext": "members",
       "expectedOutput": "24"
     },
@@ -23014,7 +23362,13 @@
         "Java ergänzt den Basisfall automatisch",
         "Die Methode gibt 0 zurück"
       ],
-      "correctIndex": 1
+      "correctIndex": 1,
+      "whyWrong": [
+        "Syntaktisch ist der Code in Ordnung. Auffallen tut es erst beim Laufen.",
+        null,
+        "Wann Schluss ist, kann nur der Mensch wissen. Java ergänzt nichts.",
+        "Sie gibt gar nichts zurück – sie kommt nie bis zu einem return."
+      ]
     },
     {
       "id": "q-rec-2a",
@@ -23124,7 +23478,13 @@
         "Sie braucht weniger Speicher",
         "Sie wirft mit jedem Blick die Hälfte der Einträge weg"
       ],
-      "correctIndex": 3
+      "correctIndex": 3,
+      "whyWrong": [
+        "Im Gegenteil: Sie schaut sich viel weniger Einträge an, dafür gezielt den mittleren.",
+        "Sortiert sein muss die Liste schon vorher – das Sortieren gehört nicht zur Suche.",
+        "Der Speicherbedarf ist bei beiden gleich. Der Gewinn liegt allein in der Zahl der Vergleiche.",
+        null
+      ]
     },
     {
       "id": "q-alg-1b",
@@ -23218,7 +23578,7 @@
       "difficulty": 4,
       "prompt": "Zähle mit einer Schleife, wie viele Zahlen größer als 10 sind, und gib die Anzahl aus.",
       "variantGroup": "t19-4",
-      "explanation": "Ein Zähler startet bei 0 und wächst bei jedem Treffer: 17, 23 und 11 sind größer als 10.",
+      "explanation": "Der Zähler muss vor der Schleife stehen und darf nur bei Treffern wachsen. Das ist das Grundmuster für jedes „wie viele …“ – innerhalb der Schleife angelegt, begänne er jede Runde neu.",
       "starterCode": {
         "lines": [
           {
@@ -23425,7 +23785,13 @@
         "Ein Set – jeder Eintrag nur einmal",
         "Eine Map – Schlüssel und Wert"
       ],
-      "correctIndex": 0
+      "correctIndex": 0,
+      "whyWrong": [
+        null,
+        "Die würde die älteste Änderung zurücknehmen, nicht die letzte.",
+        "Ein Set kennt keine Reihenfolge – und dieselbe Änderung darf durchaus zweimal vorkommen.",
+        "Eine Map ordnet Werte Schlüsseln zu. Eine Reihenfolge zum Zurücknehmen liefert sie nicht."
+      ]
     },
     {
       "id": "q-ds-3a",
@@ -23434,7 +23800,7 @@
       "difficulty": 4,
       "prompt": "Zähle mit einem Set, wie viele verschiedene Buchstaben in der Liste stehen, und gib die Zahl aus.",
       "variantGroup": "t20-5",
-      "explanation": "Das Set wirft Doppelte weg: Übrig bleiben a, b und c – also 3.",
+      "explanation": "Das Set beantwortet „wie viele verschiedene“, ohne dass man vergleichen muss: Beim Einfügen fällt jedes Doppelte von selbst weg. Mit einer Liste müsste man jeden Buchstaben mit allen vorherigen abgleichen.",
       "starterCode": {
         "lines": [
           {
@@ -23658,7 +24024,13 @@
         "Den Normalfall und die Randfälle wie 0 oder negative Werte",
         "Nur besonders große Zahlen"
       ],
-      "correctIndex": 2
+      "correctIndex": 2,
+      "whyWrong": [
+        "Solche Tests bestehen immer und finden nie etwas. Interessant sind gerade die wackligen Stellen.",
+        "Geschwindigkeit misst man getrennt. Ein Unit-Test prüft das Ergebnis.",
+        null,
+        "Große Zahlen sind ein Randfall von vielen. Die 0 und negative Werte werden häufiger vergessen."
+      ]
     },
     {
       "id": "q-test-2a",
@@ -23674,7 +24046,13 @@
         "Den Test löschen",
         "Die Prüfung ignorieren"
       ],
-      "correctIndex": 0
+      "correctIndex": 0,
+      "whyWrong": [
+        null,
+        "Das wäre gefährlich: Steht im Test ein falscher Erwartungswert, baut man den Fehler in den Code ein.",
+        "Dann verliert man die Prüfung ganz. Erst klären, wer recht hat.",
+        "Ein dauerhaft roter Test wird bald von allen übersehen – auch dann, wenn er einen echten Fehler meldet."
+      ]
     },
     {
       "id": "q-test-3a",
@@ -23683,7 +24061,7 @@
       "difficulty": 3,
       "prompt": "Ergänze den JUnit-Test: Er soll prüfen, dass 2 + 3 gleich 5 ist.",
       "variantGroup": "t21-4",
-      "explanation": "assertEquals vergleicht – erwarteter Wert zuerst, dann das tatsächliche Ergebnis.",
+      "explanation": "Die Reihenfolge ist Absicht: erwarteter Wert zuerst, tatsächliches Ergebnis danach. Verdreht man sie, besteht der Test zwar trotzdem – aber im Fehlerfall steht die Meldung auf dem Kopf und führt in die Irre.",
       "verify": {
         "skip": true
       },
@@ -23749,7 +24127,13 @@
         "Es lädt eine Datei von der Festplatte",
         "Es startet das Programm"
       ],
-      "correctIndex": 1
+      "correctIndex": 1,
+      "whyWrong": [
+        "Eine Liste entsteht mit new ArrayList<>(). import macht den Namen nur bekannt.",
+        null,
+        "Geladen wird nichts – die Klasse liegt bereits in der Java-Bibliothek.",
+        "Gestartet wird über main. import steht nur oben in der Datei."
+      ]
     },
     {
       "id": "q-tool-1b",
@@ -23884,7 +24268,13 @@
         "Die letzte erfolgreiche Zeile",
         "Die Uhrzeit des Absturzes"
       ],
-      "correctIndex": 0
+      "correctIndex": 0,
+      "whyWrong": [
+        null,
+        "Den kennt Java nicht. Oben steht die Art des Fehlers.",
+        "Die Zeilen darunter zeigen den Weg dorthin – aber ganz oben steht der Fehler selbst.",
+        "Eine Uhrzeit gibt Java nicht aus. Das übernähme ein Protokoll-Werkzeug."
+      ]
     },
     {
       "id": "q-con-1a",
@@ -23893,14 +24283,20 @@
       "difficulty": 2,
       "prompt": "Was macht start() bei einem Thread?",
       "variantGroup": "t23-1",
-      "explanation": "start() gibt den zweiten Arbeitsstrang frei. Warten muss man getrennt mit join().",
+      "explanation": "start() gibt den zweiten Arbeitsstrang frei und kehrt sofort zurück – das Hauptprogramm läuft weiter. Würde man stattdessen run() aufrufen, liefe der Code ganz normal im selben Strang, und von Nebenläufigkeit wäre nichts zu sehen.",
       "choices": [
         "Es wartet, bis der Thread fertig ist",
         "Es führt die Aufgabe sofort im Hauptprogramm aus",
         "Es beendet den Thread",
         "Es lässt den Thread parallel zum Hauptprogramm loslaufen"
       ],
-      "correctIndex": 3
+      "correctIndex": 3,
+      "whyWrong": [
+        "Das macht join(). start() kehrt sofort zurück.",
+        "Das wäre run(). Dann gäbe es keinen zweiten Arbeitsstrang.",
+        "Beendet wird er, wenn seine Arbeit fertig ist. start() setzt sie erst in Gang.",
+        null
+      ]
     },
     {
       "id": "q-con-1b",
@@ -23998,7 +24394,13 @@
         "Der Zähler wird automatisch zurückgesetzt",
         "Beide lesen denselben Wert und schreiben dieselbe Zahl zurück"
       ],
-      "correctIndex": 3
+      "correctIndex": 3,
+      "whyWrong": [
+        "Mit der Größe hat es nichts zu tun – auch bei kleinen Zahlen geht es schief.",
+        "Dürfen sie. Das Problem ist, dass sie es gleichzeitig tun.",
+        "Zurückgesetzt wird nichts. Es gehen einzelne Erhöhungen verloren, weil beide denselben alten Wert gelesen haben.",
+        null
+      ]
     },
     {
       "id": "q-con-2b",
@@ -24061,7 +24463,7 @@
           }
         ]
       },
-      "explanation": "Beide Aufgaben laufen im Team. get() wartet auf das jeweilige Ergebnis: 9 + 25 = 34.",
+      "explanation": "submit gibt sofort einen Abholschein zurück, die Arbeit läuft nebenher. Erst get holt das Ergebnis und wartet, falls es noch nicht fertig ist. Deshalb laufen beide Rechnungen gleichzeitig statt nacheinander: 9 + 25 = 34.",
       "expectedOutput": "34"
     },
     {
@@ -24078,7 +24480,13 @@
         "Sie laufen ohne Executor",
         "Sie sind so leicht, dass Tausende gleichzeitig warten können"
       ],
-      "correctIndex": 3
+      "correctIndex": 3,
+      "whyWrong": [
+        "Beim reinen Rechnen sind sie nicht schneller. Der Vorteil zeigt sich beim Warten.",
+        "Auf ein Ergebnis muss man genauso warten – etwa mit get() oder join().",
+        "Starten kann man sie auch einzeln, üblich ist aber ein Executor. Das ist nicht der Punkt.",
+        null
+      ]
     },
     {
       "id": "q-pat-1a",
@@ -24094,7 +24502,13 @@
         "Es erlaubt jedem, das Interface umzusetzen",
         "Es verbietet jede Vererbung"
       ],
-      "correctIndex": 1
+      "correctIndex": 1,
+      "whyWrong": [
+        "Die Reihenfolge bestimmt man selbst im switch. permits sagt nur, wer dazugehört.",
+        null,
+        "Genau das Gegenteil: Es beschränkt den Kreis auf die genannten Typen.",
+        "Vererbt werden darf – nur eben ausschließlich von den aufgezählten Typen."
+      ]
     },
     {
       "id": "q-pat-1b",
@@ -24490,7 +24904,7 @@
           }
         ]
       },
-      "explanation": "Nach Süden gibt es keine Tür – getOrDefault liefert dann den Ersatzwert statt null.",
+      "explanation": "getOrDefault ist hier das Sicherheitsnetz: Ohne Tür nach Süden käme bei get null zurück, und der nächste Schritt würde abstürzen. Mit dem Ersatzwert bleibt man einfach stehen, wo man war.",
       "javaContext": "file",
       "expectedOutput": "FLUR"
     },
@@ -24559,7 +24973,13 @@
         "Die Liste ist voll",
         "42 ist zu groß für eine Liste"
       ],
-      "correctIndex": 1
+      "correctIndex": 1,
+      "whyWrong": [
+        "add nimmt genau den Typ, der in den spitzen Klammern steht.",
+        null,
+        "Eine Liste wird nie voll – sie wächst nach Bedarf.",
+        "Die Größe spielt keine Rolle. Es geht allein um den Typ."
+      ]
     },
     {
       "id": "r-gen-2a",
@@ -24658,7 +25078,7 @@
           }
         ]
       },
-      "explanation": "LocalDate rechnet über Monats- und Jahresgrenzen hinweg – aus Silvester wird Neujahr.",
+      "explanation": "plusDays kennt Monatslängen, Jahreswechsel und sogar Schaltjahre – nachrechnen muss man nichts. Das Datum bleibt dabei unverändert; zurück kommt ein neues, denn LocalDate ist unveränderlich.",
       "expectedOutput": "2027-01-01"
     },
     {
@@ -24888,7 +25308,7 @@
           }
         ]
       },
-      "explanation": "split zerlegt den Text an jedem Komma in einen Eierkarton – Fach 2 ist der dritte Teil.",
+      "explanation": "split zerlegt an jedem Trennzeichen, das Trennzeichen selbst verschwindet dabei. Gezählt wird ab 0, deshalb ist Fach 2 der dritte Teil. String.join wäre der Rückweg.",
       "expectedOutput": "3 blau"
     },
     {
@@ -25093,7 +25513,13 @@
         "Es legt die Reihenfolge der Fälle fest",
         "Es wiederholt den Fall"
       ],
-      "correctIndex": 1
+      "correctIndex": 1,
+      "whyWrong": [
+        "Beendet wird der switch, sobald ein Zweig passt. when prüft nur zusätzlich.",
+        null,
+        "Die Reihenfolge bestimmt, wie man die Fälle hinschreibt.",
+        "Wiederholt wird nichts – jeder Zweig läuft höchstens einmal."
+      ]
     },
     {
       "id": "r-pat-2a",
@@ -25202,7 +25628,7 @@
           }
         ]
       },
-      "explanation": "Das Record-Muster packt x und y aus, die when-Bedingung prüft x == 0 – beides trifft zu.",
+      "explanation": "Das Record-Muster prüft den Typ und packt in einem Zug die Felder aus – ohne instanceof und ohne Umwandlung. Die when-Bedingung ist ein zusätzlicher Filter: Nur wenn auch sie stimmt, greift dieser Zweig.",
       "javaContext": "file",
       "expectedOutput": "auf der Achse bei 7"
     },
@@ -25250,14 +25676,20 @@
         "relations": []
       },
       "variantGroup": "t30-2",
-      "explanation": "Das Minus vor pruefe() heißt privat. getName() und addiere() sind mit + öffentlich.",
+      "explanation": "In UML steht die Sichtbarkeit ganz vorn: - privat, + öffentlich, # geschützt. Das ist die kürzeste Art zu zeigen, was von außen erreichbar ist – ohne den Code lesen zu müssen.",
       "choices": [
         "keine davon",
         "pruefe()",
         "getName()",
         "addiere()"
       ],
-      "correctIndex": 1
+      "correctIndex": 1,
+      "whyWrong": [
+        "Eine ist es: Das Minus vor pruefe() kennzeichnet sie als privat.",
+        null,
+        "Vor getName() steht ein Plus – die Methode ist öffentlich.",
+        "Auch addiere() trägt ein Plus und ist damit von überall nutzbar."
+      ]
     },
     {
       "id": "r-uml-1b",
@@ -25310,7 +25742,13 @@
         "5",
         "1"
       ],
-      "correctIndex": 0
+      "correctIndex": 0,
+      "whyWrong": [
+        null,
+        "Gezählt werden nur die Zeilen im mittleren Fach. Methoden gehören nicht dazu.",
+        "Das wären alle Zeilen zusammen. Gefragt sind nur die Attribute im mittleren Fach.",
+        "Im mittleren Fach stehen zwei Zeilen, nicht eine."
+      ]
     },
     {
       "id": "r-uml-2a",
@@ -25356,14 +25794,20 @@
         "relations": []
       },
       "variantGroup": "t30-4",
-      "explanation": "protected wird in UML zum Doppelkreuz #. Der Typ steht hinter dem Doppelpunkt.",
+      "explanation": "Die drei Zeichen decken die Sichtbarkeiten ab: + öffentlich, - privat, # geschützt. In UML steht danach der Name und erst hinter dem Doppelpunkt der Typ – in Java ist die Reihenfolge umgekehrt.",
       "choices": [
         "- punkte: int",
         "+ punkte: int",
         "punkte: protected int",
         "# punkte: int"
       ],
-      "correctIndex": 3
+      "correctIndex": 3,
+      "whyWrong": [
+        "Das Minus steht für private. Gesucht ist protected.",
+        "Das Plus steht für public. Gesucht ist protected.",
+        "Die Sichtbarkeit steht in UML als Zeichen ganz vorn, nicht als Wort beim Typ.",
+        null
+      ]
     },
     {
       "id": "r-uml-2b",
@@ -25432,7 +25876,13 @@
         "Jedes Buch gehört zu beliebig vielen Bibliotheken",
         "Es gibt keine Bücher"
       ],
-      "correctIndex": 0
+      "correctIndex": 0,
+      "whyWrong": [
+        null,
+        "Genau eines wäre die Vielfachheit 1. Der Stern lässt beliebig viele zu.",
+        "Die Angabe steht am Ende der Linie bei Buch und beschreibt, wie viele Bücher zur Bibliothek gehören.",
+        "Der Stern schließt null zwar ein, bedeutet aber „beliebig viele“ – nicht „keine“."
+      ]
     },
     {
       "id": "r-uml-3a",
@@ -25501,7 +25951,13 @@
         "Komposition – gefüllte Raute an der Bibliothek",
         "Vererbung – Dreiecksspitze zur Bibliothek"
       ],
-      "correctIndex": 1
+      "correctIndex": 1,
+      "whyWrong": [
+        "Abhängigkeit wäre nur kurzes Benutzen. Hier hält die Bibliothek die Bücher dauerhaft.",
+        null,
+        "Bei Komposition würden die Bücher mit der Bibliothek verschwinden. Genau das ist hier nicht der Fall.",
+        "Vererbung hieße, ein Buch wäre eine Bibliothek. Es gehört ihr nur."
+      ]
     },
     {
       "id": "r-uml-3b",
@@ -25750,7 +26206,7 @@
           }
         ]
       },
-      "explanation": "Ein Eierkarton im Eierkarton: feld[1] ist die zweite Reihe, davon Fach 0.",
+      "explanation": "Ein zweidimensionales Array ist ein Array aus Arrays: Der erste Index wählt die Reihe, der zweite das Fach darin. Beide zählen ab 0, deshalb ist feld[1][0] das erste Fach der zweiten Reihe.",
       "expectedOutput": "c"
     },
     {
@@ -25825,7 +26281,7 @@
           }
         ]
       },
-      "explanation": "Nur die Fächer mit geradem Index zählen: Fach 0 (5) und Fach 2 (8) ergeben 13.",
+      "explanation": "Hier braucht es die Zählschleife statt for-each: Nur sie kennt den Index, und genau auf den kommt es an. Mit for-each hätte man zwar die Werte, wüsste aber nicht, an welcher Position sie stehen.",
       "expectedOutput": "13"
     },
     {
@@ -25926,7 +26382,7 @@
           }
         ]
       },
-      "explanation": "keySet() liefert alle Schlüssel des Wörterbuchs – dazu holt get den passenden Wert.",
+      "explanation": "keySet liefert alle Schlüssel, get holt den Wert dazu – so durchläuft man eine Map. Auf die Reihenfolge sollte man sich nicht verlassen: Eine HashMap ordnet nach internen Regeln, nicht nach dem Einfügen.",
       "expectedOutput": "Ada: 10"
     },
     {
@@ -26036,7 +26492,7 @@
           }
         ]
       },
-      "explanation": "Bei einem enum kennt Java alle Fälle – der switch braucht deshalb keinen default-Zweig.",
+      "explanation": "Weil im enum alle Werte aufgezählt sind, kann Java nachrechnen, ob jeder Fall behandelt wird – deshalb ist hier kein default nötig. Kommt später ein Wert dazu, meldet der Compiler genau diese Stelle.",
       "javaContext": "file",
       "expectedOutput": "fahren"
     },
@@ -26582,7 +27038,7 @@
           }
         ]
       },
-      "explanation": "Drei Aufgaben laufen gleichzeitig, jede liefert ihr Zehnfaches: 10 + 20 + 30 = 60.",
+      "explanation": "Erst alle Aufgaben einreichen, dann die Ergebnisse einsammeln – so laufen sie nebeneinander. Würde man nach jedem submit sofort get aufrufen, wartete man jedes Mal und hätte nichts gewonnen.",
       "expectedOutput": "60"
     },
     {
@@ -26592,14 +27048,20 @@
       "difficulty": 1,
       "prompt": "Was gehört um einen Text in Java?",
       "variantGroup": "t01-2",
-      "explanation": "Text steht in doppelten Anführungszeichen. Einfache umschließen genau ein Zeichen (char).",
+      "explanation": "Doppelte Anführungszeichen stehen für Text beliebiger Länge, einfache für genau ein Zeichen (char). Verwechselt man sie, meldet der Compiler einen Fehler – 'Hallo' ist kein gültiges einzelnes Zeichen.",
       "choices": [
         "Einfache Anführungszeichen '…'",
         "Runde Klammern (…)",
         "Gar nichts",
         "Doppelte Anführungszeichen \"…\""
       ],
-      "correctIndex": 3
+      "correctIndex": 3,
+      "whyWrong": [
+        "Die umschließen genau ein Zeichen (char). 'Hallo' lehnt der Compiler ab.",
+        "Runde Klammern gehören zu Methodenaufrufen und Bedingungen, nicht zu Text.",
+        "Ohne Anführungszeichen hielte Java das Wort für einen Variablennamen und meldet, dass es ihn nicht kennt.",
+        null
+      ]
     },
     {
       "id": "s-easy-2",
@@ -26615,7 +27077,13 @@
         "int",
         "double"
       ],
-      "correctIndex": 2
+      "correctIndex": 2,
+      "whyWrong": [
+        "String wäre Text. Mit „25“ in Anführungszeichen könnte man nicht rechnen.",
+        "boolean kennt nur true und false – eine Anzahl lässt sich damit nicht darstellen.",
+        null,
+        "double ginge zwar, ist aber unnötig: Eine Anzahl hat nie Nachkommastellen, und double rechnet ungenauer."
+      ]
     },
     {
       "id": "s-easy-3",
@@ -26624,14 +27092,20 @@
       "difficulty": 1,
       "prompt": "Was ergibt 6 * 7?",
       "variantGroup": "t03-1",
-      "explanation": "* ist das Malzeichen. Java rechnet wie ein Taschenrechner, Punkt vor Strich inklusive.",
+      "explanation": "Java rechnet wie ein Taschenrechner, samt Punkt vor Strich. Wichtig wird das bei gemischten Ausdrücken: 2 + 3 * 4 ergibt 14 und nicht 20, weil die Multiplikation zuerst dran ist.",
       "choices": [
         "67",
         "0",
         "42",
         "13"
       ],
-      "correctIndex": 2
+      "correctIndex": 2,
+      "whyWrong": [
+        "Das wären die Ziffern aneinandergehängt – so verhält sich + bei Text, nicht * bei Zahlen.",
+        "0 käme heraus, wenn einer der Faktoren 0 wäre.",
+        null,
+        "13 ist 6 + 7. Der Stern steht fürs Malnehmen."
+      ]
     },
     {
       "id": "s-easy-4",
@@ -26640,14 +27114,20 @@
       "difficulty": 1,
       "prompt": "Was steht in den Klammern von if (…)?",
       "variantGroup": "t04-1",
-      "explanation": "if erwartet eine Ja-Nein-Frage. Ein Vergleich wie alter >= 18 liefert genau das.",
+      "explanation": "if braucht eine Ja-Nein-Frage, damit es sich entscheiden kann. Ein Vergleich wie alter >= 18 liefert genau das: true oder false. Ein Text oder eine Zahl wären keine Frage – Java lehnt sie deshalb ab.",
       "choices": [
         "Eine Frage, die true oder false ergibt",
         "Ein beliebiger Text",
         "Der Name einer Methode",
         "Eine Zahl zwischen 0 und 1"
       ],
-      "correctIndex": 0
+      "correctIndex": 0,
+      "whyWrong": [
+        null,
+        "Ein Text ist keine Ja-Nein-Frage – Java kann damit nicht entscheiden.",
+        "Ein Name allein sagt nichts aus. Erst das Ergebnis eines Aufrufs kann true oder false sein.",
+        "Anders als in manchen Sprachen gilt in Java keine Zahl als wahr."
+      ]
     },
     {
       "id": "s-easy-5",
@@ -26656,14 +27136,20 @@
       "difficulty": 1,
       "prompt": "Wofür ist eine Schleife da?",
       "variantGroup": "t05-1",
-      "explanation": "Statt dieselbe Zeile zehnmal zu schreiben, lässt man die Schleife zehn Runden drehen.",
+      "explanation": "Eine Schleife trennt die Anweisung von der Anzahl: Man schreibt einmal, was passieren soll, und einmal, wie oft. Dadurch funktioniert derselbe Code für drei Runden genauso wie für dreitausend.",
       "choices": [
         "Sie beendet das Programm",
         "Sie erzeugt ein Objekt",
         "Sie wiederholt Anweisungen mehrmals",
         "Sie speichert Werte"
       ],
-      "correctIndex": 2
+      "correctIndex": 2,
+      "whyWrong": [
+        "Beendet wird das Programm am Ende von main oder mit System.exit.",
+        "Objekte entstehen mit new.",
+        null,
+        "Werte speichern Variablen. Die Schleife wiederholt nur."
+      ]
     },
     {
       "id": "s-easy-6",
@@ -26679,7 +27165,13 @@
         "Das Programm endet",
         "Das Rezept ist fertig und gibt sein Ergebnis zurück"
       ],
-      "correctIndex": 3
+      "correctIndex": 3,
+      "whyWrong": [
+        "Neu gestartet wird nichts – return beendet sie.",
+        "Übersprungen wird alles danach, weil die Methode an dieser Stelle endet.",
+        "Nur die Methode endet. Das Programm läuft an der aufrufenden Stelle weiter.",
+        null
+      ]
     },
     {
       "id": "s-easy-7",
@@ -26688,14 +27180,20 @@
       "difficulty": 1,
       "prompt": "Mit welchem Index beginnt das erste Fach eines Arrays?",
       "variantGroup": "t07-1",
-      "explanation": "Java zählt ab 0. Das erste Fach ist zahlen[0], das fünfte zahlen[4].",
+      "explanation": "Der Index ist ein Abstand vom Anfang, kein Abzählen – deshalb beginnt er bei 0. Daraus folgt die Regel, die am häufigsten Fehler verursacht: Das letzte Fach hat die Nummer length - 1.",
       "choices": [
         "-1",
         "Mit dem Namen des Arrays",
         "0",
         "1"
       ],
-      "correctIndex": 2
+      "correctIndex": 2,
+      "whyWrong": [
+        "Negative Indizes gibt es in Java nicht – der Zugriff löst sofort einen Fehler aus.",
+        "Über den Namen erreicht man das ganze Array. Ein einzelnes Fach wählt eine Zahl.",
+        null,
+        "1 wäre menschlich gedacht. Java zählt ab 0, deshalb ist das erste Fach die 0."
+      ]
     },
     {
       "id": "s-easy-8",
@@ -26704,14 +27202,20 @@
       "difficulty": 1,
       "prompt": "Was entsteht beim Aufruf von new Hund();?",
       "variantGroup": "t08-1",
-      "explanation": "Die Klasse ist die Kuchenform, new backt daraus einen echten Kuchen – das Objekt.",
+      "explanation": "Die Klasse ist die Kuchenform, new backt daraus einen echten Kuchen. Deshalb kann es zu einer Klasse beliebig viele Objekte geben – jedes mit eigenen Werten in seinen Feldern.",
       "choices": [
         "Eine Kopie des Programms",
         "Ein neues Objekt nach dem Bauplan der Klasse",
         "Eine neue Klasse",
         "Eine neue Methode"
       ],
-      "correctIndex": 1
+      "correctIndex": 1,
+      "whyWrong": [
+        "Kopiert wird nichts. Es entsteht ein einzelnes Objekt im Arbeitsspeicher.",
+        null,
+        "Die Klasse steht schon im Quelltext – sie ist der Bauplan. new nutzt ihn nur.",
+        "Methoden schreibt man im Quelltext. new führt den Konstruktor aus."
+      ]
     },
     {
       "id": "s-easy-9",
@@ -26727,7 +27231,13 @@
         "Sie wächst, wenn man Einträge hinzufügt",
         "Sie speichert Zahlen"
       ],
-      "correctIndex": 2
+      "correctIndex": 2,
+      "whyWrong": [
+        "Einen Index hat auch ein Array – das ist kein Unterschied.",
+        "Durchlaufen kann man beide, etwa mit for-each.",
+        null,
+        "Zahlen speichern beide. Der Unterschied ist die veränderliche Größe."
+      ]
     },
     {
       "id": "s-easy-10",
@@ -26743,7 +27253,13 @@
         "Er wiederholt Code so lange, bis er klappt",
         "Er beschleunigt das Programm"
       ],
-      "correctIndex": 1
+      "correctIndex": 1,
+      "whyWrong": [
+        "Beendet wird nichts – im Gegenteil, das Programm soll weiterlaufen können.",
+        null,
+        "Wiederholt wird nichts. Dafür bräuchte es eine Schleife um das try herum.",
+        "Auf die Geschwindigkeit hat try keinen Einfluss."
+      ]
     },
     {
       "id": "s-fill-1",
@@ -26752,7 +27268,7 @@
       "difficulty": 2,
       "prompt": "Ergänze Typ und Wert: alter soll die ganze Zahl 30 enthalten.",
       "variantGroup": "t02-1",
-      "explanation": "int ist das Etikett für ganze Zahlen, danach kommt der Wert in die Box.",
+      "explanation": "Der Typ steht vor dem Namen und legt fest, was in die Box darf. Java prüft das schon beim Übersetzen: Ein Text in einer int-Box wäre kein Fehler zur Laufzeit, sondern fällt sofort auf.",
       "verify": {
         "output": "30"
       },
@@ -26795,7 +27311,7 @@
       "difficulty": 3,
       "prompt": "Ergänze das Schlüsselwort, damit der Wert nicht mehr geändert werden darf.",
       "variantGroup": "t02-4",
-      "explanation": "final versiegelt die Box: Der Inhalt bleibt für immer gleich – typisch für Konstanten.",
+      "explanation": "final versiegelt die Box nach der ersten Füllung – jede weitere Zuweisung lehnt der Compiler ab. Konstanten schreibt man deshalb oft in Großbuchstaben, damit man sie beim Lesen sofort erkennt.",
       "verify": {
         "output": "0.19"
       },
@@ -26834,7 +27350,7 @@
       "difficulty": 2,
       "prompt": "Ergänze die Kurzform, die den Inhalt um 5 erhöht.",
       "variantGroup": "t03-3",
-      "explanation": "punkte += 5 ist die Kurzform für punkte = punkte + 5.",
+      "explanation": "punkte += 5 ist die Kurzform für punkte = punkte + 5: Der alte Wert wird gelesen, verändert und wieder in dieselbe Box gelegt. Solche Kurzformen gibt es für alle Rechenarten, auch -=, *= und /=.",
       "verify": {
         "output": "15"
       },
@@ -26877,7 +27393,7 @@
       "difficulty": 2,
       "prompt": "Ergänze die Schlüsselwörter für die Verzweigung.",
       "variantGroup": "t04-1",
-      "explanation": "if stellt die Frage, else fängt alle übrigen Fälle auf.",
+      "explanation": "if stellt die Frage, else fängt alles Übrige auf. Genau einer der beiden Blöcke läuft – nie beide. Ein else ohne vorheriges if gibt es nicht, es gehört immer zu einer Frage.",
       "verify": {
         "output": "minderjaehrig"
       },
@@ -26944,7 +27460,7 @@
       "difficulty": 2,
       "prompt": "Ergänze die drei Teile der for-Schleife: Start bei 1, laufen bis 3, jede Runde eins hoch.",
       "variantGroup": "t05-1",
-      "explanation": "Die drei Teile sind Start, Bedingung und Schritt – getrennt durch Semikolons.",
+      "explanation": "Die drei Teile im Kopf beantworten drei Fragen: Wo fängt es an, wie lange läuft es, was passiert nach jeder Runde. Dass alles in einer Zeile steht, macht auf einen Blick sichtbar, wie oft die Schleife läuft.",
       "verify": {
         "output": "123"
       },
@@ -27055,7 +27571,7 @@
       "difficulty": 3,
       "prompt": "Ergänze Rückgabetyp und Rückgabe: Die Methode liefert den doppelten Wert.",
       "variantGroup": "t06-3",
-      "explanation": "Der Rückgabetyp steht vor dem Namen, return liefert das Ergebnis zurück: 7 · 2 = 14.",
+      "explanation": "Der Rückgabetyp vor dem Namen ist ein Versprechen; return löst es ein. Java prüft beim Übersetzen, dass auf jedem Weg ein return steht – so kann keine Methode versehentlich ohne Ergebnis enden.",
       "javaContext": "members",
       "verify": {
         "context": "members",
@@ -27130,7 +27646,7 @@
       "difficulty": 3,
       "prompt": "Ergänze die for-each-Schleife über alle Fächer.",
       "variantGroup": "t07-3",
-      "explanation": "Der Doppelpunkt liest sich als „für jedes w in werte“ – ganz ohne Zähler.",
+      "explanation": "Der Doppelpunkt liest sich als „für jedes w in werte“. Die Schleife übernimmt das Durchzählen selbst – dafür weiß man nicht, an welcher Position man gerade ist.",
       "verify": {
         "output": "24"
       },
@@ -27182,7 +27698,7 @@
       "difficulty": 3,
       "prompt": "Ergänze die Methode, die den Text in Großbuchstaben liefert.",
       "variantGroup": "t07-2",
-      "explanation": "toUpperCase liefert einen neuen Text in Großbuchstaben; das Original bleibt unverändert.",
+      "explanation": "toUpperCase liefert einen neuen Text zurück; das Original bleibt unverändert, weil ein String in Java nicht veränderbar ist. Wer das Ergebnis behalten will, muss es also auch irgendwo hinlegen.",
       "verify": {
         "output": "JAVA"
       },
@@ -27324,7 +27840,7 @@
       "difficulty": 3,
       "prompt": "Ergänze die Schlüsselwörter für Vererbung und Überschreibung.",
       "variantGroup": "t09-1",
-      "explanation": "extends erweitert die Eltern-Klasse, @Override ist der Hinweiszettel, den Java prüft.",
+      "explanation": "extends holt sich alles von der Eltern-Klasse, @Override kündigt an, dass eine geerbte Methode ersetzt wird. Der Hinweiszettel ist nicht Pflicht, aber nützlich: Java meldet damit Tippfehler im Namen sofort.",
       "javaContext": "file",
       "verify": {
         "context": "file",
@@ -27458,7 +27974,7 @@
       "difficulty": 3,
       "prompt": "Ergänze die Methoden zum Hinzufügen und Zählen.",
       "variantGroup": "t11-1",
-      "explanation": "add hängt hinten an, size zählt die Einträge – beides typisch für Listen.",
+      "explanation": "add hängt hinten an, size zählt nach. Anders als beim Array muss die Größe nicht vorher feststehen – die Liste besorgt sich bei Bedarf selbst mehr Platz.",
       "verify": {
         "output": "2"
       },
@@ -27514,7 +28030,7 @@
       "difficulty": 4,
       "prompt": "Ergänze die Methoden des Wörterbuchs: eintragen und nachschlagen.",
       "variantGroup": "t11-4",
-      "explanation": "put trägt ein Paar aus Schlüssel und Wert ein, get schlägt den Wert zum Schlüssel nach.",
+      "explanation": "put braucht zwei Angaben, weil in einer Map jeder Wert an einem Schlüssel hängt. get geht den umgekehrten Weg. Ein zweites put mit demselben Schlüssel legt keinen neuen Eintrag an, sondern überschreibt den alten.",
       "verify": {
         "output": "36"
       },
@@ -27567,7 +28083,7 @@
       "difficulty": 4,
       "prompt": "Ergänze die Stationen des Fließbands: sieben und umwandeln.",
       "variantGroup": "t12-3",
-      "explanation": "filter siebt aus, map wandelt um. Übrig bleiben 2 und 4, verzehnfacht also 20 und 40.",
+      "explanation": "filter entscheidet, WAS durchkommt, map, WIE es sich verändert – zwei verschiedene Aufgaben, deshalb zwei Stationen. Die Reihenfolge zählt: Erst sieben, dann umwandeln ergibt etwas anderes als umgekehrt.",
       "verify": {
         "output": "[20, 40]"
       },
@@ -27829,7 +28345,7 @@
       "difficulty": 3,
       "prompt": "Ergänze die Methoden des Tellerstapels: drauflegen und abnehmen.",
       "variantGroup": "t20-3",
-      "explanation": "push legt oben drauf, pop nimmt oben weg – zuletzt drauf heißt zuerst weg.",
+      "explanation": "push und pop arbeiten am selben Ende des Stapels. Genau deshalb kommt zuerst herunter, was zuletzt drauflag – die Reihenfolge, die man für „Rückgängig“ braucht.",
       "verify": {
         "output": "2"
       },
@@ -28087,7 +28603,7 @@
       "difficulty": 2,
       "prompt": "Lege eine Box preis mit der Kommazahl 4.99 an und gib sie aus.",
       "variantGroup": "t02-2",
-      "explanation": "Kommazahlen brauchen double. Mit float müsste am Ende ein f stehen (4.99f).",
+      "explanation": "4.99 ist von sich aus ein double – deshalb passt die Box. Mit float müsste ein f dahinter (4.99f), sonst meldet der Compiler, dass die genauere Zahl nicht in die kleinere Box passt.",
       "starterCode": {
         "lines": [
           {
@@ -28145,7 +28661,7 @@
       "difficulty": 3,
       "prompt": "Gib mit einer Schleife die Vielfachen von 3 bis 15 aus, durch Leerzeichen getrennt.",
       "variantGroup": "t05-1",
-      "explanation": "Der Zähler startet bei 3 und springt jede Runde um 3 weiter, bis er 15 überschreitet.",
+      "explanation": "Der dritte Teil im Schleifenkopf bestimmt die Schrittweite: i += 3 springt jede Runde um drei weiter. Dass der Start ebenfalls 3 ist, passt zu den Vielfachen – mit 0 käme eine 0 zu viel heraus.",
       "starterCode": {
         "lines": [
           {
@@ -28211,7 +28727,7 @@
       "difficulty": 3,
       "prompt": "Schreibe die Methode mittelwert(int a, int b), die den Durchschnitt als double zurückgibt.",
       "variantGroup": "t06-5",
-      "explanation": "Mit / 2 wäre es eine Ganzzahldivision. 2.0 zwingt Java, in Kommazahlen zu rechnen.",
+      "explanation": "/ 2 wäre eine Ganzzahldivision und würde die Hälfte abschneiden – aus 3,5 würde 3. Die 2.0 zwingt Java, in Kommazahlen weiterzurechnen. Eine double-Box allein genügt nicht, die Rechnung selbst muss stimmen.",
       "javaContext": "members",
       "verify": {
         "context": "members",
@@ -28275,7 +28791,7 @@
       "difficulty": 4,
       "prompt": "Bilde die Summe aller Fächer und gib sie aus.",
       "variantGroup": "t07-5",
-      "explanation": "Eine Box sammelt die Summe ein: Sie startet bei 0 und wächst mit jedem Fach.",
+      "explanation": "Die Box für die Summe muss vor der Schleife stehen und bei 0 beginnen. Stünde sie innerhalb, begänne sie in jeder Runde von vorn – am Ende stünde nur der letzte Wert darin.",
       "starterCode": {
         "lines": [
           {
@@ -28458,7 +28974,7 @@
       "difficulty": 4,
       "prompt": "Gib mit einem Stream nur die Wörter mit mehr als vier Zeichen aus.",
       "variantGroup": "t12-4",
-      "explanation": "filter lässt nur Wörter mit mehr als vier Zeichen durch: Apfel (5) und Banane (6).",
+      "explanation": "filter merkt sich nur die Regel; gearbeitet wird erst, wenn am Ende jemand etwas abholt. Deshalb braucht jedes Fließband eine Endstation – hier forEach, sonst passiert überhaupt nichts.",
       "starterCode": {
         "lines": [
           {
@@ -28882,7 +29398,7 @@
       "difficulty": 5,
       "prompt": "Gib die Wörter ohne Doppelte alphabetisch sortiert aus.",
       "variantGroup": "t20-2",
-      "explanation": "Das TreeSet nimmt jeden Eintrag nur einmal und hält alles automatisch sortiert.",
+      "explanation": "Das TreeSet erledigt zwei Dinge auf einmal: Doppelte fallen beim Einfügen weg, und der Inhalt bleibt immer sortiert. Bei einem HashSet wären die Doppelten zwar auch weg, die Reihenfolge aber unvorhersagbar.",
       "starterCode": {
         "lines": [
           {
@@ -29013,7 +29529,13 @@
         "List<Integer> zahlen = new ArrayList<>();",
         "List<int> zahlen = new ArrayList<>();"
       ],
-      "correctIndex": 2
+      "correctIndex": 2,
+      "whyWrong": [
+        "Gleich zwei Fehler: Links fehlt das Etikett, und int ist in spitzen Klammern nicht erlaubt.",
+        "Die Seiten sind vertauscht: Links steht der allgemeine Typ, rechts die konkrete Umsetzung mit new.",
+        null,
+        "In spitzen Klammern steht nur eine Klasse. Für ganze Zahlen ist das Integer."
+      ]
     },
     {
       "id": "u-gen-3",
@@ -29022,7 +29544,7 @@
       "difficulty": 3,
       "prompt": "Ergänze das Etikett, damit nur Texte in die Liste dürfen.",
       "variantGroup": "t11-2",
-      "explanation": "Das Etikett in den spitzen Klammern legt fest, was hinein darf – hier Texte.",
+      "explanation": "Das Etikett in den spitzen Klammern prüft der Compiler: Wer versehentlich eine Zahl hineinlegt, erfährt es sofort und nicht erst beim Laufen. Zusätzlich braucht man beim Herausholen nichts umzuwandeln.",
       "verify": {
         "output": "Ada"
       },
@@ -29072,7 +29594,7 @@
       "difficulty": 5,
       "prompt": "Schreibe die generische Methode anzahl, die zählt, wie viele Elemente eine Liste hat.",
       "variantGroup": "t11-5",
-      "explanation": "Der Platzhalter macht die Methode für jede Sorte nutzbar – gezählt wird immer gleich.",
+      "explanation": "Der Platzhalter macht die Methode für jede Sorte brauchbar, ohne den Code zu verdoppeln. Zählen funktioniert schließlich für Texte genauso wie für Zahlen – der Typ spielt dabei keine Rolle.",
       "javaContext": "members",
       "verify": {
         "context": "members",
@@ -29141,14 +29663,20 @@
       "difficulty": 2,
       "prompt": "Was speichert ein LocalDate?",
       "variantGroup": "t17-2",
-      "explanation": "LocalDate ist reiner Kalender: Jahr, Monat, Tag. Für die Uhrzeit gibt es LocalTime.",
+      "explanation": "LocalDate ist reiner Kalender: Jahr, Monat, Tag. Diese Trennung ist Absicht – für einen Geburtstag ist eine Uhrzeit sinnlos und würde beim Vergleichen nur stören. Für die Uhrzeit gibt es LocalTime.",
       "choices": [
         "Die Zeit seit 1970 in Millisekunden",
         "Ein Kalenderdatum ohne Uhrzeit",
         "Datum und Uhrzeit",
         "Nur die Uhrzeit"
       ],
-      "correctIndex": 1
+      "correctIndex": 1,
+      "whyWrong": [
+        "Das wäre ein Zeitstempel, etwa in Instant. LocalDate denkt in Kalendertagen.",
+        null,
+        "Beides zusammen hält LocalDateTime.",
+        "Nur die Uhrzeit speichert LocalTime."
+      ]
     },
     {
       "id": "u-dat-2",
@@ -29189,7 +29717,7 @@
       "difficulty": 3,
       "prompt": "Ergänze die Methode, die 7 Tage dazuzählt.",
       "variantGroup": "t17-2",
-      "explanation": "plusDays rechnet Tage dazu und kümmert sich selbst um Monats- und Jahreswechsel.",
+      "explanation": "plusDays rechnet Tage dazu und kümmert sich selbst um Monats- und Jahreswechsel. Das Datum selbst bleibt unverändert – zurück kommt ein neues. Wer das Ergebnis braucht, muss es also auffangen.",
       "verify": {
         "output": "2026-06-08"
       },
@@ -29343,7 +29871,13 @@
         "Weil Java das verlangt",
         "Randfälle decken Fehler auf, die im Normalfall nicht auffallen"
       ],
-      "correctIndex": 3
+      "correctIndex": 3,
+      "whyWrong": [
+        "Häufig sind sie nicht – aber sie brechen den Code besonders oft, weil niemand an sie denkt.",
+        "Länge ist kein Wert an sich. Es geht um Fälle, die etwas Neues prüfen.",
+        "Java verlangt gar keine Tests. Der Nutzen entsteht durch die gefundenen Fehler.",
+        null
+      ]
     },
     {
       "id": "u-test-3",
@@ -29592,7 +30126,13 @@
         "Damit er weltweit eindeutig bleibt",
         "Weil Java das erzwingt"
       ],
-      "correctIndex": 2
+      "correctIndex": 2,
+      "whyWrong": [
+        "Auf die Ladezeit hat der Name keinen Einfluss.",
+        "Das ist ein Nebeneffekt der Ordnerstruktur, nicht der Grund für die Umkehrung.",
+        null,
+        "Erzwungen wird es nicht – es ist eine Vereinbarung, die Namenskollisionen verhindert."
+      ]
     },
     {
       "id": "u-tool-2",
@@ -29829,7 +30369,13 @@
         "Die Methode wird automatisch ergänzt",
         "Sie gibt beim Aufruf null zurück"
       ],
-      "correctIndex": 1
+      "correctIndex": 1,
+      "whyWrong": [
+        "So weit kommt es nicht: Der Fehler fällt schon beim Übersetzen auf.",
+        null,
+        "Java ergänzt nichts. Was der Vertrag verlangt, muss man selbst schreiben.",
+        "Es gibt nichts, was aufgerufen werden könnte – die Klasse lässt sich gar nicht erst übersetzen."
+      ]
     },
     {
       "id": "u-inh-3",
@@ -30032,7 +30578,7 @@
           }
         ]
       },
-      "explanation": "Der Record erzeugt zu jedem Feld eine Lesemethode – p.name() und p.alter().",
+      "explanation": "Die Lesemethoden heißen wie die Felder: name() und alter(), nicht getName(). Der Record erzeugt sie automatisch – zusammen mit Konstruktor, equals, hashCode und toString.",
       "javaContext": "file",
       "expectedOutput": "Ada ist 36"
     },
@@ -30086,14 +30632,20 @@
       "difficulty": 3,
       "prompt": "Warum haben Records keine Setter?",
       "variantGroup": "t13-1",
-      "explanation": "Ein Record ist wie ein ausgefülltes Formular: Wer etwas ändern will, füllt ein neues aus.",
+      "explanation": "Ein Record ist wie ein ausgefülltes Formular: Wer etwas ändern will, füllt ein neues aus. Der Vorteil zeigt sich, wenn mehrere Stellen dasselbe Objekt benutzen – niemand kann es hinter dem Rücken der anderen verändern.",
       "choices": [
         "Setter sind in Java abgeschafft",
         "Records haben keine Felder",
         "Setter müsste man selbst schreiben, sie fehlen nur zufällig",
         "Ein Record ist unveränderlich – die Werte stehen nach dem Erzeugen fest"
       ],
-      "correctIndex": 3
+      "correctIndex": 3,
+      "whyWrong": [
+        "In gewöhnlichen Klassen sind sie weiterhin üblich. Nur Records verzichten darauf.",
+        "Sie haben welche – genau die in den Klammern hinter dem Namen.",
+        "Sie fehlen mit Absicht: Ein Record ist nach dem Erzeugen unveränderlich.",
+        null
+      ]
     },
     {
       "id": "u-enum-1",
@@ -30102,7 +30654,7 @@
       "difficulty": 3,
       "prompt": "Ergänze den switch über das enum.",
       "variantGroup": "t14-3",
-      "explanation": "Beim enum kennt Java alle Fälle – deshalb braucht dieser switch keinen default-Zweig.",
+      "explanation": "Weil im enum alle Werte aufgezählt sind, kann Java prüfen, ob jeder Fall behandelt wird – ein default ist deshalb unnötig. Bei Text oder int ginge das nicht, dort sind die Möglichkeiten unbegrenzt.",
       "javaContext": "file",
       "verify": {
         "context": "file",
@@ -30285,7 +30837,13 @@
         "Wenn sich alle Objekte denselben Wert teilen sollen",
         "Wenn jedes Objekt einen eigenen Wert braucht"
       ],
-      "correctIndex": 2
+      "correctIndex": 2,
+      "whyWrong": [
+        "Unveränderlich macht final, nicht static. Beides lässt sich kombinieren.",
+        "Sichtbarkeit regelt private. static sagt nur, wem das Feld gehört.",
+        null,
+        "Genau dann gerade nicht – dafür ist das gewöhnliche Feld da."
+      ]
     },
     {
       "id": "u-obj-1",
@@ -30459,7 +31017,13 @@
         "Immer true",
         "Immer false"
       ],
-      "correctIndex": 1
+      "correctIndex": 1,
+      "whyWrong": [
+        "Bei Objekten fragt == immer nach der Identität, unabhängig vom Typ.",
+        null,
+        "true käme nur heraus, wenn beide Namen auf dasselbe Objekt zeigen.",
+        "Nicht immer: Zeigen beide auf dasselbe Objekt, liefert == true."
+      ]
     },
     {
       "id": "u-io-1",
@@ -30512,7 +31076,7 @@
           }
         ]
       },
-      "explanation": "Der Notizblock sammelt in der Schleife alles ein – erst am Ende wird daraus ein Text.",
+      "explanation": "Der Notizblock sammelt in der Schleife alles ein; erst am Ende entsteht daraus ein Text. Mit text += i entstünde in jeder Runde ein komplett neuer String – bei drei Runden egal, bei Tausenden spürbar.",
       "expectedOutput": "123"
     },
     {
@@ -30686,7 +31250,7 @@
           }
         ]
       },
-      "explanation": "Die Folge lautet 0, 1, 1, 2, 3, 5, 8, 13 – an Position 7 steht die 13.",
+      "explanation": "Jeder Aufruf verzweigt sich in zwei neue – deshalb wächst der Aufwand rasant. Für fib(7) sind es schon Dutzende Aufrufe, viele davon doppelt. Eine Schleife wäre hier deutlich schneller.",
       "javaContext": "members",
       "expectedOutput": "13"
     },
@@ -30697,7 +31261,7 @@
       "difficulty": 4,
       "prompt": "Ergänze den rekursiven Aufruf für die Potenz.",
       "variantGroup": "t18-4",
-      "explanation": "Die Methode ruft sich selbst mit einem kleineren Exponenten auf: 2⁵ = 32.",
+      "explanation": "Der rekursive Aufruf muss das Problem kleiner machen, sonst endet die Kette nie: exponent - 1 nähert sich dem Basisfall 0. Multipliziert wird erst auf dem Rückweg, wenn die inneren Aufrufe fertig sind.",
       "javaContext": "members",
       "verify": {
         "context": "members",
@@ -31206,7 +31770,7 @@
           }
         ]
       },
-      "explanation": "Der erste Fall verlangt zusätzlich i > 10. Für die 7 greift deshalb der zweite Fall.",
+      "explanation": "Die Reihenfolge entscheidet: Der Zweig mit when ist der engere und wird zuerst geprüft. Stünde der allgemeine Integer-Fall oben, käme der Fall mit der Zusatzbedingung nie zum Zug.",
       "expectedOutput": "kleine Zahl 7"
     },
     {
@@ -31244,7 +31808,7 @@
           }
         ]
       },
-      "explanation": "print bleibt in derselben Zeile – alle Zahlen stehen hintereinander, jeweils mit Komma.",
+      "explanation": "Die Schleife zählt herunter: Startwert oben, Bedingung >= 1, Schritt i--. print bleibt dabei in derselben Zeile, deshalb stehen alle Zahlen hintereinander – samt Komma nach der letzten.",
       "expectedOutput": "5,4,3,2,1,"
     },
     {
@@ -31280,7 +31844,7 @@
           }
         ]
       },
-      "explanation": "forEach ruft die Mini-Anweisung für jedes Element auf – in der Reihenfolge der Liste.",
+      "explanation": "forEach übernimmt das Durchlaufen und ruft für jedes Element den Block rechts vom Pfeil auf. Man beschreibt also nur noch, WAS passieren soll – die Reihenfolge der Liste bleibt dabei erhalten.",
       "expectedOutput": "ROT\nGRUEN"
     },
     {
@@ -31513,7 +32077,13 @@
         "Weil der Zugriff scheitern kann – IOException ist eine checked Exception",
         "Weil Dateien immer langsam sind"
       ],
-      "correctIndex": 2
+      "correctIndex": 2,
+      "whyWrong": [
+        "Gelöscht wird nichts. Es geht darum, auf einen möglichen Fehler vorbereitet zu sein.",
+        "Geöffnet wird sie vom Code im try. Der Block selbst öffnet nichts.",
+        null,
+        "Mit Geschwindigkeit hat es nichts zu tun."
+      ]
     },
     {
       "id": "v-io-4",
@@ -31756,7 +32326,13 @@
         "Für eine Aufgabe, die fehlgeschlagen ist",
         "Für die Uhrzeit, zu der eine Aufgabe startet"
       ],
-      "correctIndex": 0
+      "correctIndex": 0,
+      "whyWrong": [
+        null,
+        "Ein Future ist kein Thread, sondern der Zettel für dessen Ergebnis.",
+        "Ein Fehler kann darin stecken, ist aber nicht der Normalfall.",
+        "Mit Uhrzeiten hat ein Future nichts zu tun."
+      ]
     },
     {
       "id": "v-con-4",
@@ -32081,7 +32657,13 @@
         "Ein Eierkarton fester Größe",
         "Ein Wörterbuch: Fach → was darin liegt"
       ],
-      "correctIndex": 3
+      "correctIndex": 3,
+      "whyWrong": [
+        "Sortieren macht sorted. groupingBy legt Fächer an.",
+        "Eine Zahl käme von count oder sum. Hier entsteht eine Map.",
+        "Ein Array fester Größe wäre etwas anderes. Die Map wächst mit den gefundenen Schlüsseln.",
+        null
+      ]
     },
     {
       "id": "v-str-2",
@@ -32382,14 +32964,20 @@
       "difficulty": 2,
       "prompt": "Warum reicht int für einen Notendurchschnitt nicht?",
       "variantGroup": "t27-1",
-      "explanation": "2, 1 und 2 ergeben im Schnitt 1,67. Mit int würde daraus 1 – der Rest fiele weg.",
+      "explanation": "2, 1 und 2 ergeben im Schnitt 1,67. Mit int fiele der Rest weg und es stünde 1 da. Zu beachten: Auch die Rechnung muss mit Kommazahlen laufen – eine double-Box allein rettet das Ergebnis nicht.",
       "choices": [
         "Weil int zu klein für Noten ist",
         "Weil Java bei Noten immer double verlangt",
         "Weil der Durchschnitt fast immer Nachkommastellen hat",
         "Weil Noten negativ sein können"
       ],
-      "correctIndex": 2
+      "correctIndex": 2,
+      "whyWrong": [
+        "Noten passen mühelos in ein int. Das Problem ist die fehlende Nachkommastelle.",
+        "Java verlangt gar nichts – der Typ ergibt sich aus dem, was man darstellen will.",
+        null,
+        "Noten sind positiv. Der Grund ist der Durchschnitt, nicht das Vorzeichen."
+      ]
     },
     {
       "id": "v-grd-3",
@@ -32458,7 +33046,7 @@
           }
         ]
       },
-      "explanation": "Die Noten 1, 3 und 4 sind höchstens 4 – die 5 und die 6 zählen nicht mit.",
+      "explanation": "<= 4 statt < 4 ist der springende Punkt: Note 4 gilt noch als bestanden. Solche Grenzfälle sind die häufigste Fehlerquelle – beim Testen prüft man deshalb zuerst genau sie.",
       "expectedOutput": "3"
     },
     {
@@ -32678,7 +33266,13 @@
         "Er braucht keine Feldnamen",
         "Er bringt Konstruktor, Lesemethoden, equals und toString fertig mit"
       ],
-      "correctIndex": 3
+      "correctIndex": 3,
+      "whyWrong": [
+        "Geschwindigkeit ist nicht der Punkt – ein Record ist selbst eine Klasse.",
+        "Genau umgekehrt: Ein Record ist unveränderlich.",
+        "Die Feldnamen stehen in den Klammern hinter dem Namen – ohne sie ginge es nicht.",
+        null
+      ]
     },
     {
       "id": "v-todo-2",
@@ -32871,7 +33465,7 @@
       "difficulty": 5,
       "prompt": "Gib jede Aufgabe mit Häkchen aus: „[x] Einkaufen“ für erledigte, „[ ] Lernen“ für offene.",
       "variantGroup": "t28-5",
-      "explanation": "Der Fragezeichen-Operator wählt zwischen zwei Werten: Bedingung ? dann : sonst.",
+      "explanation": "Der Fragezeichen-Operator wählt zwischen zwei Werten: Bedingung ? dann : sonst. Er ist ein Ausdruck, kein if – deshalb darf er mitten im Text stehen, wo ein if nicht hinpasst.",
       "javaContext": "file",
       "starterCode": {
         "lines": [
@@ -33054,7 +33648,13 @@
         "Texte kann man nicht vergleichen",
         "Ein enum lässt sich schneller ausgeben"
       ],
-      "correctIndex": 0
+      "correctIndex": 0,
+      "whyWrong": [
+        null,
+        "Der Speicherbedarf ist nicht der Grund. Es geht um Sicherheit beim Übersetzen.",
+        "Kann man – mit equals. Nur fällt ein Tippfehler dabei nicht auf.",
+        "Ausgegeben wird beides gleich schnell."
+      ]
     },
     {
       "id": "v-adv-3",
@@ -33520,7 +34120,7 @@
         "relations": []
       },
       "variantGroup": "t30-5",
-      "explanation": "Jede Zeile des Kastens wird zu einer Zeile Java: „- an: boolean“ wird private boolean an.",
+      "explanation": "Ein Klassenkasten lässt sich Zeile für Zeile übersetzen: Name zu class, jedes Attribut zu einem Feld. Nur die Reihenfolge dreht sich – in UML steht der Typ hinter dem Namen, in Java davor.",
       "javaContext": "file",
       "verify": {
         "context": "file",
@@ -33676,7 +34276,13 @@
         "Zur Klasse mit den meisten Methoden",
         "Zur Eltern-Klasse beziehungsweise zum Interface"
       ],
-      "correctIndex": 3
+      "correctIndex": 3,
+      "whyWrong": [
+        "Andersherum: Die Spitze zeigt vom Kind weg, hin zum Allgemeineren.",
+        "Die Größe des Kastens sagt nichts aus – sie hängt nur von der Zahl der Zeilen ab.",
+        "Die Zahl der Methoden spielt keine Rolle. Entscheidend ist, wer von wem erbt.",
+        null
+      ]
     },
     {
       "id": "v-uml-31-5",
@@ -33692,7 +34298,13 @@
         "Vererbung – Dreiecksspitze",
         "Abhängigkeit – gestrichelter Pfeil"
       ],
-      "correctIndex": 3
+      "correctIndex": 3,
+      "whyWrong": [
+        "Komposition hieße dauerhaftes Enthalten. Hier existiert das Objekt nur während der Methode.",
+        "Aggregation wäre ein dauerhaftes Feld, kein kurzlebiges Objekt.",
+        "Vererbung wäre „ist ein“. Hier wird nur kurz etwas benutzt.",
+        null
+      ]
     },
     {
       "id": "v-uml-32-1",
@@ -33747,7 +34359,13 @@
         "interface Auto extends Fahrbar { }",
         "class Auto implements Fahrbar { }"
       ],
-      "correctIndex": 3
+      "correctIndex": 3,
+      "whyWrong": [
+        "extends gehört zur durchgezogenen Linie. Gestrichelt heißt implements.",
+        "Die Richtung stimmt nicht: Die Spitze zeigt auf das Interface, also setzt Auto es um.",
+        "Auto ist im Diagramm eine Klasse, kein Interface – erkennbar am fehlenden «interface».",
+        null
+      ]
     },
     {
       "id": "v-uml-32-2",
@@ -33790,7 +34408,13 @@
         "# stand: double",
         "- double: stand"
       ],
-      "correctIndex": 0
+      "correctIndex": 0,
+      "whyWrong": [
+        null,
+        "Das Plus steht für public. Gesucht ist private.",
+        "Das Doppelkreuz steht für protected. Gesucht ist private.",
+        "Name und Typ sind vertauscht. In UML steht erst der Name, dann hinter dem Doppelpunkt der Typ."
+      ]
     },
     {
       "id": "v-uml-32-4",
@@ -45184,7 +45808,13 @@
         "Das Attribut ist eine Konstante",
         "geschützt – in der Klasse und in ihren Kind-Klassen nutzbar"
       ],
-      "correctIndex": 3
+      "correctIndex": 3,
+      "whyWrong": [
+        "Privat wäre ein Minus. Das Doppelkreuz erlaubt auch den Kind-Klassen den Zugriff.",
+        "Öffentlich wäre ein Plus. Das Doppelkreuz ist enger gefasst.",
+        "Konstanten kennzeichnet UML durch Unterstreichung oder das Wort final – nicht durch #.",
+        null
+      ]
     },
     {
       "id": "p-uml-1b",
@@ -45220,14 +45850,20 @@
         "relations": []
       },
       "variantGroup": "t30-1",
-      "explanation": "Von oben nach unten: Name, Attribute, Methoden.",
+      "explanation": "Die Reihenfolge ist immer dieselbe: oben der Name, in der Mitte die Attribute, unten die Methoden. Dadurch findet man sich in jedem Diagramm sofort zurecht, ohne Beschriftungen zu brauchen.",
       "choices": [
         "Im obersten Fach",
         "Im mittleren Fach",
         "Neben dem Klassennamen",
         "Im untersten Fach"
       ],
-      "correctIndex": 3
+      "correctIndex": 3,
+      "whyWrong": [
+        "Oben steht der Name der Klasse.",
+        "In der Mitte stehen die Attribute.",
+        "Neben dem Namen steht höchstens ein Stereotyp wie «interface».",
+        null
+      ]
     },
     {
       "id": "p-uml-2a",
@@ -45272,14 +45908,20 @@
         ]
       },
       "variantGroup": "t31-3",
-      "explanation": "Gefüllte Raute = Komposition. Das Ganze und seine Teile gehören untrennbar zusammen.",
+      "explanation": "Die gefüllte Raute heißt Komposition: Die Teile entstehen mit dem Ganzen und vergehen mit ihm. In Java erzeugt das Haus seine Räume deshalb selbst. Bei einer leeren Raute (Aggregation) bekäme es sie von außen gereicht.",
       "choices": [
         "Komposition: Ohne das Haus gibt es die Räume nicht",
         "Aggregation: Die Räume leben ohne das Haus weiter",
         "Vererbung: Raum erbt von Haus",
         "Assoziation ohne weitere Bedeutung"
       ],
-      "correctIndex": 0
+      "correctIndex": 0,
+      "whyWrong": [
+        null,
+        "Das wäre die leere Raute. Die gefüllte bindet die Teile ans Ganze.",
+        "Vererbung hätte eine Dreiecksspitze – und ein Raum ist kein Haus.",
+        "Eine schlichte Assoziation hätte gar keine Raute."
+      ]
     },
     {
       "id": "p-uml-2b",
@@ -45338,7 +45980,13 @@
         "1",
         "1..*"
       ],
-      "correctIndex": 1
+      "correctIndex": 1,
+      "whyWrong": [
+        "Der Stern heißt „beliebig viele“, also auch mehr als eine.",
+        null,
+        "Die 1 allein heißt „genau eine“ – keine ist damit nicht erlaubt.",
+        "Das heißt „mindestens eine“. Gesucht war, dass auch keine erlaubt ist."
+      ]
     },
     {
       "id": "p-uml-3a",
@@ -45393,7 +46041,13 @@
         "class Auto implements Fahrbar { }",
         "class Auto extends Fahrbar { }"
       ],
-      "correctIndex": 2
+      "correctIndex": 2,
+      "whyWrong": [
+        "Dann wäre Auto selbst ein Interface. Im Diagramm ist es eine Klasse.",
+        "Die Richtung stimmt nicht: Die Spitze zeigt auf Fahrbar, also setzt Auto es um.",
+        null,
+        "extends gehört zur durchgezogenen Linie. Gestrichelt bedeutet implements."
+      ]
     }
   ],
   "placement": {

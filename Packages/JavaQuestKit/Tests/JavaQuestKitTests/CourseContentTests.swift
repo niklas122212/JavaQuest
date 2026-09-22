@@ -104,6 +104,26 @@ struct CourseContentTests {
         #expect(pool.count >= course.placement.questionsPerTest)
     }
 
+    @Test("Jede Erklärung sagt nicht nur WAS, sondern auch WARUM")
+    func explanationsAreSubstantial() {
+        // Die Länge ist kein Qualitätsmaß, sondern eine Untergrenze: Ein Satz wie
+        // „int steht für ganze Zahlen.“ nennt nur den Begriff und hilft beim Lernen nicht weiter.
+        let mindestens = 90
+        let knapp = course.practiceableTasks.filter { $0.explanation.count < mindestens }
+        #expect(knapp.isEmpty, "zu knapp: \(knapp.map { "\($0.id) (\($0.explanation.count))" })")
+    }
+
+    @Test("Nach einer falschen Antwort steht da, warum sie falsch war")
+    func everyChoiceHasAReason() {
+        for task in course.practiceableTasks {
+            guard case .singleChoice(let spec) = task.kind else { continue }
+            for index in spec.choices.indices where index != spec.correctIndex {
+                #expect(spec.whyWrong(index)?.isEmpty == false,
+                        "\(task.id): keine Begründung für „\(spec.choices[index])“")
+            }
+        }
+    }
+
     @Test("Alle Themen werden in einer Lektion behandelt")
     func everyTopicIsTaught() {
         for topic in course.topics {
