@@ -25,6 +25,12 @@ Java Master Score von 0 bis 1000.
 
 Die Screenshots zeigen echte App-Views mit echter Logik; die Beispieldaten stammen aus `PreviewSupport`.
 
+## Auf ein iPhone bringen
+
+Für das eigene Gerät reicht Xcode mit einer normalen Apple-ID (Installation hält 7 Tage).
+Um die App an andere zu verschicken, führt der Weg über TestFlight und das Apple Developer
+Program – Schritt für Schritt beschrieben in [Docs/TestFlight.md](Docs/TestFlight.md).
+
 ## Öffnen & starten
 
 1. `JavaQuest.xcodeproj` in Xcode 16 oder neuer öffnen.
