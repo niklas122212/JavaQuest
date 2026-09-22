@@ -200,13 +200,13 @@ class CourseContentTest {
 
     @Test fun `Jede Codezeile im Kurs hat eine Erklaerung`() {
         val snippets = course.allSnippets
-        assertEquals(259, snippets.size)
+        assertEquals(338, snippets.size)
         var lines = 0
         for ((location, snippet) in snippets) {
             assertTrue(snippet.linesMissingExplanation.isEmpty(), "$location: Zeilen ${snippet.linesMissingExplanation}")
             lines += snippet.explained(course.glossary).size
         }
-        assertTrue(lines >= 1630, "nur $lines erklärte Zeilen")
+        assertTrue(lines >= 2050, "nur $lines erklärte Zeilen")
     }
 
     @Test fun `Jeder Befehl einer Zeile steht im Lexikon`() {
@@ -539,8 +539,10 @@ class ProgressTest {
 
         // Gemessen über viele Runden: Falsches kommt deutlich öfter als heute fehlerfrei Gelöstes.
         val pool = TrainingBuilder.pool(course, course.allLessons.take(6).map { it.id }.toSet())
-        val wrong = pool[3]
-        val done = pool[4]
+        // Zwei Aufgaben aus verschiedenen Lernzielen – sonst verdrängen sich Varianten gegenseitig.
+        val einzelne = VariantSelector.groups(pool).filter { it.second.size == 1 }.map { it.second[0] }
+        val wrong = einzelne[0]
+        val done = einzelne[1]
         val history = mapOf(
             wrong.id to TaskHistory(2, 0.0, now.minusSeconds(86_400)),
             done.id to TaskHistory(2, 1.0, now),

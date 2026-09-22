@@ -249,6 +249,14 @@ private struct Context {
             return ("Legt alle Elemente von „\(source)“ aufs Fließband (Stream). Die nächsten Zeilen sind die Stationen, an denen sie vorbeikommen.", false)
         }
         if let text = callStatement(s) { return (text, false) }
+        // Ein Objekt, das nur wegen seiner Nebenwirkung entsteht – ohne Box, die es aufnimmt.
+        if s.hasSuffix(";"), Syntax.groups(Syntax.newObject, String(s.dropLast())) != nil {
+            let (sentence, _) = Syntax.newSentence(String(s.dropLast()))
+            let start = sentence.replacingOccurrences(of: "Hier erstellen wir mit new", with: "Erzeugt mit new")
+                .replacingOccurrences(of: "Hier backen wir mit new", with: "Backt mit new")
+            return ("\(start.trimmingCharacters(in: CharacterSet(charactersIn: " ,–"))). "
+                    + "Das neue Objekt wird nirgends abgelegt – es geht nur um das, was beim Erzeugen passiert.", false)
+        }
 
         if s.hasSuffix("{") { stack.append(.other) }
         return ("Anweisung: \(s)", true)

@@ -12,6 +12,8 @@ import sys
 from authoring import *
 from content_advanced import ADVANCED_TOPICS, ADVANCED_MODULES
 from task_pool import POOL
+from pool_basics import POOL_BASICS
+from pool_advanced import POOL_ADVANCED
 from uml_content import UML_MODULE, UML_POOL, UML_TOPICS
 
 topics = [
@@ -1554,7 +1556,7 @@ course = {
         {"id": "m5-modern", "title": "Modernes Java", "subtitle": "Lambdas, Streams, Records und Pattern Matching",
          "tier": "advanced", "symbol": "sparkles", "lessons": [l12, l13]},
     ] + ADVANCED_MODULES + [UML_MODULE],
-    "taskPool": POOL + UML_POOL,
+    "taskPool": POOL + POOL_BASICS + POOL_ADVANCED + UML_POOL,
     "placement": {
         "passThreshold": 65,
         "questionsPerTest": 1,
