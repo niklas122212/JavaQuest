@@ -9,6 +9,10 @@ import app.javaquest.core.TaskAnswer
 import app.javaquest.core.TaskHistory
 import app.javaquest.core.TaskKind
 import app.javaquest.data.AttemptContext
+import app.javaquest.data.Backup
+import app.javaquest.data.LessonRecord
+import app.javaquest.data.ProgressData
+import app.javaquest.data.TaskAttempt
 import app.javaquest.data.ProgressFile
 import app.javaquest.data.ProgressStore
 import java.nio.file.Files
@@ -41,6 +45,65 @@ class StoreTest {
             session.advanceToNextTask()
         }
         store.completeLesson(lesson.id, session.summary)
+    }
+
+    @Test fun `Sicherung - Einlesen fuehrt zusammen und loescht nichts`() {
+        // Zwei Stände, die sich überschneiden. Nach dem Einlesen muss von beiden
+        // alles übrig sein – sonst wäre die Sicherung ein Datenverlust mit Ansage.
+        fun versuch(id: String, datum: String, credit: Double) =
+            TaskAttempt(id, "syntax", null, AttemptContext.PRACTICE.raw, 1, credit, credit >= 1.0, 1, datum)
+
+        val eigen = ProgressData(
+            createdAt = "2026-09-10T10:00:00Z",
+            onboardingCompleted = true,
+            longestStreak = 4,
+            lastActiveDay = "2026-09-20",
+            currentStreak = 2,
+            lessonRecords = mapOf("l1" to LessonRecord(bestAccuracy = 0.7, playCount = 2, lastPlayedAt = "2026-09-20T10:00:00Z")),
+            attempts = listOf(versuch("a", "2026-09-20T10:00:00Z", 1.0), versuch("b", "2026-09-20T11:00:00Z", 0.0)),
+        )
+        val fremd = ProgressData(
+            createdAt = "2026-09-01T10:00:00Z",
+            onboardingCompleted = true,
+            longestStreak = 9,
+            lastActiveDay = "2026-09-12",
+            currentStreak = 5,
+            lessonRecords = mapOf(
+                "l1" to LessonRecord(bestAccuracy = 0.9, playCount = 5, isCompleted = true, lastPlayedAt = "2026-09-12T10:00:00Z"),
+                "l2" to LessonRecord(bestAccuracy = 1.0, isCompleted = true),
+            ),
+            attempts = listOf(versuch("b", "2026-09-11T10:00:00Z", 1.0), versuch("c", "2026-09-11T11:00:00Z", 1.0)),
+        )
+
+        val vereint = Backup.vereine(eigen, fremd, course)
+        assertEquals(0.9, vereint.lessonRecords.getValue("l1").bestAccuracy, "die bessere Wertung gewinnt")
+        assertTrue(vereint.lessonRecords.getValue("l1").isCompleted, "einmal bestanden bleibt bestanden")
+        assertTrue("l2" in vereint.lessonRecords, "fremde Lektion kommt dazu")
+        assertEquals(4, vereint.attempts.size, "alle vier Einträge bleiben, keiner doppelt")
+        assertEquals(9, vereint.longestStreak, "der höhere Rekord bleibt")
+        assertEquals(2, vereint.currentStreak, "die aktuelle Serie kommt vom jüngeren Stand")
+        assertEquals("2026-09-01T10:00:00Z", vereint.createdAt, "dabei seit dem früheren Datum")
+
+        // Das Zusammenführen ist richtungsunabhängig: Wer wessen Sicherung einliest,
+        // darf am Ergebnis nichts ändern.
+        val andersherum = Backup.vereine(fremd, eigen, course)
+        assertEquals(vereint.attempts.size, andersherum.attempts.size)
+        assertEquals(vereint.lessonRecords.getValue("l1").bestAccuracy, andersherum.lessonRecords.getValue("l1").bestAccuracy)
+        assertEquals(vereint.masterScore, andersherum.masterScore)
+    }
+
+    @Test fun `Sicherung - Datei schreiben und wieder lesen ergibt denselben Stand`() {
+        val store = ProgressStore(course, file(), clock(1))
+        store.completeOnboarding(ExperienceLevel.BEGINNER, null)
+        playLesson(store, 0)
+        val text = store.sicherungText()
+        assertTrue(text.contains("\"app\": \"JavaQuest\""), "Kennung fehlt")
+
+        val gelesen = Backup.lesen(text)
+        assertTrue(gelesen != null, "eigene Sicherung nicht wieder lesbar")
+        assertEquals(store.data!!.attempts.size, gelesen!!.attempts.size)
+        assertNull(Backup.lesen("{\"app\":\"etwas anderes\"}"), "fremde Datei wird abgelehnt")
+        assertNull(Backup.lesen("kein JSON"), "Unfug wird abgelehnt")
     }
 
     @Test fun `Endlos-Training - Topf, Verlauf und Zaehler bleiben gespeichert`() {

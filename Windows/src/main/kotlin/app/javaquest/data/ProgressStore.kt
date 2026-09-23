@@ -329,6 +329,27 @@ class ProgressStore(
         return change
     }
 
+    // MARK: Sicherung
+
+    /** Der komplette Lernstand als Text zum Wegschreiben. */
+    fun sicherungText(): String = Backup.schreiben(data ?: ProgressData(createdAt = now()), now())
+
+    /**
+     * Liest eine Sicherung ein und führt sie mit dem vorhandenen Stand zusammen.
+     *
+     * Es wird nichts überschrieben: Bei jeder Lektion gewinnt das bessere Ergebnis, das
+     * Aufgaben-Protokoll wird vereinigt. Rückgabe ist die Zahl der dazugekommenen
+     * Aufgaben-Einträge, oder null, wenn die Datei keine JavaQuest-Sicherung ist.
+     */
+    fun sicherungEinlesen(text: String): Int? {
+        val fremd = Backup.lesen(text) ?: return null
+        val eigen = data ?: ProgressData(createdAt = now())
+        val vorher = eigen.attempts.size
+        val vereint = Backup.vereine(eigen, fremd, course)
+        commit(vereint)
+        return vereint.attempts.size - vorher
+    }
+
     /** Löscht alle Fortschritte; danach startet das Onboarding neu. */
     fun resetAllProgress() {
         runCatching { file?.delete() }

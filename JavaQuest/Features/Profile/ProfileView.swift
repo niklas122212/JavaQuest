@@ -1,9 +1,14 @@
 import SwiftUI
+import UniformTypeIdentifiers
 import JavaQuestKit
 
 struct ProfileView: View {
     @Environment(ProgressStore.self) private var store
     @State private var confirmReset = false
+    @State private var zeigeExport = false
+    @State private var exportDaten: Data?
+    @State private var zeigeImport = false
+    @State private var sicherungsMeldung: String?
 
     private var version: String {
         let info = Bundle.main.infoDictionary
@@ -41,6 +46,28 @@ struct ProfileView: View {
             }
 
             Section {
+                Button("Sicherung speichern …", systemImage: "square.and.arrow.down") {
+                    // Die Daten entstehen hier auf dem Hauptthread; das Dokument selbst
+                    // wird von SwiftUI außerhalb davon gebaut und darf nicht auf den
+                    // Speicher zugreifen.
+                    do {
+                        exportDaten = try store.backupData()
+                        zeigeExport = true
+                    } catch {
+                        sicherungsMeldung = "Sicherung fehlgeschlagen: \(error.localizedDescription)"
+                    }
+                }
+                Button("Sicherung einlesen …", systemImage: "square.and.arrow.up") { zeigeImport = true }
+                if let sicherungsMeldung {
+                    Text(sicherungsMeldung).font(.footnote).foregroundStyle(.secondary)
+                }
+            } header: {
+                Text("Fortschritt sichern")
+            } footer: {
+                Text("Eine Datei zum Mitnehmen. Beim Einlesen wird nichts gelöscht: Aus beiden Ständen wird jeweils das bessere Ergebnis übernommen.")
+            }
+
+            Section {
                 Button("Fortschritt zurücksetzen", role: .destructive) { confirmReset = true }
             } footer: {
                 Text("JavaQuest \(version) · Kurs „\(store.course.title)“")
@@ -53,5 +80,55 @@ struct ProfileView: View {
         } message: {
             Text("Score, Lernpfad und Wissensanalyse werden gelöscht. Danach startest du wieder mit der Einstufung.")
         }
+        .fileExporter(isPresented: $zeigeExport, document: exportDaten.map(SicherungsDatei.init),
+                      contentType: .json, defaultFilename: dateiname()) { ergebnis in
+            switch ergebnis {
+            case .success: sicherungsMeldung = "Sicherung gespeichert."
+            case .failure(let fehler): sicherungsMeldung = "Speichern fehlgeschlagen: \(fehler.localizedDescription)"
+            }
+        }
+        .fileImporter(isPresented: $zeigeImport, allowedContentTypes: [.json]) { ergebnis in
+            switch ergebnis {
+            case .success(let url):
+                // Aus dem Dateiauswahl-Dialog kommt eine Adresse außerhalb der Sandbox;
+                // ohne diesen Zugriff schlägt das Lesen auf dem Mac fehl.
+                let zugriff = url.startAccessingSecurityScopedResource()
+                defer { if zugriff { url.stopAccessingSecurityScopedResource() } }
+                guard let daten = try? Data(contentsOf: url) else {
+                    sicherungsMeldung = "Die Datei ließ sich nicht lesen."
+                    return
+                }
+                if let dazu = store.importBackup(daten) {
+                    sicherungsMeldung = "Eingelesen: \(dazu) Aufgabe(n) dazugekommen, nichts gelöscht."
+                } else {
+                    sicherungsMeldung = "Das sieht nicht nach einer JavaQuest-Sicherung aus."
+                }
+            case .failure(let fehler):
+                sicherungsMeldung = "Einlesen fehlgeschlagen: \(fehler.localizedDescription)"
+            }
+        }
+    }
+
+    private func dateiname() -> String {
+        "javaquest-" + Date.now.formatted(.iso8601.year().month().day().dateSeparator(.dash))
+    }
+}
+
+/// Hülle für den Export-Dialog: SwiftUI verlangt ein Dokument, wir haben nur Daten.
+private struct SicherungsDatei: FileDocument {
+    static let readableContentTypes = [UTType.json]
+
+    let daten: Data
+
+    init(_ daten: Data) {
+        self.daten = daten
+    }
+
+    init(configuration: ReadConfiguration) throws {
+        daten = configuration.file.regularFileContents ?? Data()
+    }
+
+    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
+        FileWrapper(regularFileWithContents: daten)
     }
 }

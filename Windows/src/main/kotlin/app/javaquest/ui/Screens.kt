@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Inventory2
+import androidx.compose.material.icons.rounded.Update
 import androidx.compose.material.icons.rounded.BarChart
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Coffee
@@ -44,12 +46,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.javaquest.data.ProgressStore
 import app.javaquest.core.ExperienceLevel
 import app.javaquest.core.LessonSession
 import app.javaquest.core.LessonState
 import app.javaquest.core.TopicStatus
 import java.time.Duration
 import java.time.Instant
+import java.awt.FileDialog
+import java.nio.file.Files
+import java.nio.file.Path
+import java.time.LocalDate
 
 // ---------------------------------------------------------------- Lernpfad
 
@@ -197,6 +204,7 @@ private fun detailLine(attempts: Int, last: Instant?, summary: String): String {
 fun ProfileScreen(state: AppState) {
     val store = state.store
     var confirmReset by remember { mutableStateOf(false) }
+    var sicherungMeldung by remember { mutableStateOf<String?>(null) }
     ScreenScroll {
         Text("Profil", fontSize = 34.sp, fontWeight = FontWeight.Bold)
         Column(Modifier.fillMaxWidth().card(22.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -211,6 +219,23 @@ fun ProfileScreen(state: AppState) {
             SectionTitle("Privat & lokal", icon = Icons.Rounded.Shield)
             Text("Dein Lernstand liegt nur auf diesem Rechner – kein Konto, keine Cloud, keine Datenübertragung.", fontSize = 15.sp)
             Text(app.javaquest.data.ProgressFile.defaultLocation().path.toString(), fontFamily = CodeFont, fontSize = 12.sp, color = secondaryText)
+        }
+        Column(Modifier.fillMaxWidth().card(22.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            SectionTitle(
+                "Fortschritt sichern",
+                "Eine Datei zum Mitnehmen. Beim Einlesen wird nichts gelöscht: Aus beiden " +
+                    "Ständen wird jeweils das bessere Ergebnis übernommen.",
+                Icons.Rounded.Inventory2,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                SecondaryButton("Sicherung speichern", Icons.Rounded.Inventory2) {
+                    sicherungMeldung = sicherungSpeichern(store)
+                }
+                SecondaryButton("Sicherung einlesen", Icons.Rounded.Update) {
+                    sicherungMeldung = sicherungLaden(store)
+                }
+            }
+            sicherungMeldung?.let { Text(it, fontSize = 14.sp, color = secondaryText) }
         }
         Column(Modifier.fillMaxWidth().card(22.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             SectionTitle("Neu anfangen", "Löscht alle Fortschritte und startet das Onboarding neu.", Icons.Rounded.Replay)
@@ -228,6 +253,37 @@ fun ProfileScreen(state: AppState) {
             },
             dismissButton = { TextButton(onClick = { confirmReset = false }) { Text("Abbrechen") } },
         )
+    }
+}
+
+/* Datei-Dialoge über java.awt.FileDialog: Den gibt es auf Windows, macOS und Linux,
+   und er sieht überall wie der Dialog des jeweiligen Systems aus. Compose Desktop
+   bringt keinen eigenen mit. */
+private fun sicherungSpeichern(store: ProgressStore): String {
+    val dialog = FileDialog(null as java.awt.Frame?, "Sicherung speichern", FileDialog.SAVE)
+    dialog.file = "javaquest-" + LocalDate.now() + ".json"
+    dialog.isVisible = true
+    val ordner = dialog.directory ?: return "Abgebrochen."
+    val name = dialog.file ?: return "Abgebrochen."
+    return try {
+        Files.writeString(Path.of(ordner, name), store.sicherungText())
+        "Gesichert: $ordner$name"
+    } catch (e: Exception) {
+        "Speichern fehlgeschlagen: ${e.message}"
+    }
+}
+
+private fun sicherungLaden(store: ProgressStore): String {
+    val dialog = FileDialog(null as java.awt.Frame?, "Sicherung einlesen", FileDialog.LOAD)
+    dialog.isVisible = true
+    val ordner = dialog.directory ?: return "Abgebrochen."
+    val name = dialog.file ?: return "Abgebrochen."
+    return try {
+        val dazu = store.sicherungEinlesen(Files.readString(Path.of(ordner, name)))
+            ?: return "Das sieht nicht nach einer JavaQuest-Sicherung aus."
+        "Eingelesen: $dazu Aufgabe(n) dazugekommen, nichts gelöscht."
+    } catch (e: Exception) {
+        "Einlesen fehlgeschlagen: ${e.message}"
     }
 }
 

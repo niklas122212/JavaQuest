@@ -273,6 +273,135 @@ final class ProgressStore {
     }
 
     /// Löscht alle Fortschritte; danach startet das Onboarding neu.
+    // MARK: - Sicherung
+
+    /// Der komplette Lernstand als Datei-Inhalt.
+    func backupData() throws -> Data {
+        let sicherung = ProgressBackup(erstellt: .now, stand: eigenerStand())
+        return try ProgressBackup.coder.0.encode(sicherung)
+    }
+
+    /// Liest eine Sicherung ein und führt sie mit dem vorhandenen Stand zusammen.
+    ///
+    /// Die Entscheidung, was gewinnt, trifft `ProgressBackup.vereine` in JavaQuestKit –
+    /// dieselben Regeln wie unter Windows und im Browser. Hier steht nur, wie das
+    /// Ergebnis zurück in die Datenbank kommt: Es wird ergänzt, nie gelöscht.
+    /// Rückgabe ist die Zahl der dazugekommenen Aufgaben-Einträge, oder nil, wenn die
+    /// Datei keine JavaQuest-Sicherung ist.
+    @discardableResult
+    func importBackup(_ daten: Data) -> Int? {
+        guard let fremd = ProgressBackup.lesen(daten) else { return nil }
+        let vereint = ProgressBackup.vereine(eigenerStand(), fremd, course: course)
+        // Gezählt wird, was wirklich in der Datenbank landet. Die Differenz der beiden
+        // Abbilder wäre irreführend: Das Zusammenführen wirft Dubletten weg, und dann
+        // stünde dort eine negative Zahl, obwohl nichts gelöscht wurde.
+        let dazu = anwenden(vereint)
+        save()
+        return dazu
+    }
+
+    /// Der aktuelle Stand als reine Datenstruktur – ohne SwiftData.
+    private func eigenerStand() -> ProgressBackup.Stand {
+        let profil = profile ?? {
+            let neu = LearnerProfile(experienceLevel: .beginner)
+            context.insert(neu)
+            profile = neu
+            return neu
+        }()
+        return ProgressBackup.Stand(
+            createdAt: profil.createdAt,
+            experienceLevel: profil.experienceLevelRaw,
+            placedLevel: profil.placedLevelRaw,
+            placementScore: profil.placementScore,
+            onboardingCompleted: profil.onboardingCompleted,
+            masterScore: profil.masterScore,
+            currentStreak: profil.currentStreak,
+            longestStreak: profil.longestStreak,
+            lastActiveDay: profil.lastActiveDay,
+            lessonRecords: Dictionary(
+                (profil.lessonRecords ?? []).map {
+                    ($0.lessonId, ProgressBackup.Lektion(
+                        bestAccuracy: $0.bestAccuracy, lastAccuracy: $0.lastAccuracy, playCount: $0.playCount,
+                        isCompleted: $0.isCompleted, completedViaPlacement: $0.completedViaPlacement,
+                        firstCompletedAt: $0.firstCompletedAt, lastPlayedAt: $0.lastPlayedAt))
+                },
+                uniquingKeysWith: { links, rechts in links.bestAccuracy >= rechts.bestAccuracy ? links : rechts }
+            ),
+            topicMasteries: Dictionary(
+                (profil.topicMasteries ?? []).map {
+                    ($0.topicId, ProgressBackup.Thema(
+                        attempts: $0.attempts, firstTryCorrect: $0.firstTryCorrect,
+                        weightedCorrect: $0.weightedCorrect, weightedTotal: $0.weightedTotal,
+                        lastPracticedAt: $0.lastPracticedAt))
+                },
+                uniquingKeysWith: { links, rechts in links.attempts >= rechts.attempts ? links : rechts }
+            ),
+            attempts: (profil.attempts ?? []).map {
+                ProgressBackup.Versuch(
+                    taskId: $0.taskId, topicId: $0.topicId, lessonId: $0.lessonId, context: $0.contextRaw,
+                    difficulty: $0.difficulty, credit: $0.credit, solved: $0.solved, tries: $0.tries, date: $0.date)
+            }.sorted { $0.date < $1.date },
+            scoreHistory: (profil.scoreHistory ?? [])
+                .map { ProgressBackup.Punktstand(date: $0.date, score: $0.score, reason: $0.reason) }
+                .sorted { $0.date < $1.date }
+        )
+    }
+
+    /// Schreibt einen zusammengeführten Stand zurück – ergänzend, nie löschend.
+    /// Rückgabe ist die Zahl der neu angelegten Aufgaben-Einträge.
+    @discardableResult
+    private func anwenden(_ stand: ProgressBackup.Stand) -> Int {
+        guard let profil = profile else { return 0 }
+        profil.createdAt = stand.createdAt
+        profil.placedLevelRaw = stand.placedLevel
+        profil.placementScore = stand.placementScore
+        profil.onboardingCompleted = stand.onboardingCompleted
+        profil.masterScore = stand.masterScore
+        profil.currentStreak = stand.currentStreak
+        profil.longestStreak = stand.longestStreak
+        profil.lastActiveDay = stand.lastActiveDay
+
+        for (lessonId, lektion) in stand.lessonRecords {
+            let record = lessonRecord(for: lessonId)
+            record.bestAccuracy = lektion.bestAccuracy
+            record.lastAccuracy = lektion.lastAccuracy
+            record.playCount = lektion.playCount
+            record.isCompleted = lektion.isCompleted
+            record.completedViaPlacement = lektion.completedViaPlacement
+            record.firstCompletedAt = lektion.firstCompletedAt
+            record.lastPlayedAt = lektion.lastPlayedAt
+        }
+        for (topicId, thema) in stand.topicMasteries {
+            let mastery = topicMastery(for: topicId)
+            mastery.attempts = thema.attempts
+            mastery.firstTryCorrect = thema.firstTryCorrect
+            mastery.weightedCorrect = thema.weightedCorrect
+            mastery.weightedTotal = thema.weightedTotal
+            mastery.lastPracticedAt = thema.lastPracticedAt
+        }
+        // Nur die Einträge anlegen, die es hier noch nicht gibt.
+        var bekannt = Set((profil.attempts ?? []).map {
+            ProgressBackup.Versuch(taskId: $0.taskId, topicId: $0.topicId, lessonId: $0.lessonId,
+                                   context: $0.contextRaw, difficulty: $0.difficulty, credit: $0.credit,
+                                   solved: $0.solved, tries: $0.tries, date: $0.date).kennung
+        })
+        var dazu = 0
+        for versuch in stand.attempts where !bekannt.contains(versuch.kennung) {
+            bekannt.insert(versuch.kennung)
+            dazu += 1
+            let attempt = TaskAttempt(
+                taskId: versuch.taskId, topicId: versuch.topicId, lessonId: versuch.lessonId,
+                context: AttemptContext(rawValue: versuch.context) ?? .practice,
+                difficulty: versuch.difficulty, credit: versuch.credit,
+                solved: versuch.solved, tries: versuch.tries
+            )
+            attempt.date = versuch.date
+            context.insert(attempt)
+            profil.attempts?.append(attempt)
+        }
+        return dazu
+    }
+
     func resetAllProgress() {
         if let profile { context.delete(profile) }
         profile = nil
