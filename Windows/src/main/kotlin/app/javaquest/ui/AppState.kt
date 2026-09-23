@@ -134,6 +134,12 @@ class LessonFlowModel(val store: ProgressStore, private val session: LessonSessi
     val lastResult: EvaluationResult? get() = read { session.lastResult }
     val isRevealed: Boolean get() = read { session.isRevealed }
 
+    /** Wählt eine Antwort – für die Zifferntasten. Nach dem Abschluss passiert nichts mehr. */
+    fun chooseAnswer(index: Int) {
+        if (isCurrentTaskFinished) return
+        draft = draft.copy(choice = index)
+    }
+
     /** Ab dem zweiten Fehlversuch wird der Tipp konkreter, statt sich zu wiederholen. */
     val secondHint: String? get() {
         val task = currentTask ?: return null

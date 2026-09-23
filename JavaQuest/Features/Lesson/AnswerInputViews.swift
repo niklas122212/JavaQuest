@@ -15,6 +15,10 @@ struct ChoiceListView: View {
         VStack(spacing: 10) {
             ForEach(choices.indices, id: \.self) { index in
                 Button {
+                    // Auch über die Zifferntaste darf nach dem Abschluss nichts mehr
+                    // umgewählt werden. .disabled wäre der falsche Weg: Es würde die
+                    // grün markierte Lösung ausgrauen.
+                    guard !isLocked else { return }
                     selection = index
                 } label: {
                     row(index, monospaced: monospaced)
@@ -23,6 +27,11 @@ struct ChoiceListView: View {
                 // Nicht .disabled: das würde auch die grün markierte Lösung ausgrauen.
                 .allowsHitTesting(!isLocked)
                 .accessibilityAddTraits(selection == index ? .isSelected : [])
+                // Antwort per Zifferntaste wählen – wie in der Web-Fassung. Auf dieser
+                // Aufgabenart gibt es kein Eingabefeld, die Ziffern kommen also niemandem
+                // in die Quere. Nur die ersten neun, mehr Antworten gibt es nie.
+                .keyboardShortcut(index < 9 ? KeyEquivalent(Character("\(index + 1)")) : .space,
+                                  modifiers: [])
             }
         }
     }

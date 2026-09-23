@@ -10,6 +10,9 @@ import app.javaquest.core.TaskHistory
 import app.javaquest.core.TaskKind
 import app.javaquest.data.AttemptContext
 import app.javaquest.data.Backup
+import app.javaquest.ui.LessonFlowModel
+import app.javaquest.ui.zifferTaste
+import androidx.compose.ui.input.key.Key
 import app.javaquest.data.LessonRecord
 import app.javaquest.data.ProgressData
 import app.javaquest.data.TaskAttempt
@@ -45,6 +48,39 @@ class StoreTest {
             session.advanceToNextTask()
         }
         store.completeLesson(lesson.id, session.summary)
+    }
+
+    @Test fun `Zifferntasten waehlen eine Antwort, nach dem Abschluss nicht mehr`() {
+        // Die Web-Fassung konnte das längst, die Apps nicht. Geprüft wird beides:
+        // die Zuordnung der Tasten und die Sperre, sobald die Aufgabe durch ist.
+        assertEquals(1, zifferTaste(Key.One))
+        assertEquals(4, zifferTaste(Key.Four))
+        assertEquals(4, zifferTaste(Key.NumPad4), "Der Zifferblock zählt mit")
+        assertEquals(9, zifferTaste(Key.Nine))
+        assertNull(zifferTaste(Key.A), "Buchstaben wählen nichts aus")
+        assertNull(zifferTaste(Key.Zero), "Es gibt keine Antwort 0")
+
+        val store = ProgressStore(course, file(), clock(1))
+        store.completeOnboarding(ExperienceLevel.BEGINNER, null)
+        val lektion = course.allLessons.first()
+        val flow = LessonFlowModel(
+            store,
+            LessonSession(LessonSession.Mode.Lesson(lektion.id), lektion.title, lektion.theory, store.lessonTasks(lektion)),
+            isPractice = false,
+        )
+        repeat(flow.theory.size) { flow.advanceTheory() }
+        val task = flow.currentTask!!
+        assertTrue(task.kind is TaskKind.SingleChoice, "Diese Prüfung braucht eine Auswahlaufgabe")
+
+        flow.chooseAnswer(2)
+        assertEquals(2, flow.draft.choice)
+        flow.chooseAnswer(0)
+        assertEquals(0, flow.draft.choice, "Umwählen ist erlaubt, solange nicht geprüft wurde")
+
+        flow.submit()
+        val nachAbschluss = flow.draft.choice
+        flow.chooseAnswer(3)
+        assertEquals(nachAbschluss, flow.draft.choice, "Nach dem Abschluss ändert die Ziffer nichts mehr")
     }
 
     @Test fun `Sicherung - Einlesen fuehrt zusammen und loescht nichts`() {

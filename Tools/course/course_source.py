@@ -1597,6 +1597,18 @@ from line_notes import NOTES
 import subprocess, os
 
 lessons_by_id = {l["id"]: l for m in course["modules"] for l in m["lessons"]}
+
+# Eine vierte Theoriekarte je Lektion: der häufigste Irrtum. Sie wird angehängt, statt
+# in jeder Lektionsdefinition einzeln zu stehen – so liegt der Text an einer Stelle.
+from theory_extra import EXTRA_THEORY
+_fremd = set(EXTRA_THEORY) - set(lessons_by_id)
+assert not _fremd, f"Zusatzkarte für unbekannte Lektion(en): {sorted(_fremd)}"
+_fehlend = set(lessons_by_id) - set(EXTRA_THEORY)
+assert not _fehlend, f"Lektion(en) ohne Zusatzkarte: {sorted(_fehlend)}"
+for _lesson_id, (_titel, _text, _art, _hinweis) in EXTRA_THEORY.items():
+    assert len(_text) >= 250, f"{_lesson_id}: Zusatzkarte zu knapp ({len(_text)} Zeichen)"
+    lessons_by_id[_lesson_id]["theory"].append(card(_titel, _text, **{_art: _hinweis}))
+
 for (lesson_id, index), (title, body, kind, text) in THEORY.items():
     card_ = lessons_by_id[lesson_id]["theory"][index]
     card_["title"], card_["body"] = title, body

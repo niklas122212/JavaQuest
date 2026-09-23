@@ -103,12 +103,28 @@ fun LessonFlowScreen(model: LessonFlowModel, onClose: () -> Unit, onStartLesson:
             .fillMaxSize()
             .background(surfaces.screen)
             .onPreviewKeyEvent { event ->
-                // Strg/⌘ + Enter = Hauptaktion (Weiter, Prüfen …).
-                if (event.type == KeyEventType.KeyDown && event.key == Key.Enter && (event.isCtrlPressed || event.isMetaPressed)) {
-                    primaryAction(model)
-                    true
-                } else {
-                    false
+                val task = model.currentTask
+                val auswahl = task?.kind as? TaskKind.SingleChoice
+                when {
+                    event.type != KeyEventType.KeyDown -> false
+                    // Strg/⌘ + Enter = Hauptaktion (Weiter, Prüfen …).
+                    event.key == Key.Enter && (event.isCtrlPressed || event.isMetaPressed) -> {
+                        primaryAction(model)
+                        true
+                    }
+                    // Esc bricht die Runde ab – wie in der Web-Fassung.
+                    event.key == Key.Escape -> {
+                        onClose()
+                        true
+                    }
+                    // Ziffern wählen eine Antwort. Nur bei Auswahlaufgaben: Dort gibt es
+                    // kein Eingabefeld, die Ziffern kommen also niemandem in die Quere.
+                    auswahl != null && !model.isCurrentTaskFinished && zifferTaste(event.key) != null -> {
+                        val nummer = zifferTaste(event.key)!!
+                        if (nummer in 1..auswahl.choices.size) model.chooseAnswer(nummer - 1)
+                        true
+                    }
+                    else -> false
                 }
             },
     ) {
@@ -774,4 +790,18 @@ private fun TaskResultsCard(model: LessonFlowModel) {
             }
         }
     }
+}
+
+/** Welche Ziffer die Taste trägt – 1 bis 9, sonst null. Zifferblock zählt mit. */
+internal fun zifferTaste(key: Key): Int? = when (key) {
+    Key.One, Key.NumPad1 -> 1
+    Key.Two, Key.NumPad2 -> 2
+    Key.Three, Key.NumPad3 -> 3
+    Key.Four, Key.NumPad4 -> 4
+    Key.Five, Key.NumPad5 -> 5
+    Key.Six, Key.NumPad6 -> 6
+    Key.Seven, Key.NumPad7 -> 7
+    Key.Eight, Key.NumPad8 -> 8
+    Key.Nine, Key.NumPad9 -> 9
+    else -> null
 }
