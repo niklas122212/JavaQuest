@@ -8,7 +8,7 @@ und zwar aus verschiedenen Themen, damit nicht eine Wissenslücke das ganze Erge
 Die Fragen sind bewusst kurz: Es geht um eine Einschätzung in wenigen Minuten,
 nicht um eine Prüfung.
 """
-from authoring import fill, mc, out
+from authoring import any_of, fill, mc, out
 
 # ---------------------------------------------------------------- Stufe 1: Grundlagen
 LEVEL_1 = [

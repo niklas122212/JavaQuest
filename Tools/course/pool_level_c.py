@@ -6,7 +6,7 @@ sowie die beiden UML-Themen. Am auffälligsten war „UML-Klassendiagramme“: D
 es bis Stufe 3 viel, darüber gar nichts – ausgerechnet beim Umsetzen eines Diagramms
 in Java, also dem Teil, der in Klausuren zählt.
 """
-from authoring import code, fill, forbid, mc, out, req
+from authoring import any_of, code, fill, forbid, mc, out, req
 from uml_content import (BESTELLUNG, DRUCKER, FORM_HIERARCHIE, HAUS, INTERFACE_DIAGRAM, KONTO,
                          PERSON, SCHULE, TIER_HUND, box, diagram, m, rel)
 
@@ -315,7 +315,7 @@ RECURSION = [
          """,
          [req(r"return\s+1", "Der Basisfall liefert 1 – damit hört die Kette auf."),
           req(r"fakultaet\s*\(\s*n\s*-\s*1\s*\)", "Der rekursive Aufruf macht die Zahl um eins kleiner."),
-          req(r"n\s*\*", "Das Ergebnis des kleineren Aufrufs wird mit n multipliziert."),
+          any_of([r"n\s*\*", r"\*\s*n\b"], "Das Ergebnis des kleineren Aufrufs wird mit n multipliziert."),
           forbid(r"for\s*\(|while\s*\(", "Ohne Schleife – die Wiederholung übernimmt der Aufruf selbst.")],
          "Der Basisfall muss vor dem Aufruf stehen, sonst wird er nie erreicht. n <= 1 statt n == 1 fängt "
          "außerdem die 0 mit ab, deren Fakultät ebenfalls 1 ist.",
@@ -785,7 +785,7 @@ TOOLING = [
          """,
          [req(r"i\s*<\s*zahlen\.length\s*;", "Die Schleife muss bis zum letzten Fach laufen: i < zahlen.length."),
           forbid(r"length\s*-\s*1", "Mit length - 1 bleibt das letzte Fach außen vor – genau das ist der Fehler."),
-          req(r"summe\s*\+=", "Aufaddiert wird weiterhin mit +=.")],
+          any_of([r"summe\s*\+=", r"summe\s*=\s*summe\s*\+"], "Aufaddiert wird weiterhin.")],
          "Fächer werden ab 0 gezählt, deshalb ist der letzte Index length - 1. In der Schleifenbedingung "
          "steht aber ein Kleiner-Zeichen – i < length hört von selbst nach dem letzten Fach auf. Beides zu "
          "kombinieren ist einer der häufigsten Anfängerfehler.",

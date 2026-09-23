@@ -203,6 +203,81 @@ struct CourseContentTests {
         #expect(knapp.isEmpty, "zu wenige Varianten: \(knapp.keys.sorted())")
     }
 
+    @Test("Ein anderer, ebenso richtiger Weg wird auch akzeptiert")
+    func equivalentSolutionsAreAccepted() {
+        // Ohne Compiler kann der Prüfer nur Muster im Quelltext suchen – und solche Muster
+        // beschreiben schnell den WEG statt das ERGEBNIS. Dann lehnt die App funktionierenden
+        // Java-Code ab und bestraft genau das eigenständige Denken, um das es hier geht.
+        let codeTasks = course.practiceableTasks.filter { $0.kind.type == .code }
+        let ohne = codeTasks.filter { course.equivalentSolutions[$0.id]?.isEmpty != false }
+        #expect(ohne.isEmpty, "ohne gleichwertige Lösung: \(ohne.map(\.id))")
+
+        let byId = Dictionary(uniqueKeysWithValues: codeTasks.map { ($0.id, $0) })
+        for (id, loesungen) in course.equivalentSolutions {
+            guard let task = byId[id] else {
+                #expect(Bool(false), "\(id): keine Code-Aufgabe")
+                continue
+            }
+            for loesung in loesungen {
+                let ergebnis = evaluator.evaluate(.text(loesung), for: task)
+                #expect(ergebnis.isCorrect, "\(id): gleichwertige Lösung abgelehnt – \(ergebnis.findings.filter { $0.kind == .failed }.map(\.message))")
+            }
+        }
+    }
+
+    @Test("Unfug wird weiterhin abgelehnt")
+    func nonsenseIsStillRejected() {
+        // Gegenprobe zur Lockerung: Die Regeln dürfen nicht so weit aufgehen, dass alles durchgeht.
+        for quelle in ["", "// hier kommt noch was", "System.out.println(\"irgendwas ganz anderes\");"] {
+            for task in course.practiceableTasks where task.kind.type == .code {
+                #expect(!evaluator.evaluate(.text(quelle), for: task).isCorrect,
+                        "\(task.id) akzeptiert „\(quelle)“")
+            }
+        }
+    }
+
+    @Test("Jede Aufgabe hat einen zweiten, konkreteren Tipp – ohne die Lösung zu nennen")
+    func everyTaskHasASecondHint() {
+        for task in course.practiceableTasks {
+            guard let zweiter = SecondHint.text(for: task), !zweiter.isEmpty else {
+                #expect(Bool(false), "\(task.id): kein zweiter Tipp")
+                continue
+            }
+            #expect(zweiter != task.hint, "\(task.id): zweiter Tipp wiederholt den ersten")
+            // Der zweite Tipp darf enger führen, aber nie die Lösung nennen. Bei
+            // Auswahlaufgaben nennt er zwangsläufig falsche Antworten – die dürfen die
+            // richtige als Zeichenkette enthalten („zahlen.length()“ enthält „zahlen.length“),
+            // deshalb wird dort nur der Rest des Satzes geprüft.
+            switch task.kind {
+            case .predictOutput(let spec):
+                for zeile in spec.expectedOutput.split(separator: "\n") {
+                    let text = zeile.trimmingCharacters(in: .whitespaces)
+                    guard text.count >= 4 else { continue }
+                    #expect(!Self.enthaeltWort(text, in: zweiter), "\(task.id): zweiter Tipp verrät die Ausgabe")
+                }
+            case .fillBlank(let spec):
+                for blank in spec.blanks {
+                    guard let wort = blank.accepted.first, wort.count >= 4 else { continue }
+                    #expect(!Self.enthaeltWort(wort, in: zweiter), "\(task.id): zweiter Tipp verrät die Lücke")
+                }
+            default:
+                break
+            }
+        }
+    }
+
+    @Test("Der zweite Tipp streicht nie die Antwort, die gerade gewählt wurde")
+    func secondHintSkipsTheChosenAnswer() {
+        for task in course.practiceableTasks {
+            guard case .singleChoice(let spec) = task.kind else { continue }
+            for gewaehlt in spec.choices.indices where gewaehlt != spec.correctIndex {
+                guard let zweiter = SecondHint.text(for: task, chosen: gewaehlt) else { continue }
+                #expect(!zweiter.contains("„\(spec.choices[gewaehlt])“"),
+                        "\(task.id): streicht die schon gewählte Antwort erneut")
+            }
+        }
+    }
+
     @Test("Alle Themen werden in einer Lektion behandelt")
     func everyTopicIsTaught() {
         for topic in course.topics {

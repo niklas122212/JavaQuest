@@ -4,7 +4,7 @@ Jede Aufgabe mit `group=` ist eine weitere Variante eines Lernziels aus einer Le
 Unterschiedlich sind dabei bewusst nicht nur die Zahlen, sondern Code, Kontext,
 Fragestellung und der Denkweg zur Lösung.
 """
-from authoring import code, fill, forbid, mc, out, req
+from authoring import any_of, code, fill, forbid, mc, out, req
 
 # ---------------------------------------------------------------- Programmaufbau
 SYNTAX = [
@@ -142,7 +142,8 @@ OPERATORS = [
          System.out.println(rest);
          """,
          [req(r"/\s*60", "Teile durch 60 für die vollen Stunden."),
-          req(r"%\s*60", "Nutze % 60 für die restlichen Minuten."),
+          any_of([r"%\s*60", r"-\s*\w+\s*\*\s*60", r"-\s*60\s*\*\s*\w+"],
+                  "Die restlichen Minuten: entweder mit % 60 oder indem du die vollen Stunden abziehst."),
           req(r"System\.out\.println", "Gib beide Werte aus.")],
          "Die Ganzzahldivision liefert die vollen Stunden (137 / 60 = 2), der Rest die Minuten (137 % 60 = 17).",
          expected="2\n17",

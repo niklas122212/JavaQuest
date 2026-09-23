@@ -8,7 +8,7 @@ Der Aufgabentyp ist dabei bewusst gewählt: Er ist ein anderer als der, den das 
 schon hat, und in Themen mit vielen „Was gibt das aus?“-Aufgaben wird dieser Typ
 gemieden. So wächst mit der Tiefe auch die Abwechslung.
 """
-from authoring import code, fill, forbid, mc, out, req
+from authoring import any_of, code, fill, forbid, mc, out, req
 from uml_content import DRUCKER, FORM_HIERARCHIE, INTERFACE_DIAGRAM, KONTO, TIER_HUND
 
 # ---------------------------------------------------------------- Grundlagen und Texte

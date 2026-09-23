@@ -85,6 +85,21 @@ def req(pattern, message, scope=None):
     return r
 
 
+def any_of(patterns, message, scope=None):
+    """Mindestens eines der Muster muss vorkommen.
+
+    Für Aufgaben, die sich auf mehreren gleichwertigen Wegen lösen lassen – eine
+    Schleife als for oder als while, eine Summe über den Index oder mit for-each.
+    Wer selbst denkt, soll nicht dafür bestraft werden, dass ihm ein anderer Weg
+    eingefallen ist.
+    """
+    assert len(patterns) >= 2, "any_of mit nur einem Muster ist ein require"
+    r = {"rule": "anyOf", "patterns": list(patterns), "message": message}
+    if scope:
+        r["scope"] = scope
+    return r
+
+
 def forbid(pattern, message, scope=None):
     r = {"rule": "forbid", "pattern": pattern, "message": message}
     if scope:

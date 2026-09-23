@@ -8,7 +8,7 @@ Dieser Teil füllt die Lücken für Programmaufbau, Variablen, Operatoren, Bedin
 Schleifen, Methoden, Arrays und Strings: jedes dieser Themen hat danach mindestens
 20 Aufgaben und auf jeder der fünf Stufen mindestens zwei.
 """
-from authoring import code, fill, forbid, mc, out, req
+from authoring import any_of, code, fill, forbid, mc, out, req
 
 # ---------------------------------------------------------------- Programmaufbau
 SYNTAX = [
@@ -230,7 +230,8 @@ OPERATORS = [
          System.out.println(minuten + " min " + sekunden + " s");
          """,
          [req(r"/\s*60", "Wie oft passen 60 Sekunden hinein? Das ist die Ganzzahldivision."),
-          req(r"%\s*60", "Was bleibt übrig? Danach fragt der Rest-Operator %."),
+          any_of([r"%\s*60", r"-\s*\w+\s*\*\s*60", r"-\s*60\s*\*\s*\w+"],
+                  "Was bleibt übrig? Frag den Rest-Operator % – oder zieh die vollen Minuten ab."),
           req(r'" min "', "Zwischen Zahl und Einheit gehört ein Leerzeichen.", scope="raw"),
           req(r"System\.out\.println", "Gib das Ergebnis aus.")],
          "Ganzzahldivision und Rest sind ein Paar: / liefert, wie oft es hineinpasst, % liefert, was übrig "
@@ -327,7 +328,8 @@ CONDITIONALS = [
          """,
          [req(r"switch\s*\(\s*tag\s*\)", "Das switch prüft die Variable tag."),
           req(r"->", "Gefragt ist die Pfeil-Schreibweise, nicht die alte mit Doppelpunkt und break."),
-          req(r"case\s+6\s*,\s*7", "Zwei Werte dürfen sich einen Zweig teilen: case 6, 7 ->"),
+          any_of([r"case\s+6\s*,\s*7", r"case\s+7\s*,\s*6"],
+                  "Zwei Werte dürfen sich einen Zweig teilen: case 6, 7 ->"),
           req(r"default", "Alle übrigen Tage fängt der default-Zweig ab."),
           req(r'"Wochenende"', "Für 6 und 7 lautet die Ausgabe „Wochenende“.", scope="raw")],
          "Die Pfeil-Schreibweise braucht kein break: Es läuft genau ein Zweig, danach ist das switch zu Ende. "
@@ -438,7 +440,8 @@ METHODS = [
          """,
          [req(r"return\s+", "Das Ergebnis muss mit return zurückgehen."),
           req(r'"Hallo, "', "Der Text beginnt mit „Hallo, “ – Komma und Leerzeichen inklusive.", scope="raw"),
-          req(r"\+\s*name", "Der übergebene Name gehört in die Mitte."),
+          any_of([r"\+\s*name", r"append\s*\(\s*name\s*\)", r"concat\s*\(\s*name\s*\)", r"%s"],
+                  "Der übergebene Name gehört in die Mitte."),
           req(r'"!"', "Am Ende steht ein Ausrufezeichen.", scope="raw"),
           forbid(r"System\.out\.print", "Die Methode soll den Text zurückgeben. Ausgegeben wird er an der aufrufenden Stelle.")],
          "Eine Methode, die zurückgibt statt auszugeben, ist vielseitiger: Der Aufrufer entscheidet, ob der "

@@ -374,6 +374,111 @@ function ohneLiterale(quelle) {
   return ohneKommentare(quelle).replace(/"(?:\\.|[^"\\])*"/g, '""');
 }
 
+// Warum diese Eingabe die Lücke nicht füllt – konkret statt „passt noch nicht“.
+// Ein bloßes „falsch“ lässt den Lernenden im Dunkeln; die häufigen Fälle lassen sich benennen.
+function warumBlankFalsch(wert, luecke, alle, index) {
+  const eingabe = (wert || "").trim();
+  const klein = eingabe.toLowerCase();
+  const richtig = luecke.accepted[0] || "";
+  if (luecke.accepted.some((a) => a.toLowerCase() === klein)) return "fast – achte auf Groß- und Kleinschreibung.";
+  for (let j = 0; j < alle.length; j++) {
+    if (j !== index && alle[j].accepted.some((a) => a.toLowerCase() === klein)) return `das gehört in Lücke ${j + 1}.`;
+  }
+  const ohneKlammern = eingabe.replace("()", "").toLowerCase();
+  if (luecke.accepted.some((a) => a.toLowerCase() === ohneKlammern)) return "die runden Klammern stehen hier schon im Text.";
+  if (luecke.accepted.some((a) => a.toLowerCase() === klein + "()")) return "fast – es fehlen die runden Klammern.";
+  if (richtig && richtig.toLowerCase().startsWith(klein)) return "der Anfang stimmt, es fehlt noch etwas.";
+  if (eingabe && richtig && klein.startsWith(richtig.toLowerCase())) return "da steht etwas zu viel.";
+  return "stimmt noch nicht.";
+}
+
+// Was an dieser einen Zeile abweicht – benannt, nicht nur festgestellt.
+function warumZeileFalsch(gegeben, erwartet) {
+  if (gegeben.toLowerCase() === erwartet.toLowerCase()) return "richtig bis auf die Groß- und Kleinschreibung.";
+  if (ohneLeerzeichen(gegeben) === ohneLeerzeichen(erwartet)) return "richtig bis auf die Leerzeichen.";
+  if (erwartet.endsWith(".0") && erwartet.slice(0, -2) === gegeben) {
+    return "die Nachkommastelle fehlt – sobald eine Kommazahl beteiligt ist, hat auch das Ergebnis eine.";
+  }
+  if (gegeben.endsWith(".0") && gegeben.slice(0, -2) === erwartet) {
+    return "hier wird mit ganzen Zahlen gerechnet, da kommt keine Nachkommastelle heraus.";
+  }
+  if (erwartet.startsWith("[") && erwartet.endsWith("]") && erwartet.slice(1, -1) === gegeben) {
+    return "eine Liste gibt sich mit eckigen Klammern aus.";
+  }
+  if (erwartet.length === gegeben.length) return "gleich lang, aber ein anderer Inhalt.";
+  return gegeben.length < erwartet.length ? "da fehlt noch etwas." : "da steht etwas zu viel.";
+}
+
+// Ein Befund über die ganze Ausgabe – für Fehler, die man nur im Zusammenhang sieht.
+function warumAusgabeFalsch(gegeben, erwartet) {
+  const g = gegeben.join(""), e = erwartet.join("");
+  // Nur melden, wenn sich der Text wirklich in der Schreibweise unterscheidet – sonst
+  // verdeckt dieser Fall den print/println-Fehler, bei dem der Text identisch ist.
+  if (g.toLowerCase() === e.toLowerCase() && g !== e) {
+    return "Fast! Achte auf Groß- und Kleinschreibung.";
+  }
+  if (gegeben.length === 1 && erwartet.length > 1 && gegeben[0] === e) {
+    return "Der Inhalt stimmt, aber alles steht in einer Zeile. println beginnt danach eine neue, print nicht.";
+  }
+  if (erwartet.length === 1 && gegeben.length > 1 && erwartet[0] === g) {
+    return "Der Inhalt stimmt, aber er ist auf mehrere Zeilen verteilt. Nur println bricht um.";
+  }
+  if (ohneLeerzeichen(g) === ohneLeerzeichen(e)) {
+    return "Fast! Achte auf Leerzeichen und Zeilenumbrüche – println beginnt eine neue Zeile, print nicht.";
+  }
+  if (gegeben.length > erwartet.length) {
+    return `Es erscheinen ${gegeben.length - erwartet.length} Zeile(n) zu viel. Zähl nach, wie oft die Ausgabe wirklich erreicht wird.`;
+  }
+  if (gegeben.length < erwartet.length) {
+    return `Es fehlen ${erwartet.length - gegeben.length} Zeile(n). Zähl nach, wie oft die Ausgabe erreicht wird.`;
+  }
+  return null;
+}
+
+/* Der zweite Tipp: konkreter als der erste, aber immer noch nicht die Lösung.
+
+   Er wird nicht geschrieben, sondern aus der Aufgabe abgeleitet. Das hat zwei Gründe.
+   Erstens ist er dadurch für jede der 685 Aufgaben da und kann nicht vergessen werden.
+   Zweitens richtet er sich nach dem, was tatsächlich schon versucht wurde: Bei einer
+   Auswahlaufgabe streicht er zwei Antworten, die man noch nicht gewählt hat – ein fest
+   geschriebener Satz könnte das nicht. Die Lösung nennt er in keinem Fall. */
+function zweiterTipp(aufgabe, gewaehlt) {
+  if (aufgabe.type === "singleChoice") {
+    // Zwei falsche Antworten streichen, die noch nicht dran waren – aus vier mach zwei.
+    const streichbar = aufgabe.choices
+      .map((text, i) => ({ text, i, grund: (aufgabe.whyWrong || [])[i] }))
+      .filter((c) => c.i !== aufgabe.correctIndex && c.i !== gewaehlt && c.grund);
+    if (streichbar.length >= 2) {
+      const [a, b] = streichbar;
+      return `Streich schon mal zwei: „${a.text}“ und „${b.text}“ scheiden aus. ${a.grund}`;
+    }
+    if (streichbar.length === 1) {
+      return `Auch „${streichbar[0].text}“ scheidet aus. ${streichbar[0].grund}`;
+    }
+    return null;
+  }
+  if (aufgabe.type === "predictOutput") {
+    const zeilen = ausgabeZeilen(aufgabe.expectedOutput);
+    return zeilen.length === 1
+      ? "Die Ausgabe besteht aus genau einer Zeile."
+      : `Die Ausgabe besteht aus genau ${zeilen.length} Zeilen. Geh den Code Anweisung für Anweisung durch und zähl mit.`;
+  }
+  if (aufgabe.type === "fillBlank") {
+    const teile = aufgabe.blanks.map((l, i) => {
+      const wort = l.accepted[0] || "";
+      return `Lücke ${i + 1}: ${wort.length} Zeichen, beginnt mit „${wort.slice(0, 1)}“`;
+    });
+    return teile.join(" · ");
+  }
+  if (aufgabe.type === "code") {
+    const quelle = (aufgabe.sampleSolution && aufgabe.sampleSolution.lines)
+      ? aufgabe.sampleSolution.lines.map((z) => z.code) : [];
+    const zeilen = quelle.filter((z) => z.trim()).length;
+    return zeilen ? `Die Musterlösung kommt mit ${zeilen} Zeilen aus – mehr brauchst du nicht.` : null;
+  }
+  return null;
+}
+
 function auswerten(aufgabe, antwort) {
   const befunde = [];
   if (aufgabe.type === "singleChoice") {
@@ -388,7 +493,7 @@ function auswerten(aufgabe, antwort) {
       const wert = (antwort[i] || "").trim();
       if (lueckePasst(l, wert)) { treffer++; befunde.push({ art: "gut", text: `Lücke ${i + 1} stimmt.` }); }
       else if (!wert) befunde.push({ art: "schlecht", text: `Lücke ${i + 1} ist noch leer.` });
-      else befunde.push({ art: "schlecht", text: `Lücke ${i + 1} passt noch nicht.` });
+      else befunde.push({ art: "schlecht", text: `Lücke ${i + 1}: ${warumBlankFalsch(wert, l, aufgabe.blanks, i)}` });
     });
     return { richtig: treffer === aufgabe.blanks.length, wertung: treffer / aufgabe.blanks.length, befunde };
   }
@@ -406,14 +511,11 @@ function auswerten(aufgabe, antwort) {
       if (erwartet[i] !== undefined && erwartet[i] === gegeben[i]) treffer++;
       else if (erwartet[i] === undefined) befunde.push({ art: "schlecht", text: `Zeile ${i + 1} ist zu viel.` });
       else if (gegeben[i] === undefined) befunde.push({ art: "schlecht", text: `Zeile ${i + 1} fehlt noch.` });
-      else befunde.push({ art: "schlecht", text: `Zeile ${i + 1} weicht ab.` });
+      else befunde.push({ art: "schlecht", text: `Zeile ${i + 1}: ${warumZeileFalsch(gegeben[i], erwartet[i])}` });
     }
     if (treffer) befunde.unshift({ art: "gut", text: `${treffer} von ${erwartet.length} Zeilen stimmen.` });
-    if (gegeben.join().toLowerCase() === erwartet.join().toLowerCase()) {
-      befunde.push({ art: "tipp", text: "Fast! Achte auf Groß- und Kleinschreibung." });
-    } else if (ohneLeerzeichen(gegeben.join()) === ohneLeerzeichen(erwartet.join())) {
-      befunde.push({ art: "tipp", text: "Fast! Achte auf Leerzeichen und Zeilenumbrüche – println beginnt eine neue Zeile, print nicht." });
-    }
+    const gesamt = warumAusgabeFalsch(gegeben, erwartet);
+    if (gesamt) befunde.push({ art: "tipp", text: gesamt });
     return { richtig: false, wertung: treffer / Math.max(erwartet.length, gegeben.length), befunde };
   }
 
@@ -426,10 +528,14 @@ function auswerten(aufgabe, antwort) {
   let erreicht = 1, gesamt = 1, alleErfuellt = true, verstoesse = 0;
   for (const regel of aufgabe.rules || []) {
     const ziel = regel.scope === "raw" ? roh : maskiert;
+    // Bei „anyOf“ genügt einer der gleichwertigen Wege.
+    const muster = (regel.patterns && regel.patterns.length) ? regel.patterns : [regel.pattern];
     let treffer = false;
-    try { treffer = new RegExp(regel.pattern).test(ziel); } catch (e) { treffer = false; }
+    for (const m of muster) {
+      try { if (new RegExp(m).test(ziel)) { treffer = true; break; } } catch (e) { /* ungültiges Muster zählt als kein Treffer */ }
+    }
     const gew = regel.weight || 1;
-    if (regel.rule === "require") {
+    if (regel.rule === "require" || regel.rule === "anyOf") {
       gesamt += gew;
       if (treffer) { erreicht += gew; befunde.push({ art: "gut", text: regel.message }); }
       else { alleErfuellt = false; befunde.push({ art: "schlecht", text: regel.message }); }
@@ -912,10 +1018,120 @@ function profilSeite() {
       <p class="leise">Alle Daten bleiben auf diesem Gerät. Kein Konto, kein Tracking, keine
       Übertragung – auch die Auswertung deiner Antworten läuft hier im Browser.</p>
     </div>
+    <div class="karte"><h3>Fortschritt sichern</h3>
+      <p class="leise">Dein Stand liegt nur in diesem Browser. Wer die Browserdaten löscht oder das
+      Gerät wechselt, verliert ihn – es sei denn, er hat vorher eine Sicherung angelegt.</p>
+      <button class="knopf zweit" data-sichern="1">Sicherung herunterladen</button>
+      <button class="knopf zweit" data-einlesen="1">Sicherung einlesen</button>
+      <input type="file" accept="application/json,.json" id="sicherung-datei" hidden
+             aria-label="Sicherungsdatei auswählen">
+      <p class="mini">Beim Einlesen wird nichts gelöscht: Aus beiden Ständen wird jeweils das
+      bessere Ergebnis übernommen.</p>
+    </div>
     <div class="karte">
       <button class="knopf zweit" data-reset="1">Fortschritt zurücksetzen</button>
       <p class="mini">Score, Lernpfad und Analyse werden gelöscht. Danach startest du wieder mit dem Einstieg.</p>
     </div>`;
+}
+
+/* Sicherung des Fortschritts.
+
+   Der Stand liegt nur im localStorage dieses Browsers. Gelöschte Browserdaten, ein
+   neues Gerät oder der private Modus – und er ist weg, ohne Vorwarnung. Eine Datei
+   zum Mitnehmen ist die einzige Absicherung, die ohne Konto und ohne Server auskommt. */
+function sicherungHerunterladen() {
+  const inhalt = JSON.stringify({ app: "JavaQuest", version: 1, erstellt: new Date().toISOString(), stand }, null, 1);
+  const blob = new Blob([inhalt], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `javaquest-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+/* Führt zwei Stände zusammen, statt einen zu überschreiben.
+
+   Beim Einlesen darf nichts verlorengehen – weder das Gesicherte noch das, was seit
+   der Sicherung dazugekommen ist. Deshalb gewinnt bei jeder Aufgabe das bessere
+   Ergebnis, bei jedem Lernziel die längere Serie und bei der Tagesserie der höhere Wert. */
+function staendeVereinen(eigen, fremd) {
+  const neu = {
+    lektionen: Object.assign({}, fremd.lektionen, eigen.lektionen),
+    verlauf: Object.assign({}, fremd.verlauf),
+    themen: Object.assign({}, fremd.themen, eigen.themen),
+    ziele: Object.assign({}, fremd.ziele),
+    serie: eigen.serie || fremd.serie || null,
+    profil: eigen.profil || fremd.profil || null,
+    start: eigen.start || fremd.start || null,
+  };
+  // Lektionen: die bessere Wertung gewinnt.
+  for (const [id, e] of Object.entries(eigen.lektionen || {})) {
+    const f = (fremd.lektionen || {})[id];
+    if (f && (f.wertung || 0) > (e.wertung || 0)) neu.lektionen[id] = f;
+  }
+  // Aufgaben: die bessere Wertung gewinnt, bei Gleichstand der jüngere Eintrag.
+  for (const [id, e] of Object.entries(eigen.verlauf || {})) {
+    const f = neu.verlauf[id];
+    if (!f) { neu.verlauf[id] = e; continue; }
+    if ((e.wertung || 0) > (f.wertung || 0)) neu.verlauf[id] = e;
+    else if ((e.wertung || 0) === (f.wertung || 0) && (e.datum || "") >= (f.datum || "")) neu.verlauf[id] = e;
+  }
+  // Lernziele: die längere Serie und die höhere Zahl an Versuchen.
+  for (const [id, e] of Object.entries(eigen.ziele || {})) {
+    const f = neu.ziele[id];
+    if (!f) { neu.ziele[id] = e; continue; }
+    neu.ziele[id] = {
+      versuche: Math.max(e.versuche || 0, f.versuche || 0),
+      serie: Math.max(e.serie || 0, f.serie || 0),
+      wertung: Math.max(e.wertung || 0, f.wertung || 0),
+      datum: (e.datum || "") >= (f.datum || "") ? e.datum : f.datum,
+    };
+  }
+  // Tagesserie: der höhere Bestwert bleibt.
+  if (eigen.serie && fremd.serie) {
+    neu.serie = Object.assign({}, eigen.serie, {
+      laengste: Math.max(eigen.serie.laengste || 0, fremd.serie.laengste || 0),
+    });
+  }
+  return neu;
+}
+
+function sicherungEinlesen(datei) {
+  const leser = new FileReader();
+  leser.onload = () => {
+    let daten;
+    try { daten = JSON.parse(String(leser.result)); } catch (e) { daten = null; }
+    const fremd = daten && daten.app === "JavaQuest" ? daten.stand : null;
+    if (!fremd || typeof fremd !== "object" || !fremd.verlauf) {
+      melde("Das sieht nicht nach einer JavaQuest-Sicherung aus.");
+      return;
+    }
+    const vorher = Object.keys(stand.verlauf || {}).length;
+    stand = staendeVereinen(stand, fremd);
+    sichern();
+    const nachher = Object.keys(stand.verlauf).length;
+    melde(`Sicherung eingelesen: ${nachher - vorher} Aufgabe(n) dazugekommen, nichts gelöscht.`);
+    zeichne();
+  };
+  leser.readAsText(datei);
+}
+
+/** Kurze Rückmeldung, die auch eine Sprachausgabe vorliest. */
+function melde(text) {
+  let kasten = document.getElementById("meldung");
+  if (!kasten) {
+    kasten = document.createElement("div");
+    kasten.id = "meldung";
+    kasten.className = "meldung";
+    kasten.setAttribute("role", "status");
+    document.body.appendChild(kasten);
+  }
+  kasten.textContent = text;
+  kasten.hidden = false;
+  setTimeout(() => { kasten.hidden = true; }, 6000);
 }
 
 function lektionenSeite() {
@@ -1178,8 +1394,15 @@ function rueckmeldung(a, fertig) {
   const klasse = richtig ? "gut" : (sitzung.aufgedeckt ? "auf" : "schlecht");
   const rest = MAX_VERSUCHE - sitzung.versuche;
 
-  let kopf = richtig ? (sitzung.versuche === 1 ? "Richtig – volle Punktzahl!" : `Richtig – im ${sitzung.versuche}. Anlauf.`)
-                     : (sitzung.aufgedeckt ? "Lösung aufgedeckt" : "Noch nicht ganz");
+  // Wer nach einem Fehlversuch und dem Tipp selbst draufkommt, hat mehr geleistet als
+  // wer es gleich wusste. Das soll auch so klingen.
+  function kopfzeile() {
+    if (!richtig) return sitzung.aufgedeckt ? "Lösung aufgedeckt" : "Noch nicht ganz";
+    if (sitzung.versuche === 1) return "Richtig – volle Punktzahl!";
+    if (sitzung.versuche === 2) return "Stark – nach dem Tipp selbst draufgekommen!";
+    return `Geschafft – im ${sitzung.versuche}. Anlauf, ohne die Lösung aufzudecken.`;
+  }
+  let kopf = kopfzeile();
   let unter = richtig ? (sitzung.versuche === 1 ? "Das zählt voll." : "Das zählt zur Hälfte.")
                       : (sitzung.aufgedeckt ? "Schau dir die Lösung in Ruhe an – beim nächsten Mal klappt’s."
                                             : (rest > 0 ? `Du hast noch ${rest} ${rest === 1 ? "Versuch" : "Versuche"}.` : "Keine Versuche mehr – unten steht, woran es lag."));
@@ -1211,6 +1434,11 @@ function rueckmeldung(a, fertig) {
     html += `<div style="margin-top:12px"><strong>Erklärung</strong><p class="leise">${sicher(a.explanation)}</p></div>`;
   } else if (a.hint) {
     html += `<div class="kasten falsch" style="margin-top:12px">💡 ${sicher(a.hint)}</div>`;
+    // Ab dem zweiten Fehlversuch wird der Tipp konkreter, statt sich zu wiederholen.
+    if (sitzung.versuche >= 2) {
+      const mehr = zweiterTipp(a, a.type === "singleChoice" ? sitzung.entwurf : null);
+      if (mehr) html += `<div class="kasten falsch" style="margin-top:8px">💡💡 ${sicher(mehr)}</div>`;
+    }
   }
   return html + `</div>`;
 }
@@ -1390,6 +1618,16 @@ function bindeEreignisse() {
   klick("[data-nochmal]", () => starteRunde("training"));
   // Aus der Analyse heraus direkt das betroffene Thema üben.
   klick("[data-uebe]", (e) => gehe("themen", { gewaehlt: [e.currentTarget.dataset.uebe] }));
+  klick("[data-sichern]", () => sicherungHerunterladen());
+  klick("[data-einlesen]", () => {
+    const feld = document.getElementById("sicherung-datei");
+    if (!feld) return;
+    feld.onchange = () => {
+      if (feld.files && feld.files[0]) sicherungEinlesen(feld.files[0]);
+      feld.value = "";
+    };
+    feld.click();
+  });
   klick("[data-reset]", () => {
     if (!confirm("Gesamten Fortschritt löschen? Score, Lernpfad und Analyse werden entfernt.")) return;
     stand = { lektionen: {}, verlauf: {}, themen: {}, ziele: {}, serie: null, profil: null };

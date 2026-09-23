@@ -86,6 +86,33 @@ struct JavaSourceTests {
 struct EvaluatorTests {
     let evaluator = AnswerEvaluator()
 
+    @Test("Eine falsche Ausgabe wird begründet, nicht nur abgelehnt")
+    func outputMistakesAreNamed() {
+        typealias E = AnswerEvaluator
+        // Zeile für Zeile
+        #expect(E.warumZeileFalsch("hallo", erwartet: "Hallo").contains("Groß- und Kleinschreibung"))
+        #expect(E.warumZeileFalsch("a b", erwartet: "ab").contains("Leerzeichen"))
+        #expect(E.warumZeileFalsch("10", erwartet: "10.0").contains("Nachkommastelle"))
+        #expect(E.warumZeileFalsch("1, 2", erwartet: "[1, 2]").contains("eckigen Klammern"))
+        // Über die ganze Ausgabe – der print/println-Fehler darf nicht als Schreibweise
+        // durchgehen: Dort ist der Text identisch, nur die Umbrüche fehlen.
+        #expect(E.warumAusgabeFalsch(["ABC"], erwartet: ["A", "B", "C"])?.contains("einer Zeile") == true)
+        #expect(E.warumAusgabeFalsch(["A", "B", "C"], erwartet: ["ABC"])?.contains("mehrere Zeilen") == true)
+        #expect(E.warumAusgabeFalsch(["abc"], erwartet: ["ABC"])?.contains("Groß- und Kleinschreibung") == true)
+        #expect(E.warumAusgabeFalsch(["a", "b", "c"], erwartet: ["a", "b"])?.contains("zu viel") == true)
+        #expect(E.warumAusgabeFalsch(["a"], erwartet: ["a", "b"])?.contains("fehlen") == true)
+    }
+
+    @Test("Eine falsch gefüllte Lücke wird begründet")
+    func blankMistakesAreNamed() {
+        let println = FillBlankSpec.Blank(accepted: ["println"], caseSensitive: false)
+        let elseBlank = FillBlankSpec.Blank(accepted: ["else"], caseSensitive: false)
+        typealias E = AnswerEvaluator
+        #expect(E.warumBlankFalsch("PRINTLN", blank: println, alle: [println], index: 0).contains("Groß- und Klein"))
+        #expect(E.warumBlankFalsch("else", blank: println, alle: [println, elseBlank], index: 0).contains("Lücke 2"))
+        #expect(E.warumBlankFalsch("print", blank: println, alle: [println], index: 0).contains("Anfang stimmt"))
+    }
+
     func task(_ kind: TaskKind, difficulty: Difficulty = .medium) -> LearningTask {
         LearningTask(id: "t", topicId: "x", difficulty: difficulty, prompt: "", explanation: "", kind: kind)
     }

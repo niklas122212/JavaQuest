@@ -384,3 +384,20 @@ details.exegese > summary { color: var(--orange-text); }
   font-family: var(--code);
   font-size: 12px;
 }
+
+/* Kurze Rückmeldung am unteren Rand – auch für Sprachausgaben, daher role="status". */
+.meldung {
+  position: fixed;
+  left: 50%;
+  bottom: 84px;
+  transform: translateX(-50%);
+  max-width: min(520px, calc(100vw - 32px));
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: var(--karte);
+  border: 1px solid var(--rand);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .18);
+  font-size: 15px;
+  z-index: 40;
+}
+.meldung[hidden] { display: none; }

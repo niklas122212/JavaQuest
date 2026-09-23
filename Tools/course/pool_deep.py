@@ -3,7 +3,7 @@
 Ziel ist Abwechslung im Denkweg, nicht nur andere Zahlen: Ausgabe vorhersagen,
 Fehler finden, Begriff erklären, Code ergänzen, Java ↔ UML übersetzen.
 """
-from authoring import code, fill, forbid, mc, out, req
+from authoring import any_of, code, fill, forbid, mc, out, req
 from uml_content import BESTELLUNG, FORM_HIERARCHIE, HAUS, INTERFACE_DIAGRAM, KONTO, PERSON, SCHULE, TIER_HUND, box, diagram, m, rel
 
 # ---------------------------------------------------------------- Generics
@@ -34,7 +34,8 @@ GENERICS = [
          """,
          [req(r"<T>", "Nutze den Platzhalter <T>."),
           req(r"erstes\s*\(\s*List<T>\s+\w+\s*\)", "Die Methode nimmt eine List<T> entgegen."),
-          req(r"return\s+\w+\.get\(0\)", "Gib das Element aus Fach 0 zurück.")],
+          any_of([r"return\s+\w+\.get\s*\(\s*0\s*\)", r"\.get\s*\(\s*0\s*\)", r"\.getFirst\s*\(\s*\)"],
+                 "Gib das Element aus Fach 0 zurück.")],
          "<T> ist ein Platzhalter-Etikett: Beim Aufruf setzt Java die echte Sorte ein – dieselbe Methode dient für jede Liste.",
          ctx="members",
          verify={"context": "members", "main": 'System.out.println(erstes(List.of("a", "b")));', "output": "a"},

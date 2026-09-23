@@ -117,7 +117,10 @@ data class Blank(val accepted: List<String>, val caseSensitive: Boolean = true) 
     fun accepts(value: String): Boolean = AnswerEvaluator.blankAccepts(this, JavaSource.normalizingTypography(value))
 }
 
-enum class RuleKind { REQUIRE, FORBID }
+/** ANY_OF: Mindestens eines der Muster genügt – für Aufgaben, die sich auf mehreren
+ *  gleichwertigen Wegen lösen lassen. Wer selbst denkt, soll nicht dafür bestraft
+ *  werden, dass ihm ein anderer Weg eingefallen ist. */
+enum class RuleKind { REQUIRE, FORBID, ANY_OF }
 enum class RuleScope { CODE, RAW }
 enum class StructureCheck { BALANCED_DELIMITERS, SEMICOLONS }
 
@@ -127,7 +130,12 @@ data class CodeRule(
     val message: String,
     val scope: RuleScope = RuleScope.CODE,
     val weight: Double = 1.0,
-)
+    /** Die gleichwertigen Muster bei ANY_OF; bei den anderen Arten leer. */
+    val patterns: List<String> = emptyList(),
+) {
+    /** Alle Muster, von denen je nach Art eines oder genau dieses passen muss. */
+    val allPatterns: List<String> get() = patterns.ifEmpty { listOf(pattern) }
+}
 
 sealed interface TaskKind {
     val type: TaskType
@@ -268,6 +276,9 @@ data class Course(
     val glossary: Map<String, String>,
     /** Übungsaufgaben außerhalb der Lektionen: Varianten und Aufgaben je Thema. */
     val taskPool: List<LearningTask> = emptyList(),
+    /** Gleichwertige, ebenfalls richtige Lösungen zu Code-Aufgaben. Sie werden nie angezeigt;
+     *  die Tests prüfen damit, dass der Prüfer das Ergebnis bewertet und nicht den Weg. */
+    val equivalentSolutions: Map<String, List<String>> = emptyMap(),
 ) {
     val allLessons: List<Lesson> get() = modules.flatMap { it.lessons }
     val allTasks: List<LearningTask>
@@ -347,6 +358,9 @@ object CourseLoader {
                 entry.jsonObject.str("term") to entry.jsonObject.str("meaning")
             } ?: emptyMap(),
             taskPool = (root["taskPool"] as? JsonArray)?.map { parseTask(it.jsonObject) } ?: emptyList(),
+            equivalentSolutions = (root["equivalentSolutions"] as? JsonObject)?.mapValues { (_, v) ->
+                v.jsonArray.map { it.jsonPrimitive.content }
+            } ?: emptyMap(),
         )
     }
 
@@ -436,8 +450,12 @@ object CourseLoader {
                 rules = t.arr("rules").map { r ->
                     val rule = r.jsonObject
                     CodeRule(
-                        rule = RuleKind.valueOf(rule.str("rule").uppercase()),
-                        pattern = rule.str("pattern"),
+                        rule = when (rule.str("rule")) {
+                            "anyOf" -> RuleKind.ANY_OF
+                            else -> RuleKind.valueOf(rule.str("rule").uppercase())
+                        },
+                        pattern = rule.optStr("pattern") ?: "",
+                        patterns = (rule["patterns"] as? JsonArray)?.map { it.jsonPrimitive.content } ?: emptyList(),
                         message = rule.str("message"),
                         scope = rule.optStr("scope")?.let { RuleScope.valueOf(it.uppercase()) } ?: RuleScope.CODE,
                         weight = (rule["weight"] as? JsonPrimitive)?.doubleOrNull ?: 1.0,

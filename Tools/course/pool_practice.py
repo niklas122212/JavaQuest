@@ -3,7 +3,7 @@
 Gleicht die Aufgabentypen aus: viele Lückentexte und Schreibaufgaben,
 dazu bewusst sehr leichte (Niveau 1) und schwere Aufgaben (Niveau 5).
 """
-from authoring import code, fill, forbid, mc, out, req
+from authoring import any_of, code, fill, forbid, mc, out, req
 
 # ---------------------------------------------------------------- Niveau 1: der sanfte Einstieg
 EASY = [
@@ -337,7 +337,8 @@ CODING = [
          double preis = 4.99;
          System.out.println(preis);
          """,
-         [req(r"double\s+preis", "Nutze den Typ double für Kommazahlen."),
+         [any_of([r"double\s+preis", r"var\s+preis\s*=\s*[0-9]+\.[0-9]"],
+                 "Leg preis als Kommazahl an – mit double oder mit var."),
           req(r"4\.99", "Lege 4.99 hinein."),
           req(r"System\.out\.println", "Gib den Wert aus.")],
          "Kommazahlen brauchen double. Mit float müsste am Ende ein f stehen (4.99f).",
@@ -350,8 +351,9 @@ CODING = [
              System.out.print(i + " ");
          }
          """,
-         [req(r"\bfor\b", "Nutze eine for-Schleife."),
-          req(r"\+=\s*3|i\s*=\s*i\s*\+\s*3", "Zähle in Dreierschritten."),
+         [any_of([r"\bfor\b", r"\bwhile\b"], "Nutze eine Schleife – for oder while."),
+          any_of([r"\+=\s*3", r"\w\s*=\s*\w\s*\+\s*3", r"\*\s*3", r"3\s*\*"],
+                  "Die Vielfachen von 3: entweder in Dreierschritten zählen oder mit 3 multiplizieren."),
           forbid(r"print\(3 6 9", "Nicht die Zahlen hinschreiben – lass die Schleife zählen.")],
          "Der Zähler startet bei 3 und springt jede Runde um 3 weiter, bis er 15 überschreitet.",
          expected="3 6 9 12 15 ",
@@ -364,7 +366,8 @@ CODING = [
          }
          """,
          [req(r"double\s+mittelwert\s*\(\s*int\s+\w+\s*,\s*int\s+\w+\s*\)", "Die Methode heißt mittelwert und liefert double."),
-          req(r"2\.0|\(double\)", "Verhindere die Ganzzahldivision – teile durch 2.0.")],
+          any_of([r"2\.0", r"\(double\)", r"double\s+\w+\s*=\s*\w+\s*\+\s*\w+\s*;"],
+                 "Verhindere die Ganzzahldivision – teile durch 2.0, wandle um, oder mach schon die Summe zum double.")],
          "Mit / 2 wäre es eine Ganzzahldivision. 2.0 zwingt Java, in Kommazahlen zu rechnen.",
          ctx="members",
          verify={"context": "members", "main": "System.out.println(mittelwert(3, 4));", "output": "3.5"},
@@ -399,7 +402,8 @@ CODING = [
          }
          """,
          [req(r"new\s+ArrayList", "Lege eine ArrayList an."),
-          req(r"\.add\(", "Füge die Einträge mit add hinzu."),
+          any_of([r"\.add\(", r"List\.of\s*\(", r"Arrays\.asList\s*\("],
+                  "Bring „rot“ und „blau“ in die Liste – mit add oder gleich beim Anlegen."),
           req(r"\bfor\b", "Geh die Liste mit einer Schleife durch.")],
          "Die Liste wächst mit jedem add. Die for-each-Schleife holt danach jeden Eintrag der Reihe nach.",
          expected="rot\nblau",
@@ -481,7 +485,7 @@ CODING = [
          System.out.println(anzahl);
          """,
          [req(r"\bfor\b", "Geh mit einer Schleife durch alle Zeichen."),
-          req(r"charAt", "Hol jedes Zeichen mit charAt."),
+          any_of([r"charAt", r"toCharArray"], "Hol dir die einzelnen Zeichen – mit charAt oder toCharArray."),
           forbid(r"println\(2\)", "Nicht die Antwort hinschreiben – lass Java zählen.")],
          "charAt(i) holt das Zeichen aus Fach i: In „Banane“ steht zweimal ein a. Ein einzelnes Zeichen "
          "gehört in einfache Anführungszeichen.",

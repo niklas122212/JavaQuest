@@ -203,11 +203,87 @@ object AnswerEvaluator {
             when {
                 blankAccepts(blank, value) -> { correct += 1; findings += Finding.passed("Lücke ${index + 1} ist richtig.") }
                 value.isBlank() -> findings += Finding.failed("Lücke ${index + 1} ist noch leer.")
-                else -> findings += Finding.failed("Lücke ${index + 1} stimmt noch nicht.")
+                else -> findings += Finding.failed(
+                    "Lücke ${index + 1}: " + warumBlankFalsch(value, blank, spec.blanks, index),
+                )
             }
         }
         val total = maxOf(spec.blanks.size, 1)
         return EvaluationResult(correct == spec.blanks.size, correct.toDouble() / total, findings)
+    }
+
+    /** Warum diese Eingabe die Lücke nicht füllt – konkret statt „stimmt noch nicht“. */
+    fun warumBlankFalsch(value: String, blank: Blank, alle: List<Blank>, index: Int): String {
+        val eingabe = value.trim()
+        val richtig = blank.accepted.firstOrNull() ?: ""
+        if (blank.accepted.any { it.lowercase() == eingabe.lowercase() }) {
+            return "fast – achte auf Groß- und Kleinschreibung."
+        }
+        alle.forEachIndexed { anderer, b ->
+            if (anderer != index && b.accepted.any { it.lowercase() == eingabe.lowercase() }) {
+                return "das gehört in Lücke ${anderer + 1}."
+            }
+        }
+        val ohneKlammern = eingabe.replace("()", "")
+        if (blank.accepted.any { it.lowercase() == ohneKlammern.lowercase() }) {
+            return "die runden Klammern stehen hier schon im Text."
+        }
+        if (blank.accepted.any { it.lowercase() == (eingabe + "()").lowercase() }) {
+            return "fast – es fehlen die runden Klammern."
+        }
+        if (richtig.isNotEmpty() && richtig.lowercase().startsWith(eingabe.lowercase())) {
+            return "der Anfang stimmt, es fehlt noch etwas."
+        }
+        if (eingabe.isNotEmpty() && richtig.isNotEmpty() && eingabe.lowercase().startsWith(richtig.lowercase())) {
+            return "da steht etwas zu viel."
+        }
+        return "stimmt noch nicht."
+    }
+
+    /** Was an dieser einen Zeile abweicht – benannt, nicht nur festgestellt. */
+    fun warumZeileFalsch(gegeben: String, erwartet: String): String {
+        if (gegeben.lowercase() == erwartet.lowercase()) return "richtig bis auf die Groß- und Kleinschreibung."
+        if (gegeben.filterNot { it.isWhitespace() } == erwartet.filterNot { it.isWhitespace() }) {
+            return "richtig bis auf die Leerzeichen."
+        }
+        if (erwartet.endsWith(".0") && erwartet.dropLast(2) == gegeben) {
+            return "die Nachkommastelle fehlt – sobald eine Kommazahl beteiligt ist, hat auch das Ergebnis eine."
+        }
+        if (gegeben.endsWith(".0") && gegeben.dropLast(2) == erwartet) {
+            return "hier wird mit ganzen Zahlen gerechnet, da kommt keine Nachkommastelle heraus."
+        }
+        if (erwartet.startsWith("[") && erwartet.endsWith("]") && erwartet.drop(1).dropLast(1) == gegeben) {
+            return "eine Liste gibt sich mit eckigen Klammern aus."
+        }
+        if (erwartet.length == gegeben.length) return "gleich lang, aber ein anderer Inhalt."
+        return if (gegeben.length < erwartet.length) "da fehlt noch etwas." else "da steht etwas zu viel."
+    }
+
+    /** Ein Befund über die ganze Ausgabe – für Fehler, die man nur im Zusammenhang sieht. */
+    fun warumAusgabeFalsch(gegeben: List<String>, erwartet: List<String>): String? {
+        val gJoin = gegeben.joinToString("")
+        val eJoin = erwartet.joinToString("")
+        // Nur melden, wenn sich der Text wirklich in der Schreibweise unterscheidet – sonst
+        // verdeckt dieser Fall den print/println-Fehler, bei dem der Text identisch ist.
+        if (gJoin.lowercase() == eJoin.lowercase() && gJoin != eJoin) {
+            return "Fast! Achte auf Groß- und Kleinschreibung."
+        }
+        if (gegeben.size == 1 && erwartet.size > 1 && gegeben[0] == eJoin) {
+            return "Der Inhalt stimmt, aber alles steht in einer Zeile. println beginnt danach eine neue, print nicht."
+        }
+        if (erwartet.size == 1 && gegeben.size > 1 && erwartet[0] == gJoin) {
+            return "Der Inhalt stimmt, aber er ist auf mehrere Zeilen verteilt. Nur println bricht um."
+        }
+        if (gJoin.filterNot { it.isWhitespace() } == eJoin.filterNot { it.isWhitespace() }) {
+            return "Fast! Achte auf Leerzeichen und Zeilenumbrüche – println beginnt eine neue Zeile, print nicht."
+        }
+        if (gegeben.size > erwartet.size) {
+            return "Es erscheinen ${gegeben.size - erwartet.size} Zeile(n) zu viel. Zähl nach, wie oft die Ausgabe wirklich erreicht wird."
+        }
+        if (gegeben.size < erwartet.size) {
+            return "Es fehlen ${erwartet.size - gegeben.size} Zeile(n). Zähl nach, wie oft die Ausgabe erreicht wird."
+        }
+        return null
     }
 
     fun blankAccepts(blank: Blank, value: String): Boolean {
@@ -239,15 +315,13 @@ object AnswerEvaluator {
                 expectedLine != null && expectedLine == givenLine -> matching += 1
                 expectedLine == null -> findings += Finding.failed("Zeile ${index + 1} ist zu viel.", index + 1)
                 givenLine == null -> findings += Finding.failed("Zeile ${index + 1} fehlt noch.", index + 1)
-                else -> findings += Finding.failed("Zeile ${index + 1} weicht ab.", index + 1)
+                else -> findings += Finding.failed(
+                    "Zeile ${index + 1}: " + warumZeileFalsch(givenLine!!, expectedLine!!), index + 1,
+                )
             }
         }
         if (matching > 0) findings.add(0, Finding.passed("$matching von ${expected.size} Zeilen stimmen."))
-        if (given.joinToString("").lowercase() == expected.joinToString("").lowercase()) {
-            findings += Finding.hint("Fast! Achte auf Groß- und Kleinschreibung.")
-        } else if (given.joinToString("").filterNot { it.isWhitespace() } == expected.joinToString("").filterNot { it.isWhitespace() }) {
-            findings += Finding.hint("Fast! Achte auf Leerzeichen und Zeilenumbrüche – println beginnt eine neue Zeile, print nicht.")
-        }
+        warumAusgabeFalsch(given, expected)?.let { findings += Finding.hint(it) }
         return EvaluationResult(false, matching.toDouble() / maxOf(expected.size, given.size), findings)
     }
 
@@ -279,9 +353,10 @@ object AnswerEvaluator {
         var violations = 0
         for (rule in spec.rules) {
             val target = if (rule.scope == RuleScope.RAW) withoutComments else masked
-            val matches = matches(rule.pattern, target)
+            // Bei ANY_OF genügt einer der gleichwertigen Wege.
+            val matches = rule.allPatterns.any { matches(it, target) }
             when (rule.rule) {
-                RuleKind.REQUIRE -> {
+                RuleKind.REQUIRE, RuleKind.ANY_OF -> {
                     total += rule.weight
                     if (matches) { earned += rule.weight; ruleFindings += Finding.passed(rule.message) }
                     else { allRequiredMet = false; ruleFindings += Finding.failed(rule.message) }

@@ -121,6 +121,11 @@ def cases_for(task):
     elif kind == "code":
         expected = task.get("expectedOutput", verify.get("output"))
         yield name + " (Musterlösung)", source(task["sampleSolution"]), context, main, expected, True
+        # Die gleichwertigen Lösungen sind die Behauptung, dass es auch anders geht.
+        # Wenn sie nicht übersetzen oder etwas anderes ausgeben, ist die Behauptung falsch –
+        # und die gelockerte Prüfregel dahinter genauso.
+        for nummer, alternative in enumerate(task.get("_equivalents", []), start=1):
+            yield f"{name} (gleichwertig {nummer})", alternative, context, main, expected, True
     elif kind == "fillBlank":
         yield name + " (ausgefüllt)", fill_template(task), context, main, verify.get("output"), True
     elif kind == "singleChoice" and task.get("code"):
@@ -134,6 +139,11 @@ def main():
     tasks = [t for m in course["modules"] for l in m["lessons"] for t in l["tasks"]]
     tasks += course.get("taskPool", [])  # Übungsaufgaben außerhalb der Lektionen
     tasks += [t for pool in course["placement"]["pools"].values() for t in pool]
+    # Gleichwertige Lösungen an ihre Aufgabe hängen, damit sie mitgeprüft werden.
+    gleichwertig = course.get("equivalentSolutions", {})
+    for t in tasks:
+        if t["id"] in gleichwertig:
+            t["_equivalents"] = gleichwertig[t["id"]]
     cases = [case for task in tasks for case in cases_for(task)]
     # Theorie-Beispiele mit verify werden ebenfalls übersetzt und ausgeführt.
     for m in course["modules"]:

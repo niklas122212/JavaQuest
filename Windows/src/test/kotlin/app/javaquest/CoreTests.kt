@@ -10,6 +10,7 @@ import app.javaquest.core.ExperienceLevel
 import app.javaquest.core.FindingKind
 import app.javaquest.core.JavaContext
 import app.javaquest.core.JavaHighlighter
+import app.javaquest.core.SecondHint
 import app.javaquest.core.JavaSource
 import app.javaquest.core.KnowledgeAnalyzer
 import app.javaquest.core.LearningPath
@@ -273,6 +274,89 @@ class CourseContentTest {
         // Bei nur zwei Varianten bekommt man nach einem Fehler zwangsläufig die andere.
         val knapp = course.practiceableTasks.groupBy { it.groupKey }.filterValues { it.size < 3 }
         assertTrue(knapp.isEmpty(), "zu wenige Varianten: ${knapp.keys.sorted()}")
+    }
+
+    @Test fun `Ein anderer, ebenso richtiger Weg wird auch akzeptiert`() {
+        // Ohne Compiler kann der Prüfer nur Muster suchen – und Muster beschreiben schnell den
+        // WEG statt das ERGEBNIS. Dann wird funktionierender Java-Code abgelehnt.
+        val codeTasks = course.practiceableTasks.filter { it.kind is TaskKind.Code }
+        val ohne = codeTasks.filter { course.equivalentSolutions[it.id].isNullOrEmpty() }
+        assertTrue(ohne.isEmpty(), "ohne gleichwertige Lösung: ${ohne.map { it.id }}")
+
+        val byId = codeTasks.associateBy { it.id }
+        for ((id, loesungen) in course.equivalentSolutions) {
+            val task = byId[id]
+            assertTrue(task != null, "$id: keine Code-Aufgabe")
+            for (loesung in loesungen) {
+                val ergebnis = AnswerEvaluator.evaluate(TaskAnswer.Text(loesung), task!!)
+                assertTrue(ergebnis.isCorrect, "$id: gleichwertige Lösung abgelehnt – ${ergebnis.findings}")
+            }
+        }
+    }
+
+    @Test fun `Unfug wird weiterhin abgelehnt`() {
+        val unfug = listOf("", "// hier kommt noch was", "System.out.println(\"irgendwas ganz anderes\");")
+        for (quelle in unfug) {
+            for (task in course.practiceableTasks.filter { it.kind is TaskKind.Code }) {
+                assertTrue(!AnswerEvaluator.evaluate(TaskAnswer.Text(quelle), task).isCorrect,
+                    "${task.id} akzeptiert „$quelle“")
+            }
+        }
+    }
+
+    @Test fun `Eine falsche Ausgabe wird begruendet, nicht nur abgelehnt`() {
+        // Dieselben Fälle wie in Swift – die beiden Fassungen müssen gleich urteilen.
+        assertTrue(AnswerEvaluator.warumZeileFalsch("hallo", "Hallo").contains("Groß- und Kleinschreibung"))
+        assertTrue(AnswerEvaluator.warumZeileFalsch("a b", "ab").contains("Leerzeichen"))
+        assertTrue(AnswerEvaluator.warumZeileFalsch("10", "10.0").contains("Nachkommastelle"))
+        assertTrue(AnswerEvaluator.warumZeileFalsch("1, 2", "[1, 2]").contains("eckigen Klammern"))
+        // Der print/println-Fehler darf nicht als Schreibweise durchgehen: Dort ist der
+        // Text identisch, nur die Umbrüche fehlen.
+        assertTrue(AnswerEvaluator.warumAusgabeFalsch(listOf("ABC"), listOf("A", "B", "C"))!!.contains("einer Zeile"))
+        assertTrue(AnswerEvaluator.warumAusgabeFalsch(listOf("A", "B", "C"), listOf("ABC"))!!.contains("mehrere Zeilen"))
+        assertTrue(AnswerEvaluator.warumAusgabeFalsch(listOf("abc"), listOf("ABC"))!!.contains("Groß- und Kleinschreibung"))
+        assertTrue(AnswerEvaluator.warumAusgabeFalsch(listOf("a", "b", "c"), listOf("a", "b"))!!.contains("zu viel"))
+        assertTrue(AnswerEvaluator.warumAusgabeFalsch(listOf("a"), listOf("a", "b"))!!.contains("fehlen"))
+    }
+
+    @Test fun `Eine falsch gefuellte Luecke wird begruendet`() {
+        val println = Blank(listOf("println"), caseSensitive = false)
+        val elseBlank = Blank(listOf("else"), caseSensitive = false)
+        assertTrue(AnswerEvaluator.warumBlankFalsch("PRINTLN", println, listOf(println), 0).contains("Groß- und Klein"))
+        assertTrue(AnswerEvaluator.warumBlankFalsch("else", println, listOf(println, elseBlank), 0).contains("Lücke 2"))
+        assertTrue(AnswerEvaluator.warumBlankFalsch("print", println, listOf(println), 0).contains("Anfang stimmt"))
+    }
+
+    @Test fun `Jede Aufgabe hat einen zweiten, konkreteren Tipp`() {
+        for (task in course.practiceableTasks) {
+            val zweiter = SecondHint.text(task) ?: ""
+            assertTrue(zweiter.isNotBlank(), "${task.id}: kein zweiter Tipp")
+            assertTrue(zweiter != task.hint, "${task.id}: zweiter Tipp wiederholt den ersten")
+            when (val kind = task.kind) {
+                is TaskKind.PredictOutput ->
+                    kind.expectedOutput.split("\n").map { it.trim() }.filter { it.length >= 4 }.forEach {
+                        assertTrue(!enthaeltWort(it, zweiter), "${task.id}: zweiter Tipp verrät die Ausgabe")
+                    }
+                is TaskKind.FillBlank -> kind.blanks.forEach { b ->
+                    val wort = b.accepted.firstOrNull() ?: ""
+                    if (wort.length >= 4) {
+                        assertTrue(!enthaeltWort(wort, zweiter), "${task.id}: zweiter Tipp verrät die Lücke")
+                    }
+                }
+                else -> {}
+            }
+        }
+    }
+
+    @Test fun `Der zweite Tipp streicht nie die gerade gewaehlte Antwort`() {
+        for (task in course.practiceableTasks) {
+            val kind = task.kind as? TaskKind.SingleChoice ?: continue
+            kind.choices.indices.filter { it != kind.correctIndex }.forEach { gewaehlt ->
+                val zweiter = SecondHint.text(task, gewaehlt) ?: return@forEach
+                assertTrue(!zweiter.contains("„${kind.choices[gewaehlt]}“"),
+                    "${task.id}: streicht die schon gewählte Antwort erneut")
+            }
+        }
     }
 
     @Test fun `Jede Codezeile im Kurs hat eine Erklaerung`() {

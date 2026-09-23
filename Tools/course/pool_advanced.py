@@ -4,7 +4,7 @@ Deckt die Themen ab, die bisher nur Lektionsaufgaben hatten: equals/toString,
 Texte und Dateien, Datum, Rekursion, Suchen und Sortieren, Mengen, Testen,
 Werkzeuge, Nebenläufigkeit, Pattern Matching und die Projekte.
 """
-from authoring import code, fill, forbid, mc, out, req
+from authoring import any_of, code, fill, forbid, mc, out, req
 
 # ---------------------------------------------------------------- Enums & static
 ENUMS = [

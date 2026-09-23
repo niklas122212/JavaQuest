@@ -256,7 +256,8 @@ l3 = lesson("l03-operators", "Rechnen & Operatoren", "Arithmetik, Kurzschreibwei
          """,
          [req(r"\bdouble\s+\w+\s*=", "Speichere das Ergebnis in einer double-Variablen."),
           req(r"n1\s*\+\s*n2\s*\+\s*n3", "Addiere alle drei Noten."),
-          req(r"\(double\)|/\s*3\.|/\s*3[dDfF]\b", "Verhindere die Ganzzahldivision, z. B. mit / 3.0 oder einem (double)-Cast."),
+          any_of([r"\(double\)", r"/\s*3\.", r"/\s*3[dDfF]\b", r"double\s+\w+\s*=[^;]*\bn1\b[^;]*\+"],
+                 "Verhindere die Ganzzahldivision – etwa mit / 3.0, einem (double)-Cast oder indem schon die Summe ein double ist."),
           req(r"System\.out\.print", "Gib den Durchschnitt aus."),
           forbid(r"2\.6", "Bitte das Ergebnis berechnen lassen, nicht eintippen.")],
          "(n1 + n2 + n3) / 3 wäre eine Ganzzahldivision und ergäbe 2. Mit 3.0 rechnet Java in double.",
@@ -1093,7 +1094,9 @@ l11 = lesson("l11-collections", "Collections & Generics", "Flexible Datenstruktu
          }
          """,
          [req(r"static\s+<\s*(\w+)\s*>\s+\1\s+letztes\s*\(\s*List\s*<\s*\1\s*>\s+\w+\s*\)", "Signatur: static <T> T letztes(List<T> liste)."),
-          req(r"\.get\s*\(\s*\w+\.size\s*\(\s*\)\s*-\s*1\s*\)|\.getLast\s*\(\s*\)", "Greife auf den Index size() - 1 zu (oder nutze getLast())."),
+          any_of([r"\.get\s*\(\s*\w+\.size\s*\(\s*\)\s*-\s*1\s*\)", r"\.getLast\s*\(\s*\)",
+                  r"size\s*\(\s*\)\s*-\s*1"],
+                 "Greife auf den letzten Index zu – size() - 1 oder getLast()."),
           req(r"\breturn\b", "Gib das Element mit return zurück.")],
          "Der Typparameter <T> steht vor dem Rückgabetyp. So passt die Methode für Listen jedes Typs.",
          ctx="members",
@@ -1589,6 +1592,7 @@ assert not _doppelt, f"Begründungen doppelt definiert: {sorted(_doppelt)}"
 WHY_WRONG = {**WHY_WRONG, **WHY_WRONG_MORE}
 from explanations import BETTER_EXPLANATIONS, MINDESTLAENGE
 from hints import HINTS, MINDESTLAENGE_TIPP
+from equivalents import EQUIVALENTS
 from line_notes import NOTES
 import subprocess, os
 
@@ -1657,6 +1661,31 @@ for task in all_tasks:
                 assert len(zeile) < 4 or not steckt_drin(zeile, tipp), \
                     f"{task['id']}: Tipp verrät die Ausgabe ({zeile!r})"
         task["hint"] = tipp
+
+def snippet_text(v):
+    """Der reine Code eines Schnipsels – vor der Anreicherung ein String, danach Zeilen."""
+    if isinstance(v, dict):
+        return "\n".join(z["code"] for z in v["lines"])
+    return v or ""
+
+
+# Gleichwertige Lösungen wandern mit in die Kursdatei. Sie werden zur Laufzeit nie
+# angezeigt – Swift, Kotlin und die Web-App prüfen damit, dass der Prüfer nicht den
+# Weg vorschreibt, sondern das Ergebnis bewertet.
+code_ids = {t["id"] for t in all_tasks if t["type"] == "code"}
+fremd = set(EQUIVALENTS) - code_ids
+assert not fremd, f"Gleichwertige Lösung für Nicht-Code-Aufgabe(n): {sorted(fremd)}"
+ohne_gleichwertige = sorted(code_ids - set(EQUIVALENTS))
+assert not ohne_gleichwertige, \
+    f"{len(ohne_gleichwertige)} Code-Aufgabe(n) ohne gleichwertige Lösung: {ohne_gleichwertige[:8]}"
+_muster = {t["id"]: snippet_text(t["sampleSolution"]) for t in all_tasks if t["type"] == "code"}
+for _tid, _loesungen in EQUIVALENTS.items():
+    assert _loesungen, f"{_tid}: leere Liste gleichwertiger Lösungen"
+    for _l in _loesungen:
+        # Eine Abschrift der Musterlösung prüft nichts.
+        assert _l.split() != _muster[_tid].split(), \
+            f"{_tid}: „gleichwertige“ Lösung ist die Musterlösung selbst"
+course["equivalentSolutions"] = {k: list(v) for k, v in sorted(EQUIVALENTS.items())}
 
 # Jede übbare Aufgabe braucht einen Tipp. Die Einstufung nicht: Dort wird gemessen,
 # nicht gelernt – ein Tipp würde das Ergebnis verfälschen.

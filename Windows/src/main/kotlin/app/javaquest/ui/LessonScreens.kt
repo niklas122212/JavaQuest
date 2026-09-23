@@ -233,7 +233,7 @@ private fun TaskStep(model: LessonFlowModel) {
                     if (model.lastResult != null || model.isRevealed) {
                         Box(Modifier.bringIntoViewRequester(feedbackRequester)) {
                             FeedbackPanel(model.lastResult, model.isRevealed, model.attempts, model.remainingAttempts,
-                                task.hint, task.explanation, countsForScore = !model.isPractice,
+                                task.hint, model.secondHint, task.explanation, countsForScore = !model.isPractice,
                                 wrongChoice = model.wrongChoice, correctAnswer = model.correctAnswer)
                         }
                     }
@@ -558,6 +558,8 @@ fun FeedbackPanel(
     attempts: Int,
     remainingAttempts: Int,
     hint: String?,
+    /** Der konkretere zweite Tipp – erscheint erst ab dem zweiten Fehlversuch. */
+    secondHint: String?,
     explanation: String,
     // In Übung und Training zählt die Antwort für die Wissensanalyse, nicht für den Score.
     countsForScore: Boolean = true,
@@ -569,7 +571,13 @@ fun FeedbackPanel(
     val isCorrect = result?.isCorrect == true
     val tint = when { isCorrect -> Palette.success; isRevealed -> Palette.indigo; else -> Palette.orange }
     val headline = when {
-        isCorrect -> if (attempts == 1) "Richtig – volle Punktzahl!" else "Richtig – im $attempts. Anlauf."
+        // Wer nach einem Fehlversuch und dem Tipp selbst draufkommt, hat mehr geleistet
+        // als wer es gleich wusste. Das soll auch so klingen.
+        isCorrect -> when (attempts) {
+            1 -> "Richtig – volle Punktzahl!"
+            2 -> "Stark – nach dem Tipp selbst draufgekommen!"
+            else -> "Geschafft – im $attempts. Anlauf, ohne die Lösung aufzudecken."
+        }
         isRevealed -> "Lösung aufgedeckt"
         else -> "Noch nicht ganz"
     }
@@ -614,6 +622,13 @@ fun FeedbackPanel(
                 Icon(Icons.Rounded.Lightbulb, null, tint = Palette.orange, modifier = Modifier.size(20.dp))
                 Spacer(Modifier.width(8.dp))
                 Text(hint, fontSize = 15.sp)
+            }
+        }
+        if (!isCorrect && !isRevealed && secondHint != null) {
+            Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Palette.orange.copy(alpha = 0.14f)).padding(12.dp)) {
+                Icon(Icons.Rounded.Lightbulb, null, tint = Palette.orange, modifier = Modifier.size(20.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(secondHint, fontSize = 15.sp)
             }
         }
         // Nach einer falschen Auswahl: erst der eigene Denkfehler, dann die richtige Antwort.

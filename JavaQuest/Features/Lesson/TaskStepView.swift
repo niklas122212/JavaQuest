@@ -27,6 +27,7 @@ struct TaskStepView: View {
                                 attempts: model.session.attempts,
                                 remainingAttempts: model.remainingAttempts,
                                 hint: task.hint,
+                                secondHint: model.secondHint,
                                 explanation: task.explanation,
                                 countsForScore: !model.isPractice,
                                 wrongChoice: model.wrongChoice,

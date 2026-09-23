@@ -3,7 +3,7 @@
 Jeder Begriff (Sichtbarkeit, Vererbung, Assoziation, Aggregation, Komposition,
 Abhängigkeit, Vielfachheit) wird zuerst erklärt und erst danach abgefragt.
 """
-from authoring import card, code, fill, forbid, lesson, mc, out, req
+from authoring import any_of, card, code, fill, forbid, lesson, mc, out, req
 
 UML_TOPICS = [
     ("umlbasics", "UML-Klassendiagramme", "square.on.square", "Kästen lesen: Klassen, Attribute, Methoden, Sichtbarkeit"),
@@ -179,7 +179,7 @@ l30 = lesson("l30-uml-basics", "UML lesen: der Klassenkasten",
          [req(r"class\s+Person", "Schreibe die Klasse Person."),
           req(r"private\s+String\s+name", "Das Minus im Diagramm bedeutet private."),
           req(r"public\s+String\s+getName\s*\(\s*\)", "getName() ist öffentlich und liefert einen String."),
-          req(r"return\s+name", "Gib das Feld name zurück.")],
+          any_of([r"return\s+name\b", r"return\s+this\.name\b"], "Gib das Feld name zurück.")],
          "Jede Zeile des Kastens wird zu einer Zeile Java: - name: String → private String name; und + getName(): String → public String getName().",
          ctx="file",
          diagram=PERSON,

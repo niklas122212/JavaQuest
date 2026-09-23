@@ -1227,9 +1227,14 @@
                   "message": "Addiere alle drei Noten."
                 },
                 {
-                  "rule": "require",
-                  "pattern": "\\(double\\)|/\\s*3\\.|/\\s*3[dDfF]\\b",
-                  "message": "Verhindere die Ganzzahldivision, z. B. mit / 3.0 oder einem (double)-Cast."
+                  "rule": "anyOf",
+                  "patterns": [
+                    "\\(double\\)",
+                    "/\\s*3\\.",
+                    "/\\s*3[dDfF]\\b",
+                    "double\\s+\\w+\\s*=[^;]*\\bn1\\b[^;]*\\+"
+                  ],
+                  "message": "Verhindere die Ganzzahldivision – etwa mit / 3.0, einem (double)-Cast oder indem schon die Summe ein double ist."
                 },
                 {
                   "rule": "require",
@@ -5314,9 +5319,13 @@
                   "message": "Signatur: static <T> T letztes(List<T> liste)."
                 },
                 {
-                  "rule": "require",
-                  "pattern": "\\.get\\s*\\(\\s*\\w+\\.size\\s*\\(\\s*\\)\\s*-\\s*1\\s*\\)|\\.getLast\\s*\\(\\s*\\)",
-                  "message": "Greife auf den Index size() - 1 zu (oder nutze getLast())."
+                  "rule": "anyOf",
+                  "patterns": [
+                    "\\.get\\s*\\(\\s*\\w+\\.size\\s*\\(\\s*\\)\\s*-\\s*1\\s*\\)",
+                    "\\.getLast\\s*\\(\\s*\\)",
+                    "size\\s*\\(\\s*\\)\\s*-\\s*1"
+                  ],
+                  "message": "Greife auf den letzten Index zu – size() - 1 oder getLast()."
                 },
                 {
                   "rule": "require",
@@ -15994,8 +16003,11 @@
                   "message": "getName() ist öffentlich und liefert einen String."
                 },
                 {
-                  "rule": "require",
-                  "pattern": "return\\s+name",
+                  "rule": "anyOf",
+                  "patterns": [
+                    "return\\s+name\\b",
+                    "return\\s+this\\.name\\b"
+                  ],
                   "message": "Gib das Feld name zurück."
                 }
               ],
@@ -18509,9 +18521,12 @@
           "message": "Die Methode heißt istPositiv und liefert boolean."
         },
         {
-          "rule": "require",
-          "pattern": "return[^;]*>[^;]*0",
-          "message": "Vergleiche die Zahl mit 0."
+          "rule": "anyOf",
+          "patterns": [
+            "return[^;]*>[^;]*0",
+            "if\\s*\\([^)]*>[^)]*0\\s*\\)"
+          ],
+          "message": "Vergleiche die Zahl mit 0 – ob direkt im return oder in einem if, ist deine Sache."
         }
       ],
       "hint": "Der Rückgabetyp ist der für ja/nein. Du brauchst kein if: Der Vergleich zahl > 0 ergibt schon selbst genau diesen Wert."
@@ -20584,9 +20599,13 @@
           "message": "Teile durch 60 für die vollen Stunden."
         },
         {
-          "rule": "require",
-          "pattern": "%\\s*60",
-          "message": "Nutze % 60 für die restlichen Minuten."
+          "rule": "anyOf",
+          "patterns": [
+            "%\\s*60",
+            "-\\s*\\w+\\s*\\*\\s*60",
+            "-\\s*60\\s*\\*\\s*\\w+"
+          ],
+          "message": "Die restlichen Minuten: entweder mit % 60 oder indem du die vollen Stunden abziehst."
         },
         {
           "rule": "require",
@@ -25320,8 +25339,12 @@
           "message": "Die Methode nimmt eine List<T> entgegen."
         },
         {
-          "rule": "require",
-          "pattern": "return\\s+\\w+\\.get\\(0\\)",
+          "rule": "anyOf",
+          "patterns": [
+            "return\\s+\\w+\\.get\\s*\\(\\s*0\\s*\\)",
+            "\\.get\\s*\\(\\s*0\\s*\\)",
+            "\\.getFirst\\s*\\(\\s*\\)"
+          ],
           "message": "Gib das Element aus Fach 0 zurück."
         }
       ],
@@ -28973,9 +28996,12 @@
       "expectedOutput": "4.99",
       "rules": [
         {
-          "rule": "require",
-          "pattern": "double\\s+preis",
-          "message": "Nutze den Typ double für Kommazahlen."
+          "rule": "anyOf",
+          "patterns": [
+            "double\\s+preis",
+            "var\\s+preis\\s*=\\s*[0-9]+\\.[0-9]"
+          ],
+          "message": "Leg preis als Kommazahl an – mit double oder mit var."
         },
         {
           "rule": "require",
@@ -29040,14 +29066,22 @@
       "expectedOutput": "3 6 9 12 15 ",
       "rules": [
         {
-          "rule": "require",
-          "pattern": "\\bfor\\b",
-          "message": "Nutze eine for-Schleife."
+          "rule": "anyOf",
+          "patterns": [
+            "\\bfor\\b",
+            "\\bwhile\\b"
+          ],
+          "message": "Nutze eine Schleife – for oder while."
         },
         {
-          "rule": "require",
-          "pattern": "\\+=\\s*3|i\\s*=\\s*i\\s*\\+\\s*3",
-          "message": "Zähle in Dreierschritten."
+          "rule": "anyOf",
+          "patterns": [
+            "\\+=\\s*3",
+            "\\w\\s*=\\s*\\w\\s*\\+\\s*3",
+            "\\*\\s*3",
+            "3\\s*\\*"
+          ],
+          "message": "Die Vielfachen von 3: entweder in Dreierschritten zählen oder mit 3 multiplizieren."
         },
         {
           "rule": "forbid",
@@ -29115,9 +29149,13 @@
           "message": "Die Methode heißt mittelwert und liefert double."
         },
         {
-          "rule": "require",
-          "pattern": "2\\.0|\\(double\\)",
-          "message": "Verhindere die Ganzzahldivision – teile durch 2.0."
+          "rule": "anyOf",
+          "patterns": [
+            "2\\.0",
+            "\\(double\\)",
+            "double\\s+\\w+\\s*=\\s*\\w+\\s*\\+\\s*\\w+\\s*;"
+          ],
+          "message": "Verhindere die Ganzzahldivision – teile durch 2.0, wandle um, oder mach schon die Summe zum double."
         }
       ],
       "hint": "Der Durchschnitt zweier ganzer Zahlen hat oft Nachkommastellen – also darf nicht durch eine ganze 2 geteilt werden. Klammere die Summe vor dem Teilen."
@@ -29295,9 +29333,13 @@
           "message": "Lege eine ArrayList an."
         },
         {
-          "rule": "require",
-          "pattern": "\\.add\\(",
-          "message": "Füge die Einträge mit add hinzu."
+          "rule": "anyOf",
+          "patterns": [
+            "\\.add\\(",
+            "List\\.of\\s*\\(",
+            "Arrays\\.asList\\s*\\("
+          ],
+          "message": "Bring „rot“ und „blau“ in die Liste – mit add oder gleich beim Anlegen."
         },
         {
           "rule": "require",
@@ -29723,9 +29765,12 @@
           "message": "Geh mit einer Schleife durch alle Zeichen."
         },
         {
-          "rule": "require",
-          "pattern": "charAt",
-          "message": "Hol jedes Zeichen mit charAt."
+          "rule": "anyOf",
+          "patterns": [
+            "charAt",
+            "toCharArray"
+          ],
+          "message": "Hol dir die einzelnen Zeichen – mit charAt oder toCharArray."
         },
         {
           "rule": "forbid",
@@ -33637,8 +33682,13 @@
           "message": "Die Methode heißt zeugnis und bekommt ein int-Array."
         },
         {
-          "rule": "require",
-          "pattern": "\\bfor\\b|\\.stream\\(\\)",
+          "rule": "anyOf",
+          "patterns": [
+            "\\bfor\\b",
+            "\\bwhile\\b",
+            "\\.stream\\s*\\(\\s*\\)",
+            "Arrays\\.stream\\s*\\("
+          ],
           "message": "Geh alle Noten durch."
         },
         {
@@ -34617,8 +34667,11 @@
           "message": "istAn() ist öffentlich und liefert boolean."
         },
         {
-          "rule": "require",
-          "pattern": "return\\s+an",
+          "rule": "anyOf",
+          "patterns": [
+            "return\\s+an\\b",
+            "return\\s+this\\.an\\b"
+          ],
           "message": "Gib das Feld an zurück."
         }
       ],
@@ -35915,9 +35968,13 @@
           "message": "Wie oft passen 60 Sekunden hinein? Das ist die Ganzzahldivision."
         },
         {
-          "rule": "require",
-          "pattern": "%\\s*60",
-          "message": "Was bleibt übrig? Danach fragt der Rest-Operator %."
+          "rule": "anyOf",
+          "patterns": [
+            "%\\s*60",
+            "-\\s*\\w+\\s*\\*\\s*60",
+            "-\\s*60\\s*\\*\\s*\\w+"
+          ],
+          "message": "Was bleibt übrig? Frag den Rest-Operator % – oder zieh die vollen Minuten ab."
         },
         {
           "rule": "require",
@@ -36284,8 +36341,11 @@
           "message": "Gefragt ist die Pfeil-Schreibweise, nicht die alte mit Doppelpunkt und break."
         },
         {
-          "rule": "require",
-          "pattern": "case\\s+6\\s*,\\s*7",
+          "rule": "anyOf",
+          "patterns": [
+            "case\\s+6\\s*,\\s*7",
+            "case\\s+7\\s*,\\s*6"
+          ],
           "message": "Zwei Werte dürfen sich einen Zweig teilen: case 6, 7 ->"
         },
         {
@@ -36640,8 +36700,13 @@
           "scope": "raw"
         },
         {
-          "rule": "require",
-          "pattern": "\\+\\s*name",
+          "rule": "anyOf",
+          "patterns": [
+            "\\+\\s*name",
+            "append\\s*\\(\\s*name\\s*\\)",
+            "concat\\s*\\(\\s*name\\s*\\)",
+            "%s"
+          ],
           "message": "Der übergebene Name gehört in die Mitte."
         },
         {
@@ -39331,8 +39396,13 @@
           "message": "Entscheidend ist die Länge des jeweiligen Wortes."
         },
         {
-          "rule": "require",
-          "pattern": "<\\s*4",
+          "rule": "anyOf",
+          "patterns": [
+            "<\\s*4",
+            "<=\\s*3",
+            ">=\\s*4",
+            ">\\s*3"
+          ],
           "message": "Weg sollen die Wörter mit weniger als vier Buchstaben."
         },
         {
@@ -41393,8 +41463,13 @@
           "message": "Die Methode heißt toString(), ist public und liefert einen String."
         },
         {
-          "rule": "require",
-          "pattern": "return\\s+wert|wert\\s*\\+",
+          "rule": "anyOf",
+          "patterns": [
+            "return\\s+wert",
+            "wert\\s*\\+",
+            "valueOf\\s*\\(\\s*wert\\s*\\)",
+            "\\bwert\\b"
+          ],
           "message": "Der Wert gehört in den Text."
         },
         {
@@ -42491,8 +42566,11 @@
           "message": "Der rekursive Aufruf macht die Zahl um eins kleiner."
         },
         {
-          "rule": "require",
-          "pattern": "n\\s*\\*",
+          "rule": "anyOf",
+          "patterns": [
+            "n\\s*\\*",
+            "\\*\\s*n\\b"
+          ],
           "message": "Das Ergebnis des kleineren Aufrufs wird mit n multipliziert."
         },
         {
@@ -44114,9 +44192,12 @@
           "message": "Mit length - 1 bleibt das letzte Fach außen vor – genau das ist der Fehler."
         },
         {
-          "rule": "require",
-          "pattern": "summe\\s*\\+=",
-          "message": "Aufaddiert wird weiterhin mit +=."
+          "rule": "anyOf",
+          "patterns": [
+            "summe\\s*\\+=",
+            "summe\\s*=\\s*summe\\s*\\+"
+          ],
+          "message": "Aufaddiert wird weiterhin."
         }
       ],
       "hint": "Der Fehler steckt in der Schleifenbedingung, nicht im Addieren. Das letzte Fach wird nie besucht – ändere nur den Vergleich."
@@ -55415,6 +55496,362 @@
         }
       ]
     }
+  },
+  "equivalentSolutions": {
+    "p-loop-3a": [
+      "int i = 10;\nwhile (i >= 1) {\n    System.out.println(i);\n    i--;\n}"
+    ],
+    "p-meth-3a": [
+      "static boolean istPositiv(int zahl) {\n    if (zahl > 0) {\n        return true;\n    }\n    return false;\n}"
+    ],
+    "q-alg-3a": [
+      "int[] zahlen = {4, 17, 9, 23, 11};\nint anzahl = 0;\nfor (int i = 0; i < zahlen.length; i++) {\n    if (zahlen[i] > 10) {\n        anzahl = anzahl + 1;\n    }\n}\nSystem.out.println(anzahl);"
+    ],
+    "q-arr-2a": [
+      "int[] zahlen = {12, 4, 9, 7};\nint kleinster = zahlen[0];\nfor (int i = 1; i < zahlen.length; i++) {\n    if (zahlen[i] < kleinster) {\n        kleinster = zahlen[i];\n    }\n}\nSystem.out.println(kleinster);"
+    ],
+    "q-ds-3a": [
+      "List<String> zeichen = List.of(\"a\", \"b\", \"a\", \"c\", \"b\");\nSet<String> verschieden = new HashSet<>();\nverschieden.addAll(zeichen);\nSystem.out.println(verschieden.size());"
+    ],
+    "q-exc-2a": [
+      "String eingabe = \"abc\";\ntry {\n    System.out.println(Integer.parseInt(eingabe));\n} catch (NumberFormatException e) {\n    System.out.println(\"keine Zahl\");\n}"
+    ],
+    "q-if-2a": [
+      "int zahl = -4;\nif (zahl == 0) {\n    System.out.println(\"null\");\n} else if (zahl > 0) {\n    System.out.println(\"positiv\");\n} else {\n    System.out.println(\"negativ\");\n}"
+    ],
+    "q-io-3a": [
+      "String[] farben = {\"rot\", \"gelb\", \"blau\"};\nStringBuilder sb = new StringBuilder();\nsb.append(farben[0]).append(\"-\").append(farben[1]).append(\"-\").append(farben[2]);\nSystem.out.println(sb);"
+    ],
+    "q-meth-2a": [
+      "static void begruesse(String name) {\n    String gruss = \"Hallo, \" + name + \"!\";\n    System.out.println(gruss);\n}"
+    ],
+    "q-oop-2a": [
+      "class Punkt {\n    private int x;\n    private int y;\n\n    Punkt(int neuX, int neuY) {\n        x = neuX;\n        y = neuY;\n    }\n\n    int getX() {\n        return x;\n    }\n}"
+    ],
+    "q-op-3a": [
+      "int minutenGesamt = 137;\nint stunden = minutenGesamt / 60;\nint rest = minutenGesamt - stunden * 60;\nSystem.out.println(stunden);\nSystem.out.println(rest);"
+    ],
+    "q-rec-2a": [
+      "static void zaehleRunter(int n) {\n    if (n > 0) {\n        System.out.println(n);\n        zaehleRunter(n - 1);\n    }\n}"
+    ],
+    "q-syn-3b": [
+      "System.out.println(\"Zeile 1\");\nSystem.out.print(\"Zeile 2\");\nSystem.out.println();"
+    ],
+    "r-dat-2a": [
+      "LocalDate start = LocalDate.of(2000, 1, 1);\nLocalDate ende = LocalDate.of(2026, 1, 1);\nPeriod abstand = Period.between(start, ende);\nSystem.out.println(abstand.getYears());"
+    ],
+    "r-gen-2a": [
+      "static <T> T erstes(List<T> liste) {\n    T ersterEintrag = liste.get(0);\n    return ersterEintrag;\n}"
+    ],
+    "r-str-3a": [
+      "String wort = \"JavaQuest\";\nboolean beginnt = wort.startsWith(\"Ja\");\nSystem.out.println(beginnt);"
+    ],
+    "s-code-1": [
+      "var preis = 4.99;\nSystem.out.println(preis);",
+      "double preis = 4.99;\nSystem.out.println(\"\" + preis);"
+    ],
+    "s-code-10": [
+      "List<String> woerter = List.of(\"Birne\", \"Apfel\", \"Birne\");\nSet<String> sortiert = new TreeSet<>();\nsortiert.addAll(woerter);\nSystem.out.println(sortiert);"
+    ],
+    "s-code-2": [
+      "for (int i = 1; i <= 5; i++) {\n    System.out.print(i * 3 + \" \");\n}",
+      "int i = 3;\nwhile (i <= 15) {\n    System.out.print(i + \" \");\n    i += 3;\n}"
+    ],
+    "s-code-3": [
+      "static double mittelwert(int a, int b) {\n    double summe = a + b;\n    return summe / 2;\n}"
+    ],
+    "s-code-4": [
+      "int[] zahlen = {2, 5, 9};\nint summe = 0;\nfor (int i = 0; i < zahlen.length; i++) {\n    summe = summe + zahlen[i];\n}\nSystem.out.println(summe);"
+    ],
+    "s-code-5": [
+      "List<String> farben = new ArrayList<>(List.of(\"rot\", \"blau\"));\nfor (String f : farben) {\n    System.out.println(f);\n}"
+    ],
+    "s-code-6": [
+      "List<String> woerter = List.of(\"Hut\", \"Apfel\", \"Banane\");\nwoerter.stream()\n        .filter(w -> w.length() >= 5)\n        .forEach(System.out::println);"
+    ],
+    "s-code-7": [
+      "class Konto {\n    private double stand;\n\n    void einzahlen(double betrag) {\n        stand += betrag;\n    }\n\n    double getStand() {\n        return this.stand;\n    }\n}"
+    ],
+    "s-code-8": [
+      "int[] teiler = {2, 0, 5};\nfor (int i = 0; i < teiler.length; i++) {\n    try {\n        System.out.println(10 / teiler[i]);\n    } catch (ArithmeticException e) {\n        System.out.println(\"nicht teilbar\");\n    }\n}"
+    ],
+    "s-code-9": [
+      "String wort = \"Banane\";\nint anzahl = 0;\nfor (char c : wort.toCharArray()) {\n    if (c == 'a') {\n        anzahl++;\n    }\n}\nSystem.out.println(anzahl);"
+    ],
+    "t01-5": [
+      "String text = \"Ich lerne Java\";\nSystem.out.println(text);"
+    ],
+    "t02-5": [
+      "int a = 3;\nint b = 7;\nvar tmp = a;\na = b;\nb = tmp;\nSystem.out.println(a + \" \" + b);"
+    ],
+    "t03-5": [
+      "int n1 = 2;\nint n2 = 3;\nint n3 = 3;\ndouble summe = n1 + n2 + n3;\ndouble schnitt = summe / 3;\nSystem.out.println(schnitt);"
+    ],
+    "t04-5": [
+      "int monat = 1;\nswitch (monat) {\n    case 1, 2, 12 -> System.out.println(\"Winter\");\n    default -> System.out.println(\"Kein Winter\");\n}"
+    ],
+    "t05-5": [
+      "int summe = 0;\nint i = 1;\nwhile (i <= 100) {\n    summe = summe + i;\n    i++;\n}\nSystem.out.println(summe);"
+    ],
+    "t06-5": [
+      "static boolean istGerade(int zahl) {\n    if (zahl % 2 == 0) {\n        return true;\n    }\n    return false;\n}"
+    ],
+    "t07-5": [
+      "int[] zahlen = {12, 45, 7, 23, 38};\nint max = zahlen[0];\nfor (int i = 1; i < zahlen.length; i++) {\n    max = Math.max(max, zahlen[i]);\n}\nSystem.out.println(max);"
+    ],
+    "t08-5": [
+      "class Rechteck {\n    private double breite;\n    private double hoehe;\n\n    Rechteck(double b, double h) {\n        breite = b;\n        hoehe = h;\n    }\n\n    double flaeche() {\n        return hoehe * breite;\n    }\n}"
+    ],
+    "t09-5": [
+      "class Rechteck {\n    protected double breite;\n    protected double hoehe;\n\n    Rechteck(double breite, double hoehe) {\n        this.breite = breite;\n        this.hoehe = hoehe;\n    }\n\n    double flaeche() {\n        return breite * hoehe;\n    }\n}\n\nclass Quadrat extends Rechteck {\n    Quadrat(double kante) {\n        super(kante, kante);\n    }\n}"
+    ],
+    "t10-5": [
+      "String eingabe = \"12a\";\ntry {\n    int zahl = Integer.parseInt(eingabe);\n    int doppelt = zahl + zahl;\n    System.out.println(doppelt);\n} catch (NumberFormatException e) {\n    System.out.println(\"Ungültige Eingabe\");\n}"
+    ],
+    "t11-5": [
+      "static <T> T letztes(List<T> liste) {\n    int letzterIndex = liste.size() - 1;\n    return liste.get(letzterIndex);\n}"
+    ],
+    "t12-5": [
+      "List<Integer> zahlen = List.of(1, 2, 3, 4, 5);\nint summe = zahlen.stream()\n        .filter(n -> n % 2 == 1)\n        .map(n -> n * n)\n        .reduce(0, Integer::sum);\nSystem.out.println(summe);"
+    ],
+    "t13-5": [
+      "static String beschreibe(Object o) {\n    return switch (o) {\n        case String s -> \"Text mit \" + s.length() + \" Zeichen\";\n        case Integer i -> \"Zahl \" + i;\n        default -> \"Unbekannt\";\n    };\n}"
+    ],
+    "t14-5": [
+      "enum Jahreszeit { FRUEHLING, SOMMER, HERBST, WINTER }\n\npublic static void main(String[] args) {\n    Jahreszeit[] alle = Jahreszeit.values();\n    for (int i = 0; i < alle.length; i++) {\n        System.out.println(alle[i]);\n    }\n}"
+    ],
+    "t15-5": [
+      "class Buch {\n    String titel;\n    String autor;\n\n    Buch(String titel, String autor) {\n        this.titel = titel;\n        this.autor = autor;\n    }\n\n    @Override\n    public String toString() {\n        return this.titel + \" von \" + this.autor;\n    }\n}\n\npublic class Main {\n    public static void main(String[] args) {\n        System.out.println(new Buch(\"Momo\", \"Michael Ende\"));\n    }\n}"
+    ],
+    "t16-5": [
+      "StringBuilder sb = new StringBuilder();\nint i = 0;\nwhile (i < 5) {\n    sb.append(\"*\");\n    i++;\n}\nSystem.out.println(sb.toString());"
+    ],
+    "t17-5": [
+      "LocalDate tag = LocalDate.of(2026, 10, 3);\nDateTimeFormatter deutsch = DateTimeFormatter.ofPattern(\"dd.MM.yyyy\");\nSystem.out.println(deutsch.format(tag));"
+    ],
+    "t18-5": [
+      "static int quersumme(int n) {\n    if (n < 10) {\n        return n;\n    }\n    return quersumme(n / 10) + n % 10;\n}\n\npublic static void main(String[] args) {\n    System.out.println(quersumme(472));\n}"
+    ],
+    "t19-5": [
+      "List<String> woerter = new ArrayList<>(List.of(\"Kiwi\", \"Banane\", \"Apfel\"));\nwoerter.sort((a, b) -> b.length() - a.length());\nSystem.out.println(woerter);"
+    ],
+    "t20-5": [
+      "List<String> woerter = List.of(\"ja\", \"nein\", \"ja\", \"vielleicht\", \"nein\");\nSet<String> verschieden = new TreeSet<>(woerter);\nSystem.out.println(verschieden.size());"
+    ],
+    "t21-5": [
+      "static int verdopple(int x) {\n    return x * 2;\n}\n\nstatic void pruefe(String name, int erwartet, int erhalten) {\n    System.out.println((erwartet == erhalten ? \"OK: \" : \"FEHLER: \") + name);\n}\n\npublic static void main(String[] args) {\n    pruefe(\"verdopple(0)\", 0, verdopple(0));\n    pruefe(\"verdopple(5)\", 10, verdopple(5));\n    pruefe(\"verdopple(-2)\", -4, verdopple(-2));\n}"
+    ],
+    "t22-5": [
+      "int summe = 0;\nfor (int i = 1; i < 6; i++) {\n    summe = summe + i;\n}\nSystem.out.println(summe);"
+    ],
+    "t23-5": [
+      "AtomicInteger zaehler = new AtomicInteger();\nRunnable arbeit = () -> {\n    int i = 0;\n    while (i < 500) {\n        zaehler.getAndIncrement();\n        i++;\n    }\n};\nThread a = new Thread(arbeit);\nThread b = new Thread(arbeit);\na.start();\nb.start();\na.join();\nb.join();\nSystem.out.println(zaehler.get());"
+    ],
+    "t24-5": [
+      "try (ExecutorService team = Executors.newVirtualThreadPerTaskExecutor()) {\n    Future<Integer> a = team.submit(() -> 10);\n    Future<Integer> b = team.submit(() -> 20);\n    Future<Integer> c = team.submit(() -> 30);\n    int summe = a.get() + b.get();\n    summe = summe + c.get();\n    System.out.println(summe);\n}"
+    ],
+    "t25-5": [
+      "sealed interface Form permits Kreis, Quadrat {}\nrecord Kreis(double r) implements Form {}\nrecord Quadrat(double seite) implements Form {}\n\npublic class Main {\n    static double flaeche(Form f) {\n        return switch (f) {\n            case Kreis k -> Math.PI * Math.pow(k.r(), 2);\n            case Quadrat q -> Math.pow(q.seite(), 2);\n        };\n    }\n\n    public static void main(String[] args) {\n        System.out.println(flaeche(new Quadrat(3)));\n    }\n}"
+    ],
+    "t26-5": [
+      "List<String> woerter = List.of(\"Tee\", \"Kakao\", \"Saft\");\nString laengstes = woerter.stream()\n        .sorted((a, b) -> b.length() - a.length())\n        .findFirst()\n        .orElse(\"\");\nSystem.out.println(laengstes);"
+    ],
+    "t27-5": [
+      "static void bericht(int[] noten) {\n    int summe = 0;\n    int beste = noten[0];\n    for (int n : noten) {\n        summe += n;\n        beste = Math.min(beste, n);\n    }\n    double schnitt = (double) summe / noten.length;\n    System.out.println(\"Schnitt: \" + schnitt + \", beste Note: \" + beste);\n}\n\npublic static void main(String[] args) {\n    bericht(new int[]{2, 3, 1, 2});\n}"
+    ],
+    "t28-5": [
+      "record Aufgabe(String titel, boolean erledigt) {}\n\nList<Aufgabe> liste = List.of(new Aufgabe(\"Einkaufen\", false), new Aufgabe(\"Java lernen\", true));\nint nummer = 1;\nfor (Aufgabe a : liste) {\n    String haken = a.erledigt() ? \"[x]\" : \"[ ]\";\n    System.out.println(nummer + \". \" + haken + \" \" + a.titel());\n    nummer++;\n}"
+    ],
+    "t29-5": [
+      "enum Raum { FLUR, KUECHE, GARTEN }\n\nMap<Raum, Map<String, Raum>> wege = new HashMap<>();\nwege.put(Raum.FLUR, Map.of(\"norden\", Raum.KUECHE, \"osten\", Raum.GARTEN));\nwege.put(Raum.KUECHE, Map.of(\"sueden\", Raum.FLUR));\nwege.put(Raum.GARTEN, Map.of(\"westen\", Raum.FLUR));\nList<String> befehle = List.of(\"norden\", \"sueden\", \"springen\", \"osten\");\nRaum hier = Raum.FLUR;\nfor (String befehl : befehle) {\n    Map<String, Raum> tueren = wege.get(hier);\n    if (tueren.containsKey(befehl)) {\n        hier = tueren.get(befehl);\n    }\n}\nSystem.out.println(hier);"
+    ],
+    "t30-5": [
+      "class Person {\n    private String name;\n\n    public String getName() {\n        return this.name;\n    }\n}"
+    ],
+    "t32-5": [
+      "class Tier {\n    protected String name;\n\n    public String laut() {\n        return \"...\";\n    }\n}\n\nclass Hund extends Tier {\n    public String laut() {\n        return \"Wau\";\n    }\n}"
+    ],
+    "u-alg-2": [
+      "List<String> namen = new ArrayList<>(List.of(\"Mia\", \"Ada\", \"Zoe\"));\nnamen.sort((a, b) -> a.compareTo(b));\nSystem.out.println(namen);"
+    ],
+    "u-gen-4": [
+      "static <T> int anzahl(List<T> liste) {\n    int wieViele = liste.size();\n    return wieViele;\n}"
+    ],
+    "u-test-3": [
+      "static int laenge(String text) {\n    return text.length();\n}\n\nstatic void pruefe(String name, int erwartet, int erhalten) {\n    if (erwartet == erhalten) {\n        System.out.println(\"OK: \" + name);\n    } else {\n        System.out.println(\"FEHLER: \" + name);\n    }\n}\n\npublic static void main(String[] args) {\n    int erwartet = 4;\n    pruefe(\"laenge(Java)\", erwartet, laenge(\"Java\"));\n}"
+    ],
+    "v-adv-5": [
+      "enum Raum { FLUR, KUECHE }\n\npublic class Main {\n    public static void main(String[] args) {\n        Map<String, Raum> tueren = Map.of(\"norden\", Raum.KUECHE);\n        Raum aktuell = Raum.FLUR;\n        String[] befehle = {\"sueden\", \"norden\"};\n        for (String befehl : befehle) {\n            if (tueren.containsKey(befehl)) {\n                aktuell = tueren.get(befehl);\n            }\n        }\n        System.out.println(aktuell);\n    }\n}"
+    ],
+    "v-grd-5": [
+      "static void zeugnis(int[] noten) {\n    int beste = Arrays.stream(noten).min().orElse(0);\n    int schlechteste = Arrays.stream(noten).max().orElse(0);\n    System.out.println(\"Beste: \" + beste + \", Schlechteste: \" + schlechteste);\n}"
+    ],
+    "v-obj-5": [
+      "class Film {\n    String titel = \"Matrix\";\n    int jahr = 1999;\n\n    @Override\n    public String toString() {\n        String klammer = \"(\" + jahr + \")\";\n        return titel + \" \" + klammer;\n    }\n}"
+    ],
+    "v-pat-5": [
+      "sealed interface Getraenk permits Tee, Saft {}\nrecord Tee(String sorte) implements Getraenk {}\nrecord Saft(String frucht) implements Getraenk {}\n\npublic class Main {\n    static String beschreibe(Getraenk g) {\n        return switch (g) {\n            case Tee(String sorte) -> \"Tee: \" + sorte;\n            case Saft(String frucht) -> \"Saft: \" + frucht;\n        };\n    }\n\n    public static void main(String[] args) {\n        System.out.println(beschreibe(new Saft(\"Apfel\")));\n    }\n}"
+    ],
+    "v-str-5": [
+      "List<Integer> zahlen = List.of(8, 3, 11);\nint kleinste = zahlen.stream()\n        .sorted()\n        .findFirst()\n        .orElse(0);\nSystem.out.println(kleinste);"
+    ],
+    "v-todo-5": [
+      "record Aufgabe(String titel, boolean erledigt) {}\n\npublic class Main {\n    public static void main(String[] args) {\n        List<Aufgabe> liste = List.of(new Aufgabe(\"Einkaufen\", true), new Aufgabe(\"Lernen\", false));\n        liste.forEach(a -> {\n            String haken = a.erledigt() ? \"[x] \" : \"[ ] \";\n            System.out.println(haken + a.titel());\n        });\n    }\n}"
+    ],
+    "v-uml-30-5": [
+      "class Lampe {\n    private boolean an;\n\n    public boolean istAn() {\n        return this.an;\n    }\n}"
+    ],
+    "v-uml-32-5": [
+      "interface Fahrbar {\n    void fahren();\n}\n\nclass Auto implements Fahrbar {\n    @Override\n    public void fahren() {\n        String text = \"faehrt\";\n        System.out.println(text);\n    }\n}"
+    ],
+    "x-alg-5a": [
+      "List<Integer> zahlen = new ArrayList<>(List.of(3, 9, 1, 7));\nzahlen.sort(Comparator.<Integer>naturalOrder().reversed());\nSystem.out.println(zahlen);"
+    ],
+    "x-arr-5a": [
+      "int[] zahlen = {4, 12, 7, 20, 10};\nint anzahl = 0;\nfor (int i = 0; i < zahlen.length; i++) {\n    if (zahlen[i] > 10) {\n        anzahl += 1;\n    }\n}\nSystem.out.println(anzahl);"
+    ],
+    "x-col-5a": [
+      "List<String> woerter = new ArrayList<>(List.of(\"Hut\", \"Java\", \"ok\", \"Code\"));\nwoerter.removeIf(w -> w.length() <= 3);\nSystem.out.println(woerter);"
+    ],
+    "x-col-5b": [
+      "Map<Character, Integer> zaehler = new HashMap<>();\nString wort = \"banane\";\nfor (int i = 0; i < wort.length(); i++) {\n    char c = wort.charAt(i);\n    if (zaehler.containsKey(c)) {\n        zaehler.put(c, zaehler.get(c) + 1);\n    } else {\n        zaehler.put(c, 1);\n    }\n}\nSystem.out.println(zaehler);"
+    ],
+    "x-cond-5a": [
+      "int tag = 6;\nswitch (tag) {\n    case 7, 6 -> System.out.println(\"Wochenende\");\n    default -> System.out.println(\"Arbeitstag\");\n}",
+      "int tag = 6;\nString text = switch (tag) {\n    case 6, 7 -> \"Wochenende\";\n    default -> \"Arbeitstag\";\n};\nSystem.out.println(text);"
+    ],
+    "x-ds-5a": [
+      "List<String> a = List.of(\"rot\", \"gruen\", \"blau\");\nList<String> b = List.of(\"blau\", \"gelb\", \"rot\");\nSet<String> beide = new TreeSet<>();\nfor (String s : a) {\n    if (b.contains(s)) {\n        beide.add(s);\n    }\n}\nSystem.out.println(beide);"
+    ],
+    "x-dt-5a": [
+      "LocalDate d = LocalDate.of(2027, 1, 1);\nDateTimeFormatter deutsch = DateTimeFormatter.ofPattern(\"dd.MM.yyyy\");\nSystem.out.println(d.getDayOfWeek());\nSystem.out.println(deutsch.format(d));"
+    ],
+    "x-dt-5b": [
+      "LocalDate start = LocalDate.of(2026, 3, 1);\nLocalDate ende = LocalDate.of(2026, 12, 24);\nlong tage = ende.toEpochDay() - start.toEpochDay();\nSystem.out.println(tage);"
+    ],
+    "x-enum-5a": [
+      "enum Richtung { NORD, OST, SUED, WEST }\n\npublic class Main {\n    public static void main(String[] args) {\n        Richtung[] alle = Richtung.values();\n        for (int i = 0; i < alle.length; i++) {\n            System.out.println(alle[i] + \" \" + alle[i].ordinal());\n        }\n    }\n}"
+    ],
+    "x-enum-5b": [
+      "enum Wochentag {\n    MONTAG, SAMSTAG, SONNTAG;\n\n    boolean istWochenende() {\n        switch (this) {\n            case SAMSTAG:\n            case SONNTAG:\n                return true;\n            default:\n                return false;\n        }\n    }\n}"
+    ],
+    "x-exc-5a": [
+      "int[] teiler = {5, 0, 4};\nfor (int i = 0; i < teiler.length; i++) {\n    try {\n        System.out.println(100 / teiler[i]);\n    } catch (ArithmeticException e) {\n        System.out.println(\"nicht teilbar\");\n    }\n}"
+    ],
+    "x-gen-5a": [
+      "static <T> List<T> letzteZwei(List<T> liste) {\n    int ab = liste.size() - 2;\n    return liste.subList(ab, liste.size());\n}"
+    ],
+    "x-gen-5b": [
+      "Map<String, List<String>> regale = new HashMap<>();\nList<String> obst = new ArrayList<>();\nobst.add(\"Apfel\");\nobst.add(\"Birne\");\nregale.put(\"Obst\", obst);\nSystem.out.println(regale);"
+    ],
+    "x-inh-5a": [
+      "class Fahrzeug {\n    int raeder;\n\n    Fahrzeug(int raeder) {\n        this.raeder = raeder;\n    }\n}\n\nclass Fahrrad extends Fahrzeug {\n    int gaenge;\n\n    Fahrrad(int gaenge) {\n        super(2);\n        this.gaenge = gaenge;\n    }\n\n    int getGaenge() {\n        return gaenge;\n    }\n}"
+    ],
+    "x-io-5a": [
+      "StringBuilder sb = new StringBuilder();\nfor (int i = 1; i <= 5; i++) {\n    sb.append(i);\n    if (i < 5) {\n        sb.append(\"-\");\n    }\n}\nSystem.out.println(sb.toString());"
+    ],
+    "x-loop-5a": [
+      "int i = 1;\nwhile (i <= 5) {\n    System.out.println(\"7 x \" + i + \" = \" + i * 7);\n    i++;\n}"
+    ],
+    "x-meth-5a": [
+      "static String begruessung(String name) {\n    StringBuilder sb = new StringBuilder(\"Hallo, \");\n    sb.append(name).append(\"!\");\n    return sb.toString();\n}"
+    ],
+    "x-mod-5a": [
+      "static int laenge(Object o) {\n    if (!(o instanceof String s)) {\n        return -1;\n    }\n    return s.length();\n}"
+    ],
+    "x-objm-5a": [
+      "class Punkt {\n    int x = 1;\n    int y = 2;\n\n    @Override\n    public boolean equals(Object o) {\n        if (o instanceof Punkt) {\n            Punkt p = (Punkt) o;\n            return x == p.x && y == p.y;\n        }\n        return false;\n    }\n}"
+    ],
+    "x-objm-5b": [
+      "class Temperatur {\n    double wert = 21.5;\n\n    @Override\n    public String toString() {\n        return String.valueOf(wert) + \" Grad\";\n    }\n}"
+    ],
+    "x-oop-5a": [
+      "class Sparschwein {\n    private int stand;\n\n    void einzahlen(int betrag) {\n        stand = stand + betrag;\n    }\n\n    int getStand() {\n        return stand;\n    }\n}"
+    ],
+    "x-op-5a": [
+      "int gesamt = 125;\nint minuten = gesamt / 60;\nint sekunden = gesamt - minuten * 60;\nSystem.out.println(minuten + \" min \" + sekunden + \" s\");"
+    ],
+    "x-pat-5a": [
+      "sealed interface Form permits Kreis, Quadrat {}\n\nrecord Kreis(double r) implements Form {}\n\nrecord Quadrat(double seite) implements Form {}\n\nclass Rechner {\n    static double umfang(Form f) {\n        return switch (f) {\n            case Kreis k -> Math.PI * 2 * k.r();\n            case Quadrat q -> q.seite() * 4;\n        };\n    }\n}"
+    ],
+    "x-rec-5a": [
+      "static int fakultaet(int n) {\n    if (n <= 1) {\n        return 1;\n    }\n    return fakultaet(n - 1) * n;\n}"
+    ],
+    "x-rec-5b": [
+      "static String rueckwaerts(String text) {\n    if (text.length() == 0) {\n        return \"\";\n    }\n    return rueckwaerts(text.substring(1)) + text.charAt(0);\n}"
+    ],
+    "x-str-5a": [
+      "String wort = \"Level\";\nString klein = wort.toLowerCase();\nStringBuilder sb = new StringBuilder(klein);\nSystem.out.println(klein.equals(sb.reverse().toString()));"
+    ],
+    "x-str-5b": [
+      "String wort = \"programmieren\";\nSystem.out.println(wort.substring(0, 1).toUpperCase() + wort.substring(1));"
+    ],
+    "x-syn-5a": [
+      "public class Main {\n    public static void main(String[] args) {\n        String[] zeilen = {\"Start\", \"Ende\"};\n        for (String z : zeilen) {\n            System.out.println(z);\n        }\n    }\n}"
+    ],
+    "x-syn-5b": [
+      "System.out.print(\"A-\");\nSystem.out.print(\"B-\");\nSystem.out.print(\"C\");\nSystem.out.println();"
+    ],
+    "x-test-5a": [
+      "static int laenge(String s) {\n    return s.length();\n}\n\nstatic void pruefe(String name, int erwartet, int tatsaechlich) {\n    if (erwartet == tatsaechlich) {\n        System.out.println(name + \": ok\");\n    } else {\n        System.out.println(name + \": FEHLER\");\n    }\n}\n\npublic static void main(String[] args) {\n    pruefe(\"leer\", 0, laenge(\"\"));\n    pruefe(\"ab\", 2, laenge(\"ab\"));\n    pruefe(\"Java\", 4, laenge(\"Java\"));\n}"
+    ],
+    "x-tool-5a": [
+      "int[] zahlen = {10, 20, 30};\nint summe = 0;\nfor (int i = 0; i < zahlen.length; i++) {\n    summe = summe + zahlen[i];\n}\nSystem.out.println(summe);"
+    ],
+    "x-uml-4b": [
+      "class Konto {\n    private double stand;\n\n    public void einzahlen() {\n        stand += 10;\n    }\n\n    public double getStand() {\n        return stand;\n    }\n}"
+    ],
+    "x-uml-5a": [
+      "class Ampel {\n    private String farbe;\n    private int nummer;\n\n    Ampel(String farbe, int nummer) {\n        this.farbe = farbe;\n        this.nummer = nummer;\n    }\n\n    public void umschalten() {\n        this.farbe = \"gruen\";\n    }\n\n    public String getFarbe() {\n        return this.farbe;\n    }\n}"
+    ],
+    "x-uml-5b": [
+      "class Person {\n    private String name;\n    private int alter;\n\n    Person(String name, int alter) {\n        this.name = name;\n        this.alter = alter;\n    }\n\n    public String getName() {\n        return name;\n    }\n\n    public void hatGeburtstag() {\n        alter += 1;\n    }\n\n    public int getAlter() {\n        return alter;\n    }\n}"
+    ],
+    "x-umlr-5a": [
+      "class Raum {\n    private double flaeche;\n\n    Raum(double flaeche) {\n        this.flaeche = flaeche;\n    }\n\n    double getFlaeche() {\n        return flaeche;\n    }\n}\n\nclass Haus {\n    private String adresse;\n    private List<Raum> raeume;\n\n    Haus(String adresse) {\n        this.adresse = adresse;\n        this.raeume = new ArrayList<>();\n        this.raeume.add(new Raum(20));\n        this.raeume.add(new Raum(15));\n    }\n\n    int anzahlRaeume() {\n        return raeume.size();\n    }\n}"
+    ],
+    "x-umlr-5b": [
+      "class Kunde {\n    private String name;\n\n    Kunde(String name) {\n        this.name = name;\n    }\n\n    String getName() {\n        return name;\n    }\n}\n\nclass Bestellung {\n    private int nummer;\n    private Kunde kunde;\n\n    Bestellung(int nummer, Kunde kunde) {\n        this.nummer = nummer;\n        this.kunde = kunde;\n    }\n\n    String beschreibung() {\n        return this.nummer + \" fuer \" + this.kunde.getName();\n    }\n}"
+    ],
+    "x-var-5a": [
+      "String name = \"Ada\";\nint alter = 36;\ndouble groesse = 1.7;\nString zeile = name + \", \" + alter + \" Jahre, \" + groesse + \" m\";\nSystem.out.println(zeile);"
+    ],
+    "y-dat-4b": [
+      "LocalDate weihnachten = LocalDate.of(2026, 12, 24);\nDateTimeFormatter deutsch = DateTimeFormatter.ofPattern(\"dd.MM.yyyy\");\nSystem.out.println(weihnachten.format(deutsch));"
+    ],
+    "y-str-2b": [
+      "String satz = \"Hallo Welt\";\nString gross = satz.toUpperCase();\nSystem.out.println(gross);"
+    ],
+    "z-con-23-4": [
+      "Runnable arbeit = () -> System.out.println(\"fertig\");\nThread t = new Thread(arbeit);\nt.start();\nt.join();\nSystem.out.println(\"Ende\");"
+    ],
+    "z-io-4": [
+      "Scanner scanner = new Scanner(\"Ada Lovelace\");\nString vorname = scanner.next();\nString nachname = scanner.next();\nStringBuilder sb = new StringBuilder(nachname);\nsb.append(\", \");\nsb.append(vorname);\nSystem.out.println(sb.toString());"
+    ],
+    "z-lam-26-3": [
+      "List<String> woerter = List.of(\"Ei\", \"Hut\", \"Tee\");\nMap<Integer, List<String>> nachLaenge = woerter.stream()\n    .collect(Collectors.groupingBy(w -> w.length()));\nSystem.out.println(nachLaenge);"
+    ],
+    "z-lam-26-4": [
+      "List<List<String>> gruppen = List.of(List.of(\"Linus\", \"Ada\"), List.of(\"Grace\"));\nList<String> alle = gruppen.stream()\n    .flatMap(g -> g.stream())\n    .sorted()\n    .collect(Collectors.toList());\nSystem.out.println(alle);"
+    ],
+    "z-meth-4": [
+      "static int flaeche(int seite) {\n    return flaeche(seite, seite);\n}\n\nstatic int flaeche(int a, int b) {\n    return a * b;\n}"
+    ],
+    "z-proj-28-3": [
+      "record Aufgabe(String titel, boolean erledigt) {}\n\npublic class Main {\n    public static void main(String[] args) {\n        List<Aufgabe> liste = new ArrayList<>();\n        liste.add(new Aufgabe(\"Einkaufen\", false));\n        liste.add(new Aufgabe(\"Lernen\", true));\n        liste.add(new Aufgabe(\"Sport\", false));\n        liste.stream()\n            .filter(a -> !a.erledigt())\n            .forEach(a -> System.out.println(a.titel()));\n    }\n}"
+    ],
+    "z-proj-28-4": [
+      "record Aufgabe(String titel, boolean erledigt) {}\n\npublic class Main {\n    public static void main(String[] args) {\n        List<Aufgabe> liste = new ArrayList<>();\n        liste.add(new Aufgabe(\"Putzen\", false));\n        String titel = liste.get(0).titel();\n        liste.set(0, new Aufgabe(titel, true));\n        System.out.println(liste);\n    }\n}"
+    ],
+    "z-proj-29-4": [
+      "enum Raum { FLUR, KUECHE }\n\npublic class Main {\n    public static void main(String[] args) {\n        Map<Raum, Map<String, Raum>> wege = new HashMap<>();\n        wege.put(Raum.FLUR, Map.of(\"norden\", Raum.KUECHE));\n        wege.put(Raum.KUECHE, Map.of(\"sueden\", Raum.FLUR));\n        String[] befehle = {\"norden\", \"springen\"};\n        Raum hier = Raum.FLUR;\n        for (int i = 0; i < befehle.length; i++) {\n            hier = wege.get(hier).getOrDefault(befehle[i], hier);\n        }\n        System.out.println(hier);\n    }\n}"
+    ],
+    "z-uml-31-5": [
+      "class Drucker {\n    void ausgeben(String text) {\n        System.out.println(text);\n    }\n}\n\nclass Rechnung {\n    void drucke(Drucker geraet) {\n        String text = \"Rechnung\";\n        geraet.ausgeben(text);\n    }\n}"
+    ],
+    "z-uml-32-4": [
+      "interface Fahrbar {\n    void fahren();\n}\n\nclass Auto implements Fahrbar {\n    @Override\n    public void fahren() {\n        System.out.println(\"faehrt\");\n    }\n}"
+    ]
   },
   "glossary": [
     {

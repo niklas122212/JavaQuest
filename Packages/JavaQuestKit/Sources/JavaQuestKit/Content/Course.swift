@@ -3,7 +3,7 @@ import Foundation
 /// Der komplette, lokal gebündelte Kurs (siehe `Resources/java_course.json`).
 public struct Course: Decodable, Sendable, Hashable {
     enum CodingKeys: String, CodingKey {
-        case schemaVersion, id, title, topics, modules, placement, taskPool
+        case schemaVersion, id, title, topics, modules, placement, taskPool, equivalentSolutions
     }
 
     /// Eigener Decoder, damit ältere Kursdateien ohne `taskPool` weiterhin lesbar bleiben.
@@ -16,6 +16,7 @@ public struct Course: Decodable, Sendable, Hashable {
         modules = try container.decode([CourseModule].self, forKey: .modules)
         placement = try container.decode(PlacementConfig.self, forKey: .placement)
         taskPool = try container.decodeIfPresent([LearningTask].self, forKey: .taskPool) ?? []
+        equivalentSolutions = try container.decodeIfPresent([String: [String]].self, forKey: .equivalentSolutions) ?? [:]
     }
 
     public let schemaVersion: Int
@@ -27,6 +28,10 @@ public struct Course: Decodable, Sendable, Hashable {
     /// Übungsaufgaben außerhalb der Lektionen: zusätzliche Varianten und Aufgaben je Thema.
     /// Der Lernpfad bleibt davon unberührt; Übung, Training und freies Lernen ziehen daraus mit.
     public let taskPool: [LearningTask]
+    /// Gleichwertige, ebenfalls richtige Lösungen zu Code-Aufgaben – Aufgaben-ID auf Lösungen.
+    /// Sie werden nie angezeigt. Die Tests prüfen damit, dass der Prüfer das Ergebnis bewertet
+    /// und nicht den Weg vorschreibt: Wer selbst denkt, soll nicht dafür bestraft werden.
+    public let equivalentSolutions: [String: [String]]
 
     public var allTasks: [LearningTask] {
         allLessons.flatMap(\.tasks) + taskPool + ExperienceLevel.allCases.flatMap { placement.pool(for: $0) }

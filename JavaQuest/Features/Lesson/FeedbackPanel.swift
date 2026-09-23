@@ -9,6 +9,8 @@ struct FeedbackPanel: View {
     let attempts: Int
     let remainingAttempts: Int
     let hint: String?
+    /// Der konkretere zweite Tipp – erscheint erst ab dem zweiten Fehlversuch.
+    var secondHint: String?
     let explanation: String
     /// In Übung und Training zählt die Antwort für die Wissensanalyse, nicht für den Score.
     var countsForScore = true
@@ -26,7 +28,13 @@ struct FeedbackPanel: View {
     }
 
     private var headline: String {
-        if isCorrect { return attempts == 1 ? "Richtig – volle Punktzahl!" : "Richtig – im \(attempts). Anlauf." }
+        // Wer nach einem Fehlversuch und dem Tipp selbst draufkommt, hat mehr geleistet
+        // als wer es gleich wusste. Das soll auch so klingen.
+        if isCorrect {
+            if attempts == 1 { return "Richtig – volle Punktzahl!" }
+            if attempts == 2 { return "Stark – nach dem Tipp selbst draufgekommen!" }
+            return "Geschafft – im \(attempts). Anlauf, ohne die Lösung aufzudecken."
+        }
         if isRevealed { return "Lösung aufgedeckt" }
         return "Noch nicht ganz"
     }
@@ -112,6 +120,17 @@ struct FeedbackPanel: View {
                 .padding(12)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(Theme.orange.opacity(0.08), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            }
+
+            if !isCorrect, !isRevealed, let secondHint {
+                Label {
+                    Text(secondHint).font(.subheadline)
+                } icon: {
+                    Image(systemName: "lightbulb.fill").foregroundStyle(Theme.orange)
+                }
+                .padding(12)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Theme.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
             }
 
             if isCorrect || isRevealed {

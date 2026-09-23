@@ -11,6 +11,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.vector.ImageVector
+import app.javaquest.core.SecondHint
 import app.javaquest.core.AnswerEvaluator
 import app.javaquest.core.Difficulty
 import app.javaquest.core.EvaluationResult
@@ -132,6 +133,13 @@ class LessonFlowModel(val store: ProgressStore, private val session: LessonSessi
     val currentTask: LearningTask? get() = read { session.currentTask }
     val lastResult: EvaluationResult? get() = read { session.lastResult }
     val isRevealed: Boolean get() = read { session.isRevealed }
+
+    /** Ab dem zweiten Fehlversuch wird der Tipp konkreter, statt sich zu wiederholen. */
+    val secondHint: String? get() {
+        val task = currentTask ?: return null
+        if (attempts < 2 || isRevealed || lastResult?.isCorrect == true) return null
+        return SecondHint.text(task, draft.choice)
+    }
 
     /** Die gewählte falsche Antwort samt Begründung – für die Rückmeldung nach einem Fehler. */
     val wrongChoice: Pair<String, String?>? get() {

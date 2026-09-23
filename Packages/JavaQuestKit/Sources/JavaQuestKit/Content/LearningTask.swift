@@ -318,6 +318,11 @@ public struct CodeRule: Decodable, Sendable, Hashable {
         case require
         /// Das Muster darf nicht vorkommen (z. B. hart codiertes Ergebnis).
         case forbid
+        /// Mindestens eines der Muster in `patterns` muss vorkommen. Für Aufgaben, die
+        /// sich auf mehreren gleichwertigen Wegen lösen lassen – eine Schleife als for
+        /// oder als while, eine Summe mit Index oder mit for-each. Wer selbst denkt,
+        /// soll nicht dafür bestraft werden, dass ihm ein anderer Weg eingefallen ist.
+        case anyOf
     }
 
     /// Worauf das Muster angewendet wird.
@@ -330,24 +335,32 @@ public struct CodeRule: Decodable, Sendable, Hashable {
 
     public let rule: Kind
     public let pattern: String
+    /// Die gleichwertigen Muster bei `anyOf`; bei den anderen Arten leer.
+    public let patterns: [String]
     public let message: String
     public let scope: Scope
     public let weight: Double
 
-    enum CodingKeys: String, CodingKey { case rule, pattern, message, scope, weight }
+    /// Alle Muster, von denen je nach Art eines oder genau dieses passen muss.
+    public var allPatterns: [String] { patterns.isEmpty ? [pattern] : patterns }
+
+    enum CodingKeys: String, CodingKey { case rule, pattern, patterns, message, scope, weight }
 
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         rule = try container.decode(Kind.self, forKey: .rule)
-        pattern = try container.decode(String.self, forKey: .pattern)
+        pattern = try container.decodeIfPresent(String.self, forKey: .pattern) ?? ""
+        patterns = try container.decodeIfPresent([String].self, forKey: .patterns) ?? []
         message = try container.decode(String.self, forKey: .message)
         scope = try container.decodeIfPresent(Scope.self, forKey: .scope) ?? .code
         weight = try container.decodeIfPresent(Double.self, forKey: .weight) ?? 1
     }
 
-    public init(rule: Kind, pattern: String, message: String, scope: Scope = .code, weight: Double = 1) {
+    public init(rule: Kind, pattern: String = "", patterns: [String] = [], message: String,
+                scope: Scope = .code, weight: Double = 1) {
         self.rule = rule
         self.pattern = pattern
+        self.patterns = patterns
         self.message = message
         self.scope = scope
         self.weight = weight

@@ -5,7 +5,7 @@ freies Lernen. Aufgaben mit `group=` gehören zum selben Lernziel wie eine Lekti
 Pro Sitzung kommt aus einer Gruppe nur eine Variante dran. Wer eine Aufgabe falsch hatte,
 bekommt beim nächsten Mal eine andere Variante – Verstehen statt Auswendiglernen.
 """
-from authoring import c, code, fill, forbid, mc, out, req
+from authoring import any_of, c, code, fill, forbid, mc, out, req
 
 # ---------------------------------------------------------------- Variablen & Datentypen
 VARIABLES = [
@@ -256,7 +256,8 @@ METHODS = [
          }
          """,
          [req(r"boolean\s+istPositiv\s*\(\s*int\s+\w+\s*\)", "Die Methode heißt istPositiv und liefert boolean."),
-          req(r"return[^;]*>[^;]*0", "Vergleiche die Zahl mit 0.")],
+          any_of([r"return[^;]*>[^;]*0", r"if\s*\([^)]*>[^)]*0\s*\)"],
+                 "Vergleiche die Zahl mit 0 – ob direkt im return oder in einem if, ist deine Sache.")],
          "Der Vergleich zahl > 0 ist selbst schon ein boolean und kann direkt zurückgegeben werden.",
          ctx="members",
          verify={"context": "members", "main": "System.out.println(istPositiv(5));", "output": "true"},

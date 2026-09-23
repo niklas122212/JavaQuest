@@ -6,7 +6,7 @@ Objektmethoden. Auffällig dünn war hier vor allem der Einstieg – bei Generic
 es keine einzige Aufgabe auf Stufe 1, obwohl spitze Klammern zu den Dingen gehören,
 die man zuerst nicht versteht.
 """
-from authoring import code, fill, forbid, mc, out, req
+from authoring import any_of, code, fill, forbid, mc, out, req
 
 # ---------------------------------------------------------------- Klassen & Objekte
 OOP = [
@@ -512,7 +512,8 @@ COLLECTIONS = [
          """,
          [req(r"removeIf|iterator|for\s*\(", "Zum Entfernen gibt es removeIf – oder eine Schleife mit Iterator."),
           req(r"length\s*\(\s*\)", "Entscheidend ist die Länge des jeweiligen Wortes."),
-          req(r"<\s*4", "Weg sollen die Wörter mit weniger als vier Buchstaben."),
+          any_of([r"<\s*4", r"<=\s*3", r">=\s*4", r">\s*3"],
+                  "Weg sollen die Wörter mit weniger als vier Buchstaben."),
           req(r"System\.out\.println", "Am Ende wird die Liste ausgegeben.")],
          "removeIf geht die Liste durch und wirft alles hinaus, worauf die Bedingung zutrifft. Mit einer "
          "gewöhnlichen for-each-Schleife ginge das nicht: Wer aus einer Liste entfernt, während er sie "
@@ -1059,7 +1060,8 @@ OBJECTMETHODS = [
          }
          """,
          [req(r"public\s+String\s+toString\s*\(\s*\)", "Die Methode heißt toString(), ist public und liefert einen String."),
-          req(r"return\s+wert|wert\s*\+", "Der Wert gehört in den Text."),
+          any_of([r"return\s+wert", r"wert\s*\+", r"valueOf\s*\(\s*wert\s*\)", r"\bwert\b"],
+                  "Der Wert gehört in den Text."),
           req(r'" Grad"', "Hinter der Zahl steht ein Leerzeichen und das Wort „Grad“.", scope="raw")],
          "println fragt jedes Objekt nach seiner toString-Methode. Wer sie selbst schreibt, bestimmt damit, "
          "was beim Ausgeben erscheint – statt der unleserlichen Standardfassung von Object.",

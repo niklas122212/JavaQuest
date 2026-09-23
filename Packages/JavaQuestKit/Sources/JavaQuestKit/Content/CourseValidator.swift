@@ -100,11 +100,18 @@ public enum CourseValidator {
         case .predictOutput(let spec):
             if spec.expectedOutput.isEmpty { issues.append(CourseIssue(location: location, message: "expectedOutput ist leer")) }
         case .code(let spec):
-            if !spec.rules.contains(where: { $0.rule == .require }) {
-                issues.append(CourseIssue(location: location, message: "Code-Aufgabe ohne require-Regel"))
+            // anyOf zählt wie require: Auch damit muss etwas erfüllt sein.
+            if !spec.rules.contains(where: { $0.rule == .require || $0.rule == .anyOf }) {
+                issues.append(CourseIssue(location: location, message: "Code-Aufgabe ohne fordernde Regel"))
             }
-            for rule in spec.rules where (try? NSRegularExpression(pattern: rule.pattern)) == nil {
-                issues.append(CourseIssue(location: location, message: "Ungültige RegEx „\(rule.pattern)“"))
+            for rule in spec.rules where rule.rule == .anyOf && rule.patterns.count < 2 {
+                issues.append(CourseIssue(location: location,
+                                          message: "anyOf mit \(rule.patterns.count) Muster – das ist ein require"))
+            }
+            for rule in spec.rules {
+                for muster in rule.allPatterns where (try? NSRegularExpression(pattern: muster)) == nil {
+                    issues.append(CourseIssue(location: location, message: "Ungültige RegEx „\(muster)“"))
+                }
             }
         }
 

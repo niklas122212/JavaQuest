@@ -4,7 +4,7 @@ Hebt die verbliebenen dünnen Themen auf ein vergleichbares Niveau – Generics,
 Datum, Testen, Werkzeuge, Vererbung, modernes Java, Enums, equals, Texte,
 Rekursion, Sortieren und Pattern Matching.
 """
-from authoring import code, fill, forbid, mc, out, req
+from authoring import any_of, code, fill, forbid, mc, out, req
 
 GENERICS = [
     out("u-gen-1", "generics", 3, "Was wird ausgegeben?",

@@ -8,7 +8,7 @@ Ankreuzen prüft Wiedererkennen, eine Ausgabe vorherzusagen prüft Nachvollziehe
 ein Lückentext prüft Zielgenauigkeit und selbst schreiben prüft Können. Jede Stufe
 bekommt deshalb hier mindestens einen zweiten Typ dazu.
 """
-from authoring import code, fill, forbid, mc, out, req
+from authoring import any_of, code, fill, forbid, mc, out, req
 from uml_content import PERSON, TIER_HUND
 
 # ---------------------------------------------------------------- Grundlagen

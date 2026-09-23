@@ -3,7 +3,7 @@
 Alle Texte in Alltagssprache; die Zeilen-Erklärungen erzeugt der CodeExplainer.
 Jedes Codebeispiel mit verify wird von Tools/verify_java_content.py mit einem echten JDK geprüft.
 """
-from authoring import c, card, code, fill, forbid, lesson, mc, out, req
+from authoring import any_of, c, card, code, fill, forbid, lesson, mc, out, req
 
 ADVANCED_TOPICS = [
     ("enums", "Enums & static", "list.number", "Feste Auswahlwerte, Klassenvariablen und Konstanten"),

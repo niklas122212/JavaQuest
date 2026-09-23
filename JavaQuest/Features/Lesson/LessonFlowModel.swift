@@ -129,6 +129,16 @@ final class LessonFlowModel {
     var remainingAttempts: Int { max(LessonSession.maxAttempts - session.attempts, 0) }
 
     /// Die gewählte falsche Antwort einer Multiple-Choice-Aufgabe – mit Begründung, falls hinterlegt.
+    /// Ab dem zweiten Fehlversuch wird der Tipp konkreter, statt sich zu wiederholen.
+    /// Bei Auswahlaufgaben bekommt er die gewählte Antwort mit, damit er sie nicht noch
+    /// einmal als „scheidet aus“ nennt.
+    var secondHint: String? {
+        guard let task = currentTask, session.attempts >= 2, !session.isRevealed,
+              session.lastResult?.isCorrect != true
+        else { return nil }
+        return SecondHint.text(for: task, chosen: draft.choice)
+    }
+
     var wrongChoice: (label: String, reason: String?)? {
         guard let task = currentTask, case .singleChoice(let spec) = task.kind,
               let gewaehlt = draft.choice, gewaehlt != spec.correctIndex,

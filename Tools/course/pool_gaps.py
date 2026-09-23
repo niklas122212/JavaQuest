@@ -4,7 +4,7 @@ Hier ging es nicht um mehr Aufgaben insgesamt, sondern gezielt um die 35 Lernzie
 die bisher nur eine einzige Aufgabe hatten. Genau dort hätte man nach einer falschen
 Antwort beim Wiederholen wieder dieselbe Frage bekommen.
 """
-from authoring import code, fill, forbid, mc, out, req
+from authoring import any_of, code, fill, forbid, mc, out, req
 from uml_content import FORM_HIERARCHIE, INTERFACE_DIAGRAM, KONTO, PERSON, TIER_HUND, box, diagram, m, rel
 
 # ---------------------------------------------------------------- Schleifen, Lambdas, modernes Java
@@ -316,7 +316,8 @@ GRADES = [
          }
          """,
          [req(r"void\s+zeugnis\s*\(\s*int\[\]\s*\w+\s*\)", "Die Methode heißt zeugnis und bekommt ein int-Array."),
-          req(r"\bfor\b|\.stream\(\)", "Geh alle Noten durch."),
+          any_of([r"\bfor\b", r"\bwhile\b", r"\.stream\s*\(\s*\)", r"Arrays\.stream\s*\("],
+                  "Geh alle Noten durch."),
           req(r'"Beste: "', "Gib den Text genau so aus.", scope="raw")],
          "Bei Noten ist die kleinste Zahl die beste. Man merkt sich beide Extremwerte und ersetzt sie bei Bedarf.",
          ctx="members",
@@ -520,7 +521,7 @@ UML = [
          [req(r"class\s+Lampe", "Schreibe die Klasse Lampe."),
           req(r"private\s+boolean\s+an", "Das Minus im Diagramm bedeutet private."),
           req(r"public\s+boolean\s+istAn\s*\(\s*\)", "istAn() ist öffentlich und liefert boolean."),
-          req(r"return\s+an", "Gib das Feld an zurück.")],
+          any_of([r"return\s+an\b", r"return\s+this\.an\b"], "Gib das Feld an zurück.")],
          "Jede Zeile des Kastens wird zu einer Zeile Java: „- an: boolean“ wird private boolean an.",
          ctx="file",
          diagram=UML_KONTO2,
