@@ -18,8 +18,9 @@ Java Master Score von 0 bis 1000.
 Im Browser öffnen; auf dem iPhone in Safari über *Teilen → Zum Home-Bildschirm* als App ablegen.
 Läuft danach offline, ohne App Store und ohne Konto (siehe [Web/](Web/README.md)).
 
-**Windows sofort ausprobieren:** `dist/JavaQuest-Windows-1.0.0.zip` entpacken und
-„JavaQuest starten.bat“ doppelklicken – ohne Installation, Java liegt bei (siehe [Windows](#windows)).
+**Windows sofort ausprobieren:** Unter [Releases](https://github.com/niklas122212/JavaQuest/releases)
+das ZIP herunterladen, entpacken und „JavaQuest starten.bat“ doppelklicken – ohne Installation,
+Java liegt bei (siehe [Windows](#windows)). Selbst bauen: `Windows/tools/package_windows.sh`.
 
 ![iPhone: Onboarding, Erfahrungsgrad, Dashboard, Aufgabe, Lernpfad, Analyse, Dark Mode](Docs/Screenshots/iphone-overview.png)
 ![Mac: Sidebar-Layout mit Dashboard](Docs/Screenshots/mac-dashboard.png)
@@ -43,6 +44,10 @@ Program – Schritt für Schritt beschrieben in [Docs/TestFlight.md](Docs/TestFl
 2. Unter *Signing & Capabilities* das eigene Team wählen und `PRODUCT_BUNDLE_IDENTIFIER`
    (`io.github.niklas122212.JavaQuest`) bei Bedarf auf die eigene ID ändern.
 3. Schema **JavaQuest**, Ziel iPhone/iPad-Simulator oder „My Mac“ – ⌘R.
+
+Tastatur (Mac und iPad mit Tastatur): Tasten 1–4 wählen eine Antwort, ⌘ + Enter prüft und geht weiter,
+Esc bricht ab, ⌘ 1–3 wechselt den Bereich. Dieselben Kürzel wie unter Windows und im Browser – im Browser
+nur mit Alt statt ⌘ für die Bereiche, weil Browser ⌘ + Zahl für ihre Tabs beanspruchen.
 
 Tests des Kerns: Schema **JavaQuestKit** → ⌘U, oder im Terminal:
 
@@ -320,14 +325,16 @@ Musterlösungen, die der Evaluator nicht akzeptiert. In Debug-Builds läuft er a
 Eigene App im Ordner `Windows/` (Kotlin + Compose Desktop), gleiche Inhalte, gleiche Regeln, gleiche Gestaltung:
 Seitenleiste (Übersicht, Lernpfad, Analyse, Profil), Onboarding mit zwei Optionen, Code-Exegese, Aufgaben,
 Auswertung, Endlos-Training, Dashboard mit Diagrammen. Der Lernstand liegt als JSON in `%APPDATA%\JavaQuest\progress.json`.
-Tastatur: Strg + Enter = Prüfen/Weiter, Enter/Tab = nächste Lücke, Tab im Code-Editor = 4 Leerzeichen.
+Tastatur: Tasten 1–4 wählen eine Antwort, Strg + Enter prüft und geht weiter, Esc bricht die Runde ab,
+Enter/Tab springt zur nächsten Lücke, Tab im Code-Editor setzt 4 Leerzeichen.
 
 | Aufgabe | Befehl (im Ordner `Windows/`) |
 |---|---|
 | Tests (Logik + Klick-Durchläufe der Oberfläche) | `./gradlew test` |
 | App starten (Entwicklung) | `./gradlew run` |
 | Portables ZIP mit Java-Laufzeit bauen (auf macOS/Linux) | `tools/package_windows.sh` → `dist/JavaQuest-Windows-1.0.0.zip` |
-| Installer MSI/EXE bauen (nur unter Windows) | `gradlew.bat packageMsi packageExe` oder GitHub-Workflow `Windows-Installer` |
+| Installer MSI/EXE bauen (nur unter Windows) | `gradlew.bat packageMsi packageExe` |
+| Alles veröffentlichen (ZIP + Installer als Release) | `git tag v1.0.1 && git push origin v1.0.1` – der Workflow `Windows-Fassung veröffentlichen` baut beides und hängt es an die Veröffentlichung |
 
 `package_windows.sh` baut die App, entfernt ungenutzte Symbole (122 → 86 MB), zeichnet als Selbsttest jeden
 Bildschirm aller 32 Lektionen, eine Trainingsrunde und eine freie UML-Runde aus der fertigen JAR und legt die geprüfte Java-Laufzeit (Eclipse Temurin 21,

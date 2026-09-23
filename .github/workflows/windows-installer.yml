@@ -1,14 +1,26 @@
-# Baut den Windows-Installer (MSI + EXE) auf einem Windows-Rechner von GitHub.
-# jpackage kann Installer nur für das Betriebssystem bauen, auf dem es läuft.
-name: Windows-Installer
+# Baut die Windows-Fassung und hängt sie an eine Veröffentlichung.
+#
+# Vorher gab es keinen brauchbaren Weg an die fertige App: Das portable ZIP lag nur
+# auf dem Rechner des Entwicklers (dist/ ist von Git ausgenommen), und die Installer
+# landeten als Workflow-Artefakt – das verfällt nach 90 Tagen und lässt sich nur mit
+# GitHub-Konto herunterladen. Die Web-App wird bei jedem Push veröffentlicht; für
+# Windows war der entsprechende Weg nie zu Ende gebaut.
+#
+# Jetzt entsteht bei einem Tag „v…“ eine Veröffentlichung mit beidem: dem portablen
+# ZIP zum Entpacken und den Installern zum Doppelklicken.
+name: Windows-Fassung veröffentlichen
 
 on:
   workflow_dispatch:
   push:
     tags: ["v*"]
 
+permissions:
+  contents: write
+
 jobs:
-  windows:
+  installer:
+    name: Installer (MSI + EXE)
     runs-on: windows-latest
     defaults:
       run:
@@ -25,7 +37,50 @@ jobs:
         run: ./gradlew.bat packageMsi packageExe --console=plain
       - uses: actions/upload-artifact@v4
         with:
-          name: JavaQuest-Windows-Installer
+          name: installer
           path: |
             Windows/build/compose/binaries/main/msi/*.msi
             Windows/build/compose/binaries/main/exe/*.exe
+
+  portabel:
+    name: Portables ZIP mit Java-Laufzeit
+    # Auf macOS, weil das Skript zsh und shasum nutzt – und weil es nebenbei jeden
+    # Bildschirm aus der fertigen JAR zeichnet, also ein Fenstersystem braucht.
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Paket bauen (enthält den Selbsttest über alle Bildschirme)
+        run: Windows/tools/package_windows.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: portabel
+          path: dist/JavaQuest-Windows-*.zip
+
+  veroeffentlichen:
+    name: Veröffentlichung anlegen
+    needs: [installer, portabel]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dateien
+      - name: Veröffentlichung mit allen Dateien
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dateien/**/*
+          generate_release_notes: true
+          body: |
+            Die Windows-Fassung von JavaQuest – gleiche Inhalte und gleiche Regeln wie
+            die Web-App und die Apple-Fassung.
+
+            * **JavaQuest-Windows-…zip** – entpacken und „JavaQuest starten.bat“
+              doppelklicken. Keine Installation nötig, Java liegt bei.
+            * **…msi / …exe** – Installer, falls die App im Startmenü stehen soll.
+
+            Die Web-Fassung braucht keinen Download:
+            <https://niklas122212.github.io/JavaQuest/>
