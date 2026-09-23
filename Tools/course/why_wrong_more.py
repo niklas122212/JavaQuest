@@ -32,7 +32,7 @@ WHY_WRONG_MORE = {
             "Der Unterschied ist erheblich: Zwei Texte mit gleichem Inhalt können zwei verschiedene "
             "Objekte sein – dann liefert == false und equals true.",
         "equals vergleicht nur Zahlen":
-            "Für Grundtypen wie int gibt es gar kein equals – dort nimmt man ==. equals ist gerade für Objekte gedacht.",
+            "Genau umgekehrt: Für Grundtypen wie int gibt es gar kein equals. Es ist gerade für Objekte gedacht.",
         "== vergleicht nur Texte":
             "== funktioniert für alles, fragt aber immer nach der Identität. Bei Texten ist das fast nie "
             "die Frage, die man beantwortet haben will.",
@@ -190,7 +190,7 @@ WHY_WRONG_MORE = {
         "Das Attribut ist gelöscht": "Gelöschte Dinge stehen gar nicht erst im Diagramm. Das Minus ist eine Sichtbarkeitsangabe.",
     },
     "t30-3": {
-        "int": "int stünde dort, wenn die Methode eine ganze Zahl lieferte. Hinter dem Doppelpunkt steht aber String.",
+        "int": "int stünde dort, wenn die Methode eine ganze Zahl lieferte. Lies nach, was im Diagramm wirklich hinter dem Doppelpunkt steht.",
         "void – sie liefert nichts": "Bei void stünde hinter dem Namen gar kein Typ. Hier steht einer.",
         "Person": "Person ist die Klasse, zu der die Methode gehört – nicht das, was sie zurückgibt.",
     },
@@ -270,7 +270,7 @@ WHY_WRONG_MORE = {
     "p-str-2a": {
         "==": "== fragt, ob es dasselbe Objekt ist. Zwei Texte mit gleichem Inhalt können verschiedene "
               "Objekte sein – dann kommt false heraus.",
-        "compare": "compare gibt es bei String nicht. Zum Sortieren gäbe es compareTo, zum Vergleichen equals.",
+        "compare": "compare gibt es bei String nicht. Fürs Sortieren gäbe es compareTo – gefragt ist aber der reine Inhaltsvergleich.",
         "=": "Ein einzelnes Gleichheitszeichen vergleicht nichts, es weist zu.",
     },
     "p-oop-1a": {
@@ -334,7 +334,7 @@ WHY_WRONG_MORE = {
     "q-inh-1b": {
         "Höchstens zwei": "Eine Obergrenze gibt es nicht. Nur bei Klassen ist bei einer Eltern-Klasse Schluss.",
         "Keines, wenn sie schon erbt": "Beides geht gleichzeitig: erst extends, dann implements.",
-        "Genau eines": "Genau eine gilt für die Eltern-Klasse. Verträge darf es beliebig viele geben.",
+        "Genau eines": "Genau eine gilt für die Eltern-Klasse. Bei Verträgen gibt es diese Einschränkung nicht, weil sie keine Felder mitbringen.",
     },
     "q-exc-1b": {
         "Beide bedeuten dasselbe": "Der Unterschied ist grundlegend: throw löst aus, throws kündigt nur an.",
@@ -492,7 +492,7 @@ WHY_WRONG_MORE = {
     },
     "r-uml-1a": {
         "keine davon":
-            "Eine ist es: Das Minus vor pruefe() kennzeichnet sie als privat.",
+            "Doch, eine ist es: Schau noch einmal, vor welcher Zeile ein Minus steht.",
         "getName()":
             "Vor getName() steht ein Plus – die Methode ist öffentlich.",
         "addiere()":
@@ -584,7 +584,7 @@ WHY_WRONG_MORE = {
         "Mit dem Namen des Arrays":
             "Über den Namen erreicht man das ganze Array. Ein einzelnes Fach wählt eine Zahl.",
         "1":
-            "1 wäre menschlich gedacht. Java zählt ab 0, deshalb ist das erste Fach die 0.",
+            "1 wäre menschlich gedacht. Java gibt aber den Abstand zum Anfang an – und der ist beim ersten Fach keiner.",
     },
     "s-easy-8": {
         "Eine Kopie des Programms":

@@ -37,7 +37,7 @@ WHY_WRONG = {
     # --- Modul 1: Variablen
     "t02-1": {
         "boolean": "boolean kennt nur zwei Werte: true und false. Zahlen passen dort nicht hinein.",
-        "double": "double speichert zwar Zahlen, aber mit Nachkommastellen. Für ganze Zahlen ist int die passende Box.",
+        "double": "double speichert zwar Zahlen, aber mit Nachkommastellen – für etwas, das es nur ganz gibt, ist das die falsche Box.",
         "String": "String ist für Text. „5“ in Anführungszeichen wäre Text, mit dem sich nicht rechnen lässt.",
     },
     "t02-4": {
@@ -52,8 +52,8 @@ WHY_WRONG = {
                 "Ergebnis, sondern nach dem Rest.",
         "0": "0 käme heraus, wenn 7 ohne Rest durch 3 teilbar wäre. 3 passt aber nur zweimal hinein, "
              "eins bleibt übrig.",
-        "2": "2 ist, wie oft die 3 in die 7 passt – also das Ergebnis der Ganzzahldivision 7 / 3. "
-             "Der Rest ist dagegen 1.",
+        "2": "2 ist, wie oft die 3 vollständig in die 7 passt – also das Ergebnis der Division. "
+             "Gefragt ist aber, was danach übrig bleibt.",
     },
 
     # --- Modul 2: Kontrollfluss
@@ -98,9 +98,9 @@ WHY_WRONG = {
     # --- Modul 3: Daten & Objekte
     "t07-1": {
         "Das hängt von der Länge ab":
-            "Die Länge spielt keine Rolle: Der Anfang ist immer Fach 0, das letzte Fach hat die "
-            "Nummer length - 1.",
-        "1": "1 wäre menschlich gedacht. Java zählt bei Arrays und auch bei Text ab 0.",
+            "Die Länge spielt keine Rolle: Der Anfang liegt immer an derselben Stelle, egal wie "
+            "viele Fächer dahinter folgen.",
+        "1": "1 wäre menschlich gedacht. Java gibt aber den Abstand zum Anfang an, nicht die laufende Nummer.",
         "-1": "Negative Indizes gibt es in Java nicht – der Zugriff löst sofort einen Alarm aus.",
     },
     "t08-1": {
@@ -121,8 +121,8 @@ WHY_WRONG = {
     },
     "t09-1": {
         "inherits": "inherits klingt passend, ist aber kein Java-Wort – das gibt es in anderen Sprachen.",
-        "super": "super greift auf die Eltern-Klasse zu, stellt die Verbindung aber nicht her. "
-                 "Dafür ist extends da.",
+        "super": "super greift auf die Eltern-Klasse zu – es setzt die Verbindung also schon "
+                 "voraus, statt sie herzustellen.",
         "implements": "implements ist für Interfaces – also für Verträge, nicht für das Erben von "
                       "Feldern und Methoden.",
     },
@@ -130,7 +130,7 @@ WHY_WRONG = {
         "Beliebig viele":
             "Mehrfachvererbung bei Klassen erlaubt Java bewusst nicht, weil sonst unklar wäre, welche "
             "geerbte Methode gilt. Über Interfaces geht es trotzdem.",
-        "Zwei": "Auch zwei sind zu viele. Es bleibt bei genau einer Eltern-Klasse.",
+        "Zwei": "Auch zwei sind zu viele – Java vermeidet bewusst, dass ein Kind gleichnamige Methoden aus mehreren Quellen erbt.",
         "Keine – nur Interfaces":
             "Ohne extends erbt eine Klasse automatisch von Object – ganz ohne Eltern-Klasse ist also "
             "keine Klasse.",
@@ -141,7 +141,7 @@ WHY_WRONG = {
         "throw": "throw löst einen Alarm selbst aus, statt ihn aufzufangen.",
         "final": "final versiegelt eine Box oder verhindert Vererbung – mit Fehlern hat es nichts zu tun. "
                  "Gemeint ist vielleicht finally, das immer zum Schluss läuft.",
-        "try": "Im try steht der riskante Code. Aufgefangen wird der Alarm erst im catch darunter.",
+        "try": "Im try steht der riskante Code. Es löst den Alarm aus oder lässt ihn zu, aufgefangen wird er aber woanders.",
     },
     "t10-3": {
         "NullPointerException":
@@ -156,8 +156,7 @@ WHY_WRONG = {
     },
     "t11-1": {
         "push": "push gehört zum Stapel (Deque) und legt oben drauf. Eine Liste kennt diese Methode nicht.",
-        "insert": "insert gibt es in Java nicht. Zum Einfügen an einer bestimmten Stelle dient add mit "
-                  "Positionsangabe.",
+        "insert": "insert gibt es bei der Liste nicht – diesen Namen kennt man aus anderen Sprachen.",
         "put": "put trägt ein Paar aus Schlüssel und Wert in eine Map ein – eine Liste hat keine Schlüssel.",
     },
     "t11-2": {

@@ -208,13 +208,71 @@ class CourseContentTest {
     @Test fun `Nach einer falschen Antwort steht da, warum sie falsch war`() {
         for (task in course.practiceableTasks) {
             val kind = task.kind as? TaskKind.SingleChoice ?: continue
+            val richtig = kind.choices[kind.correctIndex]
             kind.choices.indices.filter { it != kind.correctIndex }.forEach { index ->
+                val grund = kind.whyWrong(index)
+                assertTrue(!grund.isNullOrBlank(), "${task.id}: keine Begründung für „${kind.choices[index]}“")
+                // Die Begründung erscheint, solange noch Versuche offen sind. Nennt sie die
+                // richtige Antwort, ist der Rest der Aufgabe erledigt.
                 assertTrue(
-                    !kind.whyWrong(index).isNullOrBlank(),
-                    "${task.id}: keine Begründung für „${kind.choices[index]}“",
+                    !enthaeltWort(richtig, grund!!),
+                    "${task.id}: Begründung zu „${kind.choices[index]}“ nennt die Lösung",
                 )
             }
         }
+    }
+
+    @Test fun `Jede Aufgabe hat einen Tipp - und der verraet die Loesung nicht`() {
+        // Ein Tipp ist die Zwischenstufe zwischen Feststecken und Lösung aufdecken.
+        for (task in course.practiceableTasks) {
+            val tipp = task.hint?.trim().orEmpty()
+            assertTrue(tipp.isNotEmpty(), "${task.id}: kein Tipp")
+            assertTrue(tipp.length >= 25, "${task.id}: Tipp zu knapp (${tipp.length})")
+            assertTrue(tipp != task.explanation, "${task.id}: Tipp wiederholt nur die Erklärung")
+            when (val kind = task.kind) {
+                is TaskKind.SingleChoice ->
+                    assertTrue(
+                        !enthaeltWort(kind.choices[kind.correctIndex], tipp),
+                        "${task.id}: Tipp verrät die Antwort",
+                    )
+                is TaskKind.PredictOutput ->
+                    kind.expectedOutput.split("\n").map { it.trim() }.filter { it.length >= 4 }.forEach {
+                        assertTrue(!enthaeltWort(it, tipp), "${task.id}: Tipp verrät die Ausgabe ($it)")
+                    }
+                else -> {}
+            }
+        }
+    }
+
+    /** Kommt [wort] als eigenständiges Wort in [text] vor? „int“ steckt auch in „integer“ – das
+     *  ist eine Umschreibung und keine verratene Lösung. */
+    private fun enthaeltWort(wort: String, text: String): Boolean =
+        Regex("(?<!\\w)" + Regex.escape(wort.trim().lowercase()) + "(?!\\w)").containsMatchIn(text.lowercase())
+
+    @Test fun `Keine Stufe besteht aus einem einzigen Aufgabentyp`() {
+        // Wer auf einer Stufe nur „Was gibt das aus?“ bekommt, übt eine einzige Fertigkeit.
+        course.practiceableTasks
+            .groupBy { "${it.topicId}/${it.difficulty.level}" }
+            .filterValues { it.size >= 3 }
+            .forEach { (stufe, tasks) ->
+                assertTrue(
+                    tasks.map { it.kind::class }.toSet().size > 1,
+                    "$stufe: alle ${tasks.size} Aufgaben vom selben Typ",
+                )
+            }
+    }
+
+    @Test fun `Kein Thema besteht ueberwiegend aus Ausgabe-Aufgaben`() {
+        course.practiceableTasks.groupBy { it.topicId }.forEach { (thema, tasks) ->
+            val anteil = tasks.count { it.kind is TaskKind.PredictOutput }.toDouble() / tasks.size
+            assertTrue(anteil <= 0.5, "$thema: ${(anteil * 100).toInt()} % Ausgabe-Aufgaben")
+        }
+    }
+
+    @Test fun `Jedes Lernziel hat mindestens drei Varianten`() {
+        // Bei nur zwei Varianten bekommt man nach einem Fehler zwangsläufig die andere.
+        val knapp = course.practiceableTasks.groupBy { it.groupKey }.filterValues { it.size < 3 }
+        assertTrue(knapp.isEmpty(), "zu wenige Varianten: ${knapp.keys.sorted()}")
     }
 
     @Test fun `Jede Codezeile im Kurs hat eine Erklaerung`() {

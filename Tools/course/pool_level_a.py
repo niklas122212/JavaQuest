@@ -63,7 +63,7 @@ SYNTAX = [
          [["main"]],
          "Java sucht beim Start nach genau dieser Methode – Schreibweise und Klammerinhalt müssen stimmen. "
          "Ein anderer Name wäre eine ganz normale Methode, die niemand aufruft.",
-         hint="Englisch für „Haupt-“.",
+         hint="Englisch für „Haupt-“, vier Buchstaben, klein geschrieben. Es ist die Methode, die Java von sich aus sucht, ohne dass jemand sie aufruft.",
          ctx="file",
          verify={"context": "file", "output": "laeuft"},
          group="t01-1"),
@@ -248,7 +248,7 @@ CONDITIONALS = [
        why=[None,
             "Ein einzelnes Gleichheitszeichen fragt nichts, es legt einen Wert in eine Box. Zum Vergleichen "
             "braucht es zwei.",
-            "equals vergleicht den Inhalt von Objekten, etwa von Texten. Bei Zahlen wie int nimmt man ==.",
+            "equals vergleicht den Inhalt von Objekten, etwa von Texten. Ein int ist kein Objekt und hat diese Methode gar nicht.",
             "Drei Gleichheitszeichen gibt es in Java nicht – die stammen aus JavaScript."],
        group="t04-1"),
     mc("x-cond-1b", "conditionals", 1, "Was passiert, wenn die Bedingung eines if false ist und kein else dahintersteht?",
@@ -558,7 +558,7 @@ STRINGS = [
        why=[None,
             "== fragt, ob es dasselbe Objekt im Speicher ist. Zwei Texte mit gleichem Inhalt können trotzdem "
             "zwei verschiedene Objekte sein – dann kommt false heraus.",
-            "compare gibt es so bei String nicht. Zum Sortieren gäbe es compareTo, zum Vergleichen equals.",
+            "compare gibt es so bei String nicht. Fürs Sortieren gäbe es compareTo – gefragt ist aber der reine Inhaltsvergleich.",
             "Ein einzelnes Gleichheitszeichen vergleicht nichts – es überschreibt a mit b."],
        group="t07-2"),
     out("x-str-3a", "strings", 3, "Was gibt dieses Programm aus?",

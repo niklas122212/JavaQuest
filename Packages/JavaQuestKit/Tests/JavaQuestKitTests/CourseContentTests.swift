@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import JavaQuestKit
 
@@ -117,11 +118,89 @@ struct CourseContentTests {
     func everyChoiceHasAReason() {
         for task in course.practiceableTasks {
             guard case .singleChoice(let spec) = task.kind else { continue }
+            let richtig = spec.choices[spec.correctIndex]
             for index in spec.choices.indices where index != spec.correctIndex {
-                #expect(spec.whyWrong(index)?.isEmpty == false,
-                        "\(task.id): keine Begründung für „\(spec.choices[index])“")
+                guard let grund = spec.whyWrong(index), !grund.isEmpty else {
+                    #expect(Bool(false), "\(task.id): keine Begründung für „\(spec.choices[index])“")
+                    continue
+                }
+                // Die Begründung erscheint, solange noch Versuche offen sind. Nennt sie die
+                // richtige Antwort, ist der Rest der Aufgabe erledigt.
+                #expect(!Self.enthaeltWort(richtig, in: grund),
+                        "\(task.id): Begründung zu „\(spec.choices[index])“ nennt die Lösung")
             }
         }
+    }
+
+    @Test("Jede Aufgabe hat einen Tipp – und der verrät die Lösung nicht")
+    func everyTaskHasAHint() {
+        // Ein Tipp ist die Zwischenstufe zwischen Feststecken und Lösung aufdecken.
+        // Ohne ihn bleibt nur die Wahl zwischen Weiterraten und Aufgeben.
+        let mindestens = 25
+        for task in course.practiceableTasks {
+            let tipp = (task.hint ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            #expect(!tipp.isEmpty, "\(task.id): kein Tipp")
+            #expect(tipp.count >= mindestens, "\(task.id): Tipp zu knapp (\(tipp.count))")
+            #expect(tipp != task.explanation, "\(task.id): Tipp wiederholt nur die Erklärung")
+            switch task.kind {
+            case .singleChoice(let spec):
+                let richtig = spec.choices[spec.correctIndex]
+                #expect(!Self.enthaeltWort(richtig, in: tipp), "\(task.id): Tipp verrät die Antwort")
+            case .predictOutput(let spec):
+                for zeile in spec.expectedOutput.split(separator: "\n") {
+                    let text = zeile.trimmingCharacters(in: .whitespaces)
+                    guard text.count >= 4 else { continue }
+                    #expect(!Self.enthaeltWort(text, in: tipp), "\(task.id): Tipp verrät die Ausgabe")
+                }
+            default:
+                break
+            }
+        }
+    }
+
+    /// Kommt `wort` als eigenständiges Wort in `text` vor? „int“ steckt auch in
+    /// „integer“ – das ist eine Umschreibung und keine verratene Lösung.
+    static func enthaeltWort(_ wort: String, in text: String) -> Bool {
+        let muster = "(?<!\\w)" + NSRegularExpression.escapedPattern(for: wort.lowercased()) + "(?!\\w)"
+        guard let regex = try? NSRegularExpression(pattern: muster) else { return false }
+        let ziel = text.lowercased()
+        return regex.firstMatch(in: ziel, range: NSRange(ziel.startIndex..., in: ziel)) != nil
+    }
+
+    @Test("Keine Stufe besteht aus einem einzigen Aufgabentyp")
+    func noLevelIsOneSided() {
+        // Wer auf einer Stufe nur „Was gibt das aus?“ bekommt, übt eine einzige Fertigkeit.
+        var nachStufe: [String: [TaskType]] = [:]
+        for task in course.practiceableTasks {
+            nachStufe["\(task.topicId)/\(task.difficulty.rawValue)", default: []].append(task.kind.type)
+        }
+        for (stufe, typen) in nachStufe where typen.count >= 3 {
+            #expect(Set(typen).count > 1, "\(stufe): alle \(typen.count) Aufgaben vom selben Typ")
+        }
+    }
+
+    @Test("Kein Thema besteht überwiegend aus „Was gibt das aus?“")
+    func noTopicIsDominatedByPredictOutput() {
+        var nachThema: [String: [TaskType]] = [:]
+        for task in course.practiceableTasks {
+            nachThema[task.topicId, default: []].append(task.kind.type)
+        }
+        for (thema, typen) in nachThema {
+            let anteil = Double(typen.filter { $0 == .predictOutput }.count) / Double(typen.count)
+            #expect(anteil <= 0.5, "\(thema): \(Int(anteil * 100)) % Ausgabe-Aufgaben")
+        }
+    }
+
+    @Test("Jedes Lernziel hat mindestens drei Varianten")
+    func everyGoalHasThreeVariants() {
+        // Zwei Varianten reichen nicht: Wer eine falsch hat, bekommt beim nächsten Mal
+        // zwangsläufig die andere – und kennt sie dann schon.
+        var nachZiel: [String: Int] = [:]
+        for task in course.practiceableTasks {
+            nachZiel[task.groupKey, default: 0] += 1
+        }
+        let knapp = nachZiel.filter { $0.value < 3 }
+        #expect(knapp.isEmpty, "zu wenige Varianten: \(knapp.keys.sorted())")
     }
 
     @Test("Alle Themen werden in einer Lektion behandelt")

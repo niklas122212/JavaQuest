@@ -930,7 +930,7 @@ OBJECTMETHODS = [
        why=[None,
             "Main ist nur ein üblicher Name für die Startklasse. Eine besondere Bedeutung hat er beim Erben nicht.",
             "System ist die Klasse mit out, in und err. Geerbt wird von ihr nichts.",
-            "Class beschreibt eine Klasse zur Laufzeit. Die gemeinsame Wurzel ist trotzdem Object."],
+            "Class beschreibt eine Klasse zur Laufzeit – das ist ein Werkzeug zur Selbstauskunft, nicht die Wurzel des Stammbaums."],
        group="t15-1"),
     mc("x-objm-2a", "objectmethods", 2, "Was gibt println bei einem Objekt aus, das keine eigene toString-Methode hat?",
        ["Den Klassennamen und eine kryptische Zahl, etwa Buch@1b6d3586",

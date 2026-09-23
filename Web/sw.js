@@ -4,7 +4,7 @@
    styles.css (siehe index.html) – sonst liefert der Browser aus seinem eigenen Zwischen-
    speicher die alte Fassung aus, selbst wenn der Service Worker längst erneuert wurde.
    tools/build_web.sh zieht die Nummer aus dieser Datei und prüft, dass index.html passt. */
-const VERSION = "7";
+const VERSION = "8";
 const CACHE = `javaquest-v${VERSION}`;
 const DATEIEN = [
   "./", "./index.html", `./app.js?v=${VERSION}`, `./styles.css?v=${VERSION}`,

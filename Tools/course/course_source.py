@@ -6,6 +6,7 @@ handgeschriebene Erklärungen in line_notes.py haben Vorrang.
 """
 import json
 import os
+import re
 import subprocess
 import sys
 
@@ -540,7 +541,7 @@ l6 = lesson("l06-methods", "Methoden", "Code in wiederverwendbare Bausteine verp
           req(r"%\s*2", "Prüfe den Rest bei Division durch 2.")],
          "Der Vergleich zahl % 2 == 0 ist selbst schon ein boolean und kann direkt zurückgegeben werden.",
          ctx="members",
-         hint="return zahl % 2 == 0;",
+         hint="Du brauchst kein if: Der Vergleich „Rest bei Division durch 2 ist null“ ergibt selbst schon true oder false und lässt sich direkt zurückgeben.",
          verify={"main": 'System.out.println(istGerade(4) + " " + istGerade(7));', "output": "true false"}),
 ])
 
@@ -1587,6 +1588,7 @@ _doppelt = set(WHY_WRONG) & set(WHY_WRONG_MORE)
 assert not _doppelt, f"Begründungen doppelt definiert: {sorted(_doppelt)}"
 WHY_WRONG = {**WHY_WRONG, **WHY_WRONG_MORE}
 from explanations import BETTER_EXPLANATIONS, MINDESTLAENGE
+from hints import HINTS, MINDESTLAENGE_TIPP
 from line_notes import NOTES
 import subprocess, os
 
@@ -1602,6 +1604,14 @@ all_tasks = ([t for m in course["modules"] for l in m["lessons"] for t in l["tas
 bekannte_ids = {t["id"] for t in all_tasks}
 unbekannt = set(BETTER_EXPLANATIONS) - bekannte_ids
 assert not unbekannt, f"Erklärung für nicht vorhandene Aufgabe(n): {sorted(unbekannt)}"
+unbekannt_tipp = set(HINTS) - bekannte_ids
+assert not unbekannt_tipp, f"Tipp für nicht vorhandene Aufgabe(n): {sorted(unbekannt_tipp)}"
+
+def steckt_drin(loesung, tipp):
+    """Kommt die Lösung als eigenständiges Wort im Tipp vor?"""
+    muster = r"(?<!\w)" + re.escape(loesung.strip().lower()) + r"(?!\w)"
+    return re.search(muster, tipp.lower()) is not None
+
 
 for task in all_tasks:
     if task["id"] in TASK_EXPLANATIONS:
@@ -1624,6 +1634,37 @@ for task in all_tasks:
         ]
         fehlend = [a for i, a in enumerate(task["choices"]) if i != task["correctIndex"] and not task["whyWrong"][i]]
         assert not fehlend, f"{task['id']}: keine Begründung für {fehlend}"
+        # Die Begründung steht da, solange noch Versuche offen sind. Nennt sie die richtige
+        # Antwort, ist der Rest der Aufgabe erledigt – und der Tipp daneben sinnlos.
+        richtig = task["choices"][task["correctIndex"]]
+        verraten = [task["choices"][i] for i, g in enumerate(task["whyWrong"])
+                    if g and i != task["correctIndex"] and steckt_drin(richtig, g)]
+        assert not verraten, f"{task['id']}: Begründung zu {verraten} nennt die Lösung „{richtig}“"
+    # Tipp: der Zwischenschritt zwischen Feststecken und Lösung aufdecken.
+    if task["id"] in HINTS:
+        tipp = HINTS[task["id"]]
+        assert not task.get("hint"), f"{task['id']}: hat schon einen Tipp in der Lektion"
+        assert len(tipp) >= MINDESTLAENGE_TIPP, f"{task['id']}: Tipp zu knapp ({len(tipp)} Zeichen)"
+        assert tipp != task["explanation"], f"{task['id']}: Tipp wiederholt nur die Erklärung"
+        # Ein Tipp, der die Lösung enthält, ist kein Tipp mehr. Gesucht wird das ganze
+        # Wort: „int“ steckt auch in „integer“, und das ist eine Umschreibung, keine Lösung.
+        if task["type"] == "singleChoice":
+            richtig = task["choices"][task["correctIndex"]]
+            assert not steckt_drin(richtig, tipp), f"{task['id']}: Tipp verrät die Antwort"
+        if task["type"] == "predictOutput":
+            for zeile in task.get("expectedOutput", "").split("\n"):
+                zeile = zeile.strip()
+                assert len(zeile) < 4 or not steckt_drin(zeile, tipp), \
+                    f"{task['id']}: Tipp verrät die Ausgabe ({zeile!r})"
+        task["hint"] = tipp
+
+# Jede übbare Aufgabe braucht einen Tipp. Die Einstufung nicht: Dort wird gemessen,
+# nicht gelernt – ein Tipp würde das Ergebnis verfälschen.
+uebbar = ([t for m in course["modules"] for l in m["lessons"] for t in l["tasks"]]
+          + course["taskPool"])
+ohne_tipp = [t["id"] for t in uebbar if not (t.get("hint") or "").strip()]
+assert not ohne_tipp, f"{len(ohne_tipp)} Aufgabe(n) ohne Tipp: {sorted(ohne_tipp)[:10]}"
+
 
 def fill_first(task):
     text = task["template"]

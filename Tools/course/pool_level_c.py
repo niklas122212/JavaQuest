@@ -92,7 +92,7 @@ DATETIME = [
        why=[None,
             "LocalTime speichert nur die Uhrzeit, also Stunde und Minute – ohne Tag.",
             "Date stammt aus der Zeit vor Java 8, mischt Datum und Uhrzeit und gilt heute als überholt.",
-            "Calendar gehört ebenfalls zur alten Fassung. Neu geschriebener Code nimmt LocalDate."],
+            "Calendar gehört ebenfalls zur alten, längst abgelösten Fassung der Datums-Klassen."],
        group="t17-2"),
     mc("x-dt-1b", "datetime", 1, "Wie kommst du an das heutige Datum?",
        ["LocalDate.now()", "new LocalDate()", "LocalDate.today()", "LocalDate.get()"],

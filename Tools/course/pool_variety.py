@@ -116,7 +116,7 @@ OBJEKTE = [
          [["new"]],
          "Ohne new wäre Katze() für Java ein Methodenaufruf – und eine Methode dieses Namens gibt es "
          "nicht. Erst new besorgt Platz im Speicher und ruft dann den Konstruktor auf.",
-         hint="Englisch für „neu“.",
+         hint="Englisch für „neu“, drei Buchstaben. Es steht vor dem Klassennamen und sagt Java, dass nach diesem Bauplan ein einzelnes Stück gefertigt werden soll.",
          ctx="file",
          verify={"context": "file", "output": "Miau"},
          group="t08-1"),
@@ -349,7 +349,7 @@ MODERN = [
          [["record"]],
          "Aus dieser einen Zeile macht Java eine ganze Klasse: Konstruktor, Lesemethoden, equals, "
          "hashCode und toString. Setter fehlen mit Absicht – ein Record ist nach dem Erzeugen unveränderlich.",
-         hint="Englisch für „Datensatz“.",
+         hint="Englisch für „Datensatz“. Gemeint ist die kurze Schreibweise für eine Klasse, die vor allem Werte zusammenhält und Konstruktor und toString mitbringt.",
          ctx="file",
          verify={"context": "file", "output": "Kiel"},
          group="t13-1"),
@@ -628,7 +628,7 @@ AUFBAU = [
          [["import"]],
          "Klassen liegen in Paketen – List wohnt in java.util. Ohne diese Zeile müsste man überall "
          "java.util.List ausschreiben. Sie lädt nichts herunter, sondern macht den kurzen Namen bekannt.",
-         hint="Englisch für „einführen“.",
+         hint="Englisch für „einführen“. Die Zeile steht ganz oben und erspart dir, den vollen Namen mitsamt Paket überall auszuschreiben.",
          ctx="file",
          verify={"context": "file", "output": "1"},
          group="t22-1"),
@@ -841,7 +841,7 @@ AUSGLEICH = [
          [["contains"]],
          "contains geht die Liste durch und vergleicht mit equals – bei Texten also den Inhalt. Bei "
          "eigenen Klassen funktioniert es nur richtig, wenn diese equals selbst sinnvoll umgesetzt haben.",
-         hint="Englisch für „enthält“.",
+         hint="Englisch für „enthält“. Die Methode liefert schon selbst true oder false – du brauchst weder Schleife noch Vergleich dahinter.",
          verify={"output": "true"},
          group="t11-3"),
     fill("y-col-5b", "collections", 5, "Ergänze das Zählen: Beim ersten Vorkommen steht noch nichts in der Map.",

@@ -10,6 +10,7 @@ Aufruf: python3 Tools/check_course.py
 Rückgabewert 1, sobald ein Befund auftaucht.
 """
 import json
+import re
 import sys
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -17,7 +18,17 @@ from pathlib import Path
 # Untergrenze für Erklärungen – dieselbe Zahl wie in Tools/course/explanations.py.
 MIN_ERKLAERUNG = 90
 
+# Untergrenze für Tipps – dieselbe Zahl wie in Tools/course/hints.py.
+MIN_TIPP = 25
+
 COURSE = Path(__file__).resolve().parent.parent / "Packages/JavaQuestKit/Sources/JavaQuestKit/Resources/java_course.json"
+
+
+def steckt_drin(loesung, tipp):
+    """Kommt die Lösung als eigenständiges Wort im Tipp vor? „int“ steckt auch in
+    „integer“ – das ist eine Umschreibung und keine verratene Lösung."""
+    muster = r"(?<!\w)" + re.escape(loesung.strip().lower()) + r"(?!\w)"
+    return re.search(muster, tipp.lower()) is not None
 
 
 def body(task):
@@ -52,6 +63,43 @@ def main():
         findings.append(f"{len(ohne_begruendung)} Auswahlaufgabe(n) ohne Begründung der falschen Antworten: "
                         f"{', '.join(sorted(ohne_begruendung)[:8])}"
                         + (" …" if len(ohne_begruendung) > 8 else ""))
+
+    # Tipps: Wer feststeckt, braucht einen Zwischenschritt. Ohne Tipp bleibt nur die
+    # Wahl zwischen Weiterraten und Lösung aufdecken – dazwischen fehlt dann alles.
+    ohne_tipp = [t["id"] for t in tasks if not (t.get("hint") or "").strip()]
+    if ohne_tipp:
+        findings.append(f"{len(ohne_tipp)} Aufgabe(n) ohne Tipp: "
+                        f"{', '.join(sorted(ohne_tipp)[:8])}"
+                        + (" …" if len(ohne_tipp) > 8 else ""))
+    findings += [f"{t['id']}: Tipp zu knapp ({len(t['hint'])} Zeichen, mindestens {MIN_TIPP})"
+                 for t in tasks if 0 < len((t.get("hint") or "").strip()) < MIN_TIPP]
+
+    # Ein Tipp, der die Lösung nennt, ist kein Tipp. Bei Auswahl- und Ausgabe-Aufgaben
+    # lässt sich das nachprüfen, weil die richtige Antwort als Text dasteht.
+    for t in tasks:
+        tipp = (t.get("hint") or "").lower()
+        if not tipp:
+            continue
+        if t["type"] == "singleChoice":
+            richtig = t["choices"][t["correctIndex"]]
+            if steckt_drin(richtig, tipp):
+                findings.append(f"{t['id']}: Tipp verrät die richtige Antwort")
+        if t["type"] == "predictOutput":
+            for zeile in str(t.get("expectedOutput", "")).split("\n"):
+                if len(zeile.strip()) >= 4 and steckt_drin(zeile, tipp):
+                    findings.append(f"{t['id']}: Tipp verrät die Ausgabe ({zeile.strip()!r})")
+        if tipp == (t.get("explanation") or "").lower():
+            findings.append(f"{t['id']}: Tipp wiederholt nur die Erklärung")
+
+    # Die Begründung erscheint, während noch Versuche offen sind. Nennt sie die richtige
+    # Antwort, nimmt sie der Aufgabe den Rest – und macht den Tipp daneben wertlos.
+    for x in tasks:
+        if x["type"] != "singleChoice" or not x.get("whyWrong"):
+            continue
+        richtig = x["choices"][x["correctIndex"]]
+        for i, grund in enumerate(x["whyWrong"]):
+            if grund and i != x["correctIndex"] and steckt_drin(richtig, grund):
+                findings.append(f"{x['id']}: Begründung zu „{x['choices'][i]}“ nennt die Lösung")
 
     # Eindeutige IDs
     findings += [f"ID doppelt vergeben: {i}" for i, n in Counter(t["id"] for t in tasks).items() if n > 1]
