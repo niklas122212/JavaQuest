@@ -1067,10 +1067,13 @@ function staendeVereinen(eigen, fremd) {
     profil: eigen.profil || fremd.profil || null,
     start: eigen.start || fremd.start || null,
   };
-  // Lektionen: die bessere Wertung gewinnt.
+  // Lektionen: die bessere Quote gewinnt, und einmal bestanden bleibt bestanden.
+  // (Das Feld heißt quote, nicht wertung – siehe merkeLektion weiter unten.)
   for (const [id, e] of Object.entries(eigen.lektionen || {})) {
     const f = (fremd.lektionen || {})[id];
-    if (f && (f.wertung || 0) > (e.wertung || 0)) neu.lektionen[id] = f;
+    if (!f) continue;
+    const besser = (f.quote || 0) > (e.quote || 0) ? f : e;
+    neu.lektionen[id] = Object.assign({}, besser, { bestanden: !!(e.bestanden || f.bestanden) });
   }
   // Aufgaben: die bessere Wertung gewinnt, bei Gleichstand der jüngere Eintrag.
   for (const [id, e] of Object.entries(eigen.verlauf || {})) {

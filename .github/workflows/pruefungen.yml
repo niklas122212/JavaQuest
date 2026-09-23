@@ -1,0 +1,75 @@
+# Prüft bei jedem Push, was bisher nur von Hand geprüft wurde.
+#
+# Vorher lief beim Veröffentlichen keine einzige Prüfung: Die Web-App ging bei jedem
+# Push live, und die Testreihen liefen nur, wenn jemand daran dachte. Damit hing das
+# gesamte Sicherungsnetz an der Aufmerksamkeit eines Menschen.
+#
+# Die Kurs- und Web-Prüfungen sind schnell und laufen auf einem Linux-Rechner; sie
+# hängen der Veröffentlichung vor (siehe web.yml). Die beiden App-Testreihen brauchen
+# macOS beziehungsweise Windows und laufen daneben her.
+name: Prüfungen
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_call:
+    inputs:
+      nur_schnell:
+        description: "Nur Kurs- und Web-Prüfungen, ohne die beiden App-Testreihen"
+        type: boolean
+        default: false
+
+jobs:
+  kurs-und-web:
+    name: Kurs, Java und Web-App
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Kursinhalt prüfen
+        run: python3 Tools/check_course.py
+
+      - name: Jede Codezeile mit echtem Java übersetzen und ausführen
+        run: python3 Tools/verify_java_content.py
+
+      - name: Web-App prüfen
+        run: node Web/tests/lauf.mjs
+
+      - name: Web-Fassung ist auf demselben Stand wie der Kurs
+        run: |
+          # Web/java_course.json ist eine Kopie. Läuft sie auseinander, prüft die
+          # Web-Prüfung eine andere Kursdatei als die, die ausgeliefert wird.
+          diff -q Packages/JavaQuestKit/Sources/JavaQuestKit/Resources/java_course.json Web/java_course.json \
+            || { echo "::error::Web/java_course.json ist veraltet – tools/build_web.sh ausführen."; exit 1; }
+
+  apple:
+    name: Apple-Kern (swift test)
+    if: ${{ !inputs.nur_schnell }}
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Testreihe
+        run: swift test --package-path Packages/JavaQuestKit
+
+  windows:
+    name: Windows-App (gradlew test)
+    if: ${{ !inputs.nur_schnell }}
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Testreihe
+        working-directory: Windows
+        run: ./gradlew.bat test --console=plain

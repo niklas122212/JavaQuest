@@ -4,7 +4,7 @@ name: Web-App veröffentlichen
 on:
   push:
     branches: [main]
-    paths: ["Web/**", ".github/workflows/web.yml"]
+    paths: ["Web/**", ".github/workflows/web.yml", ".github/workflows/pruefungen.yml"]
   workflow_dispatch:
 
 permissions:
@@ -17,7 +17,16 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Erst prüfen, dann veröffentlichen. Vorher ging jeder Push ungeprüft live –
+  # ein Fehler in app.js oder in der Kursdatei wäre sofort auf der Seite gelandet,
+  # die verschickt wird.
+  pruefen:
+    uses: ./.github/workflows/pruefungen.yml
+    with:
+      nur_schnell: true
+
   veroeffentlichen:
+    needs: pruefen
     runs-on: ubuntu-latest
     environment:
       name: github-pages
