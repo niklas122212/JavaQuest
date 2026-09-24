@@ -35,6 +35,7 @@ import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Psychology
 import androidx.compose.material.icons.rounded.RadioButtonUnchecked
 import androidx.compose.material.icons.rounded.Shield
+import androidx.compose.material.icons.rounded.Update
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -90,7 +91,20 @@ fun OnboardingScreen(state: AppState, onFinished: (startLessonId: String?) -> Un
             Box(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(32.dp), contentAlignment = Alignment.TopCenter) {
                 Column(Modifier.widthIn(max = 640.dp).fillMaxWidth()) {
                     when (step) {
-                        Step.WELCOME -> WelcomeStep { step = Step.EXPERIENCE }
+                        Step.WELCOME -> {
+                            WelcomeStep { step = Step.EXPERIENCE }
+                            // Direkt nach „Alle Fortschritte löschen“ landet man hier – falls es ein Versehen war.
+                            store.kopieVorZuruecksetzen()?.let { kopie ->
+                                Spacer(Modifier.height(18.dp))
+                                Column(Modifier.fillMaxWidth().card(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Text("Doch nicht neu anfangen?", fontWeight = FontWeight.SemiBold, fontSize = 17.sp)
+                                    Text(kopieBeschreibung(kopie), color = secondaryText, fontSize = 15.sp)
+                                    SecondaryButton("Stand von vorher wiederherstellen", Icons.Rounded.Update) {
+                                        store.vorZuruecksetzenWiederherstellen()
+                                    }
+                                }
+                            }
+                        }
                         Step.EXPERIENCE -> ExperienceStep(level, { level = it }) {
                             if (level?.requiresPlacement == true) step = Step.PLACEMENT_INTRO else finish(startLesson = true)
                         }

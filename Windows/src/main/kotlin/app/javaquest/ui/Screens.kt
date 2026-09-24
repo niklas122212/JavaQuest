@@ -238,6 +238,21 @@ fun ProfileScreen(state: AppState) {
             }
             sicherungMeldung?.let { Text(it, fontSize = 14.sp, color = secondaryText) }
         }
+        store.kopieVorZuruecksetzen()?.let { kopie ->
+            Column(Modifier.fillMaxWidth().card(22.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                SectionTitle(
+                    "Stand vor dem Zurücksetzen",
+                    "${kopieBeschreibung(kopie)}. Nichts wird gelöscht: Was du seitdem gelernt hast, bleibt – " +
+                        "von beiden Ständen gilt jeweils das bessere Ergebnis.",
+                    Icons.Rounded.Update,
+                )
+                SecondaryButton("Wiederherstellen", Icons.Rounded.Update) {
+                    sicherungMeldung = if (store.vorZuruecksetzenWiederherstellen())
+                        "Wiederhergestellt – dein Stand von vorher ist wieder da, und nichts von seitdem ging verloren."
+                    else "Die Kopie ließ sich nicht lesen."
+                }
+            }
+        }
         Column(Modifier.fillMaxWidth().card(22.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             SectionTitle("Neu anfangen", "Löscht alle Fortschritte und startet das Onboarding neu.", Icons.Rounded.Replay)
             SecondaryButton("Alle Fortschritte löschen", Icons.Rounded.DeleteForever, tint = Palette.ember) { confirmReset = true }
@@ -248,7 +263,7 @@ fun ProfileScreen(state: AppState) {
         AlertDialog(
             onDismissRequest = { confirmReset = false },
             title = { Text("Alle Fortschritte löschen?") },
-            text = { Text("Score, Lernpfad und Wissensanalyse werden zurückgesetzt. Das lässt sich nicht rückgängig machen.") },
+            text = { Text("Score, Lernpfad und Wissensanalyse werden zurückgesetzt. Eine Kopie bleibt liegen – im Profil und beim Neustart kannst du sie wiederherstellen.") },
             confirmButton = {
                 TextButton(onClick = { confirmReset = false; state.closeFlow(); store.resetAllProgress() }) { Text("Löschen", color = Palette.ember) }
             },
@@ -286,6 +301,23 @@ private fun sicherungLaden(store: ProgressStore): String {
     } catch (e: Exception) {
         "Einlesen fehlgeschlagen: ${e.message}"
     }
+}
+
+/** „Vom 24.09.2026, 10:20 · 8 Lektionen bestanden · 102 Aufgaben“ – in Ortszeit. */
+fun kopieBeschreibung(kopie: app.javaquest.data.KopieVorZuruecksetzen): String {
+    val wann = kopie.erstellt?.let {
+        runCatching {
+            java.time.format.DateTimeFormatter.ofPattern("dd.MM.yyyy, HH:mm")
+                .format(java.time.Instant.parse(it).atZone(java.time.ZoneId.systemDefault())) + " Uhr"
+        }.getOrNull()
+    }
+    val lektionen = kopie.stand.lessonRecords.values.count { it.isCompleted }
+    val aufgaben = kopie.stand.attempts.map { it.taskId }.toSet().size
+    return listOfNotNull(
+        wann?.let { "Vom $it" },
+        "$lektionen ${if (lektionen == 1) "Lektion" else "Lektionen"} bestanden",
+        "$aufgaben ${if (aufgaben == 1) "Aufgabe" else "Aufgaben"}",
+    ).joinToString(" · ")
 }
 
 @Composable

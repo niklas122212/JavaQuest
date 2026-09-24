@@ -392,6 +392,40 @@ export function pruefungen(api, kurs, beispiele) {
     api.setzeStand(vorher);
   }
 
+  // ------------------------------------------------ Zurücksetzen mit Netz
+  // Dieselben Regeln wie in der Apple- und der Windows-Fassung.
+  if (beispiele) {
+    const vorher = api.holeStand();
+    const mitFortschritt = JSON.parse(JSON.stringify(beispiele.ausDemWeb.web));
+    api.setzeStand(mitFortschritt);
+    api.fortschrittZuruecksetzen(Date.parse("2026-09-24T10:20:00Z"));
+    const leer = api.holeStand();
+    const kopie = api.kopieVorZuruecksetzen();
+    ergebnisse.push(pruefe("Zurücksetzen leert den Stand, hebt aber eine Kopie auf",
+      Object.keys(leer.verlauf).length === 0 && !!kopie
+      && Object.keys(kopie.stand.verlauf).length === Object.keys(mitFortschritt.verlauf).length,
+      kopie ? `Kopie mit ${Object.keys(kopie.stand.verlauf).length} Aufgaben` : "keine Kopie"));
+
+    // Wer danach noch einmal zurücksetzt, ohne etwas gelernt zu haben, darf die Kopie
+    // nicht mit einem leeren Stand überschreiben.
+    api.fortschrittZuruecksetzen(Date.parse("2026-09-24T10:25:00Z"));
+    const nochDa = api.kopieVorZuruecksetzen();
+    ergebnisse.push(pruefe("Zweites Zurücksetzen ohne Fortschritt überschreibt die Kopie nicht",
+      !!nochDa && Object.keys(nochDa.stand.verlauf).length === Object.keys(mitFortschritt.verlauf).length));
+
+    // Seitdem gelernt, dann wiederhergestellt: beides bleibt.
+    api.merkeAufgabe(aufgaben.find((a) => a.id === "t03-1"), 1, 1, "lesson");
+    const ok = api.vorZuruecksetzenWiederherstellen();
+    const zusammen = api.holeStand();
+    ergebnisse.push(pruefe("Wiederherstellen führt zusammen: alter Stand zurück, Neues bleibt",
+      ok && !!zusammen.verlauf["t03-1"] && Object.keys(zusammen.verlauf).length === Object.keys(mitFortschritt.verlauf).length + 1
+      && Object.keys(zusammen.lektionen).length === Object.keys(mitFortschritt.lektionen).length,
+      `${Object.keys(zusammen.verlauf).length} Aufgaben, ${Object.keys(zusammen.lektionen).length} Lektionen`));
+    ergebnisse.push(pruefe("Nach dem Wiederherstellen wird die Kopie nicht mehr angeboten",
+      api.kopieVorZuruecksetzen() === null));
+    api.setzeStand(vorher);
+  }
+
   // ------------------------------------------------------- Erinnerung
   // Dieselbe Rechnung wie ReviewReminderTests.swift. Die Web-App rechnet in Ortszeit;
   // deshalb sind die Zeitpunkte hier auf „heute 12 Uhr Ortszeit“ bezogen und gelten in

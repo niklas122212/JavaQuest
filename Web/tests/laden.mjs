@@ -15,6 +15,17 @@ export function ladeApp(quelltext, kurs) {
     throw new Error("Der Startaufruf los(); wurde nicht gefunden – app.js hat sich geändert.");
   }
 
+  // Unter Node und JavaScriptCore gibt es keinen localStorage. Ein einfacher Nachbau im
+  // Speicher genügt, damit Zurücksetzen und Wiederherstellen prüfbar sind.
+  if (typeof globalThis.localStorage === "undefined") {
+    const ablage = new Map();
+    globalThis.localStorage = {
+      getItem: (k) => (ablage.has(k) ? ablage.get(k) : null),
+      setItem: (k, v) => { ablage.set(k, String(v)); },
+      removeItem: (k) => { ablage.delete(k); },
+    };
+  }
+
   const bauen = new Function(`
     ${ohneStart}
     return {
@@ -26,6 +37,7 @@ export function ladeApp(quelltext, kurs) {
       staendeVereinen, exegese, befehleDerZeile, geloesteVorlage, codeZeile,
       sicherungsDatei, alsAppStand, ausAppStand, standAusDatei, merkeAufgabe, isoZeit, bucheAntwort,
       erinnerungsTermine, kalenderEintrag, faelligkeiten,
+      fortschrittZuruecksetzen, kopieVorZuruecksetzen, vorZuruecksetzenWiederherstellen,
       score, rang, naechsterRang, sterne, beherrschung, gesamtBeherrschung, themenStatus,
       wiedervorlage, faelligeZiele, aktuelleSerie,
       einstufungProzent, einstufungStufe,

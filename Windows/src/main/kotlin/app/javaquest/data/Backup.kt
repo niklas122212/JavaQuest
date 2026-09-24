@@ -32,6 +32,11 @@ object Backup {
         json.encodeToString(BackupFile.serializer(), BackupFile(erstellt = jetzt, stand = data))
 
     /** Liest eine Sicherung; null, wenn die Datei keine ist oder nicht lesbar ist. */
+    /** Der Zeitpunkt, zu dem die Sicherung geschrieben wurde – oder null. */
+    fun erstellt(text: String): String? = runCatching {
+        json.decodeFromString(BackupFile.serializer(), text).erstellt
+    }.getOrNull()
+
     fun lesen(text: String): ProgressData? = runCatching {
         val datei = json.decodeFromString(BackupFile.serializer(), text)
         if (datei.app == BackupFile.KENNUNG) datei.stand else null

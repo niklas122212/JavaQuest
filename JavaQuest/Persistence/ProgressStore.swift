@@ -403,9 +403,64 @@ final class ProgressStore {
     }
 
     func resetAllProgress() {
+        // Vorher eine Kopie ablegen – nur, wenn es etwas zu verlieren gibt (siehe ResetCopies).
+        if profile != nil, ResetCopies.worthKeeping(eigenerStand()), let ordner = Self.kopienOrdner,
+           let daten = try? backupData() {
+            try? FileManager.default.createDirectory(at: ordner, withIntermediateDirectories: true)
+            try? daten.write(to: ordner.appendingPathComponent(ResetCopies.fileName(for: .now)), options: .atomic)
+            for alt in kopienNamen().dropFirst(ResetCopies.maxCount) {
+                try? FileManager.default.removeItem(at: ordner.appendingPathComponent(alt))
+            }
+        }
         if let profile { context.delete(profile) }
         profile = nil
         save()
+    }
+
+    // MARK: - Zurücksetzen mit Netz
+
+    /// Eine Kopie vom Zurücksetzen: wo sie liegt und was drinsteht.
+    struct KopieVorZuruecksetzen {
+        let url: URL
+        let beschreibung: String
+    }
+
+    /// Im Datencontainer der App, neben der Datenbank – bleibt also auch bei App-Updates erhalten.
+    private static var kopienOrdner: URL? {
+        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first?
+            .appendingPathComponent("Vor dem Zurücksetzen", isDirectory: true)
+    }
+
+    private func kopienNamen() -> [String] {
+        guard let ordner = Self.kopienOrdner,
+              let namen = try? FileManager.default.contentsOfDirectory(atPath: ordner.path) else { return [] }
+        return ResetCopies.newestFirst(namen)
+    }
+
+    /// Die jüngste lesbare Kopie – oder nil.
+    func kopieVorZuruecksetzen() -> KopieVorZuruecksetzen? {
+        guard let ordner = Self.kopienOrdner else { return nil }
+        for name in kopienNamen() {
+            let url = ordner.appendingPathComponent(name)
+            if let daten = try? Data(contentsOf: url),
+               let sicherung = try? ProgressBackup.coder.1.decode(ProgressBackup.self, from: daten),
+               sicherung.app == ProgressBackup.kennung {
+                return KopieVorZuruecksetzen(url: url, beschreibung: ResetCopies.summary(sicherung.stand, created: sicherung.erstellt))
+            }
+        }
+        return nil
+    }
+
+    /// Führt die jüngste Kopie mit dem jetzigen Stand zusammen – was seitdem dazukam, bleibt.
+    /// Danach wird sie umbenannt statt gelöscht und nicht mehr angeboten.
+    @discardableResult
+    func vorZuruecksetzenWiederherstellen() -> Bool {
+        guard let kopie = kopieVorZuruecksetzen(), let daten = try? Data(contentsOf: kopie.url),
+              importBackup(daten) != nil else { return false }
+        let beiseite = kopie.url.deletingLastPathComponent()
+            .appendingPathComponent(ResetCopies.restoredName(kopie.url.lastPathComponent))
+        try? FileManager.default.moveItem(at: kopie.url, to: beiseite)
+        return true
     }
 
     // MARK: - Intern

@@ -40,7 +40,23 @@ struct OnboardingFlowView: View {
     @ViewBuilder private var stepView: some View {
         switch step {
         case .welcome:
-            WelcomeStep { go(.experience) }
+            VStack(spacing: 20) {
+                WelcomeStep { go(.experience) }
+                // Direkt nach „Fortschritt zurücksetzen“ landet man hier – falls es ein Versehen war.
+                if let kopie = store.kopieVorZuruecksetzen() {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Doch nicht neu anfangen?").font(.headline)
+                        Text(kopie.beschreibung).font(.subheadline).foregroundStyle(.secondary)
+                        Button("Stand von vorher wiederherstellen", systemImage: "arrow.uturn.backward") {
+                            store.vorZuruecksetzenWiederherstellen()
+                        }
+                        .buttonStyle(.bordered)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(16)
+                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
+                }
+            }
         case .experience:
             ExperienceStep(selection: $level) { continueFromExperience() }
         case .placementIntro:

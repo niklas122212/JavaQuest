@@ -1012,6 +1012,16 @@ function einstiegSeite() {
     <h1>Willkommen bei JavaQuest</h1>
     <p class="leise">Java lernen, Level für Level – jede Codezeile in Alltagssprache erklärt.
     Eine Frage vorweg, damit du an der richtigen Stelle anfängst.</p>
+    ${(() => {
+      // Direkt nach dem Zurücksetzen landet man hier – falls es ein Versehen war.
+      const kopie = kopieVorZuruecksetzen();
+      return kopie ? `
+    <div class="karte">
+      <h2>Doch nicht neu anfangen?</h2>
+      <p class="leise">${sicher(kopieBeschreibung(kopie))}</p>
+      <button class="knopf zweit" data-wiederherstellen="1">Stand von vorher wiederherstellen</button>
+    </div>` : "";
+    })()}
 
     <div class="karte">
       <h2>Ich habe 0 Erfahrung</h2>
@@ -1190,6 +1200,16 @@ function profilSeite() {
       <p class="mini">Beim Einlesen wird nichts gelöscht: Aus beiden Ständen wird jeweils das
       bessere Ergebnis übernommen. Die Datei passt in jede Fassung: Web-App, Mac, iPhone und Windows.</p>
     </div>
+    ${(() => {
+      const kopie = kopieVorZuruecksetzen();
+      if (!kopie) return "";
+      return `
+    <div class="karte"><h3>Stand vor dem Zurücksetzen</h3>
+      <p class="leise">${sicher(kopieBeschreibung(kopie))}</p>
+      <button class="knopf zweit" data-wiederherstellen="1">Wiederherstellen</button>
+      <p class="mini">Nichts wird gelöscht: Was du seitdem gelernt hast, bleibt – von beiden Ständen gilt jeweils das bessere Ergebnis.</p>
+    </div>`;
+    })()}
     <div class="karte">
       <button class="knopf zweit" data-reset="1">Fortschritt zurücksetzen</button>
       <p class="mini">Score, Lernpfad und Analyse werden gelöscht. Danach startest du wieder mit dem Einstieg.</p>
@@ -1419,6 +1439,55 @@ function staendeVereinen(eigen, fremd) {
     });
   }
   return neu;
+}
+
+/* ---------------------------------------------------------------- Zurücksetzen mit Netz
+   „Fortschritt zurücksetzen“ löschte sofort und endgültig. Jetzt bleibt vorher eine Kopie
+   liegen – im Aufbau der Sicherungsdatei – und lässt sich im Profil wiederherstellen.
+   Dieselbe Regel in der Apple- und der Windows-Fassung: eine Kopie nur, wenn es etwas zu
+   verlieren gibt, und wiederhergestellt wird zusammengeführt, nicht ersetzt. */
+const VOR_ZURUECKSETZEN = "javaquest-vor-zuruecksetzen";
+
+function hatFortschritt(s) {
+  return Object.keys((s && s.verlauf) || {}).length > 0 || Object.keys((s && s.lektionen) || {}).length > 0;
+}
+
+function fortschrittZuruecksetzen(jetzt = Date.now()) {
+  if (hatFortschritt(stand)) {
+    try { localStorage.setItem(VOR_ZURUECKSETZEN, JSON.stringify(sicherungsDatei(stand, jetzt))); } catch (e) { /* voll oder gesperrt */ }
+  }
+  stand = leererStand();
+  try { localStorage.removeItem("javaquest"); } catch (e) { /* gesperrt: dann bleibt es bei der Sitzung */ }
+}
+
+/** Die Kopie vom letzten Zurücksetzen – oder null. */
+function kopieVorZuruecksetzen() {
+  try {
+    const roh = localStorage.getItem(VOR_ZURUECKSETZEN);
+    const daten = roh ? JSON.parse(roh) : null;
+    const s = standAusDatei(daten);
+    return s ? { datum: Date.parse(daten.erstellt), stand: s } : null;
+  } catch (e) { return null; }
+}
+
+/** „Vom 24.09.2026, 10:20 Uhr · 8 Lektionen bestanden · 102 Aufgaben“ – wie in den Apps. */
+function kopieBeschreibung(kopie) {
+  const wann = new Date(kopie.datum).toLocaleString("de-DE",
+    { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  const lektionen = Object.values(kopie.stand.lektionen).filter((l) => l.bestanden).length;
+  const aufgaben = Object.keys(kopie.stand.verlauf).length;
+  return `Vom ${wann} Uhr · ${lektionen} ${lektionen === 1 ? "Lektion" : "Lektionen"} bestanden · `
+    + `${aufgaben} ${aufgaben === 1 ? "Aufgabe" : "Aufgaben"}`;
+}
+
+/** Führt die Kopie mit dem jetzigen Stand zusammen; danach wird sie nicht mehr angeboten. */
+function vorZuruecksetzenWiederherstellen() {
+  const kopie = kopieVorZuruecksetzen();
+  if (!kopie) return false;
+  stand = staendeVereinen(stand, kopie.stand);
+  sichern();
+  try { localStorage.removeItem(VOR_ZURUECKSETZEN); } catch (e) { /* bleibt eben liegen */ }
+  return true;
 }
 
 /** Beide Protokolle, ohne Doppelte. Auf die Sekunde genau: So weit reicht die Zeit in App-Dateien. */
@@ -1964,6 +2033,10 @@ function bindeEreignisse() {
   klick("[data-uebe]", (e) => gehe("themen", { gewaehlt: [e.currentTarget.dataset.uebe] }));
   klick("[data-sichern]", () => sicherungHerunterladen());
   klick("[data-kalender]", () => erinnerungHerunterladen());
+  klick("[data-wiederherstellen]", () => {
+    if (vorZuruecksetzenWiederherstellen()) melde("Wiederhergestellt – dein Stand von vorher ist wieder da, und nichts von seitdem ging verloren.");
+    zeichne();
+  });
   klick("[data-einlesen]", () => {
     const feld = document.getElementById("sicherung-datei");
     if (!feld) return;
@@ -1974,9 +2047,8 @@ function bindeEreignisse() {
     feld.click();
   });
   klick("[data-reset]", () => {
-    if (!confirm("Gesamten Fortschritt löschen? Score, Lernpfad und Analyse werden entfernt.")) return;
-    stand = leererStand();
-    try { localStorage.removeItem("javaquest"); } catch (e) { /* gesperrt: dann bleibt es bei der Sitzung */ }
+    if (!confirm("Gesamten Fortschritt löschen? Score, Lernpfad und Analyse werden entfernt. Eine Kopie bleibt liegen – im Profil kannst du sie wiederherstellen.")) return;
+    fortschrittZuruecksetzen();
     gehe("start");
   });
 }

@@ -38,6 +38,8 @@ import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 
 // ---------------------------------------------------------------- Gespeicherte Daten
@@ -126,6 +128,9 @@ class ProgressFile(val path: Path) {
         Files.deleteIfExists(path)
     }
 
+    /** Hier bleiben Kopien liegen, bevor der Lernstand zurückgesetzt wird – neben progress.json. */
+    val kopienOrdner: Path get() = path.resolveSibling("vor-dem-zuruecksetzen")
+
     companion object {
         /** Windows: %APPDATA%\JavaQuest · macOS: ~/Library/Application Support/JavaQuest · sonst ~/.local/share. */
         fun defaultLocation(): ProgressFile {
@@ -148,6 +153,11 @@ class ProgressFile(val path: Path) {
  * Zentrale Schnittstelle zwischen Oberfläche und gespeichertem Lernstand.
  * Abgeleitete Werte (Score, Lernpfad, Analyse) kommen aus der reinen Logik in `core`.
  */
+/** Eine Kopie vom Zurücksetzen: wo sie liegt, wann sie entstand und was drinsteht. */
+data class KopieVorZuruecksetzen(val pfad: Path, val erstellt: String?, val stand: ProgressData)
+
+private val KOPIE = Regex("""stand-\d{8}-\d{6}\.json""")
+
 class ProgressStore(
     val course: Course,
     private val file: ProgressFile?,
@@ -353,10 +363,57 @@ class ProgressStore(
         return vereint.attempts.size - vorher
     }
 
-    /** Löscht alle Fortschritte; danach startet das Onboarding neu. */
+    // MARK: Zurücksetzen mit Netz
+    //
+    // „Alle Fortschritte löschen“ löschte sofort und endgültig. Jetzt bleibt vorher eine Kopie
+    // liegen – im Aufbau der Sicherungsdatei, also auch in den anderen Fassungen lesbar. Nur,
+    // wenn es etwas zu verlieren gibt; die fünf jüngsten bleiben. Dieselben Regeln wie im Web
+    // und auf Apple-Geräten.
+
+    /** Löscht alle Fortschritte; danach startet das Onboarding neu. Vorher wird eine Kopie abgelegt. */
     fun resetAllProgress() {
+        val bisher = data
+        val ablage = file
+        if (ablage != null && bisher != null && (bisher.attempts.isNotEmpty() || bisher.lessonRecords.isNotEmpty())) {
+            runCatching {
+                Files.createDirectories(ablage.kopienOrdner)
+                val stempel = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss").withZone(ZoneOffset.UTC).format(clock.instant())
+                Files.writeString(ablage.kopienOrdner.resolve("stand-$stempel.json"), Backup.schreiben(bisher, now()))
+                kopien().drop(5).forEach { Files.deleteIfExists(it) }
+            }
+        }
         runCatching { file?.delete() }
         data = null
+    }
+
+    /** Die Kopien vom Zurücksetzen, die jüngste zuerst. */
+    fun kopien(): List<Path> {
+        val ordner = file?.kopienOrdner ?: return emptyList()
+        if (!Files.isDirectory(ordner)) return emptyList()
+        return Files.list(ordner).use { dateien ->
+            dateien.filter { KOPIE.matches(it.fileName.toString()) }.toList()
+        }.sortedByDescending { it.fileName.toString() }
+    }
+
+    /** Die jüngste lesbare Kopie samt Zeitpunkt – oder null. */
+    fun kopieVorZuruecksetzen(): KopieVorZuruecksetzen? = kopien().firstNotNullOfOrNull { pfad ->
+        runCatching { Files.readString(pfad) }.getOrNull()?.let { text ->
+            Backup.lesen(text)?.let { KopieVorZuruecksetzen(pfad, Backup.erstellt(text), it) }
+        }
+    }
+
+    /**
+     * Führt die jüngste Kopie mit dem jetzigen Stand zusammen – was seitdem dazukam, bleibt.
+     * Danach wird sie beiseitegelegt (umbenannt, nicht gelöscht) und nicht mehr angeboten.
+     */
+    fun vorZuruecksetzenWiederherstellen(): Boolean {
+        val kopie = kopieVorZuruecksetzen() ?: return false
+        commit(Backup.vereine(data ?: ProgressData(createdAt = now()), kopie.stand, course))
+        runCatching {
+            Files.move(kopie.pfad, kopie.pfad.resolveSibling(kopie.pfad.fileName.toString().removeSuffix(".json") + ".wiederhergestellt.json"),
+                StandardCopyOption.REPLACE_EXISTING)
+        }
+        return true
     }
 
     // MARK: Intern

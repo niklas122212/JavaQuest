@@ -113,6 +113,21 @@ struct ProfileView: View {
                 Text("Eine Datei zum Mitnehmen. Beim Einlesen wird nichts gelöscht: Aus beiden Ständen wird jeweils das bessere Ergebnis übernommen. Die Datei passt in jede Fassung: Web-App, Mac, iPhone und Windows.")
             }
 
+            if let kopie = store.kopieVorZuruecksetzen() {
+                Section {
+                    Text(kopie.beschreibung)
+                    Button("Wiederherstellen", systemImage: "arrow.uturn.backward") {
+                        sicherungsMeldung = store.vorZuruecksetzenWiederherstellen()
+                            ? "Wiederhergestellt – dein Stand von vorher ist wieder da, und nichts von seitdem ging verloren."
+                            : "Die Kopie ließ sich nicht lesen."
+                    }
+                } header: {
+                    Text("Stand vor dem Zurücksetzen")
+                } footer: {
+                    Text("Nichts wird gelöscht: Was du seitdem gelernt hast, bleibt – von beiden Ständen gilt jeweils das bessere Ergebnis.")
+                }
+            }
+
             Section {
                 Button("Fortschritt zurücksetzen", role: .destructive) { confirmReset = true }
             } footer: {
@@ -124,7 +139,7 @@ struct ProfileView: View {
         .confirmationDialog("Gesamten Fortschritt löschen?", isPresented: $confirmReset, titleVisibility: .visible) {
             Button("Alles zurücksetzen", role: .destructive) { store.resetAllProgress() }
         } message: {
-            Text("Score, Lernpfad und Wissensanalyse werden gelöscht. Danach startest du wieder mit der Einstufung.")
+            Text("Score, Lernpfad und Wissensanalyse werden gelöscht. Eine Kopie bleibt liegen – hier im Profil und beim Neustart kannst du sie wiederherstellen.")
         }
         .fileExporter(isPresented: $zeigeExport, document: exportDaten.map(SicherungsDatei.init),
                       contentType: .json, defaultFilename: dateiname()) { ergebnis in
