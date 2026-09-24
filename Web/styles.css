@@ -40,6 +40,11 @@
 }
 
 * { box-sizing: border-box; }
+/* Das Attribut hidden versteckt nur, solange keine Regel ein display setzt – und .install
+   setzt display: flex. Deshalb stand der Installationshinweis seit dem 22.09. bei jedem
+   Besuch unten im Bild: auch in Chrome und in der schon installierten App, wo „Verstanden“
+   nichts tut, und über den Knöpfen am unteren Rand. Diese Regel gilt für jedes Element. */
+[hidden] { display: none !important; }
 
 body {
   margin: 0;
@@ -437,4 +442,3 @@ details.exegese > summary { color: var(--orange-text); }
   font-size: 15px;
   z-index: 40;
 }
-.meldung[hidden] { display: none; }

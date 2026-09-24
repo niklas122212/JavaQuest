@@ -38,6 +38,20 @@ const ergebnisse = pruefungen(api, kurs, beispiele);
   });
 }
 
+// Ebenfalls nur hier: Bleibt ein Element mit dem Attribut hidden wirklich unsichtbar?
+// Eine Klasse mit display: flex hebt hidden auf – so stand der Installationshinweis vom
+// 22.09. an bei jedem Besuch unten über den Knöpfen.
+{
+  const stil = readFileSync(join(web, "styles.css"), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+  const seite = readFileSync(join(web, "index.html"), "utf8");
+  const versteckt = [...seite.matchAll(/<[a-z]+\b[^>]*\shidden\b[^>]*>/g)].length;
+  ergebnisse.push({
+    name: `Versteckte Elemente bleiben versteckt, auch wenn ihre Klasse display setzt (${versteckt} in index.html)`,
+    ok: /(^|\})\s*\[hidden\]\s*\{[^}]*display:\s*none\s*!important/.test(stil),
+    hinweis: "styles.css braucht „[hidden] { display: none !important; }“.",
+  });
+}
+
 const gescheitert = ergebnisse.filter((e) => !e.ok);
 for (const e of ergebnisse) {
   console.log(`${e.ok ? "✔" : "✘"} ${e.name}${e.ok ? "" : `\n    ${e.hinweis ?? ""}`}`);
