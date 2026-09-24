@@ -224,7 +224,8 @@ fun ProfileScreen(state: AppState) {
             SectionTitle(
                 "Fortschritt sichern",
                 "Eine Datei zum Mitnehmen. Beim Einlesen wird nichts gelöscht: Aus beiden " +
-                    "Ständen wird jeweils das bessere Ergebnis übernommen.",
+                    "Ständen wird jeweils das bessere Ergebnis übernommen. " +
+                    "Die Datei passt in jede Fassung: Web-App, Mac, iPhone und Windows.",
                 Icons.Rounded.Inventory2,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {

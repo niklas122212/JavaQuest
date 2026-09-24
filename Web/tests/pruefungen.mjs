@@ -21,7 +21,7 @@ function pruefe(name, bedingung, hinweis) {
   return bedingung ? ok(name) : fehler(name, hinweis);
 }
 
-export function pruefungen(api, kurs) {
+export function pruefungen(api, kurs, beispiele) {
   const aufgaben = alleAufgaben(kurs);
   const ergebnisse = [];
 
@@ -270,6 +270,166 @@ export function pruefungen(api, kurs) {
     const ohne = api.exegese({ lines: [{ code: "}", explain: "Schließt den Block.", terms: [] }] }, "Test");
     ergebnisse.push(pruefe("Eine Zeile ohne Befehle bekommt keinen leeren Kasten",
                            ohne !== "" && !ohne.includes("befehle"), ohne));
+  }
+
+  // ------------------------------------------- Erklärung vor dem Antworten
+  {
+    const alle = [...aufgaben, ...Object.values((kurs.placement || {}).pools || {}).flat()];
+    const luecken = alle.filter((a) => a.type === "fillBlank");
+    const LUECKE = /\{\{(\d+)\}\}/g;
+    const wort = (w) => new RegExp(`(?<![\\w])${w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\w])`);
+
+    // Die Befehlsliste einer Lückenzeile ist vor dem Lösen sichtbar. Sie darf die Antwort
+    // nur enthalten, wenn das Wort ohnehin schon sichtbar in derselben Zeile steht.
+    const leck = [];
+    let lueckenzeilen = 0;
+    for (const a of luecken) {
+      for (const z of a.template.lines) {
+        const nummern = [...(z.code || "").matchAll(LUECKE)].map((t) => Number(t[1]));
+        if (!nummern.length) continue;
+        lueckenzeilen += 1;
+        const sichtbar = z.code.replace(LUECKE, " ");
+        for (const n of nummern) {
+          for (const antwort of a.blanks[n].accepted) {
+            const genannt = (z.terms || []).some((t) => t === antwort || t === `${antwort}()`);
+            if (genannt && !wort(antwort).test(sichtbar)) leck.push(`${a.id}: ${antwort}`);
+          }
+        }
+      }
+    }
+    ergebnisse.push(pruefe(
+      `Befehle einer Lückenzeile verraten keine Antwort (${lueckenzeilen} Zeilen)`,
+      lueckenzeilen > 0 && leck.length === 0, `verraten: ${leck.slice(0, 5).join(", ")}`,
+    ));
+
+    // Vorher verdeckt: Die Erklärung einer Lückenzeile nennt meist die Antwort.
+    const offen = [];
+    for (const a of luecken) {
+      const html = api.exegese(a.template, "Test", true);
+      for (const z of a.template.lines) {
+        if (!z.explain) continue;
+        const text = api.exegese({ lines: [Object.assign({}, z, { terms: [] })] }, "x").match(/<\/code>(.*?)<\/div>/)[1];
+        const hatLuecke = /\{\{\d+\}\}/.test(z.code);
+        if (hatLuecke === html.includes(text)) offen.push(`${a.id}: ${z.code.trim().slice(0, 30)}`);
+      }
+    }
+    ergebnisse.push(pruefe(
+      `Vor dem Lösen: Erklärung jeder Lückenzeile verdeckt, alle anderen sichtbar (${luecken.length} Aufgaben)`,
+      offen.length === 0, `falsch behandelt: ${offen.slice(0, 3).join(" | ")}`,
+    ));
+
+    // Nach dem Lösen: gefüllte Vorlage, keine Platzhalter mehr, jede Antwort an ihrer Stelle.
+    const kaputt = luecken.filter((a) => {
+      const code = api.geloesteVorlage(a).lines.map((z) => z.code).join("\n");
+      return /\{\{/.test(code) || !a.blanks.every((b) => code.includes(b.accepted[0]));
+    });
+    ergebnisse.push(pruefe(
+      `Gelöste Vorlage: alle Lücken gefüllt (${luecken.length} Aufgaben)`,
+      kaputt.length === 0, `noch offen: ${kaputt.slice(0, 5).map((a) => a.id).join(", ")}`,
+    ));
+
+    const marke = api.codeZeile('System.out.{{0}}("<b>");');
+    ergebnisse.push(pruefe(
+      "Lücken erscheinen als nummerierte Markierung, nicht als {{0}}",
+      marke.includes('class="lueckenmarke"') && marke.includes(">1</span>") && !marke.includes("{{") && marke.includes("&lt;b&gt;"),
+      marke,
+    ));
+  }
+
+  // ------------------------------------------- Sicherung zwischen den Fassungen
+  // Dieselben Dateien und Zahlen wie in SicherungAustauschTests.swift und
+  // SicherungAustauschTest.kt – wer eine davon ändert, muss sie überall ändern.
+  if (beispiele) {
+    const stichtag = Date.parse("2026-09-24T12:00:00Z");
+    const vorher = api.holeStand();
+    const faellig = (s) => { api.setzeStand(s); return api.faelligeZiele(stichtag).length; };
+    const bestanden = (s) => Object.values(s.lektionen).filter((l) => l.bestanden).length;
+
+    const ausApp = api.standAusDatei(beispiele.ausDerApp);
+    ergebnisse.push(pruefe("Sicherung aus der App wird gelesen", !!ausApp, "abgelehnt"));
+    if (ausApp) {
+      ergebnisse.push(pruefe(
+        "App-Sicherung: 9 Antworten ohne Einstufung, 2 Lektionen, 3 fällige Lernziele, Score 32",
+        ausApp.protokoll.length === 9 && bestanden(ausApp) === 2 && faellig(ausApp) === 3 && api.score(ausApp.lektionen) === 32,
+        `Antworten ${ausApp.protokoll.length}, Lektionen ${bestanden(ausApp)}, fällig ${faellig(ausApp)}, Score ${api.score(ausApp.lektionen)}`,
+      ));
+      // Die Apps speichern den Tagesbeginn in Ortszeit – der 23.09. muss der 23.09. bleiben.
+      ergebnisse.push(pruefe("App-Sicherung: letzter Lerntag bleibt derselbe Tag",
+        ausApp.serie.letzterTag === Math.floor(Date.parse("2026-09-23T12:00:00Z") / 86400000),
+        `ist Tag ${ausApp.serie.letzterTag}`));
+    }
+
+    const web = beispiele.ausDemWeb;
+    // Festgeschrieben: So schreibt die Web-App ihre Sicherung. Swift und Kotlin lesen genau
+    // diese Datei – ändert sich der Aufbau, muss die Datei neu erzeugt und dort geprüft werden.
+    const neu = api.sicherungsDatei(web.web, Date.parse(web.erstellt));
+    ergebnisse.push(pruefe("Web-Sicherung hat den Aufbau, den die Apps lesen (Tests/Sicherungen/aus-dem-web.json)",
+      JSON.stringify(neu) === JSON.stringify(web), "Aufbau weicht ab – Datei neu erzeugen und in allen Testreihen prüfen"));
+
+    // Einmal durch die Apps und zurück: dieselbe Wiedervorlage.
+    const zurueck = api.ausAppStand(web.stand);
+    ergebnisse.push(pruefe("Web → App → Web: dieselben 4 fälligen Lernziele und 7 Antworten",
+      faellig(web.web) === 4 && faellig(zurueck) === 4 && zurueck.protokoll.length === 7,
+      `vorher ${faellig(web.web)}, nachher ${faellig(zurueck)}, Antworten ${zurueck.protokoll.length}`));
+
+    ergebnisse.push(pruefe("Ältere Web-Sicherungen bleiben lesbar",
+      api.standAusDatei({ app: "JavaQuest", version: 1, stand: web.web }) === web.web));
+    ergebnisse.push(pruefe("Fremde Dateien werden abgelehnt",
+      api.standAusDatei({ app: "Anders", stand: web.web }) === null
+      && api.standAusDatei({ app: "JavaQuest", stand: {} }) === null
+      && api.standAusDatei(null) === null));
+
+    const zweimal = api.staendeVereinen(ausApp, api.standAusDatei(beispiele.ausDerApp));
+    ergebnisse.push(pruefe("Zweimal eingelesen ergibt keine doppelten Antworten",
+      zweimal.protokoll.length === ausApp.protokoll.length, `${zweimal.protokoll.length} statt ${ausApp.protokoll.length}`));
+
+    // Neue Antworten landen im Protokoll – sonst ginge der Stand beim Export wieder verloren.
+    api.setzeStand(Object.assign(JSON.parse(JSON.stringify(web.web))));
+    api.merkeAufgabe(aufgaben.find((a) => a.id === "t03-1"), 1, 1, "lesson");
+    const nachher = api.holeStand();
+    ergebnisse.push(pruefe("Jede neue Antwort kommt ins Protokoll",
+      nachher.protokoll.length === web.web.protokoll.length + 1 && nachher.protokoll.at(-1).context === "lesson"));
+    api.setzeStand(vorher);
+  }
+
+  // ------------------------------------------------------- Erinnerung
+  // Dieselbe Rechnung wie ReviewReminderTests.swift. Die Web-App rechnet in Ortszeit;
+  // deshalb sind die Zeitpunkte hier auf „heute 12 Uhr Ortszeit“ bezogen und gelten in
+  // jeder Zeitzone – in der CI (UTC) genauso wie auf einem Rechner in Deutschland.
+  {
+    const TAG = 86400000;
+    const mittag = new Date(); mittag.setHours(12, 0, 0, 0);
+    const um = (tage, stunde) => { const d = new Date(mittag); d.setDate(d.getDate() + tage); d.setHours(stunde, 0, 0, 0); return d.getTime(); };
+    const plan = (faellig, jetzt) => api.erinnerungsTermine(faellig, jetzt).map((t) => [t.datum, t.anzahl]);
+
+    ergebnisse.push(pruefe("Erinnerung: nichts fällig – kein Termin", plan([], mittag.getTime()).length === 0));
+    const heute = plan([mittag.getTime() - 3 * TAG], mittag.getTime());
+    ergebnisse.push(pruefe("Erinnerung: schon fällig – heute 18 Uhr, dann höchstens noch zwei Tage",
+      JSON.stringify(heute) === JSON.stringify([[um(0, 18), 1], [um(1, 18), 1], [um(2, 18), 1]]), JSON.stringify(heute)));
+    ergebnisse.push(pruefe("Erinnerung: nach 18 Uhr – erst morgen",
+      plan([mittag.getTime() - TAG], um(0, 19))[0][0] === um(1, 18)));
+    ergebnisse.push(pruefe("Erinnerung: erst abends fällig – am Tag darauf",
+      plan([um(1, 20)], mittag.getTime())[0][0] === um(2, 18)));
+    ergebnisse.push(pruefe("Erinnerung: die Zahl wächst mit dem, was dazukommt",
+      JSON.stringify(plan([um(0, 8), um(1, 8), um(6, 8)], mittag.getTime()).map((t) => t[1])) === "[1,2,2]"));
+
+    const ics = api.kalenderEintrag({ datum: um(2, 18), anzahl: 4 }, mittag.getTime());
+    const zeilen = ics.split("\r\n");
+    const entfaltet = ics.replace(/\r\n /g, "");
+    const d = new Date(um(2, 18));
+    const beginn = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}T180000`;
+    const bytes = (z) => [...z].reduce((n, c) => { const p = c.codePointAt(0); return n + (p < 0x80 ? 1 : p < 0x800 ? 2 : p < 0x10000 ? 3 : 4); }, 0);
+    ergebnisse.push(pruefe("Kalendereintrag: Zeilenende CRLF, keine Zeile über 75 Byte",
+      !/[^\r]\n/.test(ics) && ics.endsWith("\r\n") && zeilen.every((z) => bytes(z) <= 75),
+      zeilen.filter((z) => bytes(z) > 75).join(" | ")));
+    ergebnisse.push(pruefe("Kalendereintrag: Termin in Ortszeit um 18 Uhr, mit Alarm und Zahl",
+      entfaltet.includes(`DTSTART:${beginn}\r\n`) && entfaltet.includes("BEGIN:VALARM") && entfaltet.includes("TRIGGER:PT0M")
+      && entfaltet.includes("SUMMARY:JavaQuest: 4 Lernziele wiederholen"), entfaltet));
+    // Das Komma im Text („kurz reinschauen, bevor …“) muss maskiert sein, sonst lesen
+    // manche Kalender die Beschreibung als Liste und schneiden sie ab.
+    const beschreibung = entfaltet.match(/\r\nDESCRIPTION:(.*?)\r\n/)[1];
+    ergebnisse.push(pruefe("Kalendereintrag: Komma und Zeilenumbruch in der Beschreibung maskiert",
+      beschreibung.includes("\\,") && !/[^\\],/.test(beschreibung) && beschreibung.includes("\\n"), beschreibung));
   }
 
   return ergebnisse;

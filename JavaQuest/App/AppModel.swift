@@ -30,7 +30,10 @@ final class AppModel {
             assert(issues.isEmpty, "Kursdatei fehlerhaft:\n" + issues.map(\.description).joined(separator: "\n"))
             #endif
             let container = try PersistenceController.makeContainer(inMemory: inMemory)
-            state = .ready(ProgressStore(course: course, container: container))
+            let store = ProgressStore(course: course, container: container)
+            state = .ready(store)
+            // Beim Start neu planen: Seit dem letzten Mal kann die Uhrzeit längst vorbei sein.
+            if !inMemory { Erinnerungen.planen(for: store) }
         } catch {
             state = .failed(error.localizedDescription)
         }

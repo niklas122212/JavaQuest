@@ -66,7 +66,10 @@ data class TopicMastery(
 data class TaskAttempt(
     val taskId: String,
     val topicId: String,
-    val lessonId: String?,
+    // Mit Vorgabewert: Swift lässt ein leeres Feld beim Schreiben ganz weg, und ohne Vorgabe
+    // verlangt kotlinx.serialization den Schlüssel. Dann scheiterte jede Mac- oder
+    // iPhone-Sicherung mit einer Trainings- oder Übungsantwort (dort gibt es keine Lektion).
+    val lessonId: String? = null,
     val context: String,
     val difficulty: Int,
     val credit: Double,

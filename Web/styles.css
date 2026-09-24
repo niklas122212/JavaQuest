@@ -226,6 +226,20 @@ textarea.konsole { background: #16161C; color: #EDEDF2; border-color: transparen
 
 details.exegese > summary { cursor: pointer; color: var(--orange); font-weight: 600; padding: 6px 0; }
 
+/* Lücke im Code: nummerierte Markierung statt „{{0}}“ – wie in den Apps (6,3 zu 1 im dunklen Codeblock). */
+.lueckenmarke {
+  display: inline-block;
+  min-width: 1.6em;
+  padding: 0 4px;
+  border-radius: 5px;
+  background: rgba(245, 115, 33, 0.3);
+  color: #FFB27A;
+  font-weight: 700;
+  text-align: center;
+}
+/* Auf der Karte nur umrandet: Mit Füllung sänke der Kontrast hell auf 4,0 zu 1; so bleibt es bei 4,55 / 5,96. */
+.erklaerzeile .lueckenmarke { background: transparent; box-shadow: inset 0 0 0 1.5px currentColor; color: var(--orange-text); }
+
 /* Befehle einer Zeile – derselbe Kasten wie „Befehle in dieser Zeile“ in den Apps. */
 details.befehle { margin-top: 6px; }
 details.befehle > summary { cursor: pointer; font-size: 14px; font-weight: 600; color: var(--indigo-text); padding: 4px 0; }

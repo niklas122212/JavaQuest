@@ -1,0 +1,282 @@
+{
+  "app": "JavaQuest",
+  "version": 1,
+  "erstellt": "2026-09-24T12:00:00Z",
+  "stand": {
+    "schemaVersion": 1,
+    "createdAt": "2026-09-12T09:00:00Z",
+    "experienceLevel": "beginner",
+    "placedLevel": null,
+    "placementScore": null,
+    "onboardingCompleted": true,
+    "masterScore": 12,
+    "currentStreak": 2,
+    "longestStreak": 4,
+    "lastActiveDay": "2026-09-23T00:00:00Z",
+    "lessonRecords": {
+      "l01-hello": {
+        "bestAccuracy": 0.83,
+        "lastAccuracy": 0.83,
+        "playCount": 1,
+        "isCompleted": true,
+        "completedViaPlacement": false,
+        "firstCompletedAt": null,
+        "lastPlayedAt": "2026-09-15T10:02:00Z"
+      },
+      "l02-variables": {
+        "bestAccuracy": 0.5,
+        "lastAccuracy": 0.5,
+        "playCount": 1,
+        "isCompleted": false,
+        "completedViaPlacement": false,
+        "firstCompletedAt": null,
+        "lastPlayedAt": "2026-09-23T20:00:00Z"
+      }
+    },
+    "topicMasteries": {
+      "syntax": {
+        "attempts": 5,
+        "firstTryCorrect": 3,
+        "weightedCorrect": 4,
+        "weightedTotal": 6,
+        "lastPracticedAt": "2026-09-22T19:00:00Z"
+      },
+      "variables": {
+        "attempts": 2,
+        "firstTryCorrect": 2,
+        "weightedCorrect": 4,
+        "weightedTotal": 4,
+        "lastPracticedAt": "2026-09-23T20:00:00Z"
+      }
+    },
+    "attempts": [
+      {
+        "taskId": "t02-3",
+        "topicId": "variables",
+        "lessonId": "l02-variables",
+        "context": "lesson",
+        "difficulty": 3,
+        "credit": 1,
+        "solved": true,
+        "tries": 1,
+        "date": "2026-09-12T09:00:00Z"
+      },
+      {
+        "taskId": "t01-1",
+        "topicId": "syntax",
+        "lessonId": "l01-hello",
+        "context": "lesson",
+        "difficulty": 1,
+        "credit": 1,
+        "solved": true,
+        "tries": 1,
+        "date": "2026-09-15T10:00:00Z"
+      },
+      {
+        "taskId": "t01-2",
+        "topicId": "syntax",
+        "lessonId": "l01-hello",
+        "context": "lesson",
+        "difficulty": 1,
+        "credit": 1,
+        "solved": true,
+        "tries": 1,
+        "date": "2026-09-15T10:01:00Z"
+      },
+      {
+        "taskId": "t01-3",
+        "topicId": "syntax",
+        "lessonId": "l01-hello",
+        "context": "lesson",
+        "difficulty": 2,
+        "credit": 0.5,
+        "solved": true,
+        "tries": 2,
+        "date": "2026-09-15T10:02:00Z"
+      },
+      {
+        "taskId": "q-syn-1a",
+        "topicId": "syntax",
+        "lessonId": null,
+        "context": "training",
+        "difficulty": 1,
+        "credit": 1,
+        "solved": true,
+        "tries": 1,
+        "date": "2026-09-18T19:00:00Z"
+      },
+      {
+        "taskId": "s-easy-1",
+        "topicId": "syntax",
+        "lessonId": null,
+        "context": "practice",
+        "difficulty": 1,
+        "credit": 0,
+        "solved": false,
+        "tries": 3,
+        "date": "2026-09-22T19:00:00Z"
+      },
+      {
+        "taskId": "t02-1",
+        "topicId": "variables",
+        "lessonId": "l02-variables",
+        "context": "lesson",
+        "difficulty": 1,
+        "credit": 1,
+        "solved": true,
+        "tries": 1,
+        "date": "2026-09-23T20:00:00Z"
+      }
+    ],
+    "scoreHistory": []
+  },
+  "web": {
+    "lektionen": {
+      "l01-hello": {
+        "quote": 0.83,
+        "bestanden": true
+      },
+      "l02-variables": {
+        "quote": 0.5,
+        "bestanden": false
+      }
+    },
+    "verlauf": {
+      "t01-1": {
+        "versuche": 1,
+        "wertung": 1,
+        "datum": 1789466400000
+      },
+      "t01-2": {
+        "versuche": 1,
+        "wertung": 1,
+        "datum": 1789466460000
+      },
+      "t01-3": {
+        "versuche": 1,
+        "wertung": 0.5,
+        "datum": 1789466520000
+      },
+      "q-syn-1a": {
+        "versuche": 1,
+        "wertung": 1,
+        "datum": 1789758000000
+      },
+      "s-easy-1": {
+        "versuche": 1,
+        "wertung": 0,
+        "datum": 1790103600000
+      },
+      "t02-1": {
+        "versuche": 1,
+        "wertung": 1,
+        "datum": 1790193600000
+      },
+      "t02-3": {
+        "versuche": 1,
+        "wertung": 1,
+        "datum": 1789203600000
+      }
+    },
+    "themen": {
+      "syntax": {
+        "gesehen": 5,
+        "richtig": 3,
+        "gewichtet": 4,
+        "gesamt": 6
+      },
+      "variables": {
+        "gesehen": 2,
+        "richtig": 2,
+        "gewichtet": 4,
+        "gesamt": 4
+      }
+    },
+    "ziele": {
+      "t01-1": {
+        "versuche": 2,
+        "serie": 2,
+        "wertung": 1,
+        "datum": 1789758000000
+      },
+      "t01-2": {
+        "versuche": 2,
+        "serie": 0,
+        "wertung": 0,
+        "datum": 1790103600000
+      },
+      "t01-3": {
+        "versuche": 1,
+        "serie": 0,
+        "wertung": 0.5,
+        "datum": 1789466520000
+      },
+      "t02-1": {
+        "versuche": 1,
+        "serie": 1,
+        "wertung": 1,
+        "datum": 1790193600000
+      },
+      "t02-3": {
+        "versuche": 1,
+        "serie": 1,
+        "wertung": 1,
+        "datum": 1789203600000
+      }
+    },
+    "serie": {
+      "aktuell": 2,
+      "laengste": 4,
+      "letzterTag": 20719
+    },
+    "profil": null,
+    "start": {
+      "fertig": true,
+      "stufe": "beginner"
+    },
+    "protokoll": [
+      {
+        "taskId": "t01-1",
+        "credit": 1,
+        "tries": 1,
+        "date": 1789466400000,
+        "context": "lesson"
+      },
+      {
+        "taskId": "t01-2",
+        "credit": 1,
+        "tries": 1,
+        "date": 1789466460000,
+        "context": "lesson"
+      },
+      {
+        "taskId": "t01-3",
+        "credit": 0.5,
+        "tries": 2,
+        "date": 1789466520000,
+        "context": "lesson"
+      },
+      {
+        "taskId": "q-syn-1a",
+        "credit": 1,
+        "tries": 1,
+        "date": 1789758000000,
+        "context": "training"
+      },
+      {
+        "taskId": "s-easy-1",
+        "credit": 0,
+        "tries": 3,
+        "date": 1790103600000,
+        "context": "practice"
+      },
+      {
+        "taskId": "t02-1",
+        "credit": 1,
+        "tries": 1,
+        "date": 1790193600000,
+        "context": "lesson"
+      }
+    ]
+  }
+}

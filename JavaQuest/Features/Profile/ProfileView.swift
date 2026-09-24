@@ -9,6 +9,9 @@ struct ProfileView: View {
     @State private var exportDaten: Data?
     @State private var zeigeImport = false
     @State private var sicherungsMeldung: String?
+    @AppStorage(Erinnerungen.anSchluessel) private var erinnerungAn = false
+    @AppStorage(Erinnerungen.minutenSchluessel) private var erinnerungMinuten = ReviewReminder.defaultMinutes
+    @State private var erinnerungsMeldung: String?
 
     private var version: String {
         let info = Bundle.main.infoDictionary
@@ -39,6 +42,49 @@ struct ProfileView: View {
             }
 
             Section {
+                Toggle("An fällige Wiederholungen erinnern", isOn: Binding(
+                    get: { erinnerungAn },
+                    set: { neu in
+                        guard neu else { erinnerungAn = false; Erinnerungen.planen(for: store); return }
+                        Task {
+                            if await Erinnerungen.erlaubnisHolen() {
+                                erinnerungAn = true
+                                erinnerungsMeldung = nil
+                            } else {
+                                erinnerungAn = false
+                                erinnerungsMeldung = "Mitteilungen sind für JavaQuest ausgeschaltet – in den Systemeinstellungen unter „Mitteilungen“ erlauben."
+                            }
+                            Erinnerungen.planen(for: store)
+                        }
+                    }
+                ))
+                if erinnerungAn {
+                    DatePicker("Uhrzeit", selection: Binding(
+                        get: { Calendar.current.date(bySettingHour: erinnerungMinuten / 60, minute: erinnerungMinuten % 60, second: 0, of: .now) ?? .now },
+                        set: { zeit in
+                            let teile = Calendar.current.dateComponents([.hour, .minute], from: zeit)
+                            erinnerungMinuten = (teile.hour ?? 18) * 60 + (teile.minute ?? 0)
+                            Erinnerungen.planen(for: store)
+                        }
+                    ), displayedComponents: .hourAndMinute)
+                    if let naechste = Erinnerungen.termine(for: store).first {
+                        LabeledContent("Nächste Erinnerung") {
+                            Text("\(naechste.date.formatted(.dateTime.weekday(.abbreviated).day().month().hour().minute())) · \(naechste.count == 1 ? "1 Lernziel" : "\(naechste.count) Lernziele")")
+                        }
+                    } else {
+                        Text("Gerade ist nichts zur Wiederholung vorgemerkt.").foregroundStyle(.secondary)
+                    }
+                }
+                if let erinnerungsMeldung {
+                    Text(erinnerungsMeldung).font(.footnote).foregroundStyle(.secondary)
+                }
+            } header: {
+                Text("Erinnerung")
+            } footer: {
+                Text("Nur an Tagen, an denen wirklich etwas fällig ist – und höchstens drei Tage hintereinander, falls du nicht reinschaust. Wer übt, verschiebt die nächste Erinnerung von selbst.")
+            }
+
+            Section {
                 Label("Alle Daten bleiben auf diesem Gerät. Kein Konto, kein Tracking, keine Netzwerkverbindung – auch die Auswertung deiner Antworten läuft lokal.", systemImage: "lock.shield.fill")
                     .foregroundStyle(.secondary)
             } header: {
@@ -64,7 +110,7 @@ struct ProfileView: View {
             } header: {
                 Text("Fortschritt sichern")
             } footer: {
-                Text("Eine Datei zum Mitnehmen. Beim Einlesen wird nichts gelöscht: Aus beiden Ständen wird jeweils das bessere Ergebnis übernommen.")
+                Text("Eine Datei zum Mitnehmen. Beim Einlesen wird nichts gelöscht: Aus beiden Ständen wird jeweils das bessere Ergebnis übernommen. Die Datei passt in jede Fassung: Web-App, Mac, iPhone und Windows.")
             }
 
             Section {

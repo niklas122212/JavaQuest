@@ -484,6 +484,8 @@ final class ProgressStore {
         do {
             try context.save()
             lastSaveError = nil
+            // Wer geübt hat, hat andere fällige Lernziele – die Erinnerung rückt mit.
+            Erinnerungen.planen(for: self)
         } catch {
             lastSaveError = error.localizedDescription
         }

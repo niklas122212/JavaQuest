@@ -23,7 +23,9 @@ export function ladeApp(quelltext, kurs) {
       holeStand: () => stand,
       auswerten, zweiterTipp, ausgabeZeilen, lueckePasst,
       warumZeileFalsch, warumAusgabeFalsch, warumBlankFalsch,
-      staendeVereinen, exegese, befehleDerZeile,
+      staendeVereinen, exegese, befehleDerZeile, geloesteVorlage, codeZeile,
+      sicherungsDatei, alsAppStand, ausAppStand, standAusDatei, merkeAufgabe, isoZeit, bucheAntwort,
+      erinnerungsTermine, kalenderEintrag, faelligkeiten,
       score, rang, naechsterRang, sterne, beherrschung, gesamtBeherrschung, themenStatus,
       wiedervorlage, faelligeZiele, aktuelleSerie,
       einstufungProzent, einstufungStufe,
@@ -38,7 +40,7 @@ export function ladeApp(quelltext, kurs) {
 }
 
 export function leererStand() {
-  return { lektionen: {}, verlauf: {}, themen: {}, ziele: {}, serie: null, profil: null, start: null };
+  return { lektionen: {}, verlauf: {}, themen: {}, ziele: {}, serie: null, profil: null, start: null, protokoll: [] };
 }
 
 /** Alle übbaren Aufgaben der Kursdatei – Lektionen plus Übungspool. */

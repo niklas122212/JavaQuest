@@ -17,8 +17,15 @@ const web = join(hier, "..");
 const quelltext = readFileSync(join(web, "app.js"), "utf8");
 const kurs = JSON.parse(readFileSync(join(web, "java_course.json"), "utf8"));
 
+// Dieselben zwei Beispiel-Sicherungen liest auch die Apple- und die Windows-Testreihe.
+const sicherungen = join(web, "..", "Tests", "Sicherungen");
+const beispiele = {
+  ausDerApp: JSON.parse(readFileSync(join(sicherungen, "aus-der-app.json"), "utf8")),
+  ausDemWeb: JSON.parse(readFileSync(join(sicherungen, "aus-dem-web.json"), "utf8")),
+};
+
 const api = ladeApp(quelltext, kurs);
-const ergebnisse = pruefungen(api, kurs);
+const ergebnisse = pruefungen(api, kurs, beispiele);
 
 // Nur unter Node prüfbar, deshalb nicht in pruefungen.mjs: Passt die Versionsnummer zum
 // Inhalt? Sonst lädt der Service Worker bei Stammnutzern die Änderung nie nach.

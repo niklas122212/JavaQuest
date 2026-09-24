@@ -21,12 +21,17 @@ function laden() {
     const roh = localStorage.getItem("javaquest");
     if (roh) return JSON.parse(roh);
   } catch (e) { /* privater Modus o. Ä.: dann eben ohne gespeicherten Stand */ }
-  return { lektionen: {}, verlauf: {}, themen: {}, ziele: {}, serie: null, profil: null };
+  return leererStand();
 }
 
-/* Ältere gespeicherte Stände kennen „ziele“ noch nicht. Sie werden nicht ersetzt,
-   sondern nur ergänzt – der bisherige Fortschritt bleibt vollständig erhalten. */
+function leererStand() {
+  return { lektionen: {}, verlauf: {}, themen: {}, ziele: {}, serie: null, profil: null, protokoll: [] };
+}
+
+/* Ältere gespeicherte Stände kennen „ziele“ und „protokoll“ noch nicht. Sie werden nicht
+   ersetzt, sondern nur ergänzt – der bisherige Fortschritt bleibt vollständig erhalten. */
 if (!stand.ziele) stand.ziele = {};
+if (!Array.isArray(stand.protokoll)) stand.protokoll = [];
 /* Ebenso beim Einstieg: Wer die App schon benutzt hat, wird nicht nachträglich befragt.
    Vorhandener Fortschritt gilt als Beleg dafür, dass der Einstieg längst hinter einem liegt. */
 if (!stand.start && (Object.keys(stand.verlauf).length || Object.keys(stand.lektionen).length)) {
@@ -40,31 +45,40 @@ function sichern() {
 }
 
 /** Merkt sich, wie eine Aufgabe ausging – Grundlage für Varianten und Schwächen. */
-function merkeAufgabe(aufgabe, wertung, versuche) {
-  const alt = stand.verlauf[aufgabe.id];
-  stand.verlauf[aufgabe.id] = {
+function merkeAufgabe(aufgabe, wertung, versuche, kontext) {
+  const datum = Date.now();
+  bucheAntwort(stand, aufgabe, wertung, datum);
+  // Jede einzelne Antwort, wie in den Apps. Nur damit lässt sich der Stand verlustfrei
+  // in die Mac-, iPhone- und Windows-App mitnehmen (siehe „Austausch mit den Apps“).
+  stand.protokoll.push({ taskId: aufgabe.id, credit: wertung, tries: versuche || 1, date: datum, context: kontext });
+  merkeAktivitaet();
+  sichern();
+}
+
+/** Verbucht eine Antwort in Verlauf, Lernziel und Thema – beim Üben wie beim Übernehmen aus einer App. */
+function bucheAntwort(s, aufgabe, wertung, datum) {
+  const alt = s.verlauf[aufgabe.id];
+  s.verlauf[aufgabe.id] = {
     versuche: (alt ? alt.versuche : 0) + 1,
     wertung,
-    datum: Date.now(),
+    datum,
   };
   // Die Wiedervorlage rechnet je Lernziel, nicht je Aufgabe: Wer dasselbe Lernziel dreimal
   // mit drei Varianten getroffen hat, hat es verstanden – und nicht eine Frage auswendig gelernt.
   const schluessel = gruppe(aufgabe);
-  const ziel = stand.ziele[schluessel] || { versuche: 0, serie: 0 };
-  stand.ziele[schluessel] = {
+  const ziel = s.ziele[schluessel] || { versuche: 0, serie: 0 };
+  s.ziele[schluessel] = {
     versuche: ziel.versuche + 1,
     serie: wertung >= 1 ? ziel.serie + 1 : 0,
     wertung,
-    datum: Date.now(),
+    datum,
   };
-  const thema = stand.themen[aufgabe.topicId] || { gesehen: 0, richtig: 0, gewichtet: 0, gesamt: 0 };
+  const thema = s.themen[aufgabe.topicId] || { gesehen: 0, richtig: 0, gewichtet: 0, gesamt: 0 };
   thema.gesehen += 1;
   if (wertung >= 1) thema.richtig += 1;
   thema.gewichtet += aufgabe.difficulty * wertung;
   thema.gesamt += aufgabe.difficulty;
-  stand.themen[aufgabe.topicId] = thema;
-  merkeAktivitaet();
-  sichern();
+  s.themen[aufgabe.topicId] = thema;
 }
 
 function beherrschung(themaId) {
@@ -98,6 +112,85 @@ function wiedervorlage(schluessel, jetzt) {
 /** Die Lernziele, deren Pause abgelaufen ist. */
 function faelligeZiele(jetzt) {
   return Object.keys(stand.ziele).filter((k) => faellig(stand.ziele[k], jetzt));
+}
+
+/* ---------------------------------------------------------------- Erinnerung
+   Das verteilte Wiederholen wirkt nur, wenn man im richtigen Abstand zurückkommt – und
+   daran hat lange nichts erinnert. Die Apple-App meldet sich selbst; eine Web-App kann
+   das ohne eigenen Server nicht. Deshalb gibt es hier einen Kalendereintrag für die
+   nächste Wiederholung, samt Alarm. Dieselbe Rechnung wie ReviewReminder.plan in der
+   Apple-App: nur Tage, an denen zur Uhrzeit wirklich etwas fällig ist. */
+const ERINNERUNG_MINUTEN = 18 * 60;
+
+/** Wann jedes Lernziel wieder dran ist (Millisekunden). */
+function faelligkeiten() {
+  return Object.values(stand.ziele).map((z) => z.datum + pause(z) * 86400000);
+}
+
+/** Die nächsten Termine zur Uhrzeit (Ortszeit), an denen etwas fällig ist. */
+function erinnerungsTermine(faelligAb, jetzt, minuten = ERINNERUNG_MINUTEN, hoechstens = 3) {
+  if (!faelligAb.length) return [];
+  const tag = new Date(Math.max(jetzt, Math.min(...faelligAb)));
+  tag.setHours(0, 0, 0, 0);
+  const termine = [];
+  for (let i = 0; i < hoechstens + 2 && termine.length < hoechstens; i++) {
+    const zeit = new Date(tag);
+    zeit.setHours(Math.floor(minuten / 60), minuten % 60, 0, 0);
+    if (zeit.getTime() > jetzt) {
+      const anzahl = faelligAb.filter((f) => f <= zeit.getTime()).length;
+      if (anzahl) termine.push({ datum: zeit.getTime(), anzahl });
+    }
+    tag.setDate(tag.getDate() + 1);
+  }
+  return termine;
+}
+
+/** Text für Kalenderfelder: Backslash, Semikolon, Komma und Zeilenumbruch maskiert (RFC 5545). */
+const kalenderText = (t) => String(t).replace(/[\\;,]/g, (z) => `\\${z}`).replace(/\n/g, "\\n");
+
+/** Zeilen über 75 Byte werden umbrochen; die Fortsetzung beginnt mit einem Leerzeichen. */
+function kalenderZeile(zeile) {
+  const teile = [];
+  let aktuell = "", laenge = 0;
+  for (const zeichen of zeile) {
+    const c = zeichen.codePointAt(0);
+    const bytes = c < 0x80 ? 1 : c < 0x800 ? 2 : c < 0x10000 ? 3 : 4;
+    if (laenge + bytes > (teile.length ? 74 : 75)) { teile.push(aktuell); aktuell = ""; laenge = 0; }
+    aktuell += zeichen;
+    laenge += bytes;
+  }
+  teile.push(aktuell);
+  return teile.join("\r\n ");
+}
+
+/** Ein Kalendereintrag mit Alarm für einen Termin – in Ortszeit, wie ein Wecker. */
+function kalenderEintrag(termin, jetzt) {
+  const zwei = (n) => String(n).padStart(2, "0");
+  const d = new Date(termin.datum);
+  const beginn = `${d.getFullYear()}${zwei(d.getMonth() + 1)}${zwei(d.getDate())}T${zwei(d.getHours())}${zwei(d.getMinutes())}00`;
+  const ziele = termin.anzahl === 1 ? "1 Lernziel" : `${termin.anzahl} Lernziele`;
+  const adresse = "https://niklas122212.github.io/JavaQuest/";
+  const warten = termin.anzahl === 1 ? "wartet" : "warten";
+  return [
+    "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//JavaQuest//Wiederholung//DE", "CALSCALE:GREGORIAN", "METHOD:PUBLISH",
+    "BEGIN:VEVENT",
+    `UID:javaquest-wiederholung-${beginn}@niklas122212.github.io`,
+    `DTSTAMP:${isoZeit(jetzt).replace(/[-:]/g, "")}`,
+    `DTSTART:${beginn}`,
+    "DURATION:PT15M",
+    `SUMMARY:${kalenderText(`JavaQuest: ${ziele} wiederholen`)}`,
+    `DESCRIPTION:${kalenderText(`${ziele} ${warten} auf die Wiederholung – kurz reinschauen, bevor es verblasst.\n${adresse}`)}`,
+    `URL:${adresse}`,
+    "BEGIN:VALARM", "ACTION:DISPLAY", `DESCRIPTION:${kalenderText(`JavaQuest: ${ziele} wiederholen`)}`, "TRIGGER:PT0M", "END:VALARM",
+    "END:VEVENT", "END:VCALENDAR",
+  ].map(kalenderZeile).join("\r\n") + "\r\n";
+}
+
+function erinnerungHerunterladen() {
+  const termin = erinnerungsTermine(faelligkeiten(), Date.now())[0];
+  if (!termin) return;
+  dateiHerunterladen(kalenderEintrag(termin, Date.now()), "text/calendar;charset=utf-8", "javaquest-wiederholung.ics");
+  melde("Kalendereintrag erstellt – öffne ihn, um ihn in deinen Kalender zu übernehmen.");
 }
 
 /** Wie ein Thema auf den einzelnen Schwierigkeitsstufen läuft. */
@@ -141,7 +234,7 @@ function naechsteLektion() {
    Ohne ihn käme auf demselben Stand im Web eine andere Zahl heraus als in der App. */
 const STUFENFAKTOR = { beginner: 1.0, intermediate: 1.25, advanced: 1.5 };
 
-function score() {
+function score(lektionen = stand.lektionen) {
   // Wie MasterScore: nur bestandene Lektionen zählen, gewichtet nach Niveau und Modulstufe.
   let erreicht = 0, gesamt = 0;
   for (const m of kurs.modules) {
@@ -149,7 +242,7 @@ function score() {
     for (const l of m.lessons) {
       const gewicht = l.tasks.reduce((s, t) => s + t.difficulty, 0) * faktor;
       gesamt += gewicht;
-      const e = lektionErgebnis(l.id);
+      const e = (lektionen || {})[l.id];
       if (e && e.bestanden) erreicht += gewicht * Math.min(Math.max(e.quote, 0), 1);
     }
   }
@@ -563,21 +656,52 @@ const h = (html) => html;
 const sicher = (t) => String(t == null ? "" : t).replace(/[&<>"']/g, (c) =>
   ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
+/** Code als HTML – Lücken {{0}}, {{1}} … erscheinen als nummerierte Markierung wie in den Apps. */
+function codeZeile(code) {
+  return sicher(code || "").replace(/\{\{(\d+)\}\}/g, (_, i) =>
+    `<span class="lueckenmarke" aria-label="Lücke ${Number(i) + 1}">${Number(i) + 1}</span>`);
+}
+
 function codeBlock(schnipsel) {
   if (!schnipsel || !schnipsel.lines) return "";
   const zeilen = schnipsel.lines.map((z, i) =>
-    `<span class="nr">${String(i + 1).padStart(2, " ")}</span>  ${sicher(z.code || "")}`).join("\n");
+    `<span class="nr">${String(i + 1).padStart(2, " ")}</span>  ${codeZeile(z.code)}`).join("\n");
   // role="img" mit Beschriftung: Sonst buchstabieren Sprachausgaben jedes Sonderzeichen einzeln.
   // Die Exegese darunter liest den Code Zeile für Zeile in Worten vor.
   return `<pre class="code" tabindex="0" role="img" aria-label="Java-Code, ${schnipsel.lines.length} Zeilen. Die Erklärung Zeile für Zeile steht darunter.">${zeilen}</pre>`;
 }
 
-function exegese(schnipsel, titel) {
+/* Zeile für Zeile erklärt. Vor dem Lösen einer Lückenaufgabe bleibt die Erklärung jeder
+   Zeile mit Lücke verdeckt – sie nennt die Antwort (bei 152 von 201 Lückenzeilen). Die
+   Befehle der Zeile bleiben sichtbar: Wo die Antwort darunter ist, steht sie ohnehin
+   schon in derselben Zeile (siehe Prüfung in tests/pruefungen.mjs). */
+function exegese(schnipsel, titel, verdeckeLuecken = false) {
   if (!schnipsel || !schnipsel.lines) return "";
-  const zeilen = schnipsel.lines.filter((z) => z.explain).map((z) =>
-    `<div class="erklaerzeile"><code>${sicher(z.code)}</code>${sicher(z.explain)}${befehle(z)}</div>`).join("");
+  const zeilen = schnipsel.lines.filter((z) => z.explain).map((z) => {
+    const verdeckt = verdeckeLuecken && /\{\{\d+\}\}/.test(z.code || "");
+    const text = verdeckt
+      ? `<span class="leise">Hier steckt eine Lücke – die ganze Erklärung erscheint, sobald du die Aufgabe gelöst hast.</span>`
+      : sicher(z.explain);
+    return `<div class="erklaerzeile"><code>${codeZeile(z.code)}</code>${text}${befehle(z)}</div>`;
+  }).join("");
   if (!zeilen) return "";
   return `<details class="exegese"><summary>${sicher(titel)}</summary><div class="zeilen">${zeilen}</div></details>`;
+}
+
+/** Die Lückenvorlage mit der ersten richtigen Antwort in jeder Lücke – wie `solvedSnippet` in den Apps. */
+function geloesteVorlage(aufgabe) {
+  return {
+    lines: aufgabe.template.lines.map((z) => {
+      const terms = [...(z.terms || [])];
+      const code = (z.code || "").replace(/\{\{(\d+)\}\}/g, (_, i) => {
+        const antwort = ((aufgabe.blanks[Number(i)] || {}).accepted || [""])[0];
+        // Der eingesetzte Befehl wird jetzt ebenfalls erklärt (Methoden stehen im Lexikon mit „()“).
+        for (const kandidat of [antwort, `${antwort}()`]) if (antwort && !terms.includes(kandidat)) terms.push(kandidat);
+        return antwort;
+      });
+      return Object.assign({}, z, { code, terms });
+    }),
+  };
 }
 
 /* Befehlslexikon: Jede erklärte Zeile nennt in der Kursdatei ihre Befehle („terms“),
@@ -838,13 +962,27 @@ function startSeite() {
 
     ${(() => {
       const anzahl = faelligeZiele(Date.now()).length;
-      return anzahl ? `
+      const termin = erinnerungsTermine(faelligkeiten(), Date.now())[0];
+      const wann = termin ? new Date(termin.datum).toLocaleString("de-DE",
+        { weekday: "short", day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" }) : "";
+      const kalender = termin ? `<button class="knopf still" data-kalender="1"
+        aria-label="Erinnerung für ${sicher(wann)} Uhr in den Kalender eintragen">📅 Erinnerung in den Kalender (${sicher(wann)} Uhr)</button>` : "";
+      if (anzahl) return `
     <div class="karte">
       <div class="marken"><span class="marke stark">Wiederholung</span></div>
       <h2>${anzahl} ${anzahl === 1 ? "Lernziel ist" : "Lernziele sind"} heute fällig</h2>
       <p class="leise">Was du kannst, wird in wachsenden Abständen abgefragt – erst am nächsten Tag,
       dann nach 3, 7, 16 und 35 Tagen. So bleibt es sitzen, ohne dass du dasselbe täglich übst.</p>
       <button class="knopf" data-start="wiederholung">Wiederholung starten</button>
+      ${kalender}
+    </div>`;
+      return termin ? `
+    <div class="karte">
+      <div class="marken"><span class="marke">Wiederholung</span></div>
+      <h2>Nächste Wiederholung: ${sicher(wann)} Uhr</h2>
+      <p class="leise">Dann ${termin.anzahl === 1 ? "ist 1 Lernziel" : `sind ${termin.anzahl} Lernziele`} fällig.
+      Ein Kalendereintrag erinnert dich rechtzeitig – die Web-App selbst kann das nicht.</p>
+      ${kalender}
     </div>` : "";
     })()}
 
@@ -1050,7 +1188,7 @@ function profilSeite() {
       <input type="file" accept="application/json,.json" id="sicherung-datei" hidden
              aria-label="Sicherungsdatei auswählen">
       <p class="mini">Beim Einlesen wird nichts gelöscht: Aus beiden Ständen wird jeweils das
-      bessere Ergebnis übernommen.</p>
+      bessere Ergebnis übernommen. Die Datei passt in jede Fassung: Web-App, Mac, iPhone und Windows.</p>
     </div>
     <div class="karte">
       <button class="knopf zweit" data-reset="1">Fortschritt zurücksetzen</button>
@@ -1064,16 +1202,172 @@ function profilSeite() {
    neues Gerät oder der private Modus – und er ist weg, ohne Vorwarnung. Eine Datei
    zum Mitnehmen ist die einzige Absicherung, die ohne Konto und ohne Server auskommt. */
 function sicherungHerunterladen() {
-  const inhalt = JSON.stringify({ app: "JavaQuest", version: 1, erstellt: new Date().toISOString(), stand }, null, 1);
-  const blob = new Blob([inhalt], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
+  const inhalt = JSON.stringify(sicherungsDatei(stand, Date.now()), null, 1);
+  dateiHerunterladen(inhalt, "application/json", `javaquest-${new Date().toISOString().slice(0, 10)}.json`);
+}
+
+function dateiHerunterladen(inhalt, typ, name) {
+  const url = URL.createObjectURL(new Blob([inhalt], { type: typ }));
   const a = document.createElement("a");
   a.href = url;
-  a.download = `javaquest-${new Date().toISOString().slice(0, 10)}.json`;
+  a.download = name;
   document.body.appendChild(a);
   a.click();
   a.remove();
   URL.revokeObjectURL(url);
+}
+
+/* ---------------------------------------------------------------- Austausch mit den Apps
+   Mac-, iPhone- und Windows-App speichern jede einzelne Antwort (Aufgabe, Wertung,
+   Zeitpunkt), die Web-App fasste lange nur je Aufgabe und Lernziel zusammen. Deshalb
+   passte eine Sicherung von hier in keine App und umgekehrt – wer im Browser und am
+   Mac lernte, hatte zwei getrennte Lernstände. Jetzt schreibt die Web-App ihre Sicherung
+   im Aufbau der Apps und legt den eigenen Stand unter „web“ bei, damit Web → Web
+   verlustfrei bleibt; die Apps übergehen dieses Feld. Gelesen werden beide Aufbauten
+   und auch ältere Web-Sicherungen. Dieselbe Beispieldatei prüfen alle drei Testreihen
+   (Tests/Sicherungen/). */
+
+/** Zeitpunkt wie in den Apps: ISO 8601 ohne Sekundenbruchteile – der Apple-Decoder lehnt sie ab. */
+const isoZeit = (ms) => new Date(ms).toISOString().replace(/\.\d{3}Z$/, "Z");
+const ausIsoZeit = (text) => (typeof text === "string" ? Date.parse(text) : NaN);
+
+let verzeichnis = { kurs: null, aufgaben: {} };
+/** Jede übbare Aufgabe mit ihrer Lektion – für Thema, Niveau und Lernziel beim Umwandeln. */
+function aufgabeMitLektion(id) {
+  if (verzeichnis.kurs !== kurs) {
+    const aufgaben = {};
+    for (const l of alleLektionen()) for (const a of l.tasks) aufgaben[a.id] = { aufgabe: a, lektionId: l.id };
+    for (const a of kurs.taskPool || []) if (!aufgaben[a.id]) aufgaben[a.id] = { aufgabe: a, lektionId: null };
+    verzeichnis = { kurs, aufgaben };
+  }
+  return verzeichnis.aufgaben[id] || null;
+}
+
+/** Die Sicherungsdatei: Aufbau der Apps, dazu der eigene Stand unter „web“. */
+function sicherungsDatei(s, jetzt) {
+  return { app: "JavaQuest", version: 1, erstellt: isoZeit(jetzt), stand: alsAppStand(s, jetzt), web: s };
+}
+
+/** Der Web-Stand im Aufbau von ProgressBackup.Stand (Apple) bzw. ProgressData (Windows). */
+function alsAppStand(s, jetzt) {
+  const attempts = [];
+  const mitProtokoll = new Set();
+  const versuch = (eintrag, credit, tries, datum, kontext) => ({
+    taskId: eintrag.aufgabe.id,
+    topicId: eintrag.aufgabe.topicId,
+    lessonId: kontext === "lesson" ? eintrag.lektionId : null,
+    context: kontext,
+    difficulty: eintrag.aufgabe.difficulty,
+    credit,
+    solved: credit > 0,
+    tries,
+    date: isoZeit(datum),
+  });
+  for (const p of s.protokoll || []) {
+    const eintrag = aufgabeMitLektion(p.taskId);
+    if (!eintrag) continue;
+    mitProtokoll.add(p.taskId);
+    attempts.push(versuch(eintrag, p.credit, p.tries || 1, p.date, p.context || "training"));
+  }
+  // Ältere Stände ohne Protokoll: je Aufgabe der letzte bekannte Ausgang. Eine lange Serie
+  // richtig beantworteter Varianten wird dabei kürzer – das Lernziel kommt in der App also
+  // eher früher als später wieder dran, nie zu spät.
+  for (const [id, v] of Object.entries(s.verlauf || {})) {
+    const eintrag = aufgabeMitLektion(id);
+    if (mitProtokoll.has(id) || !eintrag || !v.datum) continue;
+    const wertung = v.wertung || 0;
+    attempts.push(versuch(eintrag, wertung, wertung >= 1 ? 1 : 2, v.datum, eintrag.lektionId ? "lesson" : "training"));
+  }
+  attempts.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+
+  const zuletzt = (pruefe) => {
+    let max = 0;
+    for (const [id, v] of Object.entries(s.verlauf || {})) {
+      const eintrag = aufgabeMitLektion(id);
+      if (eintrag && pruefe(eintrag) && v.datum > max) max = v.datum;
+    }
+    return max ? isoZeit(max) : null;
+  };
+  const lessonRecords = {};
+  for (const [id, e] of Object.entries(s.lektionen || {})) {
+    lessonRecords[id] = {
+      bestAccuracy: e.quote || 0,
+      lastAccuracy: e.quote || 0,
+      playCount: e.viaEinstufung ? 0 : 1,
+      isCompleted: !!e.bestanden,
+      completedViaPlacement: !!e.viaEinstufung,
+      firstCompletedAt: null,
+      lastPlayedAt: zuletzt((a) => a.lektionId === id),
+    };
+  }
+  const topicMasteries = {};
+  for (const [id, t] of Object.entries(s.themen || {})) {
+    topicMasteries[id] = {
+      attempts: t.gesehen || 0,
+      firstTryCorrect: t.richtig || 0,
+      weightedCorrect: t.gewichtet || 0,
+      weightedTotal: t.gesamt || 0,
+      lastPracticedAt: zuletzt((a) => a.aufgabe.topicId === id),
+    };
+  }
+  const profil = s.profil || {}, start = s.start || {}, serie = s.serie || null;
+  const tag = Math.floor(jetzt / 86400000);
+  const stufen = ["beginner", "intermediate", "advanced"];
+  const fruehestes = attempts.length ? ausIsoZeit(attempts[0].date) : jetzt;
+  return {
+    schemaVersion: 1,
+    createdAt: isoZeit(profil.seit || fruehestes),
+    experienceLevel: stufen.includes(profil.selbsteinschaetzung) ? profil.selbsteinschaetzung : "beginner",
+    placedLevel: stufen.includes(profil.stufe) ? profil.stufe : null,
+    placementScore: Number.isFinite(profil.einstufung) ? Math.round(profil.einstufung) : null,
+    onboardingCompleted: !!start.fertig,
+    masterScore: score(s.lektionen),
+    currentStreak: serie && serie.letzterTag !== null && tag - serie.letzterTag <= 1 ? serie.aktuell || 0 : 0,
+    longestStreak: (serie && serie.laengste) || 0,
+    lastActiveDay: serie && serie.letzterTag !== null ? isoZeit(serie.letzterTag * 86400000) : null,
+    lessonRecords,
+    topicMasteries,
+    attempts,
+    scoreHistory: [],
+  };
+}
+
+/** Ein Stand aus einer App-Sicherung, umgerechnet in den Aufbau der Web-App. */
+function ausAppStand(a) {
+  const s = leererStand();
+  // Die Einstufung bleibt außen vor – wie in den Apps sagt sie nichts darüber, ob ein Lernziel sitzt.
+  s.protokoll = (a.attempts || [])
+    .filter((v) => v.context !== "placement" && aufgabeMitLektion(v.taskId))
+    .map((v) => ({ taskId: v.taskId, credit: Number(v.credit) || 0, tries: v.tries || 1,
+                   date: ausIsoZeit(v.date), context: v.context || "training" }))
+    .filter((v) => Number.isFinite(v.date))
+    .sort((x, y) => x.date - y.date);
+  for (const v of s.protokoll) bucheAntwort(s, aufgabeMitLektion(v.taskId).aufgabe, v.credit, v.date);
+  for (const [id, r] of Object.entries(a.lessonRecords || {})) {
+    if (!r.isCompleted && !r.playCount) continue;
+    s.lektionen[id] = Object.assign({ quote: r.bestAccuracy || 0, bestanden: !!r.isCompleted },
+                                    r.completedViaPlacement ? { viaEinstufung: true } : {});
+  }
+  const letzterTag = ausIsoZeit(a.lastActiveDay);
+  // Gerundet statt abgeschnitten: Die Apps speichern den Tagesbeginn in Ortszeit, in
+  // Deutschland also 22:00 Uhr am Vortag (UTC) – abgeschnitten wäre das ein Tag zu früh.
+  s.serie = { aktuell: a.currentStreak || 0, laengste: a.longestStreak || 0,
+              letzterTag: Number.isFinite(letzterTag) ? Math.round(letzterTag / 86400000) : null };
+  if (a.placedLevel || Number.isFinite(a.placementScore)) {
+    s.profil = { selbsteinschaetzung: a.experienceLevel, einstufung: a.placementScore,
+                 stufe: a.placedLevel, seit: ausIsoZeit(a.createdAt) };
+  }
+  if (a.onboardingCompleted) s.start = { fertig: true, stufe: a.placedLevel || a.experienceLevel || "beginner" };
+  return s;
+}
+
+/** Was in einer Datei steckt, im Aufbau der Web-App – oder null, wenn es keine Sicherung ist. */
+function standAusDatei(daten) {
+  if (!daten || daten.app !== "JavaQuest") return null;
+  if (daten.web && typeof daten.web === "object" && daten.web.verlauf) return daten.web;            // von hier
+  if (daten.stand && Array.isArray(daten.stand.attempts)) return ausAppStand(daten.stand);         // aus einer App
+  if (daten.stand && typeof daten.stand === "object" && daten.stand.verlauf) return daten.stand;   // ältere Web-Sicherung
+  return null;
 }
 
 /* Führt zwei Stände zusammen, statt einen zu überschreiben.
@@ -1090,6 +1384,7 @@ function staendeVereinen(eigen, fremd) {
     serie: eigen.serie || fremd.serie || null,
     profil: eigen.profil || fremd.profil || null,
     start: eigen.start || fremd.start || null,
+    protokoll: protokolleVereinen(eigen.protokoll, fremd.protokoll),
   };
   // Lektionen: die bessere Quote gewinnt, und einmal bestanden bleibt bestanden.
   // (Das Feld heißt quote, nicht wertung – siehe merkeLektion weiter unten.)
@@ -1126,13 +1421,26 @@ function staendeVereinen(eigen, fremd) {
   return neu;
 }
 
+/** Beide Protokolle, ohne Doppelte. Auf die Sekunde genau: So weit reicht die Zeit in App-Dateien. */
+function protokolleVereinen(a, b) {
+  const gesehen = new Set();
+  return [...(a || []), ...(b || [])]
+    .filter((p) => {
+      const kennung = `${p.taskId}|${Math.floor(p.date / 1000)}|${p.context}`;
+      if (gesehen.has(kennung)) return false;
+      gesehen.add(kennung);
+      return true;
+    })
+    .sort((x, y) => x.date - y.date);
+}
+
 function sicherungEinlesen(datei) {
   const leser = new FileReader();
   leser.onload = () => {
     let daten;
     try { daten = JSON.parse(String(leser.result)); } catch (e) { daten = null; }
-    const fremd = daten && daten.app === "JavaQuest" ? daten.stand : null;
-    if (!fremd || typeof fremd !== "object" || !fremd.verlauf) {
+    const fremd = standAusDatei(daten);
+    if (!fremd) {
       melde("Das sieht nicht nach einer JavaQuest-Sicherung aus.");
       return;
     }
@@ -1291,7 +1599,7 @@ function starteRunde(art, themen) {
     titel = "Gemischt üben";
   }
   if (!topf.length) return;
-  sitzung = { titel, lektionId: null, theorie: [], seite: 0,
+  sitzung = { titel, lektionId: null, art, theorie: [], seite: 0,
               aufgaben: runde(topf, art === "themen" ? wunschAnzahl : RUNDE),
               index: 0, versuche: 0, ergebnis: null, aufgedeckt: false, entwurf: null, ergebnisse: [] };
   gehe("sitzung");
@@ -1365,7 +1673,10 @@ function aufgabenSeite() {
   }
 
   const zeigeCode = a.code && (a.type === "singleChoice" || a.type === "predictOutput");
-  const vorlage = a.type === "fillBlank" ? a.template : null;
+  const vorlage = a.type === "fillBlank" ? (fertig ? geloesteVorlage(a) : a.template) : null;
+  // Wie in den Apps: Die Erklärung lässt sich schon vor dem Antworten aufklappen. Nur im
+  // Einstufungstest nicht – dort soll gemessen werden, was schon sitzt.
+  const erklaeren = !sitzung.einstufung;
 
   return h(`
     <div class="kopf"><button class="zurueck" data-abbruch="1" aria-label="Runde abbrechen, Taste Escape">✕</button>
@@ -1388,11 +1699,13 @@ function aufgabenSeite() {
       <h2>${sicher(a.prompt)}</h2>
       ${umlDiagramm(a.diagram)}
       ${zeigeCode ? codeBlock(a.code) : ""}
-      ${vorlage ? codeBlock(fertig ? a.sampleSolution || vorlage : vorlage) : ""}
+      ${vorlage ? codeBlock(vorlage) : ""}
       ${a.javaContext && a.type === "code" ? `<p class="mini">${sicher({ statements: "Schreibe nur die Anweisungen – der main-Block ist schon da.", members: "Schreibe die Methoden bzw. Felder innerhalb der Klasse.", file: "Schreibe den vollständigen Code inklusive Klassen." }[a.javaContext])}</p>` : ""}
       ${a.type === "code" && a.expectedOutput ? `<p class="mini">Erwartete Ausgabe:</p><pre class="code">${sicher(a.expectedOutput)}</pre>` : ""}
       ${eingabe}
-      ${fertig && zeigeCode ? exegese(a.code, "Code Zeile für Zeile erklären") : ""}
+      ${erklaeren && zeigeCode ? exegese(a.code, "Code Zeile für Zeile erklären") : ""}
+      ${erklaeren && vorlage ? exegese(vorlage, "Code Zeile für Zeile erklären", !fertig) : ""}
+      ${erklaeren && a.type === "code" && !fertig ? exegese(a.starterCode, "Startcode Zeile für Zeile erklärt") : ""}
       ${fertig && a.type === "code" ? exegese(a.sampleSolution, "Musterlösung Zeile für Zeile") : ""}
     </div>
 
@@ -1598,7 +1911,11 @@ function abschliessen(wertung) {
   const a = aktuelleAufgabe();
   sitzung.ergebnisse.push({ id: a.id, gewicht: a.difficulty, wertung, versuche: sitzung.versuche });
   // Einstufungsfragen gehören nicht zum Übungsstoff – sie dürfen die Wiedervorlage nicht verfälschen.
-  if (!sitzung.einstufung) merkeAufgabe(a, wertung, sitzung.versuche);
+  if (!sitzung.einstufung) {
+    // Dieselben Namen wie in den Apps: lesson, practice (ein Thema), training (gemischt).
+    const kontext = sitzung.lektionId ? "lesson" : sitzung.art === "themen" ? "practice" : "training";
+    merkeAufgabe(a, wertung, sitzung.versuche, kontext);
+  }
 }
 
 function weiter() {
@@ -1646,6 +1963,7 @@ function bindeEreignisse() {
   // Aus der Analyse heraus direkt das betroffene Thema üben.
   klick("[data-uebe]", (e) => gehe("themen", { gewaehlt: [e.currentTarget.dataset.uebe] }));
   klick("[data-sichern]", () => sicherungHerunterladen());
+  klick("[data-kalender]", () => erinnerungHerunterladen());
   klick("[data-einlesen]", () => {
     const feld = document.getElementById("sicherung-datei");
     if (!feld) return;
@@ -1657,7 +1975,7 @@ function bindeEreignisse() {
   });
   klick("[data-reset]", () => {
     if (!confirm("Gesamten Fortschritt löschen? Score, Lernpfad und Analyse werden entfernt.")) return;
-    stand = { lektionen: {}, verlauf: {}, themen: {}, ziele: {}, serie: null, profil: null };
+    stand = leererStand();
     try { localStorage.removeItem("javaquest"); } catch (e) { /* gesperrt: dann bleibt es bei der Sitzung */ }
     gehe("start");
   });

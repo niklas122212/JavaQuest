@@ -1,0 +1,184 @@
+{
+  "app" : "JavaQuest",
+  "erstellt" : "2026-09-24T12:00:00Z",
+  "stand" : {
+    "attempts" : [
+      {
+        "context" : "placement",
+        "credit" : 1,
+        "date" : "2026-09-10T08:00:00Z",
+        "difficulty" : 1,
+        "solved" : true,
+        "taskId" : "p-1a",
+        "topicId" : "variables",
+        "tries" : 1
+      },
+      {
+        "context" : "lesson",
+        "credit" : 1,
+        "date" : "2026-09-10T09:00:00Z",
+        "difficulty" : 1,
+        "lessonId" : "l02-variables",
+        "solved" : true,
+        "taskId" : "t02-1",
+        "topicId" : "variables",
+        "tries" : 1
+      },
+      {
+        "context" : "lesson",
+        "credit" : 0.5,
+        "date" : "2026-09-10T09:05:00Z",
+        "difficulty" : 2,
+        "lessonId" : "l02-variables",
+        "solved" : true,
+        "taskId" : "t02-2",
+        "topicId" : "variables",
+        "tries" : 2
+      },
+      {
+        "context" : "training",
+        "credit" : 1,
+        "date" : "2026-09-11T09:00:00Z",
+        "difficulty" : 1,
+        "solved" : true,
+        "taskId" : "p-var-1b",
+        "topicId" : "variables",
+        "tries" : 1
+      },
+      {
+        "context" : "training",
+        "credit" : 1,
+        "date" : "2026-09-14T09:00:00Z",
+        "difficulty" : 2,
+        "solved" : true,
+        "taskId" : "q-var-2a",
+        "topicId" : "variables",
+        "tries" : 1
+      },
+      {
+        "context" : "practice",
+        "credit" : 1,
+        "date" : "2026-09-20T10:00:00Z",
+        "difficulty" : 1,
+        "solved" : true,
+        "taskId" : "p-var-1a",
+        "topicId" : "variables",
+        "tries" : 1
+      },
+      {
+        "context" : "lesson",
+        "credit" : 1,
+        "date" : "2026-09-22T08:00:00Z",
+        "difficulty" : 1,
+        "lessonId" : "l03-operators",
+        "solved" : true,
+        "taskId" : "t03-1",
+        "topicId" : "operators",
+        "tries" : 1
+      },
+      {
+        "context" : "training",
+        "credit" : 1,
+        "date" : "2026-09-23T08:00:00Z",
+        "difficulty" : 1,
+        "solved" : true,
+        "taskId" : "p-op-1a",
+        "topicId" : "operators",
+        "tries" : 1
+      },
+      {
+        "context" : "practice",
+        "credit" : 1,
+        "date" : "2026-09-23T18:00:00Z",
+        "difficulty" : 1,
+        "solved" : true,
+        "taskId" : "t01-1",
+        "topicId" : "syntax",
+        "tries" : 1
+      },
+      {
+        "context" : "practice",
+        "credit" : 0,
+        "date" : "2026-09-23T18:01:00Z",
+        "difficulty" : 1,
+        "solved" : false,
+        "taskId" : "t01-2",
+        "topicId" : "syntax",
+        "tries" : 3
+      }
+    ],
+    "createdAt" : "2026-09-10T07:55:00Z",
+    "currentStreak" : 2,
+    "experienceLevel" : "intermediate",
+    "lastActiveDay" : "2026-09-22T22:00:00Z",
+    "lessonRecords" : {
+      "l01-hello" : {
+        "bestAccuracy" : 0.67,
+        "completedViaPlacement" : true,
+        "firstCompletedAt" : "2026-09-10T08:00:00Z",
+        "isCompleted" : true,
+        "lastAccuracy" : 0.67,
+        "playCount" : 0
+      },
+      "l02-variables" : {
+        "bestAccuracy" : 0.9,
+        "completedViaPlacement" : false,
+        "firstCompletedAt" : "2026-09-10T09:10:00Z",
+        "isCompleted" : true,
+        "lastAccuracy" : 0.9,
+        "lastPlayedAt" : "2026-09-10T09:10:00Z",
+        "playCount" : 1
+      },
+      "l03-operators" : {
+        "bestAccuracy" : 0.5,
+        "completedViaPlacement" : false,
+        "isCompleted" : false,
+        "lastAccuracy" : 0.5,
+        "lastPlayedAt" : "2026-09-22T08:05:00Z",
+        "playCount" : 1
+      }
+    },
+    "longestStreak" : 3,
+    "masterScore" : 32,
+    "onboardingCompleted" : true,
+    "placedLevel" : "beginner",
+    "placementScore" : 67,
+    "schemaVersion" : 1,
+    "scoreHistory" : [
+      {
+        "date" : "2026-09-10T08:00:00Z",
+        "reason" : "placement",
+        "score" : 10
+      },
+      {
+        "date" : "2026-09-10T09:10:00Z",
+        "reason" : "l02-variables",
+        "score" : 32
+      }
+    ],
+    "topicMasteries" : {
+      "operators" : {
+        "attempts" : 2,
+        "firstTryCorrect" : 2,
+        "lastPracticedAt" : "2026-09-23T08:00:00Z",
+        "weightedCorrect" : 2,
+        "weightedTotal" : 2
+      },
+      "syntax" : {
+        "attempts" : 2,
+        "firstTryCorrect" : 1,
+        "lastPracticedAt" : "2026-09-23T18:01:00Z",
+        "weightedCorrect" : 1,
+        "weightedTotal" : 2
+      },
+      "variables" : {
+        "attempts" : 5,
+        "firstTryCorrect" : 4,
+        "lastPracticedAt" : "2026-09-20T10:00:00Z",
+        "weightedCorrect" : 6,
+        "weightedTotal" : 7
+      }
+    }
+  },
+  "version" : 1
+}
