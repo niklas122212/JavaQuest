@@ -49,6 +49,20 @@ Tastatur (Mac und iPad mit Tastatur): Tasten 1–4 wählen eine Antwort, ⌘ + E
 Esc bricht ab, ⌘ 1–3 wechselt den Bereich. Dieselben Kürzel wie unter Windows und im Browser – im Browser
 nur mit Alt statt ⌘ für die Bereiche, weil Browser ⌘ + Zahl für ihre Tabs beanspruchen.
 
+**Auf dem Mac benutzen – genau eine App, immer aktuell:**
+
+```bash
+Tools/mac_app.sh
+```
+
+Baut den veröffentlichten Stand (`origin/main`) und legt ihn als `~/Applications/JavaQuest.app` ab – die
+einzige JavaQuest-App, die Spotlight und das Launchpad zeigen. Läuft JavaQuest gerade, wird nichts
+unterbrochen: Die neue Fassung liegt fertig bereit und wird beim nächsten Aufruf eingesetzt. Der Lernstand
+liegt nicht in der App, sondern in `~/Library/Containers/io.github.niklas122212.JavaQuest` und bleibt
+unberührt. `--zurueck` stellt die vorige Fassung wieder her. `--aufraeumen` nimmt alte Xcode-Bauten aus
+Spotlight und lässt künftige Xcode-Bauten dieses Projekts in einem `*.noindex`-Ordner landen – vorher
+tauchte jeder Bau als eigene App auf, und welche man öffnete, war Zufall.
+
 Tests des Kerns: Schema **JavaQuestKit** → ⌘U, oder im Terminal:
 
 ```bash
