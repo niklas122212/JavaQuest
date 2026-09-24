@@ -3,8 +3,10 @@
 /* Eine einzige Versionsnummer für alles. Sie steckt auch in den Adressen von app.js und
    styles.css (siehe index.html) – sonst liefert der Browser aus seinem eigenen Zwischen-
    speicher die alte Fassung aus, selbst wenn der Service Worker längst erneuert wurde.
-   tools/build_web.sh zieht die Nummer aus dieser Datei und prüft, dass index.html passt. */
-const VERSION = "9";
+   Die Nummer ist eine Prüfsumme über alle ausgelieferten Dateien und wird NICHT von Hand
+   gepflegt: Tools/build_web.sh trägt sie ein, die CI lehnt eine unpassende ab. Von Hand
+   ging es schief – eine Kursänderung ohne neue Nummer erreichte Stammnutzer nie. */
+const VERSION = "b418e15fce7e";
 const CACHE = `javaquest-v${VERSION}`;
 const DATEIEN = [
   "./", "./index.html", `./app.js?v=${VERSION}`, `./styles.css?v=${VERSION}`,
@@ -13,7 +15,10 @@ const DATEIEN = [
 ];
 
 self.addEventListener("install", (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(DATEIEN)).then(() => self.skipWaiting()));
+  // cache: "reload" umgeht den HTTP-Zwischenspeicher des Browsers. Sonst könnte die neue
+  // Fassung dort noch eine Minuten alte java_course.json finden und sie wieder ablegen.
+  const frisch = DATEIEN.map((d) => new Request(d, { cache: "reload" }));
+  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(frisch)).then(() => self.skipWaiting()));
 });
 
 self.addEventListener("activate", (e) => {

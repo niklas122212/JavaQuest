@@ -234,5 +234,56 @@ export function pruefungen(api, kurs) {
                            && andersherum.serie.laengste === neu.serie.laengste));
   }
 
+  // ------------------------------------------------------- Befehlslexikon
+  {
+    const zeilen = erklaerteZeilen(kurs);
+    const ohneBedeutung = zeilen.filter((z) => api.befehleDerZeile(z).length !== (z.terms || []).length);
+    ergebnisse.push(pruefe(
+      `Alle ${zeilen.length} erklärten Codezeilen: jeder Befehl hat eine Bedeutung`,
+      zeilen.length > 0 && ohneBedeutung.length === 0,
+      zeilen.length ? `ohne Glossareintrag: ${ohneBedeutung.slice(0, 3).map((z) => z.code.trim()).join(" | ")}`
+                    : "keine erklärten Zeilen gefunden – hat sich das Kursformat geändert?",
+    ));
+
+    const zeile = zeilen.find((z) => z.terms && z.terms.includes("public"));
+    const html = api.exegese({ lines: [zeile] }, "Test");
+    const oeffentlich = (kurs.glossary.find((e) => e.term === "public") || {}).meaning || "";
+    ergebnisse.push(pruefe(
+      "Die Exegese zeigt die Befehle einer Zeile samt Bedeutung",
+      html.includes(`Befehle in dieser Zeile (${zeile.terms.length})`) && oeffentlich !== ""
+        && html.includes(oeffentlich.replace(/&/g, "&amp;").replace(/"/g, "&quot;")),
+      `„Befehle in dieser Zeile“ oder die Bedeutung von public fehlt für: ${zeile.code.trim()}`,
+    ));
+
+    // Der Inhalt jedes Begriffs-Kästchens darf kein rohes <, > oder & enthalten.
+    const spitze = zeilen.filter((z) => (z.terms || []).some((t) => /[<>&]/.test(t)));
+    const roh = spitze.filter((z) => {
+      const inhalte = [...api.exegese({ lines: [z] }, "Test").matchAll(/<code class="begriff">(.*?)<\/code>/g)].map((t) => t[1]);
+      return inhalte.some((i) => /[<>]|&(?!amp;|lt;|gt;|quot;|#39;)/.test(i));
+    });
+    ergebnisse.push(pruefe(
+      `Befehle wie < und && werden als Text ausgegeben (${spitze.length} Zeilen)`,
+      spitze.length > 0 && roh.length === 0,
+      spitze.length ? `ungeschützt in: ${roh.slice(0, 3).map((z) => z.code.trim()).join(" | ")}` : "keine Zeile mit < oder & gefunden",
+    ));
+
+    const ohne = api.exegese({ lines: [{ code: "}", explain: "Schließt den Block.", terms: [] }] }, "Test");
+    ergebnisse.push(pruefe("Eine Zeile ohne Befehle bekommt keinen leeren Kasten",
+                           ohne !== "" && !ohne.includes("befehle"), ohne));
+  }
+
   return ergebnisse;
+}
+
+/** Jede Codezeile mit Erklärung, egal wo sie in der Kursdatei steht. */
+function erklaerteZeilen(kurs) {
+  const zeilen = [];
+  const besuche = (o) => {
+    if (Array.isArray(o)) { o.forEach(besuche); return; }
+    if (!o || typeof o !== "object") return;
+    if (typeof o.code === "string" && typeof o.explain === "string") zeilen.push(o);
+    Object.values(o).forEach(besuche);
+  };
+  besuche(kurs);
+  return zeilen;
 }

@@ -23,7 +23,7 @@ export function ladeApp(quelltext, kurs) {
       holeStand: () => stand,
       auswerten, zweiterTipp, ausgabeZeilen, lueckePasst,
       warumZeileFalsch, warumAusgabeFalsch, warumBlankFalsch,
-      staendeVereinen,
+      staendeVereinen, exegese, befehleDerZeile,
       score, rang, naechsterRang, sterne, beherrschung, gesamtBeherrschung, themenStatus,
       wiedervorlage, faelligeZiele, aktuelleSerie,
       einstufungProzent, einstufungStufe,

@@ -9,7 +9,34 @@ plugins {
 }
 
 group = "app.javaquest"
-version = "1.0.0"
+
+// Die Versionsnummer kommt aus dem Git-Tag (v1.0.1 → 1.0.1), nicht aus dem Code. Vorher
+// stand „1.0.0“ an drei Stellen fest: Die Veröffentlichung v1.0.1 enthielt Dateien namens
+// …-1.0.0 – und ein Windows-Installer ersetzt eine vorhandene Installation nur, wenn seine
+// Nummer höher ist. Vorrang: JAVAQUEST_VERSION (setzt die CI aus dem Tag), sonst der
+// jüngste Tag im Repo. Ohne Git-Verlauf (z. B. Quellen als ZIP) bleibt es bei 1.0.0.
+val appVersion: String = run {
+    val gesetzt = providers.environmentVariable("JAVAQUEST_VERSION").orNull?.takeIf { it.isNotBlank() }
+    val roh = gesetzt ?: runCatching {
+        providers.exec {
+            commandLine("git", "describe", "--tags", "--abbrev=0", "--match", "v[0-9]*")
+            isIgnoreExitValue = true
+        }.standardOutput.asText.get().trim()
+    }.getOrDefault("")
+    val nummer = roh.removePrefix("v")
+    when {
+        Regex("""\d+\.\d+\.\d+""").matches(nummer) -> nummer
+        gesetzt != null -> throw GradleException("JAVAQUEST_VERSION=„$gesetzt“ ist keine Versionsnummer der Form 1.2.3")
+        else -> "1.0.0".also { logger.warn("Kein Tag der Form v1.2.3 gefunden – baue als $it") }
+    }
+}
+version = appVersion
+
+// Für Tools/package_windows.sh: dieselbe Nummer, damit ZIP und Installer gleich heißen.
+tasks.register("zeigeVersion") {
+    val nummer = appVersion
+    doLast { println(nummer) }
+}
 
 java {
     sourceCompatibility = JavaVersion.VERSION_21
@@ -47,7 +74,7 @@ compose.desktop {
             // MSI/EXE lassen sich nur unter Windows bauen (jpackage); siehe README.
             targetFormats(TargetFormat.Msi, TargetFormat.Exe, TargetFormat.Dmg)
             packageName = "JavaQuest"
-            packageVersion = "1.0.0"
+            packageVersion = appVersion
             description = "Java lernen, Level für Level – jede Codezeile erklärt"
             vendor = "JavaQuest"
             copyright = "© 2026 JavaQuest"

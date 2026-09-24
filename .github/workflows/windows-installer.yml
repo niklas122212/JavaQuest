@@ -18,15 +18,30 @@ on:
 permissions:
   contents: write
 
+# Beim Tag v1.2.3 heißt jede Datei …-1.2.3 (siehe build.gradle.kts). Ohne Tag – beim
+# Handstart – nimmt Gradle den jüngsten Tag im Repo; dafür holt checkout den ganzen Verlauf.
+env:
+  JAVAQUEST_VERSION: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
+
 jobs:
+  # Dieselben Kurs-, Java- und Web-Prüfungen, die jeder Web-Veröffentlichung vorausgehen.
+  # Vorher hätte ein Tag auf einem ungeprüften Stand trotzdem Dateien veröffentlicht.
+  pruefen:
+    uses: ./.github/workflows/pruefungen.yml
+    with:
+      nur_schnell: true
+
   installer:
     name: Installer (MSI + EXE)
+    needs: pruefen
     runs-on: windows-latest
     defaults:
       run:
         working-directory: Windows
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -46,9 +61,12 @@ jobs:
     name: Portables ZIP mit Java-Laufzeit
     # Auf macOS, weil das Skript zsh und shasum nutzt – und weil es nebenbei jeden
     # Bildschirm aus der fertigen JAR zeichnet, also ein Fenstersystem braucht.
+    needs: pruefen
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -69,10 +87,29 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           path: dateien
+      - name: Jede Datei trägt die Nummer des Tags
+        # v1.0.1 wurde mit Dateien namens …-1.0.0 veröffentlicht. Das fällt jetzt hier auf,
+        # bevor irgendetwas hochgeladen wird.
+        run: |
+          soll="${GITHUB_REF_NAME#v}"
+          anzahl=$(find dateien -type f | wc -l)
+          falsch=$(find dateien -type f ! -name "*-${soll}.*" | tr '\n' ' ')
+          find dateien -type f
+          if [ "$anzahl" -ne 3 ] || [ -n "$falsch" ]; then
+            echo "::error::Erwartet: ZIP, MSI und EXE mit Version ${soll}. Gefunden: ${anzahl} Datei(en), abweichend: ${falsch:-keine}"
+            exit 1
+          fi
+      - name: Prüfsummen
+        run: |
+          mkdir pruefsummen
+          find dateien -type f -exec sha256sum {} + | sed 's#  .*/#  #' | sort -k2 > pruefsummen/SHA256SUMS.txt
+          cat pruefsummen/SHA256SUMS.txt
       - name: Veröffentlichung mit allen Dateien
         uses: softprops/action-gh-release@v2
         with:
-          files: dateien/**/*
+          files: |
+            dateien/**/*
+            pruefsummen/SHA256SUMS.txt
           generate_release_notes: true
           body: |
             Die Windows-Fassung von JavaQuest – gleiche Inhalte und gleiche Regeln wie
@@ -81,6 +118,8 @@ jobs:
             * **JavaQuest-Windows-…zip** – entpacken und „JavaQuest starten.bat“
               doppelklicken. Keine Installation nötig, Java liegt bei.
             * **…msi / …exe** – Installer, falls die App im Startmenü stehen soll.
+            * **SHA256SUMS.txt** – Prüfsummen. In PowerShell `Get-FileHash <Datei>`
+              ausführen; der Wert muss mit der Zeile in der Liste übereinstimmen.
 
             Die Web-Fassung braucht keinen Download:
             <https://niklas122212.github.io/JavaQuest/>

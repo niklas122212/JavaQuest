@@ -4,16 +4,24 @@
 set -euo pipefail
 HERE=${0:A:h}
 PROJECT=${HERE:h}
-VERSION=1.0.0
 JRE_URL="https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.12.1%2B1/OpenJDK21U-jre_x64_windows_hotspot_21.0.12.1_1.zip"
 JRE_SHA256="d35f31e712f0fcf6ac5a093edc90204fbff22f720ba3950bd09d331d5e621636"
 WORK=$PROJECT/build/portable
 DIST=$PROJECT/../dist
 OUT=$DIST/JavaQuest-Windows
 
+# Versionsnummer aus dem Git-Tag – Gradle ist die einzige Quelle (siehe build.gradle.kts).
+VERSION=$(cd $PROJECT && ./gradlew -q zeigeVersion --console=plain)
+[[ $VERSION =~ '^[0-9]+\.[0-9]+\.[0-9]+$' ]] || { echo "Unbrauchbare Versionsnummer: $VERSION" >&2; exit 1; }
+echo "== Version $VERSION"
+
 echo "== 1/5 App bauen"
 (cd $PROJECT && ./gradlew packageUberJarForCurrentOS --console=plain -q)
-JAR=$(ls $PROJECT/build/compose/jars/JavaQuest-*.jar | head -1)
+# Genau die JAR dieser Version: Mit „ls JavaQuest-*.jar | head -1“ hätte eine liegen
+# gebliebene …-1.0.0.jar vor …-1.0.1.jar sortiert – das Paket bekäme die alte App.
+JARS=($PROJECT/build/compose/jars/JavaQuest-*-$VERSION.jar(N))
+(( ${#JARS} == 1 )) || { echo "Erwarte genau eine JAR für Version $VERSION, gefunden: ${#JARS}" >&2; exit 1; }
+JAR=$JARS[1]
 mkdir -p $WORK
 
 echo "== 2/5 Ungenutzte Symbole entfernen"

@@ -9,6 +9,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { ladeApp } from "./laden.mjs";
 import { pruefungen } from "./pruefungen.mjs";
+import { abweichungen, berechneNummer } from "../../Tools/web_fassung.mjs";
 
 const hier = dirname(fileURLToPath(import.meta.url));
 const web = join(hier, "..");
@@ -18,6 +19,17 @@ const kurs = JSON.parse(readFileSync(join(web, "java_course.json"), "utf8"));
 
 const api = ladeApp(quelltext, kurs);
 const ergebnisse = pruefungen(api, kurs);
+
+// Nur unter Node prüfbar, deshalb nicht in pruefungen.mjs: Passt die Versionsnummer zum
+// Inhalt? Sonst lädt der Service Worker bei Stammnutzern die Änderung nie nach.
+{
+  const fehler = abweichungen(web);
+  ergebnisse.push({
+    name: `Versionsnummer ${berechneNummer(web)} passt zum ausgelieferten Inhalt`,
+    ok: fehler.length === 0,
+    hinweis: `${fehler.join("; ")} – Tools/build_web.sh ausführen.`,
+  });
+}
 
 const gescheitert = ergebnisse.filter((e) => !e.ok);
 for (const e of ergebnisse) {

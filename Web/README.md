@@ -32,15 +32,21 @@ läuft offline – ohne App Store und ohne Entwickler-Konto.
 | `index.html` | Gerüst und die Angaben, die Safari für den Home-Bildschirm braucht |
 | `app.js` | Kurs laden, Einstufung, alle Bildschirme, Auswertung, Fortschritt, UML-Zeichner |
 | `styles.css` | Gestaltung, hell und dunkel |
-| `sw.js` | Service Worker: legt alles ab, damit die App offline startet |
+| `sw.js` | Service Worker: legt alles ab, damit die App offline startet. Seine Versionsnummer ist eine Prüfsumme über alle ausgelieferten Dateien |
 | `manifest.webmanifest` | Name, Symbol, Vollbild-Start |
 | `java_course.json` | Kopie des Kurses (wird beim Bauen erneuert) |
 
 ## Erneuern und bauen
 
 ```bash
-tools/build_web.sh        # kopiert den Kurs, prüft die Dateien, packt dist/JavaQuest-Web.zip
+Tools/build_web.sh        # kopiert den Kurs, prüft die Dateien, trägt die Versionsnummer ein, packt dist/JavaQuest-Web.zip
 ```
+
+Die Versionsnummer in `sw.js` und `index.html` wird nicht von Hand gepflegt, sondern von
+`Tools/web_fassung.mjs` aus dem Inhalt berechnet. Der Service Worker lädt nur dann etwas
+nach, wenn sich diese Nummer ändert – eine Kursänderung ohne neue Nummer erreichte früher
+niemanden, der die Seite schon kannte. Die CI lehnt eine unpassende Nummer ab; dann einfach
+`Tools/build_web.sh` ausführen.
 
 ## Grenzen
 

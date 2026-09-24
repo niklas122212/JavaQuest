@@ -575,9 +575,33 @@ function codeBlock(schnipsel) {
 function exegese(schnipsel, titel) {
   if (!schnipsel || !schnipsel.lines) return "";
   const zeilen = schnipsel.lines.filter((z) => z.explain).map((z) =>
-    `<div class="erklaerzeile"><code>${sicher(z.code)}</code>${sicher(z.explain)}</div>`).join("");
+    `<div class="erklaerzeile"><code>${sicher(z.code)}</code>${sicher(z.explain)}${befehle(z)}</div>`).join("");
   if (!zeilen) return "";
   return `<details class="exegese"><summary>${sicher(titel)}</summary><div class="zeilen">${zeilen}</div></details>`;
+}
+
+/* Befehlslexikon: Jede erklärte Zeile nennt in der Kursdatei ihre Befehle („terms“),
+   das Glossar sagt, was jeder bedeutet. Die Apps zeigen das als „Befehle in dieser
+   Zeile“; die Web-Fassung hat die Liste lange mitgeladen und nie angezeigt. */
+let lexikon = { kurs: null, bedeutung: new Map() };
+
+/** Die Befehle einer Zeile als [Begriff, Bedeutung] – nur solche mit Glossareintrag. */
+function befehleDerZeile(zeile) {
+  if (lexikon.kurs !== kurs) {
+    lexikon = { kurs, bedeutung: new Map(((kurs && kurs.glossary) || []).map((e) => [e.term, e.meaning])) };
+  }
+  return (zeile.terms || [])
+    .filter((t) => lexikon.bedeutung.has(t))
+    .map((t) => [t, lexikon.bedeutung.get(t)]);
+}
+
+/** Aufklappbar wie in den Apps nur auf Wunsch – sonst würde die Erklärung zur Liste. */
+function befehle(zeile) {
+  const liste = befehleDerZeile(zeile);
+  if (!liste.length) return "";
+  const eintraege = liste.map(([t, b]) =>
+    `<div><dt><code class="begriff">${sicher(t)}</code></dt> <dd>${sicher(b)}</dd></div>`).join("");
+  return `<details class="befehle"><summary>Befehle in dieser Zeile (${liste.length})</summary><dl class="lexikon">${eintraege}</dl></details>`;
 }
 
 /** UML-Klassendiagramm zeichnen – gleiche Anordnung wie in den anderen Fassungen. */

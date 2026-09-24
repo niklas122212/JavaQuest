@@ -1,5 +1,5 @@
 #!/bin/zsh
-# Baut die Web-Fassung: Kurs kopieren, Dateien prüfen, ZIP schnüren.
+# Baut die Web-Fassung: Kurs kopieren, Dateien prüfen, Versionsnummer eintragen, ZIP schnüren.
 set -euo pipefail
 HERE=${0:A:h}
 ROOT=${HERE:h}
@@ -19,19 +19,10 @@ for datei in index.html app.js styles.css sw.js manifest.webmanifest icons/icon-
 done
 python3 -c "import json; json.load(open('$WEB/manifest.webmanifest')); print('Manifest: in Ordnung')"
 
-# Die Versionsnummer aus sw.js muss in index.html stehen, sonst liefert der Browser
-# nach einem Update weiter seine zwischengespeicherte app.js aus.
-python3 - "$WEB" <<'PY'
-import re, sys, pathlib
-web = pathlib.Path(sys.argv[1])
-sw = (web / "sw.js").read_text(encoding="utf-8")
-html = (web / "index.html").read_text(encoding="utf-8")
-version = re.search(r'const VERSION = "([^"]+)"', sw).group(1)
-fehlend = [datei for datei in ("app.js", "styles.css") if f'{datei}?v={version}' not in html]
-if fehlend:
-    raise SystemExit(f"index.html verweist nicht auf Version {version}: {', '.join(fehlend)}")
-print(f"Version: {version} – sw.js und index.html stimmen überein")
-PY
+# Versionsnummer aus dem Inhalt berechnen und in sw.js und index.html eintragen. Ohne neue
+# Nummer lädt der Service Worker nichts nach – Stammnutzer behielten den alten Kurs.
+node $ROOT/Tools/web_fassung.mjs --schreiben
+node $ROOT/Tools/web_fassung.mjs >/dev/null
 
 mkdir -p $DIST
 rm -f $DIST/JavaQuest-Web.zip

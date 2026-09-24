@@ -5,6 +5,8 @@
   --ember: #E8424D;
   --indigo: #544FE6;
   --violet: #8B5CF6;
+  /* Indigo für kleine Schrift: 5,15 zu 1 auf dem Begriffs-Kästchen, 6,80 auf Weiß. */
+  --indigo-text: #4A44D6;
   --success: #2EAE61;
   /* Dieselben Farben, aber dunkel genug für Text und Knopfbeschriftung auf hellem Grund.
      Gemessen gegen Weiß: 4,55 / 4,58 / 4,60 zu 1 – WCAG AA verlangt 4,5. */
@@ -32,6 +34,8 @@
     --orange-text: #F57321;
     --success-text: #2EAE61;
     --ember-text: #FF6B75;
+    /* Das helle Indigo hätte hier nur 2,1 zu 1 – deshalb eine hellere Fassung (5,13 / 7,24). */
+    --indigo-text: #A29FFF;
   }
 }
 
@@ -221,6 +225,25 @@ textarea.konsole { background: #16161C; color: #EDEDF2; border-color: transparen
 .erklaerzeile code { font-family: var(--code); font-size: 13px; color: var(--secondary); display: block; margin-bottom: 4px; }
 
 details.exegese > summary { cursor: pointer; color: var(--orange); font-weight: 600; padding: 6px 0; }
+
+/* Befehle einer Zeile – derselbe Kasten wie „Befehle in dieser Zeile“ in den Apps. */
+details.befehle { margin-top: 6px; }
+details.befehle > summary { cursor: pointer; font-size: 14px; font-weight: 600; color: var(--indigo-text); padding: 4px 0; }
+.lexikon { margin: 6px 0 0; padding: 10px 12px; border-radius: 10px; background: var(--field); font-size: 14px; }
+.lexikon > div + div { margin-top: 6px; }
+.lexikon dt, .lexikon dd { display: inline; margin: 0; }
+.lexikon dd { color: var(--secondary); }
+.erklaerzeile code.begriff {
+  display: inline-block;
+  margin: 0;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: rgba(84, 79, 230, 0.1);
+  color: var(--indigo-text);
+  font-weight: 700;
+  font-size: 13px;
+  white-space: nowrap;
+}
 
 /* ---------------------------------------------------------------- Rückmeldung */
 .rueck { border-radius: 16px; padding: 16px; margin-top: 16px; }

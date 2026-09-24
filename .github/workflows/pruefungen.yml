@@ -49,7 +49,7 @@ jobs:
           # Web/java_course.json ist eine Kopie. Läuft sie auseinander, prüft die
           # Web-Prüfung eine andere Kursdatei als die, die ausgeliefert wird.
           diff -q Packages/JavaQuestKit/Sources/JavaQuestKit/Resources/java_course.json Web/java_course.json \
-            || { echo "::error::Web/java_course.json ist veraltet – tools/build_web.sh ausführen."; exit 1; }
+            || { echo "::error::Web/java_course.json ist veraltet – Tools/build_web.sh ausführen."; exit 1; }
 
   apple:
     name: Apple-Kern (swift test)
