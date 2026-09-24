@@ -10,20 +10,29 @@
 # Spotlight nicht erfasst (*.noindex), und legt das Ergebnis als ~/Applications/JavaQuest.app
 # ab. Eine laufende App wird nie unterbrochen: Die neue Fassung wartet fertig gebaut, bis
 # JavaQuest geschlossen ist, und wird beim nächsten Aufruf eingesetzt. Der Lernstand liegt
-# nicht in der App, sondern in ~/Library/Containers/io.github.niklas122212.JavaQuest – er
-# bleibt bei allem unberührt.
+# nicht in der App, sondern in ~/Library/Containers/io.github.niklas122212.JavaQuest. Das
+# Skript verändert ihn nie; vor jedem Einsetzen legt es eine Kopie ab, weil eine neue
+# Fassung die Datenbank beim ersten Start umstellen kann.
 #
-#   Tools/mac_app.sh              aktualisieren, falls es etwas Neues gibt
-#   Tools/mac_app.sh --aufraeumen Xcode-Zwischenstände aus Spotlight und Launchpad nehmen
-#   Tools/mac_app.sh --zurueck    die vorige Fassung wiederherstellen
+#   Tools/mac_app.sh               aktualisieren, falls es etwas Neues gibt
+#   Tools/mac_app.sh --einrichten  ab jetzt von selbst: bei der Anmeldung und alle 10 Minuten
+#   Tools/mac_app.sh --ausschalten das wieder abschalten (die installierte App bleibt)
+#   Tools/mac_app.sh --aufraeumen  Xcode-Zwischenstände aus Spotlight und Launchpad nehmen
+#   Tools/mac_app.sh --zurueck     die vorige Fassung wiederherstellen
 set -euo pipefail
 
-REPO=${0:A:h:h}
+# Ganz oben festhalten: In einer zsh-Funktion ist $0 der Name der Funktion, nicht des Skripts.
+SKRIPT=${0:A}
+REPO=${SKRIPT:h:h}
 KENNUNG=io.github.niklas122212.JavaQuest
 ZIEL=$HOME/Applications/JavaQuest.app
 ARBEIT=$HOME/Library/Caches/JavaQuest-Aktualisierung.noindex
 BEREIT=$ARBEIT/bereit/JavaQuest.app
 VORHER=$ARBEIT/vorher/JavaQuest.app
+LERNSTAND="$HOME/Library/Containers/$KENNUNG/Data/Library/Application Support"
+AUFTRAG=$KENNUNG.aktualisieren
+AGENT=$HOME/Library/LaunchAgents/$AUFTRAG.plist
+PROTOKOLL=$HOME/Library/Logs/JavaQuest-Aktualisierung.log
 LSREGISTER=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
 
 meldung() { print -r -- "$(date '+%d.%m. %H:%M')  $*"; }
@@ -59,8 +68,21 @@ bauen() {
   meldung "Fassung ${sha[1,7]} (Nummer $nummer) ist gebaut"
 }
 
+# Kopie des Lernstands (die SQLite-Datei samt -wal und -shm), die letzten fünf bleiben.
+lernstand_sichern() {
+  local dateien=("$LERNSTAND"/JavaQuest.store*(N))
+  (( ${#dateien} )) || return 0
+  local ziel=$ARBEIT/lernstand/$(date +%Y%m%d-%H%M%S)
+  mkdir -p $ziel
+  cp -p $dateien $ziel/
+  local alt=($ARBEIT/lernstand/*(N/On))
+  (( ${#alt} > 5 )) && rm -rf ${alt[6,-1]}
+  meldung "Lernstand gesichert: ${ziel/#$HOME/~}"
+}
+
 einsetzen() {
   local sha=$(<$ARBEIT/bereit.sha)
+  lernstand_sichern
   mkdir -p $HOME/Applications $ARBEIT/vorher
   if [[ -d $ZIEL ]]; then
     rm -rf $VORHER
@@ -74,7 +96,11 @@ einsetzen() {
 
 aktualisieren() {
   mkdir -p $ARBEIT
-  git -C $REPO fetch -q origin main
+  # Ohne Netz einfach beim nächsten Mal – im Hintergrund ohne Eintrag ins Protokoll.
+  if ! git -C $REPO fetch -q origin main 2>/dev/null; then
+    [[ -t 1 ]] && meldung "Kein Netz – nichts geprüft"
+    return 0
+  fi
   local neu=$(git -C $REPO rev-parse origin/main)
   local installiert=$(cat $ARBEIT/installiert 2>/dev/null || true)
   local gebaut=$(cat $ARBEIT/bereit.sha 2>/dev/null || true)
@@ -84,11 +110,21 @@ aktualisieren() {
   fi
   if [[ -d $BEREIT ]]; then
     if laeuft; then
-      meldung "Neue Fassung liegt bereit – JavaQuest schließen (⌘Q) und das Skript noch einmal aufrufen"
+      # Im Hintergrund nur einmal je Fassung melden, nicht alle 10 Minuten.
+      local bereit_sha=$(<$ARBEIT/bereit.sha)
+      if [[ -t 1 || $(cat $ARBEIT/gemeldet 2>/dev/null || true) != $bereit_sha ]]; then
+        if [[ -f $AGENT ]]; then
+          meldung "Neue Fassung liegt bereit – sie wird eingesetzt, sobald JavaQuest geschlossen ist"
+        else
+          meldung "Neue Fassung liegt bereit – JavaQuest schließen (⌘Q) und das Skript noch einmal aufrufen"
+        fi
+        print $bereit_sha > $ARBEIT/gemeldet
+      fi
     else
       einsetzen
     fi
-  else
+  elif [[ -t 1 ]]; then
+    # Nur von Hand gemeldet: Im Hintergrund würde das Protokoll sonst alle 10 Minuten wachsen.
     meldung "JavaQuest ist aktuell (${installiert[1,7]})"
   fi
 }
@@ -127,7 +163,50 @@ PLIST
   done
 }
 
+einrichten() {
+  mkdir -p ${AGENT:h} ${PROTOKOLL:h}
+  cat > $AGENT <<PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>$AUFTRAG</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>/bin/zsh</string>
+		<string>$SKRIPT</string>
+	</array>
+	<key>RunAtLoad</key>
+	<true/>
+	<key>StartInterval</key>
+	<integer>600</integer>
+	<key>ProcessType</key>
+	<string>Background</string>
+	<key>LowPriorityIO</key>
+	<true/>
+	<key>StandardOutPath</key>
+	<string>$PROTOKOLL</string>
+	<key>StandardErrorPath</key>
+	<string>$PROTOKOLL</string>
+</dict>
+</plist>
+PLIST
+  plutil -lint -s $AGENT
+  launchctl bootout gui/$UID/$AUFTRAG 2>/dev/null || true
+  launchctl bootstrap gui/$UID $AGENT
+  meldung "Automatische Aktualisierung ist an: bei der Anmeldung und alle 10 Minuten. Protokoll: ${PROTOKOLL/#$HOME/~}"
+}
+
 case ${1:-} in
+  --einrichten)
+    einrichten
+    ;;
+  --ausschalten)
+    launchctl bootout gui/$UID/$AUFTRAG 2>/dev/null || true
+    rm -f $AGENT
+    meldung "Automatische Aktualisierung ist aus. Die installierte App bleibt."
+    ;;
   --aufraeumen)
     aufraeumen
     ;;
@@ -145,7 +224,7 @@ case ${1:-} in
     aktualisieren
     ;;
   *)
-    print -u2 "Unbekannt: $1 – erlaubt sind --aufraeumen und --zurueck"
+    print -u2 "Unbekannt: $1 – erlaubt sind --einrichten, --ausschalten, --aufraeumen und --zurueck"
     exit 2
     ;;
 esac
