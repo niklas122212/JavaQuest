@@ -22,6 +22,7 @@ import app.javaquest.core.MasterScore
 import app.javaquest.core.ModuleProgress
 import app.javaquest.core.PlacementTest
 import app.javaquest.core.PracticeBuilder
+import app.javaquest.core.ReviewReminder
 import app.javaquest.core.SpacedRepetition
 import app.javaquest.core.TaskHistory
 import app.javaquest.core.TaskOutcome
@@ -249,6 +250,10 @@ class ProgressStore(
 
     /** Wie viele Lernziele heute zur Wiederholung anstehen. */
     val dueGoalCount: Int get() = SpacedRepetition.due(goalHistory, clock.instant()).size
+
+    /** Die nächsten Erinnerungstermine um 18 Uhr Ortszeit – wie in der Apple- und der Web-App. */
+    fun erinnerungsTermine(): List<ReviewReminder.Slot> =
+        ReviewReminder.plan(goalHistory.values.map { it.dueDate }, clock.instant(), clock.zone ?: ZoneId.systemDefault())
 
     /** Wie ein Thema auf den einzelnen Schwierigkeitsstufen läuft. */
     fun levels(topicId: String): List<LevelPerformance> = LevelAnalyzer.levels(course, taskHistory, topicId)
