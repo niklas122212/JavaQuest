@@ -188,10 +188,10 @@ class EvaluatorTest {
 }
 
 class CourseContentTest {
-    @Test fun `Kurs laedt - 13 Module, 32 Lektionen, 160 Aufgaben plus Uebungspool`() {
+    @Test fun `Kurs laedt - 13 Module, 32 Lektionen, 170 Aufgaben plus Uebungspool`() {
         assertEquals(13, course.modules.size)
         assertEquals(32, course.allLessons.size)
-        assertEquals(160, course.allLessons.sumOf { it.tasks.size })
+        assertEquals(170, course.allLessons.sumOf { it.tasks.size })
         // Der Übungspool speist Übung, Training und freies Lernen.
         assertTrue(course.taskPool.size >= 50, "nur ${course.taskPool.size} Übungsaufgaben")
         assertEquals(course.allLessons.sumOf { it.tasks.size } + course.taskPool.size, course.practiceableTasks.size)
@@ -361,7 +361,7 @@ class CourseContentTest {
 
     @Test fun `Jede Codezeile im Kurs hat eine Erklaerung`() {
         val snippets = course.allSnippets
-        assertEquals(711, snippets.size)
+        assertEquals(746, snippets.size)
         var lines = 0
         for ((location, snippet) in snippets) {
             assertTrue(snippet.linesMissingExplanation.isEmpty(), "$location: Zeilen ${snippet.linesMissingExplanation}")

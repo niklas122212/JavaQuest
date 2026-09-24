@@ -1598,6 +1598,19 @@ import subprocess, os
 
 lessons_by_id = {l["id"]: l for m in course["modules"] for l in m["lessons"]}
 
+# Kernstoff, der lange fehlte (siehe kernstoff.py): je Thema eine Karte vor „Der häufigste
+# Irrtum“, eine Lektionsaufgabe als Anker – nach Niveau einsortiert – und zwei Varianten im Pool.
+from kernstoff import KERNSTOFF_KARTEN, KERNSTOFF_AUFGABEN, POOL_KERNSTOFF, KERNSTOFF_GLEICHWERTIG
+for _lesson_id, _karten in KERNSTOFF_KARTEN.items():
+    lessons_by_id[_lesson_id]["theory"].extend(_karten)
+for _lesson_id, _aufgaben in KERNSTOFF_AUFGABEN.items():
+    _lektion = lessons_by_id[_lesson_id]
+    _lektion["tasks"] = sorted(_lektion["tasks"] + _aufgaben, key=lambda t: t["difficulty"])
+course["taskPool"] += POOL_KERNSTOFF
+_doppelt_gw = set(EQUIVALENTS) & set(KERNSTOFF_GLEICHWERTIG)
+assert not _doppelt_gw, f"Gleichwertige Lösungen doppelt definiert: {sorted(_doppelt_gw)}"
+EQUIVALENTS = {**EQUIVALENTS, **KERNSTOFF_GLEICHWERTIG}
+
 # Eine vierte Theoriekarte je Lektion: der häufigste Irrtum. Sie wird angehängt, statt
 # in jeder Lektionsdefinition einzeln zu stehen – so liegt der Text an einer Stelle.
 from theory_extra import EXTRA_THEORY

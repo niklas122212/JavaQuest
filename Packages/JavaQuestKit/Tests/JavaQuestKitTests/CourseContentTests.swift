@@ -22,11 +22,11 @@ struct CourseContentTests {
         #expect(issues.isEmpty, "\(issues.map(\.description).joined(separator: "\n"))")
     }
 
-    @Test("Umfang: 13 Module, 32 Lektionen, 160 Lektionsaufgaben plus Übungspool")
+    @Test("Umfang: 13 Module, 32 Lektionen, 170 Lektionsaufgaben plus Übungspool")
     func courseShape() {
         #expect(course.modules.count == 13)
         #expect(course.allLessons.count == 32)
-        #expect(course.allLessons.flatMap(\.tasks).count == 160)
+        #expect(course.allLessons.flatMap(\.tasks).count == 170)
         // Der Übungspool speist Übung, Training und freies Lernen – er wächst unabhängig von den Lektionen.
         #expect(course.taskPool.count >= 50)
         #expect(course.practiceableTasks.count == course.allLessons.flatMap(\.tasks).count + course.taskPool.count)

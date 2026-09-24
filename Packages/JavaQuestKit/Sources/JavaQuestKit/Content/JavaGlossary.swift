@@ -28,7 +28,7 @@ public enum JavaGlossary {
         "implements": "„Setzt um“: Die Klasse unterschreibt den Vertrag eines Interfaces.",
         "new": "Backt ein neues Objekt aus einer Kuchenform (oder baut einen neuen Eierkarton).",
         "return": "Gibt das Ergebnis zurück und beendet die Methode – wie ein Automat, der sein Produkt ausgibt.",
-        "this": "„Dieses Objekt hier“ – der Kuchen, um den es gerade geht.",
+        "this": "„Dieses Objekt hier“ – der Kuchen, um den es gerade geht. Mit this(…) ruft ein Konstruktor einen anderen derselben Klasse auf.",
         "super": "Die Eltern-Klasse – z. B. deren Backanleitung (Konstruktor).",
         "if": "„Wenn“: Führt Code nur aus, wenn die Antwort auf eine Frage „ja“ ist.",
         "else": "„Sonst“: Läuft, wenn die if-Frage mit „nein“ beantwortet wurde.",
@@ -37,7 +37,7 @@ public enum JavaGlossary {
         "do": "„Mach“: Schleife, die erst einmal läuft und danach fragt.",
         "switch": "Ein Weichensteller: wählt je nach Wert einen von mehreren Wegen.",
         "case": "Ein Weg (Fall) beim Weichensteller switch.",
-        "default": "Der Weg für alle übrigen Werte beim Weichensteller.",
+        "default": "Im switch: der Weg für alle übrigen Werte. In einem Interface: eine Methode, die das Interface fertig mitliefert.",
         "break": "Raus aus der Schleife – sofort.",
         "continue": "Diese Runde abbrechen und direkt mit der nächsten weitermachen.",
         "try": "„Versuch“: Code mit Sicherheitsnetz – ein Fehler (Alarm) bringt das Programm nicht zum Absturz.",
@@ -71,6 +71,10 @@ public enum JavaGlossary {
         "Comparator": "Eine Regel, wie man zwei Dinge vergleicht.",
         "Comparable": "„Vergleichbar“: Objekte dieser Sorte lassen sich der Größe nach vergleichen.",
         "Function": "Eine kleine Funktion als Objekt: Wert rein, anderer Wert raus.",
+        "Predicate": "Eine kleine Ja-Nein-Frage als Objekt: Wert rein, true oder false raus (aufgerufen mit test).",
+        "Supplier": "Ein kleiner Lieferant als Objekt: bekommt nichts, liefert etwas (abgerufen mit get).",
+        "Consumer": "Ein kleiner Abnehmer als Objekt: bekommt etwas, liefert nichts zurück (aufgerufen mit accept).",
+        "Iterator": "Ein Lesezeichen, das Element für Element durch eine Sammlung wandert.",
         "Collectors": "Werkzeuge, um am Ende eines Fließbands (Stream) alles einzusammeln.",
         "Math": "Werkzeugkasten für Mathematik (z. B. π).",
         "Exception": "Oberbegriff für alle Alarme (Fehler), die man auffangen kann.",
@@ -116,6 +120,9 @@ public enum JavaGlossary {
     static let qualified: [String: String] = [
         "System.out": "Der Bildschirm (die Konsole) – dorthin schreibt das Programm.",
         "Integer.parseInt": "Verwandelt einen Text wie \"42\" in die Zahl 42.",
+        "Integer.MAX_VALUE": "Die größte Zahl, die in eine int-Box passt: 2147483647. Eins mehr, und die Zahl springt ins Negative (Überlauf).",
+        "Integer.MIN_VALUE": "Die kleinste Zahl, die in eine int-Box passt: -2147483648.",
+        "String.format": "Füllt eine Schablone mit Platzhaltern wie %s und %d und liefert den fertigen Text zurück, ohne ihn auszugeben.",
         "List.of": "Schreibt sofort einen fertigen Einkaufszettel mit diesen Einträgen (danach unveränderlich).",
         "Optional.of": "Packt einen Wert in eine Schachtel (Optional).",
         "Optional.ofNullable": "Packt einen Wert in eine Schachtel – ist er null, bleibt die Schachtel leer.",
@@ -158,7 +165,12 @@ public enum JavaGlossary {
         "add": ("Schreibt einen neuen Eintrag ans Ende der Liste.", nil),
         "get": ("Holt einen Eintrag – bei Listen über die Position, bei Wörterbüchern über den Schlüssel.", "den gespeicherten Eintrag"),
         "size": ("Zählt, wie viele Einträge es gibt.", "die Anzahl der Einträge"),
-        "remove": ("Streicht einen Eintrag.", nil),
+        "remove": ("Streicht einen Eintrag – beim Iterator genau den, der zuletzt mit next() geholt wurde.", nil),
+        "printf": ("Schreibt eine Schablone auf den Bildschirm und setzt dabei Werte für Platzhalter wie %s und %d ein.", nil),
+        "apply": ("Wendet eine Function an: Sie bekommt einen Wert und liefert ihr Ergebnis.", "das Ergebnis der Funktion"),
+        "test": ("Stellt die Ja-Nein-Frage eines Predicate für einen Wert (true/false).", "true oder false – die Antwort auf die Frage"),
+        "iterator": ("Holt ein Lesezeichen (Iterator), das Element für Element durch die Sammlung wandert.", "ein Lesezeichen für die Sammlung"),
+        "hasNext": ("Fragt ein Lesezeichen (Iterator oder Scanner): Kommt noch etwas? (true/false)", "true, wenn noch etwas kommt"),
         "put": ("Trägt ins Wörterbuch ein: Schlüssel → Wert (ersetzt einen alten Eintrag).", nil),
         "getOrDefault": ("Holt den Eintrag zum Schlüssel – oder einen Ersatzwert, falls es keinen gibt.", "den Eintrag oder den Ersatzwert"),
         "orElse": ("Nimmt den Inhalt der Schachtel – oder einen Ersatz, wenn sie leer ist.", "den Inhalt oder den Ersatzwert"),
@@ -180,13 +192,13 @@ public enum JavaGlossary {
         "ordinal": ("Liefert die Position eines enum-Werts – gezählt ab 0.", "die Position, gezählt ab 0"),
         "values": ("Liefert alle Werte eines enums als Eierkarton.", "alle Werte als Eierkarton"),
         "append": ("Hängt etwas an den Notizblock (StringBuilder) an.", nil),
-        "next": ("Liest das nächste Wort.", "das nächste Wort"),
+        "next": ("Holt das Nächste: beim Scanner das nächste Wort, beim Iterator das nächste Element.", "das nächste Wort"),
         "nextInt": ("Liest die nächste ganze Zahl.", "die nächste Zahl"),
         "hasNextInt": ("Fragt, ob noch eine Zahl kommt (true/false).", "true, wenn noch eine Zahl kommt"),
         "plusDays": ("Rechnet Tage zu einem Datum dazu – heraus kommt ein neues Datum.", "ein neues, späteres Datum"),
         "getDayOfMonth": ("Liefert den Tag im Monat (1–31).", "den Tag im Monat"),
         "getYears": ("Liefert die vollen Jahre eines Zeitabstands.", "die vollen Jahre"),
-        "format": ("Macht aus einem Datum Text – nach einer Formatvorlage.", "das Datum als Text"),
+        "format": ("Baut Text nach einer Vorlage – ein Datum im gewünschten Format oder eine Schablone mit Platzhaltern wie %s und %d.", "das Datum als Text"),
         "sort": ("Sortiert eine Liste nach einer Regel.", nil),
         "reversed": ("Dreht eine Sortierregel um: absteigend statt aufsteigend.", "die umgedrehte Regel"),
         "contains": ("Fragt, ob etwas enthalten ist (true/false).", "true, wenn es enthalten ist"),
@@ -244,6 +256,7 @@ public enum JavaGlossary {
 
     /// Operatoren – längste zuerst, damit `<=` nicht als `<` erkannt wird.
     static let operators: [(symbol: String, meaning: String)] = [
+        ("...", "Drei Punkte hinter einem Typ (varargs): beliebig viele Werte – in der Methode liegen sie als Eierkarton (Array) bereit."),
         ("->", "Pfeil: „wird zu“ – trennt bei Mini-Anweisungen (Lambdas) die Eingabe vom Ergebnis, bei switch den Fall vom Ergebnis."),
         ("::", "Verweis auf eine fertige Methode, ohne sie sofort aufzurufen."),
         ("++", "Zählt um 1 hoch."),
@@ -281,7 +294,7 @@ public enum JavaGlossary {
     static func resultPhrase(forMethod name: String) -> String? { methods[name]?.result }
 
     private static let tokenPattern = try? NSRegularExpression(
-        pattern: #"[A-Za-z_][A-Za-z0-9_]*(?:\s*\.\s*[A-Za-z_][A-Za-z0-9_]*)*(?:\s*\()?|->|::|\+\+|--|[+\-*/]=|==|!=|<=|>=|&&|\|\||\[\]|<>|[-+*/%<>=!]"#
+        pattern: #"\.\.\.|[A-Za-z_][A-Za-z0-9_]*(?:\s*\.\s*[A-Za-z_][A-Za-z0-9_]*)*(?:\s*\()?|->|::|\+\+|--|[+\-*/]=|==|!=|<=|>=|&&|\|\||\[\]|<>|[-+*/%<>=!]"#
     )
 
     /// Alle Lexikon-Begriffe in einer (maskierten) Codezeile, in Lesereihenfolge.

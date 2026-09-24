@@ -349,8 +349,8 @@ export function pruefungen(api, kurs, beispiele) {
     ergebnisse.push(pruefe("Sicherung aus der App wird gelesen", !!ausApp, "abgelehnt"));
     if (ausApp) {
       ergebnisse.push(pruefe(
-        "App-Sicherung: 9 Antworten ohne Einstufung, 2 Lektionen, 3 fällige Lernziele, Score 32",
-        ausApp.protokoll.length === 9 && bestanden(ausApp) === 2 && faellig(ausApp) === 3 && api.score(ausApp.lektionen) === 32,
+        "App-Sicherung: 9 Antworten ohne Einstufung, 2 Lektionen, 3 fällige Lernziele, Score 30",
+        ausApp.protokoll.length === 9 && bestanden(ausApp) === 2 && faellig(ausApp) === 3 && api.score(ausApp.lektionen) === 30,
         `Antworten ${ausApp.protokoll.length}, Lektionen ${bestanden(ausApp)}, fällig ${faellig(ausApp)}, Score ${api.score(ausApp.lektionen)}`,
       ));
       // Die Apps speichern den Tagesbeginn in Ortszeit – der 23.09. muss der 23.09. bleiben.

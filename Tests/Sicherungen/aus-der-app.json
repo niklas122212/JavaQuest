@@ -139,7 +139,7 @@
       }
     },
     "longestStreak" : 3,
-    "masterScore" : 32,
+    "masterScore" : 30,
     "onboardingCompleted" : true,
     "placedLevel" : "beginner",
     "placementScore" : 67,
@@ -148,12 +148,12 @@
       {
         "date" : "2026-09-10T08:00:00Z",
         "reason" : "placement",
-        "score" : 10
+        "score" : 9
       },
       {
         "date" : "2026-09-10T09:10:00Z",
         "reason" : "l02-variables",
-        "score" : 32
+        "score" : 30
       }
     ],
     "topicMasteries" : {

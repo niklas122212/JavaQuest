@@ -37,10 +37,27 @@ public enum CodeExplainer {
         var context = Context()
         var result: [ExplainedLine] = []
         var seenTerms = Set<String>()
+        // Zeilen zwischen """ und """ sind Text, kein Code – sie werden nicht als Anweisung gelesen.
+        var inTextBlock = false
 
         for (offset, raw) in code.components(separatedBy: "\n").enumerated() {
             let line = raw.trimmingCharacters(in: .whitespaces)
             guard !line.isEmpty else { continue }
+            if inTextBlock {
+                inTextBlock = !line.contains(textBlockQuotes)
+                result.append(ExplainedLine(number: offset + 1, code: raw, explanation: textBlockLineText(line),
+                                            terms: [], isFallback: false))
+                continue
+            }
+            if line.hasSuffix(textBlockQuotes) {
+                inTextBlock = true
+                if let opening = textBlockOpeningText(line, context: &context) {
+                    result.append(ExplainedLine(number: offset + 1, code: raw, explanation: opening,
+                                                terms: JavaGlossary.terms(in: String(line.dropLast(3))).filter { seenTerms.insert($0.term).inserted },
+                                                isFallback: false))
+                    continue
+                }
+            }
             let (statement, comment) = splitTrailingComment(line)
 
             var text: String
@@ -61,6 +78,38 @@ public enum CodeExplainer {
             result.append(ExplainedLine(number: offset + 1, code: raw, explanation: text, terms: terms, isFallback: fallback))
         }
         return result
+    }
+
+    // MARK: - Textblöcke
+
+    static let textBlockQuotes = "\"\"\""
+
+    /// Die Zeile, die einen Textblock öffnet – etwa String gedicht = """.
+    private static func textBlockOpeningText(_ line: String, context: inout Context) -> String? {
+        let head = String(line.dropLast(3)).trimmingCharacters(in: .whitespaces)
+        let opens = "Die drei Anführungszeichen am Zeilenende öffnen einen Textblock: Der Text beginnt in der nächsten Zeile und geht bis zu den nächsten drei Anführungszeichen – mit echten Zeilenumbrüchen, ohne \\n und ohne Plus."
+        if let g = Syntax.groups(Syntax.rx(#"^(?:final\s+)?(String|var)\s+(\w+)\s*=$"#), head) {
+            context.boxTypes[g[2]] = "String"
+            return "Hier erstellen wir die Box „\(g[2])“ für einen Text (String). \(opens)"
+        }
+        if let g = Syntax.groups(Syntax.rx(#"^(\w+)\s*=$"#), head) {
+            return "In die Box „\(g[1])“ kommt ein neuer Text. \(opens)"
+        }
+        if head == "return" {
+            return "Das Rezept gibt einen Text zurück. \(opens)"
+        }
+        return nil
+    }
+
+    /// Eine Zeile innerhalb des Textblocks – oder die, die ihn schließt.
+    private static func textBlockLineText(_ line: String) -> String {
+        guard line.contains(textBlockQuotes) else {
+            return "Eine Zeile im Textblock: Sie landet genau so im Text. Nur die Einrückung, die alle Zeilen gemeinsam haben, schneidet Java ab."
+        }
+        if line.hasPrefix(textBlockQuotes) {
+            return "Drei Anführungszeichen beenden den Textblock. Weil sie in einer eigenen Zeile stehen, endet der Text mit einem Zeilenumbruch."
+        }
+        return "Die letzte Zeile des Textblocks – die drei Anführungszeichen direkt dahinter beenden ihn. Weil sie in derselben Zeile stehen, endet der Text ohne Zeilenumbruch."
     }
 
     // MARK: - Kommentare
@@ -121,6 +170,8 @@ private enum Block: Equatable {
     case switchStatement, switchExpression, caseBlock
     case tryBlock, catchBlock, finallyBlock
     case lambda, other
+    /// Rumpf einer anonymen Klasse: new Tier() { … };
+    case anonymous(String)
 }
 
 private struct Context {
@@ -133,6 +184,8 @@ private struct Context {
     var boxTypes: [String: String] = [:]
     /// Selbst angelegte Aufzählungen (enum).
     var enumTypes: Set<String> = []
+    /// Selbst angelegte Interfaces – für die Erklärung anonymer Klassen.
+    var interfaceTypes: Set<String> = []
 
     var currentMethodName: String? {
         for block in stack.reversed() { if case .method(let name) = block { return name } }
@@ -158,6 +211,14 @@ private struct Context {
                 return "das Ergebnis vom Abholschein „\(receiver)“ (get wartet notfalls, bis es fertig ist)"
             case ("get", "AtomicInteger") where call.arguments.isEmpty:
                 return "den aktuellen Stand des sicheren Zählers „\(receiver)“"
+            case ("iterator", _) where call.arguments.isEmpty:
+                return "ein Lesezeichen (Iterator), das vor dem ersten Element von „\(receiver)“ steht"
+            case ("next", "Iterator") where call.arguments.isEmpty:
+                return "das nächste Element (das Lesezeichen „\(receiver)“ rückt dabei eins weiter)"
+            case ("apply", "Function"), ("apply", "UnaryOperator"), ("apply", "BiFunction"):
+                return "das Ergebnis, das die Funktion „\(receiver)“ für \(Syntax.shortValue(call.arguments)) liefert"
+            case ("test", "Predicate"), ("test", "BiPredicate"):
+                return "die Antwort (true oder false) der Ja-Nein-Frage „\(receiver)“ für \(Syntax.shortValue(call.arguments))"
             case ("pop", _): return "den obersten Eintrag des Stapels „\(receiver)“ (pop nimmt ihn dabei weg)"
             case ("poll", _): return "den vordersten Eintrag der Warteschlange „\(receiver)“ (poll nimmt ihn dabei aus der Schlange)"
             case ("peek", _): return "den obersten Eintrag von „\(receiver)“ – nur angeschaut, nicht weggenommen (peek)"
@@ -176,6 +237,7 @@ private struct Context {
 
     var inTypeBody: Bool {
         if case .type? = stack.last { return true }
+        if case .anonymous? = stack.last { return true }
         return false
     }
 
@@ -239,7 +301,15 @@ private struct Context {
         if let text = controlStructure(s) { return (text, false) }
         if let text = printStatement(s) { return (text, false) }
         if let args = Syntax.groups(Syntax.superCall, s)?[1] {
-            return ("Ruft zuerst die Backanleitung (den Konstruktor) der Eltern-Form auf und gibt ihr \(Syntax.list(Syntax.splitArguments(args))) als Zutaten mit. Damit sind die geerbten Fächer gefüllt.", false)
+            var text = "Ruft zuerst die Backanleitung (den Konstruktor) der Eltern-Form auf und gibt ihr \(Syntax.list(Syntax.splitArguments(args))) als Zutaten mit. Damit sind die geerbten Fächer gefüllt."
+            if currentTypeName?.hasSuffix("Exception") == true {
+                text += " Bei einer Exception landet die Meldung so dort, wo getMessage() sie später findet."
+            }
+            return (text, false)
+        }
+        if let args = Syntax.groups(Syntax.rx(#"^this\((.*)\);$"#), s)?[1] {
+            let werte = Syntax.list(Syntax.splitArguments(args).map(Syntax.shortValue))
+            return ("Ruft einen anderen Konstruktor derselben Klasse auf (this(…)) und reicht ihm \(werte) weiter. Der befüllt das Objekt – so steht diese Arbeit nur an einer einzigen Stelle.", false)
         }
         if let text = declaration(s) { return (text, false) }
         if let text = assignment(s) { return (text, false) }
@@ -297,6 +367,10 @@ private struct Context {
         case .catchBlock?: text = "Hier endet das Sicherheitsnetz (catch)."
         case .finallyBlock?: text = "Hier endet der Aufräum-Block (finally)."
         case .lambda?: text = "Hier endet die Mini-Anweisung (Lambda)."
+        case .anonymous(let name)?:
+            return rest == ";"
+                ? "Hier endet die namenlose Klasse zu \(name). Das Semikolon schließt die ganze Anweisung ab, mit der das Objekt in die Box kam."
+                : "Hier endet die namenlose Klasse zu \(name)." + suffix
         case .other?, nil: text = "Diese Klammer schließt den Block, der weiter oben geöffnet wurde."
         }
         return text + suffix
@@ -336,6 +410,7 @@ private struct Context {
         var text: String
         switch keyword {
         case "interface":
+            interfaceTypes.insert(name)
             text = "Hier beginnt das Interface „\(name)“ – ein Vertrag: Es legt nur fest, WAS eine Klasse können muss (welche Methoden), aber nicht WIE."
         case "record":
             let fields = Syntax.parameters(String(components.dropFirst().dropLast()))
@@ -357,6 +432,14 @@ private struct Context {
         }
         if !generic.isEmpty { text += " \(generic) ist ein Platzhalter-Etikett: Erst beim Benutzen wird festgelegt, welcher Typ gemeint ist." }
         if !superclass.isEmpty { text += " extends \(superclass): „\(name)“ ist eine erweiterte \(superclass)-Form. Sie übernimmt (erbt) alles, was \(superclass) hat und kann, und darf Dinge ergänzen oder ändern." }
+        if superclass.hasSuffix("Exception") {
+            text += " Damit ist „\(name)“ selbst ein Alarm (eine Exception): Man kann ihn mit throw auslösen und mit catch auffangen."
+            if ["RuntimeException", "IllegalArgumentException", "IllegalStateException"].contains(superclass) {
+                text += " Weil er von RuntimeException abstammt, ist er unchecked – niemand muss ihn mit throws ankündigen."
+            } else if superclass == "Exception" {
+                text += " Weil er direkt von Exception erbt, ist er checked: Wer ihn auslösen kann, muss ihn fangen oder mit throws ankündigen."
+            }
+        }
         if !interfaces.isEmpty {
             let who = keyword == "record" ? "Der Record" : keyword == "enum" ? "Die Aufzählung" : "Die Klasse"
             text += " implements \(interfaces): \(who) unterschreibt einen Vertrag – \(keyword == "class" ? "sie" : keyword == "record" ? "er" : "sie") verspricht, alle Methoden anzubieten, die \(interfaces) verlangt."
@@ -416,6 +499,7 @@ private struct Context {
         var text = "Hier beginnt die Methode „\(name)“ – ein Rezept mit Namen. \(ingredients) und \(result)."
         if modifiers.contains("static") { text += " static: Das Rezept gehört zur Kuchenform selbst – man braucht kein Objekt, um es zu benutzen." }
         if modifiers.contains("public") && !modifiers.contains("static") { text += " public: Jeder darf dieses Rezept benutzen." }
+        if modifiers.contains("default") { text += " default: Das Interface liefert diese Anleitung gleich mit – jede Klasse, die den Vertrag unterschreibt, bekommt sie automatisch und darf sie trotzdem durch eine eigene ersetzen." }
         if !generic.isEmpty {
             text += " \(generic) ist ein Platzhalter-Etikett: T steht für einen beliebigen Typ, der erst beim Benutzen feststeht."
             if generic.contains("extends") { text += " „extends Comparable<T>“ verlangt: Werte vom Typ T müssen sich vergleichen lassen (mit compareTo)." }
@@ -489,7 +573,8 @@ private struct Context {
         if s.hasPrefix("while ") || s.hasPrefix("while(") {
             guard let (cond, rest) = Syntax.parenthesized(after: "while", in: s) else { return nil }
             if rest == "{" { stack.append(.loop) }
-            return "Eine Schleife: Solange die Frage „\(cond)?“ mit „ja“ beantwortet wird, wiederholt das Programm die Zeilen im Block. Ist die Antwort schon am Anfang „nein“, läuft der Block gar nicht."
+            let frage = cond.hasSuffix(".hasNext()") ? " hasNext() fragt das Lesezeichen: Kommt noch ein Element?" : ""
+            return "Eine Schleife: Solange die Frage „\(cond)?“ mit „ja“ beantwortet wird, wiederholt das Programm die Zeilen im Block. Ist die Antwort schon am Anfang „nein“, läuft der Block gar nicht.\(frage)"
         }
 
         if s == "do {" {
@@ -583,6 +668,19 @@ private struct Context {
     // MARK: Ausgabe
 
     func printStatement(_ s: String) -> String? {
+        if let g = Syntax.groups(Syntax.rx(#"^System\.out\.printf\((.*)\);$"#), s) {
+            let args = Syntax.splitArguments(g[1])
+            guard let vorlage = args.first, Syntax.isStringLiteral(vorlage) else { return nil }
+            let werte = Array(args.dropFirst())
+            let platzhalter = Syntax.formatPlaceholders(vorlage)
+            var text = "Schreibt die Schablone „\(vorlage.dropFirst().dropLast())“ auf den Bildschirm (printf)."
+            if !werte.isEmpty {
+                let paare = zip(platzhalter, werte).map { "\(Syntax.shortValue($0.1)) für \($0.0)" }
+                text += " Vorher setzt printf der Reihe nach ein: \(Syntax.list(paare))."
+            }
+            text += vorlage.contains("%n") ? " %n beendet die Zeile." : " Ohne %n bleibt die nächste Ausgabe in derselben Zeile."
+            return text
+        }
         guard let g = Syntax.groups(Syntax.printCall, s) else { return nil }
         let arg = g[2].trimmed
         if let chain = Syntax.chainSteps(arg) {
@@ -633,6 +731,12 @@ private struct Context {
             text = "Hier erstellen wir eine Box namens „\(name)“. Hineinkommen soll das Ergebnis eines Fließbands (Stream): \(source).stream() legt alle Elemente von „\(source)“ aufs Band, die nächsten Zeilen sind die Stationen. \(label)"
         } else if let g = Syntax.groups(Syntax.newArray, rhs) {
             text = "Hier erstellen wir einen Eierkarton namens „\(name)“ mit \(g[2]) nummerierten Fächern für \(Syntax.plural(g[1])). Am Anfang liegt in jedem Fach der Startwert – bei Zahlen eine 0."
+        } else if let anon = Syntax.groups(Syntax.rx(#"^new\s+(\w+)(?:<[^>]*>)?\s*\(\s*\)\s*\{$"#), rhs) {
+            stack.append(.anonymous(anon[1]))
+            let art = interfaceTypes.contains(anon[1])
+                ? "eine namenlose Klasse, die den Vertrag (das Interface) \(anon[1]) umsetzt"
+                : "eine namenlose Unterklasse von \(anon[1])"
+            text = "Hier backen wir ein Objekt aus einer Klasse ohne Namen (anonyme Klasse): Hinter new \(anon[1])() folgt gleich in geschweiften Klammern, was sie ergänzt. Es entsteht \(art) – und sofort ein Objekt davon, das in die Box „\(name)“ kommt. \(label)"
         } else if rhs.hasPrefix("new ") && !rhs.contains(").") {
             let (sentence, pronoun) = Syntax.newSentence(rhs)
             text = "\(sentence) und legen \(pronoun) in die Box „\(name)“. \(label)"
@@ -773,6 +877,8 @@ private struct Context {
             return "Löscht die Datei „\(args)“ wieder (Files.delete)."
         case "put" where argumentList.count == 2:
             return "Trägt ins Wörterbuch „\(receiver)“ ein: \(Syntax.shortValue(argumentList[0])) → \(Syntax.shortValue(argumentList[1])). Stand \(Syntax.shortValue(argumentList[0])) schon drin, wird der alte Eintrag überschrieben."
+        case "remove" where args.trimmed.isEmpty:
+            return "Löscht das Element, das „\(receiver)“ mit next() zuletzt geholt hat, aus der Sammlung – sicher, ohne dass die Schleife durcheinanderkommt."
         case "remove":
             return "Streicht \(Syntax.shortValue(args)) aus „\(receiver)“ – alles dahinter rückt nach vorn."
         case "forEach":
@@ -808,7 +914,7 @@ private enum Syntax {
     static let generics = #"(?:<(?:[^<>]|<[^<>]*>)*>)"#
     static let typeDecl = rx(#"^((?:(?:public|private|protected|abstract|final|sealed|non-sealed|static)\s+)*)(class|interface|record|enum)\s+(\w+)(\#(generics)?)(\([^)]*\))?(?:\s+extends\s+([\w<>, ]+?))?(?:\s+implements\s+([\w<>, ]+?))?(?:\s+permits\s+([\w, ]+?))?\s*(\{.*)?$"#)
     static let constructorDecl = rx(#"^((?:public|private|protected)\s+)?([A-Z]\w*)\s*\(([^)]*)\)\s*\{$"#)
-    static let methodDecl = rx(#"^((?:(?:public|private|protected|static|final|abstract)\s+)*)(\#(generics)\s+)?([\w.]+\#(generics)?(?:\[\])*)\s+(\w+)\s*\(([^)]*)\)\s*(throws\s+[\w, ]+)?\s*(\{.*|;)$"#)
+    static let methodDecl = rx(#"^((?:(?:public|private|protected|static|final|abstract|default)\s+)*)(\#(generics)\s+)?([\w.]+\#(generics)?(?:\[\])*)\s+(\w+)\s*\(([^)]*)\)\s*(throws\s+[\w, ]+)?\s*(\{.*|;)$"#)
     static let variableDecl = rx(#"^((?:(?:final|private|public|protected|static)\s+)*)([A-Za-z_][\w.]*\#(generics)?(?:\[\])*)\s+([a-zA-Z_]\w*)\s*(=\s*(.*?))?\s*;?$"#)
     static let printCall = rx(#"^System\.out\.(println|print)\((.*)\);$"#)
     static let superCall = rx(#"^super\((.*)\);$"#)
@@ -926,6 +1032,9 @@ private enum Syntax {
         case "T": return "einen Wert vom Platzhalter-Typ T"
         case "String[]": return "eine Reihe von Texten"
         default:
+            if type.hasSuffix("...") {
+                return "beliebig viele \(plural(String(type.dropLast(3)))) – in der Methode liegen sie als Eierkarton (Array) bereit"
+            }
             if type.hasPrefix("List<") { return "eine Liste" }
             if type.hasSuffix("[]") { return "einen Eierkarton (Array)" }
             return "ein Objekt vom Typ \(type)"
@@ -1052,7 +1161,22 @@ private enum Syntax {
             if type.hasPrefix("Optional<") {
                 return "Das Etikett \(type) heißt: Darin liegt eine Schachtel (Optional), die etwas enthalten kann – oder leer ist."
             }
-            if type.hasPrefix("Comparator") || type.hasPrefix("Function") {
+            if type.hasPrefix("Function") || type.hasPrefix("UnaryOperator") || type.hasPrefix("BiFunction") {
+                return "Das Etikett \(type) heißt: Darin liegt eine kleine Funktion – sie nimmt einen Wert und liefert einen neuen. Anwenden kann man sie später mit apply."
+            }
+            if type.hasPrefix("Predicate") || type.hasPrefix("BiPredicate") {
+                return "Das Etikett \(type) heißt: Darin liegt eine kleine Ja-Nein-Frage (Predicate). Gestellt wird sie später mit test – die Antwort ist true oder false."
+            }
+            if type.hasPrefix("Supplier") {
+                return "Das Etikett \(type) heißt: Darin liegt ein kleiner Lieferant (Supplier) – er bekommt nichts und liefert etwas, abgerufen mit get."
+            }
+            if type.hasPrefix("Consumer") {
+                return "Das Etikett \(type) heißt: Darin liegt ein kleiner Abnehmer (Consumer) – er nimmt etwas entgegen und liefert nichts zurück, aufgerufen mit accept."
+            }
+            if type.hasPrefix("Iterator") {
+                return "Das Etikett \(type) heißt: Darin liegt ein Lesezeichen, das Element für Element durch eine Sammlung wandert."
+            }
+            if type.hasPrefix("Comparator") {
                 return "Das Etikett \(type) heißt: Darin liegt eine kleine Funktion, die man später benutzen kann."
             }
             return "Das Etikett \(type) heißt: In \(container) passt ein Objekt vom Typ \(type)."
@@ -1078,6 +1202,15 @@ private enum Syntax {
     }
 
     /// Alltagsübersetzung typischer Bedingungen.
+    /// Die Platzhalter einer Schablone in ihrer Reihenfolge – ohne %n und %%, die keinen Wert brauchen.
+    static func formatPlaceholders(_ literal: String) -> [String] {
+        let regex = rx(#"%[-#+ 0,(]*\d*(?:\.\d+)?[a-zA-Z%]"#)
+        let ns = literal as NSString
+        return regex.matches(in: literal, range: NSRange(location: 0, length: ns.length))
+            .map { ns.substring(with: $0.range) }
+            .filter { $0 != "%n" && $0 != "%%" }
+    }
+
     static func idiomHint(_ condition: String) -> String {
         if let g = groups(rx(#"^(\w+)\s*%\s*2\s*==\s*0$"#), condition) { return " – ist \(g[1]) also gerade" }
         if let g = groups(rx(#"^(\w+)\s*%\s*2\s*!=\s*0$"#), condition) { return " – ist \(g[1]) also ungerade" }
@@ -1086,6 +1219,20 @@ private enum Syntax {
 
     /// Häufige „Fabrik“-Aufrufe in Alltagssprache.
     static func knownFactory(_ e: String) -> String? {
+        switch e {
+        case "Integer.MAX_VALUE": return "die größte Zahl, die in eine int-Box passt (Integer.MAX_VALUE = 2147483647)"
+        case "Integer.MIN_VALUE": return "die kleinste Zahl, die in eine int-Box passt (Integer.MIN_VALUE = -2147483648)"
+        case "Long.MAX_VALUE": return "die größte Zahl, die in eine long-Box passt (Long.MAX_VALUE)"
+        default: break
+        }
+        if let g = groups(rx(#"^String\.format\((.*)\)$"#), e) {
+            let args = splitArguments(g[1])
+            if let vorlage = args.first, isStringLiteral(vorlage) {
+                let werte = args.dropFirst().map(shortValue)
+                let fuellung = werte.isEmpty ? "" : " (die Platzhalter werden der Reihe nach mit \(list(Array(werte))) gefüllt)"
+                return "den Text, den String.format aus der Schablone „\(vorlage.dropFirst().dropLast())“ baut\(fuellung)"
+            }
+        }
         if let g = groups(rx(#"^LocalDate\.of\((\d+),\s*(\d+),\s*(\d+)\)$"#), e), let m = Int(g[2]), let d = Int(g[3]) {
             return "das Datum \(String(format: "%02d.%02d.", d, m))\(g[1]) (LocalDate.of(Jahr, Monat, Tag))"
         }
@@ -1191,6 +1338,9 @@ private enum Syntax {
         if e == "null" { return "den Wert null („nichts drin“)" }
         if let ternary = ternaryParts(e) {
             return "\(value(ternary.1)) oder \(value(ternary.2)) – je nachdem, ob „\(ternary.0)“ stimmt (? : ist eine Kurzform von if-else) –"
+        }
+        if let g = groups(rx(#"^\(long\)\s*(\w+)\s*([+*\-])\s*(.+)$"#), e) {
+            return "das Ergebnis von \(g[1]) \(g[2]) \(g[3]) (gerechnet als long: (long) macht \(g[1]) vorher zur long-Zahl, sodass die ganze Rechnung in der großen Box läuft und nichts überläuft)"
         }
         if let g = groups(rx(#"^\((double|int|long)\)\s*(.+)$"#), e) {
             return g[1] == "double"
