@@ -59,7 +59,8 @@ Baut den veröffentlichten Stand (`origin/main`) und legt ihn als `~/Application
 einzige JavaQuest-App, die Spotlight und das Launchpad zeigen. Läuft JavaQuest gerade, wird nichts
 unterbrochen: Die neue Fassung liegt fertig bereit und wird beim nächsten Aufruf eingesetzt. Der Lernstand
 liegt nicht in der App, sondern in `~/Library/Containers/io.github.niklas122212.JavaQuest`; das Skript
-verändert ihn nie und legt vor jedem Einsetzen eine Kopie ab (die letzten fünf bleiben).
+verändert ihn nie und legt vor jedem Einsetzen eine Kopie ab – in
+`~/Library/Application Support/JavaQuest-Aktualisierung/Lernstand`, die letzten zehn bleiben.
 `--einrichten` macht das automatisch – bei der Anmeldung und alle 10 Minuten, gebaut wird nur bei einem
 neuen Stand, Protokoll in `~/Library/Logs/JavaQuest-Aktualisierung.log`; `--ausschalten` hebt das auf.
 `--zurueck` stellt die vorige Fassung wieder her. `--aufraeumen` nimmt alte Xcode-Bauten aus

@@ -30,6 +30,9 @@ ARBEIT=$HOME/Library/Caches/JavaQuest-Aktualisierung.noindex
 BEREIT=$ARBEIT/bereit/JavaQuest.app
 VORHER=$ARBEIT/vorher/JavaQuest.app
 LERNSTAND="$HOME/Library/Containers/$KENNUNG/Data/Library/Application Support"
+# Nicht unter Caches: Den Ordner darf macOS bei Platzmangel leeren, und eine Sicherung
+# ist genau dann wertvoll, wenn man sie nicht erwartet hat zu brauchen.
+SICHERUNGEN="$HOME/Library/Application Support/JavaQuest-Aktualisierung/Lernstand"
 AUFTRAG=$KENNUNG.aktualisieren
 AGENT=$HOME/Library/LaunchAgents/$AUFTRAG.plist
 PROTOKOLL=$HOME/Library/Logs/JavaQuest-Aktualisierung.log
@@ -68,15 +71,23 @@ bauen() {
   meldung "Fassung ${sha[1,7]} (Nummer $nummer) ist gebaut"
 }
 
-# Kopie des Lernstands (die SQLite-Datei samt -wal und -shm), die letzten fünf bleiben.
+# Kopie des Lernstands (die SQLite-Datei samt -wal und -shm), die letzten zehn bleiben.
 lernstand_sichern() {
+  # Frühere Fassungen dieses Skripts legten die Kopien unter Caches ab – umziehen, nicht löschen.
+  if [[ -d $ARBEIT/lernstand ]]; then
+    mkdir -p "$SICHERUNGEN"
+    local alt_ordner
+    for alt_ordner in $ARBEIT/lernstand/*(N/); do mv "$alt_ordner" "$SICHERUNGEN/"; done
+    rmdir $ARBEIT/lernstand 2>/dev/null || true
+  fi
   local dateien=("$LERNSTAND"/JavaQuest.store*(N))
   (( ${#dateien} )) || return 0
-  local ziel=$ARBEIT/lernstand/$(date +%Y%m%d-%H%M%S)
-  mkdir -p $ziel
-  cp -p $dateien $ziel/
-  local alt=($ARBEIT/lernstand/*(N/On))
-  (( ${#alt} > 5 )) && rm -rf ${alt[6,-1]}
+  local ziel="$SICHERUNGEN/$(date +%Y%m%d-%H%M%S)"
+  mkdir -p "$ziel"
+  cp -p $dateien "$ziel/"
+  # Nur die mit Zeitstempel benannten Kopien rotieren; von Hand abgelegte bleiben.
+  local alt=("$SICHERUNGEN"/<->-<->(N/On))
+  (( ${#alt} > 10 )) && rm -rf ${alt[11,-1]}
   meldung "Lernstand gesichert: ${ziel/#$HOME/~}"
 }
 
