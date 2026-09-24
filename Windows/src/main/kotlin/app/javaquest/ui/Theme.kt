@@ -35,6 +35,9 @@ import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material.icons.rounded.Extension
 import androidx.compose.material.icons.rounded.FormatListNumbered
 import androidx.compose.material.icons.rounded.Handyman
+import androidx.compose.material.icons.rounded.Hub
+import androidx.compose.material.icons.rounded.Public
+import androidx.compose.material.icons.rounded.Storage
 import androidx.compose.material.icons.rounded.Layers
 import androidx.compose.material.icons.rounded.Loop
 import androidx.compose.material.icons.rounded.Memory
@@ -207,6 +210,10 @@ fun symbolIcon(symbol: String): ImageVector = when (symbol) {
     "infinity" -> Icons.Rounded.AllInclusive
     "square.on.square" -> Icons.Rounded.Dashboard
     "arrow.triangle.pull" -> Icons.Rounded.AccountTree
+    "network" -> Icons.Rounded.Hub
+    "curlybraces.square" -> Icons.Rounded.DataObject
+    "globe" -> Icons.Rounded.Public
+    "cylinder.split.1x2" -> Icons.Rounded.Storage
     else -> Icons.Rounded.Widgets
 }
 

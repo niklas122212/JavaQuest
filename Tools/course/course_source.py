@@ -26,6 +26,11 @@ from pool_variety import POOL_VARIETY
 from pool_depth import POOL_DEPTH
 from placement import PLACEMENT_POOL
 from uml_content import UML_MODULE, UML_POOL, UML_TOPICS
+from praxis import PRAXIS_TOPICS, PRAXIS_MODULE, POOL_PRAXIS, PRAXIS_IRRTUM, PRAXIS_GLEICHWERTIG
+
+# „Java in der Praxis“ kommt vor die Abschlussprojekte – die sollen das Letzte bleiben.
+_projekte = next(i for i, m in enumerate(ADVANCED_MODULES) if m["id"] == "m12-projects")
+MITTLERE_MODULE = ADVANCED_MODULES[:_projekte] + [PRAXIS_MODULE] + ADVANCED_MODULES[_projekte:]
 
 topics = [
     ("syntax", "Programmaufbau", "curlybraces", "Klassen, main-Methode, Ausgabe und Kommentare"),
@@ -1557,7 +1562,7 @@ course = {
     "schemaVersion": 1,
     "id": "java-core-de",
     "title": "Java – vom ersten Befehl zum Profi",
-    "topics": [{"id": i, "title": t, "symbol": s, "summary": d} for i, t, s, d in topics + ADVANCED_TOPICS + UML_TOPICS],
+    "topics": [{"id": i, "title": t, "symbol": s, "summary": d} for i, t, s, d in topics + ADVANCED_TOPICS + PRAXIS_TOPICS + UML_TOPICS],
     "modules": [
         {"id": "m1-first-steps", "title": "Erste Schritte", "subtitle": "Programmaufbau, Variablen und Operatoren",
          "tier": "beginner", "symbol": "leaf.fill", "lessons": [l1, l2, l3]},
@@ -1569,7 +1574,7 @@ course = {
          "tier": "intermediate", "symbol": "shield.lefthalf.filled", "lessons": [l10, l11]},
         {"id": "m5-modern", "title": "Modernes Java", "subtitle": "Lambdas, Streams, Records und Pattern Matching",
          "tier": "advanced", "symbol": "sparkles", "lessons": [l12, l13]},
-    ] + ADVANCED_MODULES + [UML_MODULE],
+    ] + MITTLERE_MODULE + [UML_MODULE],
     "taskPool": POOL + POOL_BASICS + POOL_ADVANCED + POOL_DEEP + POOL_PRACTICE + POOL_EXTRA + POOL_GAPS + POOL_LEVEL_A + POOL_LEVEL_B + POOL_LEVEL_C + POOL_VARIETY + POOL_DEPTH + UML_POOL,
     "placement": {
         "passThreshold": 65,
@@ -1606,14 +1611,15 @@ for _lesson_id, _karten in KERNSTOFF_KARTEN.items():
 for _lesson_id, _aufgaben in KERNSTOFF_AUFGABEN.items():
     _lektion = lessons_by_id[_lesson_id]
     _lektion["tasks"] = sorted(_lektion["tasks"] + _aufgaben, key=lambda t: t["difficulty"])
-course["taskPool"] += POOL_KERNSTOFF
-_doppelt_gw = set(EQUIVALENTS) & set(KERNSTOFF_GLEICHWERTIG)
+course["taskPool"] += POOL_KERNSTOFF + POOL_PRAXIS
+_doppelt_gw = (set(EQUIVALENTS) & set(KERNSTOFF_GLEICHWERTIG)) | (set(EQUIVALENTS) & set(PRAXIS_GLEICHWERTIG))
 assert not _doppelt_gw, f"Gleichwertige Lösungen doppelt definiert: {sorted(_doppelt_gw)}"
-EQUIVALENTS = {**EQUIVALENTS, **KERNSTOFF_GLEICHWERTIG}
+EQUIVALENTS = {**EQUIVALENTS, **KERNSTOFF_GLEICHWERTIG, **PRAXIS_GLEICHWERTIG}
 
 # Eine vierte Theoriekarte je Lektion: der häufigste Irrtum. Sie wird angehängt, statt
 # in jeder Lektionsdefinition einzeln zu stehen – so liegt der Text an einer Stelle.
 from theory_extra import EXTRA_THEORY
+EXTRA_THEORY = {**EXTRA_THEORY, **PRAXIS_IRRTUM}
 _fremd = set(EXTRA_THEORY) - set(lessons_by_id)
 assert not _fremd, f"Zusatzkarte für unbekannte Lektion(en): {sorted(_fremd)}"
 _fehlend = set(lessons_by_id) - set(EXTRA_THEORY)

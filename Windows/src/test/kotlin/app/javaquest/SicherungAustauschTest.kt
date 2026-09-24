@@ -44,7 +44,7 @@ class SicherungAustauschTest {
         assertEquals(10, stand.attempts.size)
         assertEquals(2, stand.lessonRecords.values.count { it.isCompleted })
         assertEquals(3, faellig(stand))
-        assertEquals(30, Backup.vereine(stand, stand, course).masterScore)
+        assertEquals(27, Backup.vereine(stand, stand, course).masterScore)
     }
 
     @Test
@@ -55,7 +55,7 @@ class SicherungAustauschTest {
         assertEquals(1, stand.lessonRecords.values.count { it.isCompleted })
         // 4 fällige Lernziele – genau so viele zählt die Web-App in ihrem eigenen Stand.
         assertEquals(4, faellig(stand))
-        assertEquals(11, Backup.vereine(stand, stand, course).masterScore)
+        assertEquals(10, Backup.vereine(stand, stand, course).masterScore)
     }
 
     @Test

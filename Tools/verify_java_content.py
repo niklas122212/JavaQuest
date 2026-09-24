@@ -26,7 +26,9 @@ from concurrent.futures import ThreadPoolExecutor
 
 IMPORTS = ("import java.util.*;\nimport java.util.function.*;\nimport java.util.stream.*;\n"
            "import java.util.concurrent.*;\nimport java.util.concurrent.atomic.*;\n"
-           "import java.io.*;\nimport java.nio.file.*;\nimport java.time.*;\nimport java.time.format.*;\n\n")
+           "import java.io.*;\nimport java.nio.file.*;\nimport java.time.*;\nimport java.time.format.*;\n"
+           # Für „Java in der Praxis“: HTTP-Client und -Server und die JDBC-Schnittstelle – alles im JDK.
+           "import java.net.*;\nimport java.net.http.*;\nimport com.sun.net.httpserver.*;\nimport java.sql.*;\n\n")
 DEFAULT_PATH = os.path.join(os.path.dirname(__file__), "..", "Packages", "JavaQuestKit",
                             "Sources", "JavaQuestKit", "Resources", "java_course.json")
 

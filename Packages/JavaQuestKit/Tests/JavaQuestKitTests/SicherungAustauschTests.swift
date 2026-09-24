@@ -43,7 +43,7 @@ struct SicherungAustauschTests {
         #expect(stand.attempts.count == 10)
         #expect(stand.lessonRecords.values.filter(\.isCompleted).count == 2)
         #expect(faellig(stand) == 3)
-        #expect(ProgressBackup.vereine(stand, stand, course: course).masterScore == 30)
+        #expect(ProgressBackup.vereine(stand, stand, course: course).masterScore == 27)
 
         // Die Datei steht in genau der Form, die der Swift-Coder schreibt – leere Felder
         // weggelassen, Zeiten ohne Sekundenbruchteile. Nur dann prüft die Windows-Testreihe
@@ -63,7 +63,7 @@ struct SicherungAustauschTests {
         #expect(stand.lessonRecords.values.filter(\.isCompleted).count == 1)
         // 4 fällige Lernziele – genau so viele zählt die Web-App in ihrem eigenen Stand.
         #expect(faellig(stand) == 4)
-        #expect(ProgressBackup.vereine(stand, stand, course: course).masterScore == 11)
+        #expect(ProgressBackup.vereine(stand, stand, course: course).masterScore == 10)
     }
 
     @Test("Zweimal eingelesen ergibt keine doppelten Einträge")

@@ -186,6 +186,8 @@ private struct Context {
     var enumTypes: Set<String> = []
     /// Selbst angelegte Interfaces – für die Erklärung anonymer Klassen.
     var interfaceTypes: Set<String> = []
+    /// Box, in die ein Bauplan (Builder) über mehrere Zeilen am Ende sein Ergebnis legt.
+    var builderTarget: String?
 
     var currentMethodName: String? {
         for block in stack.reversed() { if case .method(let name) = block { return name } }
@@ -204,6 +206,17 @@ private struct Context {
     /// Wie Syntax.value, kennt aber die Etiketten der Boxen (Abholschein, Zähler, Stapel …).
     func phrase(_ raw: String) -> String {
         let e = raw.trimmingCharacters(in: .whitespaces)
+        if let typed = typedPhrase(e) { return typed }
+        let pieces = Syntax.split(e, separator: "+", requireSpaces: true)
+        if pieces.count > 1, pieces.contains(where: Syntax.isStringLiteral), pieces.contains(where: { typedPhrase($0.trimmed) != nil }) {
+            let teile = pieces.map { typedPhrase($0.trimmed).map(Syntax.withoutTrailingNote).flatMap(Syntax.dative) ?? Syntax.piecePhrase($0) }
+            return Syntax.pieceList(teile)
+        }
+        return Syntax.value(e)
+    }
+
+    /// Aufrufe, deren Bedeutung vom Etikett der Box abhängt – nil, wenn keins passt.
+    func typedPhrase(_ e: String) -> String? {
         if let call = Syntax.topLevelCall(e), let receiver = call.receiver, Syntax.groups(Syntax.identifier, receiver) != nil {
             let type = baseType(receiver) ?? ""
             switch (call.method, type) {
@@ -211,6 +224,40 @@ private struct Context {
                 return "das Ergebnis vom Abholschein „\(receiver)“ (get wartet notfalls, bis es fertig ist)"
             case ("get", "AtomicInteger") where call.arguments.isEmpty:
                 return "den aktuellen Stand des sicheren Zählers „\(receiver)“"
+            case ("send", "HttpClient"):
+                let erste = Syntax.splitArguments(call.arguments).first ?? ""
+                return "die Antwort des Servers auf \(Syntax.groups(Syntax.identifier, erste) != nil ? "die Anfrage „\(erste)“" : "die Anfrage") (send schickt die Anfrage ab und wartet, bis die Antwort da ist)"
+            case ("statusCode", "HttpResponse"): return "den Statuscode der Antwort „\(receiver)“ (200 = alles gut)"
+            case ("body", "HttpResponse"): return "den Inhalt der Antwort „\(receiver)“"
+            case ("method", "HttpRequest"): return "die Methode der Anfrage „\(receiver)“ (etwa GET oder POST)"
+            case ("uri", "HttpRequest"): return "die Adresse der Anfrage „\(receiver)“"
+            case ("prepareStatement", "Connection"):
+                let sql = Syntax.shortValue(call.arguments)
+                return call.arguments.contains("?")
+                    ? "eine vorbereitete Abfrage für das SQL \(sql) (jedes Fragezeichen ist ein Platzhalter für einen Wert, der später dazukommt)"
+                    : "eine vorbereitete Abfrage für das SQL \(sql)"
+            case ("executeQuery", "PreparedStatement"):
+                return "das Ergebnis der Abfrage „\(receiver)“ (ein ResultSet, das anfangs vor der ersten Zeile steht)"
+            case ("getString", "ResultSet"), ("getInt", "ResultSet"):
+                let spalte = call.arguments.trimmed
+                let wo = Syntax.isStringLiteral(spalte) ? "aus der Spalte \(Syntax.shortValue(spalte))" : "aus Spalte Nummer \(spalte)"
+                return "\(call.method == "getInt" ? "die Zahl" : "den Text") \(wo) der aktuellen Zeile"
+            case ("writeValueAsString", "ObjectMapper"):
+                let arg = call.arguments.trimmed
+                var quelle = "„\(arg)“"
+                if Syntax.groups(Syntax.identifier, arg) != nil { quelle = "dem Inhalt der Box „\(arg)“" }
+                if let g = Syntax.groups(Syntax.rx(#"^new\s+([A-Z]\w*)\((.*)\)$"#), arg) {
+                    let zutaten = Syntax.splitArguments(g[2]).map(Syntax.shortValue)
+                    quelle = "einem frisch gebackenen \(g[1])-Objekt\(zutaten.isEmpty ? "" : " mit den Zutaten \(Syntax.list(zutaten))")"
+                }
+                return "den JSON-Text, den Jackson aus \(quelle) macht"
+            case ("readValue", "ObjectMapper"):
+                let teile = Syntax.splitArguments(call.arguments)
+                let typ = teile.count == 2 ? teile[1].replacingOccurrences(of: ".class", with: "") : "dem gewünschten Typ"
+                let text = teile.first ?? ""
+                let quelle = Syntax.isStringLiteral(text) ? "dem JSON-Text „\(Syntax.literalText(text))“"
+                    : Syntax.groups(Syntax.identifier, text) != nil ? "dem JSON-Text in der Box „\(text)“" : "dem JSON-Text \(text)"
+                return "ein Objekt vom Typ \(typ), das Jackson aus \(quelle) zurückbaut"
             case ("iterator", _) where call.arguments.isEmpty:
                 return "ein Lesezeichen (Iterator), das vor dem ersten Element von „\(receiver)“ steht"
             case ("next", "Iterator") where call.arguments.isEmpty:
@@ -227,7 +274,7 @@ private struct Context {
             default: break
             }
         }
-        return Syntax.value(e)
+        return nil
     }
 
     var currentTypeName: String? {
@@ -318,6 +365,17 @@ private struct Context {
             chainTarget = nil
             let source = String(s.dropLast(".stream()".count))
             return ("Legt alle Elemente von „\(source)“ aufs Fließband (Stream). Die nächsten Zeilen sind die Stationen, an denen sie vorbeikommen.", false)
+        }
+        // Aufruf, dessen letzter Wert ein mehrzeiliges Lambda ist: server.createContext("/hallo", austausch -> {
+        if s.hasSuffix("{"), let g = Syntax.groups(Syntax.rx(#"^(\w+)\.(\w+)\((.*),\s*\(?(\w*)\)?\s*->\s*\{$"#), s) {
+            stack.append(.lambda)
+            let receiver = g[1], method = g[2], args = g[3].trimmed, param = g[4]
+            if method == "createContext" {
+                let adresse = Syntax.isStringLiteral(args) ? String(args.dropFirst().dropLast()) : args
+                return ("Legt fest, was der Server „\(receiver)“ unter der Adresse „\(adresse)“ tut: Kommt dort eine Anfrage an, läuft der folgende Block. Den Austausch mit dem Anfragenden bekommt er unter dem Namen „\(param)“ – darüber schickt er die Antwort zurück.", false)
+            }
+            let werte = Syntax.list(Syntax.splitArguments(args).map(Syntax.argumentPhrase))
+            return ("Ruft „\(method)“ von „\(receiver)“ auf und gibt \(werte) mit – dazu eine Mini-Anweisung (Lambda), die „\(param)“ bekommt. Was sie tut, steht im folgenden Block; sie läuft erst, wenn \(receiver) sie aufruft.", false)
         }
         if let text = callStatement(s) { return (text, false) }
         // Ein Objekt, das nur wegen seiner Nebenwirkung entsteht – ohne Box, die es aufnimmt.
@@ -414,7 +472,7 @@ private struct Context {
             text = "Hier beginnt das Interface „\(name)“ – ein Vertrag: Es legt nur fest, WAS eine Klasse können muss (welche Methoden), aber nicht WIE."
         case "record":
             let fields = Syntax.parameters(String(components.dropFirst().dropLast()))
-            text = "Hier definieren wir den Record „\(name)“ – wie ein Formular mit festen Feldern: \(Syntax.list(fields.map { "\($0.name) (\(Syntax.typeAccusative($0.type)))" })). "
+            text = "Hier definieren wir den Record „\(name)“ – wie ein Formular mit festen Feldern: \(Syntax.list(fields.map { Syntax.namedType($0.name, $0.type) })). "
                 + "Den Rest erledigt Java automatisch: Konstruktor, Lesemethoden \(Syntax.list(fields.map { "\($0.name)()" })), Vergleich (equals) und Textdarstellung (toString)."
             if tail.replacingOccurrences(of: " ", with: "") == "{}" { text += " Die leeren Klammern {} heißen: Mehr braucht es nicht." }
         case "enum":
@@ -471,7 +529,7 @@ private struct Context {
             let params = Syntax.parameters(g[3])
             for param in params { boxTypes[param.name] = param.type }
             stack.append(.constructor(g[2]))
-            let ingredients = params.isEmpty ? "Er braucht keine Zutaten." : "Als Zutaten bekommt er \(Syntax.list(params.map { "\($0.name) (\(Syntax.typeAccusative($0.type)))" }))."
+            let ingredients = params.isEmpty ? "Er braucht keine Zutaten." : "Als Zutaten bekommt er \(Syntax.list(params.map { Syntax.namedType($0.name, $0.type) }))."
             return "Das ist der Konstruktor – die Backanleitung, die automatisch abläuft, sobald mit new \(g[2])(…) ein neues Objekt gebacken wird. \(ingredients) Hier bekommt das neue Objekt seine Startwerte."
         }
 
@@ -483,7 +541,7 @@ private struct Context {
         for param in params { boxTypes[param.name] = param.type }
         let ingredients = params.isEmpty
             ? "Sie braucht keine Zutaten"
-            : "Als Zutaten bekommt sie \(Syntax.list(params.map { "\($0.name) (\(Syntax.typeAccusative($0.type)))" }))"
+            : "Als Zutaten bekommt sie \(Syntax.list(params.map { Syntax.namedType($0.name, $0.type) }))"
         let result = returnType == "void"
             ? "liefert kein Ergebnis zurück (void = „leer“) – sie erledigt nur eine Aufgabe"
             : "liefert am Ende \(Syntax.typeAccusative(returnType)) als Ergebnis zurück"
@@ -573,7 +631,8 @@ private struct Context {
         if s.hasPrefix("while ") || s.hasPrefix("while(") {
             guard let (cond, rest) = Syntax.parenthesized(after: "while", in: s) else { return nil }
             if rest == "{" { stack.append(.loop) }
-            let frage = cond.hasSuffix(".hasNext()") ? " hasNext() fragt das Lesezeichen: Kommt noch ein Element?" : ""
+            let frage = cond.hasSuffix(".hasNext()") ? " hasNext() fragt das Lesezeichen: Kommt noch ein Element?"
+                : cond.hasSuffix(".next()") ? " next() rückt das Ergebnis eine Zeile weiter und antwortet, ob es noch eine gab." : ""
             return "Eine Schleife: Solange die Frage „\(cond)?“ mit „ja“ beantwortet wird, wiederholt das Programm die Zeilen im Block. Ist die Antwort schon am Anfang „nein“, läuft der Block gar nicht.\(frage)"
         }
 
@@ -630,7 +689,7 @@ private struct Context {
             stack.append(.tryBlock)
             boxTypes[g[3]] = g[2]
             let value = g[5].trimmed
-            return "Versuch mit Ressource (try-with-resources): Hier legen wir die Box „\(g[3])“ an und legen \(Syntax.value(value)) hinein. Am Ende des Blocks wird sie automatisch geschlossen und aufgeräumt – wie eine Tür, die von selbst zufällt. \(Syntax.labelPhrase(g[2], value: value))"
+            return "Versuch mit Ressource (try-with-resources): Hier legen wir die Box „\(g[3])“ an und legen \(Syntax.closingComma(phrase(value))) hinein. Am Ende des Blocks wird sie automatisch geschlossen und aufgeräumt – wie eine Tür, die von selbst zufällt. \(Syntax.labelPhrase(g[2], value: value))"
         }
         if s == "try {" {
             stack.append(.tryBlock)
@@ -645,7 +704,7 @@ private struct Context {
             }
             let value = expr.hasSuffix(";") ? String(expr.dropLast()).trimmed : expr
             if value.isEmpty { return "Beendet das Rezept (die Methode) sofort – ohne Ergebnis." }
-            return "Das Rezept ist fertig: Es gibt \(phrase(value)) zurück an die Stelle, die es aufgerufen hat – wie ein Automat, der sein Produkt ausgibt."
+            return "Das Rezept ist fertig: Es gibt \(Syntax.closingComma(phrase(value))) zurück an die Stelle, die es aufgerufen hat – wie ein Automat, der sein Produkt ausgibt."
         }
 
         if let g = Syntax.groups(Syntax.throwNew, s) {
@@ -673,7 +732,7 @@ private struct Context {
             guard let vorlage = args.first, Syntax.isStringLiteral(vorlage) else { return nil }
             let werte = Array(args.dropFirst())
             let platzhalter = Syntax.formatPlaceholders(vorlage)
-            var text = "Schreibt die Schablone „\(vorlage.dropFirst().dropLast())“ auf den Bildschirm (printf)."
+            var text = "Schreibt die Schablone „\(Syntax.literalText(vorlage))“ auf den Bildschirm (printf)."
             if !werte.isEmpty {
                 let paare = zip(platzhalter, werte).map { "\(Syntax.shortValue($0.1)) für \($0.0)" }
                 text += " Vorher setzt printf der Reihe nach ein: \(Syntax.list(paare))."
@@ -683,15 +742,15 @@ private struct Context {
         }
         guard let g = Syntax.groups(Syntax.printCall, s) else { return nil }
         let arg = g[2].trimmed
-        if let chain = Syntax.chainSteps(arg) {
+        if Syntax.knownFactory(arg) == nil, typedPhrase(arg) == nil, let chain = Syntax.chainSteps(arg) {
             let ending = g[1] == "println" ? " Danach springt die Ausgabe in eine neue Zeile." : ""
             return "Schreibt das Ergebnis einer Kette von Schritten auf den Bildschirm: \(chain).\(ending)"
         }
         if g[1] == "println" {
             if arg.isEmpty { return "Schreibt eine leere Zeile auf den Bildschirm." }
-            return "Schreibt \(phrase(arg)) auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste."
+            return "Schreibt \(Syntax.closingComma(phrase(arg))) auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste."
         }
-        return "Schreibt \(phrase(arg)) auf den Bildschirm – aber ohne neue Zeile: Die nächste Ausgabe kommt direkt dahinter."
+        return "Schreibt \(Syntax.closingComma(phrase(arg))) auf den Bildschirm – aber ohne neue Zeile: Die nächste Ausgabe kommt direkt dahinter."
     }
 
     // MARK: Variablen und Felder
@@ -725,6 +784,14 @@ private struct Context {
         } else if rhs.hasPrefix("switch"), let (value, rest) = Syntax.parenthesized(after: "switch", in: rhs), rest == "{" {
             stack.append(.switchExpression)
             text = "Hier erstellen wir eine Box namens „\(name)“. Was hineinkommt, entscheidet der folgende Weichensteller (switch) anhand von „\(value)“. \(label)"
+        } else if !s.hasSuffix(";"), rhs.contains(".newBuilder(") {
+            // HttpRequest.newBuilder(URI.create("…")) mit den Angaben in den nächsten Zeilen
+            builderTarget = name
+            var start = "ein Bauplan (Builder)"
+            if let g = Syntax.groups(Syntax.rx(#"^HttpRequest\.newBuilder\(URI\.create\((.+)\)\)$"#), rhs) {
+                start = "ein Bauplan (Builder) für eine Anfrage \(Syntax.addressPhrase(g[1]))"
+            }
+            text = "Hier beginnt \(start). Die nächsten Zeilen legen Einzelheiten fest, build() baut daraus am Ende das fertige Objekt – es kommt in die Box „\(name)“. \(label)"
         } else if !s.hasSuffix(";"), rhs.hasSuffix(".stream()") {
             chainTarget = name
             let source = String(rhs.dropLast(".stream()".count))
@@ -751,12 +818,12 @@ private struct Context {
             text = "Hier erstellen wir eine Box namens „\(name)“ und legen eine Mini-Anweisung ohne Namen hinein (ein Lambda). \(takes); was sie tun soll, steht im folgenden Block. Ausgeführt wird er erst, wenn jemand die Mini-Anweisung laufen lässt. \(label)"
         } else if let lambda = Syntax.lambdaParts(rhs), rhs.contains("->") {
             text = "Hier erstellen wir eine Box namens „\(name)“ und legen eine Mini-Anweisung ohne Namen hinein (ein Lambda): Sie nimmt \(Syntax.list(Syntax.splitArguments(lambda.0.trimmingCharacters(in: CharacterSet(charactersIn: "()"))))) und liefert \(lambda.1). \(label)"
-        } else if let chain = Syntax.chainSteps(rhs) {
+        } else if Syntax.knownFactory(rhs) == nil, typedPhrase(rhs) == nil, let chain = Syntax.chainSteps(rhs) {
             text = "Hier erstellen wir eine Box namens „\(name)“. Hinein kommt das Ergebnis einer Kette von Schritten: \(chain). \(label)"
         } else if enumTypes.contains(type) {
-            text = "Hier erstellen wir eine Box namens „\(name)“ und legen \(phrase(rhs)) hinein. Das Etikett \(type) heißt: In diese Box passt nur einer der festen \(type)-Werte."
+            text = "Hier erstellen wir eine Box namens „\(name)“ und legen \(Syntax.closingComma(phrase(rhs))) hinein. Das Etikett \(type) heißt: In diese Box passt nur einer der festen \(type)-Werte."
         } else {
-            text = "Hier erstellen wir eine Box namens „\(name)“ und legen \(phrase(rhs)) hinein. \(label)"
+            text = "Hier erstellen wir eine Box namens „\(name)“ und legen \(Syntax.closingComma(phrase(rhs))) hinein. \(label)"
         }
         if modifiers.contains("final") { text += " final heißt: Die Box wird danach versiegelt – der Inhalt kann sich nie mehr ändern." }
         return text
@@ -809,6 +876,20 @@ private struct Context {
         let ends = s.hasSuffix(";")
         let call = ends ? String(s.dropFirst().dropLast()) : String(s.dropFirst())
         guard let (name, args) = Syntax.callParts(call) else { return nil }
+        if let ziel = builderTarget {
+            if ends { builderTarget = nil }
+            switch name {
+            case "GET": return "Angabe im Bauplan: eine GET-Anfrage – sie holt etwas ab."
+            case "POST":
+                let inhalt = Syntax.groups(Syntax.rx(#"^HttpRequest\.BodyPublishers\.ofString\((.+)\)$"#), args).map { Syntax.shortValue($0[1]) } ?? args
+                return "Angabe im Bauplan: eine POST-Anfrage – sie schickt etwas mit, hier \(inhalt) als Inhalt."
+            case "header":
+                let teile = Syntax.splitArguments(args)
+                return "Angabe im Bauplan: die Kopfzeile \(teile.first.map(Syntax.shortValue) ?? "") mit dem Wert \(teile.dropFirst().first.map(Syntax.shortValue) ?? "")."
+            case "build": return "build() baut aus allen Angaben das fertige Objekt – es kommt in die Box „\(ziel)“."
+            default: return "Angabe im Bauplan: \(name)(\(args))."
+            }
+        }
         var text = Syntax.stationSentence(name: name, args: args)
         if ends {
             text += chainTarget.map { " Damit ist das Fließband fertig – das Ergebnis kommt in die Box „\($0)“." } ?? " Damit ist das Fließband fertig."
@@ -857,8 +938,28 @@ private struct Context {
             return "Stellt \(argPhrase) hinten an die Warteschlange „\(receiver)“ an (offer)."
         case "poll":
             return "Holt den vordersten Eintrag aus der Warteschlange „\(receiver)“ (poll)."
+        case "start" where type == "HttpServer":
+            return "Startet den Server „\(receiver)“: Ab jetzt nimmt er Anfragen an – im Hintergrund, während das Programm weiterläuft."
+        case "stop" where type == "HttpServer":
+            return "Hält den Server „\(receiver)“ an (stop(\(args)): \(args) Sekunden auf laufende Anfragen warten). Ohne stop liefe er weiter, und das Programm würde nie enden."
         case "start":
             return "Lässt den Thread „\(receiver)“ loslaufen (start). Ab jetzt arbeitet er gleichzeitig mit dem Hauptprogramm."
+        case "sendResponseHeaders" where argumentList.count == 2:
+            if argumentList[1] == "-1" {
+                return "Schickt den Anfang der Antwort: Statuscode \(argumentList[0]) und als Länge -1 – das heißt: Es kommt kein Inhalt hinterher."
+            }
+            return "Schickt den Anfang der Antwort: Statuscode \(argumentList[0]) und die Länge des Inhalts (\(argumentList[1])). Erst danach darf der Inhalt folgen."
+        case "write" where type == "OutputStream":
+            return "Schreibt die Bytes aus „\(args)“ in den Strom „\(receiver)“ – so gehen sie als Inhalt der Antwort an den Client."
+        case "setString" where argumentList.count == 2, "setInt" where argumentList.count == 2:
+            let wert = Syntax.groups(Syntax.identifier, argumentList[1]) != nil ? "den Inhalt der Box „\(argumentList[1])“" : Syntax.shortValue(argumentList[1])
+            return "Setzt \(wert) für das \(argumentList[0]). Fragezeichen ein (gezählt ab 1). Die Datenbank behandelt den Wert nur als Wert – nie als SQL."
+        case "close" where argumentList.isEmpty:
+            return "Schließt „\(receiver)“ (close): Damit ist es abgeschlossen, und was es belegt hat – etwa eine Verbindung –, wird wieder frei."
+        case "executeUpdate":
+            return "Führt die Änderung aus (executeUpdate) – für INSERT, UPDATE und DELETE, die keine Zeilen zurückliefern."
+        case "next" where type == "ResultSet":
+            return "Rückt das Ergebnis „\(receiver)“ auf die nächste Zeile vor (next). Erst danach lässt sich die Zeile lesen."
         case "join":
             return "Wartet (join), bis der Thread „\(receiver)“ fertig ist – erst dann geht es mit der nächsten Zeile weiter."
         case "incrementAndGet":
@@ -985,7 +1086,7 @@ private enum Syntax {
         var inChar = false
         let chars = Array(s)
         for (i, c) in chars.enumerated() {
-            if c == "\"" && !inChar { inString.toggle() }
+            if c == "\"" && !inChar && !isEscaped(chars, i) { inString.toggle() }
             if c == "'" && !inString { inChar.toggle() }
             if !inString && !inChar {
                 if "([{<".contains(c) && !(c == "<" && requireSpaces) { depth += 1 }
@@ -1017,6 +1118,21 @@ private enum Syntax {
         case 1: return items[0]
         default: return items.dropLast().joined(separator: ", ") + " \(conjunction) " + items[items.count - 1]
         }
+    }
+
+    /// „zahl (eine ganze Zahl)“ – steht in der Typbeschreibung selbst eine Klammer, wird sie zum Doppelpunkt:
+    /// „erledigt (einen Ja/Nein-Wert: true oder false)“ statt doppelter Klammern.
+    static func namedType(_ name: String, _ type: String) -> String {
+        if type.hasSuffix("...") {
+            return "\(name) (beliebig viele \(plural(String(type.dropLast(3)))); in der Methode liegen sie als Eierkarton bereit, also als Array)"
+        }
+        var art = typeAccusative(type)
+        if art.hasSuffix(" (Array)") {
+            art = art.dropLast(" (Array)".count) + ", also ein Array"
+        } else if art.hasSuffix(")"), let open = art.range(of: " (", options: .backwards) {
+            art = art[..<open.lowerBound] + ": " + art[open.upperBound...].dropLast()
+        }
+        return "\(name) (\(art))"
     }
 
     /// „eine ganze Zahl“, „einen Text“ … (für Zutaten und Rückgaben).
@@ -1152,11 +1268,22 @@ private enum Syntax {
                               "AtomicInteger": "ein Zähler, der auch dann richtig zählt, wenn mehrere Threads gleichzeitig daran drehen",
                               "StringBuilder": "ein Notizblock für Text, auf dem man immer weiterschreiben kann",
                               "Scanner": "ein Lesegerät, das Text Stück für Stück liest",
+                              "HttpServer": "ein kleiner Webserver, der Anfragen annimmt",
+                              "HttpClient": "ein Client, der Anfragen verschickt und auf Antworten wartet",
+                              "HttpRequest": "eine fertig gebaute Anfrage – Methode, Adresse und womöglich ein Inhalt",
+                              "Connection": "eine offene Verbindung zur Datenbank",
+                              "PreparedStatement": "eine vorbereitete SQL-Abfrage, deren Fragezeichen später mit Werten gefüllt werden",
+                              "ResultSet": "das Ergebnis einer Abfrage – eine Tabelle, die man Zeile für Zeile durchgeht",
+                              "OutputStream": "ein Strom, in den man Bytes schreibt",
+                              "ObjectMapper": "der JSON-Übersetzer der Bibliothek Jackson",
                               "LocalDate": "ein Kalenderdatum (ohne Uhrzeit)",
                               "Period": "ein Zeitabstand in Jahren, Monaten und Tagen",
                               "DateTimeFormatter": "eine Formatvorlage, die bestimmt, wie ein Datum als Text aussieht",
                               "Path": "die Adresse einer Datei"][type] {
                 return "Das Etikett \(type) heißt: Darin liegt \(meaning)."
+            }
+            if type.hasPrefix("HttpResponse<") {
+                return "Das Etikett \(type) heißt: Darin liegt die Antwort des Servers – Statuscode und Inhalt, der Inhalt als Text."
             }
             if type.hasPrefix("Optional<") {
                 return "Das Etikett \(type) heißt: Darin liegt eine Schachtel (Optional), die etwas enthalten kann – oder leer ist."
@@ -1190,6 +1317,7 @@ private enum Syntax {
         case "double", "float": return "Kommazahlen"
         case "boolean": return "Ja/Nein-Werte"
         case "char": return "Zeichen"
+        case "byte": return "Bytes (kleine ganze Zahlen von -128 bis 127)"
         case "String": return "Texte"
         default: return "\(type)-Objekte"
         }
@@ -1212,6 +1340,7 @@ private enum Syntax {
     }
 
     static func idiomHint(_ condition: String) -> String {
+        if condition.hasSuffix(".next()") { return " – gibt es also noch eine Zeile im Ergebnis (next() rückt dabei auf sie vor)" }
         if let g = groups(rx(#"^(\w+)\s*%\s*2\s*==\s*0$"#), condition) { return " – ist \(g[1]) also gerade" }
         if let g = groups(rx(#"^(\w+)\s*%\s*2\s*!=\s*0$"#), condition) { return " – ist \(g[1]) also ungerade" }
         return ""
@@ -1219,6 +1348,41 @@ private enum Syntax {
 
     /// Häufige „Fabrik“-Aufrufe in Alltagssprache.
     static func knownFactory(_ e: String) -> String? {
+        if let g = groups(rx(#"^HttpServer\.create\(new InetSocketAddress\((\d+)\),\s*\d+\)$"#), e) {
+            return g[1] == "0"
+                ? "einen neuen, kleinen Webserver (HttpServer.create) auf einem freien Port, den er sich selbst sucht (dafür steht die 0)"
+                : "einen neuen, kleinen Webserver (HttpServer.create) auf Port \(g[1])"
+        }
+        if e == "HttpClient.newHttpClient()" { return "einen neuen HttpClient (HttpClient.newHttpClient())" }
+        if let g = groups(rx(#"^HttpRequest\.newBuilder\(URI\.create\((.+)\)\)\.build\(\)$"#), e) {
+            return "eine fertige Anfrage \(addressPhrase(g[1])) (newBuilder beginnt den Bauplan, build() baut die Anfrage; ohne weitere Angaben ist es eine GET-Anfrage)"
+        }
+        if let g = groups(rx(#"^DriverManager\.getConnection\((.+)\)$"#), e) {
+            return "eine Verbindung zur Datenbank \(shortValue(g[1])) (DriverManager.getConnection; dafür braucht es den passenden Treiber)"
+        }
+        if let g = groups(rx(#"^(".*")\.getBytes\(\)$"#), e), isStringLiteral(g[1]) {
+            return "den Text „\(literalText(g[1]))“ als Bytes (getBytes – übers Netz gehen Bytes, keine Texte)"
+        }
+        if let g = groups(rx(#"^\((.+)\)\.getBytes\(\)$"#), e) {
+            return "\(value(g[1])) als Bytes (getBytes – übers Netz gehen Bytes, keine Texte)"
+        }
+        if let g = groups(rx(#"^(\w+)\.getAddress\(\)\.getPort\(\)$"#), e) { return "den Port, auf dem der Server „\(g[1])“ lauscht" }
+        if let g = groups(rx(#"^(\w+)\.getResponseBody\(\)$"#), e) {
+            return "den Strom für den Inhalt der Antwort (\(g[1]).getResponseBody()), dessen Bytes der Client bekommt"
+        }
+        if let g = groups(rx(#"^(\w+)\.send\((\w+),\s*HttpResponse\.BodyHandlers\.ofString\(\)\)\.body\(\)$"#), e) {
+            return "den Inhalt der Antwort, die „\(g[1])“ auf die Anfrage „\(g[2])“ bekommt (send schickt sie ab und wartet; body() liefert den Inhalt)"
+        }
+        if let g = groups(rx(#"^(\w+)\.prepareStatement\((".*")\)\.executeQuery\(\)$"#), e), isStringLiteral(g[2]) {
+            return "das Ergebnis der SQL-Abfrage „\(literalText(g[2]))“ (prepareStatement bereitet sie über die Verbindung „\(g[1])“ vor, executeQuery führt sie aus)"
+        }
+        if let g = groups(rx(#"^(\w+)\.uri\(\)\.getPath\(\)$"#), e) {
+            return "den Pfad aus der Adresse der Anfrage „\(g[1])“ (der Teil nach Server und Port, etwa /hallo)"
+        }
+        if let g = groups(rx(#"^(\w+)\.getRequestMethod\(\)$"#), e) { return "die Methode der Anfrage aus „\(g[1])“ (etwa GET oder POST)" }
+        if let g = groups(rx(#"^(\w+)\.lines\(\)\.count\(\)$"#), e) {
+            return "die Anzahl der Zeilen im Text „\(g[1])“ (lines() zerlegt ihn in Zeilen, count() zählt sie)"
+        }
         switch e {
         case "Integer.MAX_VALUE": return "die größte Zahl, die in eine int-Box passt (Integer.MAX_VALUE = 2147483647)"
         case "Integer.MIN_VALUE": return "die kleinste Zahl, die in eine int-Box passt (Integer.MIN_VALUE = -2147483648)"
@@ -1230,7 +1394,7 @@ private enum Syntax {
             if let vorlage = args.first, isStringLiteral(vorlage) {
                 let werte = args.dropFirst().map(shortValue)
                 let fuellung = werte.isEmpty ? "" : " (die Platzhalter werden der Reihe nach mit \(list(Array(werte))) gefüllt)"
-                return "den Text, den String.format aus der Schablone „\(vorlage.dropFirst().dropLast())“ baut\(fuellung)"
+                return "den Text, den String.format aus der Schablone „\(literalText(vorlage))“ baut\(fuellung)"
             }
         }
         if let g = groups(rx(#"^LocalDate\.of\((\d+),\s*(\d+),\s*(\d+)\)$"#), e), let m = Int(g[2]), let d = Int(g[3]) {
@@ -1299,26 +1463,108 @@ private enum Syntax {
     }
 
     static func isStringLiteral(_ s: String) -> Bool {
-        s.count >= 2 && s.hasPrefix("\"") && s.hasSuffix("\"") && !s.dropFirst().dropLast().contains("\"")
+        // Ein einzelner Text – maskierte Anführungszeichen (\") darin sind erlaubt.
+        s.range(of: #"^"(?:[^"\\]|\\.)*"$"#, options: .regularExpression) != nil
+    }
+
+    /// Der Inhalt eines Textes so, wie er später dasteht: \" wird zu ", \\ zu \.
+    static func literalText(_ s: String) -> String {
+        String(s.dropFirst().dropLast())
+            .replacingOccurrences(of: #"\\"#, with: "\u{1}")
+            .replacingOccurrences(of: #"\""#, with: "\"")
+            .replacingOccurrences(of: "\u{1}", with: #"\"#)
+    }
+
+    /// Steht vor dem Zeichen eine ungerade Zahl von Backslashes, ist es maskiert – etwa \" in einem Text.
+    static func isEscaped(_ chars: [Character], _ i: Int) -> Bool {
+        var count = 0
+        var j = i - 1
+        while j >= 0, chars[j] == "\\" { count += 1; j -= 1 }
+        return count % 2 == 1
+    }
+
+    /// „an die Adresse „…““ – als Text, aus einer Box oder als Code.
+    static func addressPhrase(_ s: String) -> String {
+        let t = s.trimmed
+        if isStringLiteral(t) { return "an die Adresse „\(literalText(t))“" }
+        if groups(identifier, t) != nil { return "an die Adresse aus der Box „\(t)“" }
+        return "an die Adresse, die sich aus \(t) ergibt"
+    }
+
+    /// Macht aus „den Port …“ „dem Port …“ – nur, wenn direkt nach dem Artikel das Hauptwort kommt,
+    /// denn Adjektive müssten mitgebeugt werden.
+    static func dative(_ phrase: String) -> String? {
+        let artikel = ["den ": "dem ", "die ": "der ", "das ": "dem ", "einen ": "einem ", "eine ": "einer ", "ein ": "einem "]
+        for (akkusativ, dativ) in artikel where phrase.hasPrefix(akkusativ) {
+            let rest = phrase.dropFirst(akkusativ.count)
+            guard let erster = rest.first, erster.isUppercase else { return nil }
+            return dativ + rest
+        }
+        return nil
+    }
+
+    /// Die Teile eines zusammengeklebten Texts als Aufzählung. Ein Relativsatz direkt vor „und“
+    /// braucht ein schließendes Komma („dem Port, auf dem … lauscht, und „/hallo““).
+    static func pieceList(_ phrases: [String]) -> String {
+        var teile = phrases
+        if teile.count >= 2, !teile[teile.count - 2].hasPrefix("„"), teile[teile.count - 2].contains(", ") {
+            teile[teile.count - 2] += ","
+        }
+        return "den zusammengesetzten Text aus \(list(teile)) (das + klebt die Teile aneinander)"
+    }
+
+    /// Endet die Beschreibung in einem offenen Relativsatz („den Text, den … baut“), braucht der Satz
+    /// danach ein Komma: „legen den Text, den … baut, hinein“. Texte in „…“ und Klammern zählen nicht mit.
+    static func closingComma(_ phrase: String) -> String {
+        guard !phrase.hasSuffix(","), !phrase.hasSuffix("–") else { return phrase }
+        var sichtbar = ""
+        var tiefe = 0, imZitat = false
+        for c in phrase {
+            if c == "„" { imZitat = true } else if c == "“" { imZitat = false; continue }
+            if !imZitat {
+                if c == "(" { tiefe += 1 } else if c == ")" { tiefe = max(0, tiefe - 1); continue }
+            }
+            if !imZitat && tiefe == 0 { sichtbar.append(c) }
+        }
+        // „, dem Inhalt …“ ist ein Aufzählungsglied, „, der später …“ ein Relativsatz: Nach dem Relativpronomen
+        // dem/der folgt kein Hauptwort.
+        let relativ = #", (den|die|das|dessen|deren|auf dem|in dem|in der|mit dem|was) |, (dem|der) (?=\p{Ll})"#
+        guard let letzter = sichtbar.range(of: relativ, options: [.regularExpression, .backwards]) else { return phrase }
+        return sichtbar[letzter.upperBound...].contains(", ") ? phrase : phrase + ","
+    }
+
+    /// Ohne den erklärenden Nachsatz in Klammern am Ende – als Teil einer Aufzählung wird es sonst zu lang.
+    static func withoutTrailingNote(_ phrase: String) -> String {
+        guard phrase.hasSuffix(")"), let open = phrase.range(of: " (", options: .backwards) else { return phrase }
+        return String(phrase[..<open.lowerBound])
     }
 
     /// Kurzform für Aufzählungen: Strings als „…“, alles andere als Code.
     static func shortValue(_ s: String) -> String {
         let t = s.trimmed
-        if isStringLiteral(t) { return "„\(t.dropFirst().dropLast())“" }
+        if isStringLiteral(t) { return "„\(literalText(t))“" }
         return t
     }
 
     /// Teil eines zusammengeklebten Texts, im Dativ („aus … und dem Inhalt der Box „x““).
     static func piecePhrase(_ s: String) -> String {
         let t = s.trimmed
-        if isStringLiteral(t) { return "„\(t.dropFirst().dropLast())“" }
+        if isStringLiteral(t) { return "„\(literalText(t))“" }
         if groups(identifier, t) != nil { return "dem Inhalt der Box „\(t)“" }
         if let g = groups(thisField, t) { return "dem Inhalt des Fachs „\(g[1])“" }
         if let g = groups(arrayLength, t) { return "der Anzahl der Fächer in „\(g[1])“" }
         if let g = groups(rx(#"^([a-z]\w*)\.([a-z]\w*)$"#), t) { return "dem Inhalt des Fachs „\(g[2])“ von „\(g[1])“" }
         if let g = groups(arrayElement, t) { return "dem Inhalt von Fach \(g[2]) in „\(g[1])“" }
         if t.hasPrefix("("), t.hasSuffix(")"), !t.dropFirst().contains("(") { return "dem Ergebnis der Rechnung \(t.dropFirst().dropLast())" }
+        if let known = knownFactory(t), let d = dative(withoutTrailingNote(known)) { return d }
+        if let g = groups(rx(#"^(\w+)\.replace\((.+)\)$"#), t), splitArguments(g[2]).count == 2 {
+            let teile = splitArguments(g[2])
+            return "dem Inhalt von „\(g[1])“, in dem jedes \(shortValue(teile[0])) durch \(shortValue(teile[1])) ersetzt ist"
+        }
+        if t.hasPrefix("("), t.hasSuffix(")"), topLevelOnly(String(t.dropFirst().dropLast())).count > 0,
+           let d = dative(value(String(t.dropFirst().dropLast()))), d.hasPrefix("der Antwort auf die Frage") {
+            return withoutTrailingNote(d)
+        }
         if t.hasSuffix(")"), let open = t.firstIndex(of: "("), !t[..<open].contains(" ") {
             return "dem Ergebnis von \(t)"
         }
@@ -1329,7 +1575,7 @@ private enum Syntax {
     static func value(_ raw: String) -> String {
         let e = raw.trimmed
         if e.isEmpty { return "nichts" }
-        if isStringLiteral(e) { return "den Text „\(e.dropFirst().dropLast())“" }
+        if isStringLiteral(e) { return "den Text „\(literalText(e))“" }
         if e.hasPrefix("'") && e.hasSuffix("'") && e.count <= 4 { return "das Zeichen \(e)" }
         if Int(e) != nil { return "die Zahl \(e)" }
         if Double(e) != nil { return "die Kommazahl \(e)" }
@@ -1350,7 +1596,7 @@ private enum Syntax {
 
         let pieces = split(e, separator: "+", requireSpaces: true)
         if pieces.count > 1 && pieces.contains(where: isStringLiteral) {
-            return "den zusammengesetzten Text aus \(list(pieces.map(piecePhrase))) (das + klebt die Teile aneinander)"
+            return pieceList(pieces.map(piecePhrase))
         }
         if e.hasPrefix("new ") && !e.contains(").") { return newObjectPhrase(e) }
         if e.contains("->"), groups(lambda, e) != nil { return "eine Mini-Anweisung ohne Namen (ein Lambda): \(e)" }
@@ -1401,6 +1647,11 @@ private enum Syntax {
         }
         if masked.range(of: #" [-+*/%] "#, options: .regularExpression) != nil {
             return "das Ergebnis der Rechnung \(e)"
+        }
+        if let g = groups(rx(#"^new\s+([A-Z]\w*)\((.*)\)\.(\w+)\(\)$"#), e) {
+            let zutaten = splitArguments(g[2])
+            let mit = zutaten.isEmpty ? "" : " (Zutaten: \(list(zutaten.map(shortValue))))"
+            return "das, was die Methode \(g[3])() eines frisch gebackenen Objekts aus der Kuchenform „\(g[1])“\(mit) zurückgibt,"
         }
         if let chain = chainSteps(e) { return "das Ergebnis dieser Schritte: \(chain)" }
         if let call = topLevelCall(e), let result = JavaGlossary.resultPhrase(forMethod: call.method) {
@@ -1510,7 +1761,7 @@ private enum Syntax {
         var i = chars.count - 1
         while i >= 0 {
             let c = chars[i]
-            if c == "\"" { inString.toggle() }
+            if c == "\"" && !isEscaped(chars, i) { inString.toggle() }
             if !inString {
                 if c == ")" { depth += 1 }
                 if c == "(" {
@@ -1596,7 +1847,14 @@ private enum Syntax {
             }
             return "Station „Sieb“ (filter): Nur passende Elemente dürfen weiter (\(args))."
         case "map":
-            if let (x, body) = parts { return "Station „Umformer“ (map): Aus jedem Element \(x) wird \(body)." }
+            if let (x, body) = parts {
+                let pieces = split(body, separator: "+", requireSpaces: true)
+                if pieces.count > 1, pieces.contains(where: isStringLiteral) {
+                    let teile = pieces.map { $0.trimmed == x ? "dem Element \(x) selbst" : piecePhrase($0) }
+                    return "Station „Umformer“ (map): Aus jedem Element \(x) wird ein neuer Text, zusammengesetzt aus \(list(teile))."
+                }
+                return "Station „Umformer“ (map): Aus jedem Element \(x) wird \(body)."
+            }
             return "Station „Umformer“ (map): Jedes Element wird mit \(args) umgewandelt."
         case "mapToInt":
             if let (x, body) = parts { return "Station „Umformer zu Zahlen“ (mapToInt): Aus jedem \(x) wird die ganze Zahl \(body) – damit man danach rechnen kann." }
@@ -1630,8 +1888,10 @@ private enum Syntax {
         case "count": return "Ende des Bandes (count): Die übrig gebliebenen Elemente werden gezählt."
         case "collect":
             if let g = groups(rx(#"^Collectors\.joining\((.*)\)$"#), args) {
-                let separator = g[1].isEmpty ? "ohne Trennzeichen" : "getrennt durch \(shortValue(g[1]))"
-                return "Ende des Bandes (collect): Alle Texte werden zu einem einzigen Text zusammengeklebt, \(separator)."
+                let teile = splitArguments(g[1])
+                let separator = teile.isEmpty ? "ohne Trennzeichen" : "getrennt durch \(shortValue(teile[0]))"
+                let rahmen = teile.count == 3 ? " – mit \(shortValue(teile[1])) davor und \(shortValue(teile[2])) dahinter" : ""
+                return "Ende des Bandes (collect): Alle Texte werden zu einem einzigen Text zusammengeklebt, \(separator)\(rahmen)."
             }
             if let g = groups(rx(#"^Collectors\.groupingBy\((.*)\)$"#), args) {
                 let parts = splitArguments(g[1])
