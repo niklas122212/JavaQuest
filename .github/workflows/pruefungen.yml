@@ -11,7 +11,9 @@ name: Prüfungen
 
 on:
   push:
-    branches: [main]
+    # Jeder Branch, nicht nur main: Sonst blieb ein Push auf einen Arbeitsbranch ungeprüft,
+    # und ein Fehler fiel erst auf, wenn er schon auf main lag.
+    branches: ["**"]
   pull_request:
     branches: [main]
   workflow_call:
@@ -44,12 +46,40 @@ jobs:
       - name: Web-App prüfen
         run: node Web/tests/lauf.mjs
 
+      - name: Web-App im echten Browser durchspielen
+        # lauf.mjs läuft ohne Browser und damit ohne CSS – den Installationshinweis, der drei
+        # Tage lang bei jedem Besuch über den Knöpfen stand, konnte es nicht sehen.
+        run: |
+          npm install --no-save --no-package-lock --prefix Web/tests playwright-core@1
+          CHROME=$(command -v google-chrome) node Web/tests/browser.mjs
+
       - name: Web-Fassung ist auf demselben Stand wie der Kurs
         run: |
           # Web/java_course.json ist eine Kopie. Läuft sie auseinander, prüft die
           # Web-Prüfung eine andere Kursdatei als die, die ausgeliefert wird.
           diff -q Packages/JavaQuestKit/Sources/JavaQuestKit/Resources/java_course.json Web/java_course.json \
             || { echo "::error::Web/java_course.json ist veraltet – Tools/build_web.sh ausführen."; exit 1; }
+
+  kurs-aus-quelle:
+    name: Kursdatei passt zum Quelltext
+    # java_course.json entsteht aus Tools/course/*.py und der Swift-Erklär-Engine. Bauen
+    # ließ sie sich bisher nur auf einem Mac – eine Änderung am Quelltext ohne neu gebaute
+    # Datei fiel nirgends auf. Die neu gebaute Datei hängt als Artefakt am Lauf.
+    if: ${{ !inputs.nur_schnell }}
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Kurs neu bauen
+        run: zsh Tools/course/build_course.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: java_course
+          path: Packages/JavaQuestKit/Sources/JavaQuestKit/Resources/java_course.json
+      - name: Mit der eingecheckten Kursdatei vergleichen
+        run: |
+          git diff --stat --exit-code -- Packages/JavaQuestKit/Sources/JavaQuestKit/Resources/java_course.json \
+            || { echo "::error::java_course.json passt nicht zum Quelltext – Tools/course/build_course.sh ausführen (oder das Artefakt java_course dieses Laufs übernehmen)."; exit 1; }
 
   apple:
     name: Apple-Kern (swift test)

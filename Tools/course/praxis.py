@@ -61,8 +61,8 @@ l33 = lesson("l33-json", "Daten als JSON", "Das Austauschformat fast aller Web-D
          verify={"context": "file", "main": 'System.out.println(new Spieler("Mia", 3).toJson());',
                  "output": '{"name": "Mia", "level": 3}'}),
     card("In der Praxis: eine Bibliothek",
-         "Selbst gebautes JSON bricht, sobald ein Wert ein Anführungszeichen oder einen Zeilenumbruch "
-         "enthält – beides muss maskiert werden. Und JSON wieder in Objekte zu verwandeln, ist mühsam. "
+         "Selbst gebautes JSON bricht, sobald ein Wert ein Anführungszeichen, einen Backslash oder einen "
+         "Zeilenumbruch enthält – all das muss maskiert werden, der Backslash sogar zuerst. Und JSON wieder in Objekte zu verwandeln, ist mühsam. "
          "Echte Projekte nehmen deshalb eine Bibliothek wie Jackson: Sie macht aus einem Record JSON und "
          "aus JSON wieder einen Record. Sie gehört nicht zum JDK – du bindest sie mit Maven oder Gradle ein.",
          code='''
@@ -122,7 +122,9 @@ l33 = lesson("l33-json", "Daten als JSON", "Das Austauschformat fast aller Web-D
         ''',
         "Der Name enthält selbst Anführungszeichen. In der ersten Zeile beenden sie den JSON-Text mitten im "
         "Namen – ein Programm würde das ablehnen. In der zweiten setzt replace vor jedes Anführungszeichen "
-        "einen Backslash: Dann bleibt es Teil des Textes, und das JSON ist gültig.",
+        "einen Backslash: Dann bleibt es Teil des Textes, und das JSON ist gültig. Ganz sicher ist das "
+        "noch nicht – enthielte der Name selbst einen Backslash, müsste der vorher verdoppelt werden. "
+        "Genau solche Fallen nimmt einem eine JSON-Bibliothek ab.",
         hint="Folge den Anführungszeichen im Namen: Wo würde ein JSON-Leser glauben, dass der Text schon zu Ende ist?"),
     code("t33-5", "json", 5,
          'Ergänze im Record Buch eine Methode toJson(), die zum Beispiel {"titel": "Momo", "seiten": 304} liefert.',
@@ -841,7 +843,8 @@ l35 = lesson("l35-database", "Datenbanken mit JDBC", "Daten dauerhaft in Tabelle
          ''',
          info="Zum Ausführen braucht es einen Treiber für die jeweilige Datenbank, etwa sqlite-jdbc oder H2 – "
               "das JDK bringt nur die Schnittstelle mit. JavaQuest prüft bei allen Datenbank-Beispielen, dass "
-              "sie übersetzen, führt sie aber nicht aus.",
+              "sie übersetzen, führt sie aber nicht aus. Auch PreparedStatement und ResultSet belegen "
+              "Ressourcen: Hier schließt sie die Verbindung mit; in größeren Programmen bekommen sie eigene try-Klammern.",
          verify={"context": "statements"}),
     card("Werte nie in SQL kleben: PreparedStatement",
          "Klebt man eine Eingabe direkt in den SQL-Text, kann sie selbst zu SQL werden: Aus dem Namen "
@@ -867,13 +870,14 @@ l35 = lesson("l35-database", "Datenbanken mit JDBC", "Daten dauerhaft in Tabelle
        hint="Die Theoriekarte „Tabellen und SQL“ nennt vier Befehle und was jeder davon tut."),
     out("t35-2", "database", 2, "Was gibt das Programm aus?",
         '''
-        String eingabe = "' OR 1=1 --";
+        String eingabe = "' OR 1=1 -- ";
         String sql = "SELECT * FROM konto WHERE name = '" + eingabe + "'";
         System.out.println(sql);
         ''',
-        "SELECT * FROM konto WHERE name = '' OR 1=1 --'",
+        "SELECT * FROM konto WHERE name = '' OR 1=1 -- '",
         "Die Eingabe wird wörtlich in den SQL-Text geklebt. Ihr erstes Anführungszeichen beendet den Namen, "
-        "OR 1=1 ist eine Bedingung, die immer stimmt, und -- macht den Rest zum Kommentar. Die Datenbank "
+        "OR 1=1 ist eine Bedingung, die immer stimmt, und -- mit Leerzeichen dahinter macht den Rest zum "
+        "Kommentar (MySQL verlangt das Leerzeichen, andere Datenbanken nicht). Die Datenbank "
         "würde alle Konten liefern – genau das ist SQL-Injection.",
         hint="Setz die Eingabe Zeichen für Zeichen an ihre Stelle ein – der Code prüft nicht, was drinsteht."),
     fill("t35-3", "database", 3, "Ergänze: Der erste Platzhalter bekommt den Namen, der zweite die Punktzahl.",
@@ -997,7 +1001,7 @@ POOL_DATENBANK = [
          "ohne den Namen in den SQL-Text zu kleben.",
          '''
          try (Connection db = DriverManager.getConnection("jdbc:sqlite:spiel.db")) {
-             // Spieler "Tom" per PreparedStatement löschen
+             // Spieler "Tom" hier per PreparedStatement löschen
          }
          ''',
          '''

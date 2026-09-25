@@ -12,3 +12,5 @@ dist/
 .DS_Store
 Tools/course/.build/
 Tools/course/__pycache__/
+# Nur für den Browser-Test (Web/tests/browser.mjs)
+Web/tests/node_modules/
