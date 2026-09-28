@@ -1,5 +1,6 @@
 package app.javaquest
 
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.ImageComposeScene
@@ -16,12 +17,16 @@ import app.javaquest.data.ProgressFile
 import app.javaquest.data.ProgressStore
 import app.javaquest.ui.AppShell
 import app.javaquest.ui.AppState
+import app.javaquest.ui.CodeFont
+import app.javaquest.ui.DesktopPlattform
 import app.javaquest.ui.JavaQuestTheme
+import app.javaquest.ui.LocalPlattform
 import java.awt.Dimension
 import java.io.File
 import javax.imageio.ImageIO
 
 fun main() {
+    CodeFont = DesktopPlattform.codeSchrift()
     // Selbsttest für fertige Pakete: Kurs laden, Startbildschirm unsichtbar zeichnen, als PNG speichern.
     System.getProperty("javaquest.selfcheck")?.let { selfCheck(File(it)); return }
 
@@ -35,7 +40,9 @@ fun main() {
             state = rememberWindowState(size = DpSize(1280.dp, 860.dp)),
         ) {
             window.minimumSize = Dimension(980, 680)
-            JavaQuestTheme { AppShell(state) }
+            CompositionLocalProvider(LocalPlattform provides DesktopPlattform) {
+                JavaQuestTheme { AppShell(state) }
+            }
         }
     }
 }

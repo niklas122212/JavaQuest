@@ -34,6 +34,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.Paths
 import java.nio.file.StandardCopyOption
 import java.time.Clock
 import java.time.Instant
@@ -111,17 +112,26 @@ data class ScoreChange(val before: Int, val after: Int, val newRank: MasterRank?
 }
 
 /** Liest und schreibt die Fortschrittsdatei. Schreiben erfolgt atomar (Temp-Datei + Umbenennen). */
+/*
+ * Nur Datei-APIs aus Java 8: Files.readString/writeString, Path.of und Stream.toList gibt es
+ * auf Android erst ab Android 13/14 – dieser Code läuft aber auch dort (ab Android 8).
+ */
+internal fun Path.leseText(): String = String(Files.readAllBytes(this), Charsets.UTF_8)
+internal fun Path.schreibeText(text: String) {
+    Files.write(this, text.toByteArray(Charsets.UTF_8))
+}
+
 class ProgressFile(val path: Path) {
     private val json = Json { ignoreUnknownKeys = true; prettyPrint = true; encodeDefaults = true }
 
     fun load(): ProgressData? = runCatching {
-        if (Files.exists(path)) json.decodeFromString(ProgressData.serializer(), Files.readString(path)) else null
+        if (Files.exists(path)) json.decodeFromString(ProgressData.serializer(), path.leseText()) else null
     }.getOrNull()
 
     fun save(data: ProgressData) {
         Files.createDirectories(path.parent)
         val temp = path.resolveSibling(path.fileName.toString() + ".tmp")
-        Files.writeString(temp, json.encodeToString(ProgressData.serializer(), data))
+        temp.schreibeText(json.encodeToString(ProgressData.serializer(), data))
         Files.move(temp, path, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE)
     }
 
@@ -135,13 +145,13 @@ class ProgressFile(val path: Path) {
     companion object {
         /** Windows: %APPDATA%\JavaQuest · macOS: ~/Library/Application Support/JavaQuest · sonst ~/.local/share. */
         fun defaultLocation(): ProgressFile {
-            System.getProperty("javaquest.dataDir")?.let { return ProgressFile(Path.of(it, "progress.json")) }
+            System.getProperty("javaquest.dataDir")?.let { return ProgressFile(Paths.get(it, "progress.json")) }
             val os = System.getProperty("os.name").lowercase()
             val home = System.getProperty("user.home")
             val dir = when {
-                "win" in os -> Path.of(System.getenv("APPDATA") ?: "$home\\AppData\\Roaming", "JavaQuest")
-                "mac" in os -> Path.of(home, "Library", "Application Support", "JavaQuest")
-                else -> Path.of(System.getenv("XDG_DATA_HOME") ?: "$home/.local/share", "JavaQuest")
+                "win" in os -> Paths.get(System.getenv("APPDATA") ?: "$home\\AppData\\Roaming", "JavaQuest")
+                "mac" in os -> Paths.get(home, "Library", "Application Support", "JavaQuest")
+                else -> Paths.get(System.getenv("XDG_DATA_HOME") ?: "$home/.local/share", "JavaQuest")
             }
             return ProgressFile(dir.resolve("progress.json"))
         }
@@ -383,7 +393,7 @@ class ProgressStore(
             runCatching {
                 Files.createDirectories(ablage.kopienOrdner)
                 val stempel = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss").withZone(ZoneOffset.UTC).format(clock.instant())
-                Files.writeString(ablage.kopienOrdner.resolve("stand-$stempel.json"), Backup.schreiben(bisher, now()))
+                ablage.kopienOrdner.resolve("stand-$stempel.json").schreibeText(Backup.schreiben(bisher, now()))
                 kopien().drop(5).forEach { Files.deleteIfExists(it) }
             }
         }
@@ -396,13 +406,13 @@ class ProgressStore(
         val ordner = file?.kopienOrdner ?: return emptyList()
         if (!Files.isDirectory(ordner)) return emptyList()
         return Files.list(ordner).use { dateien ->
-            dateien.filter { KOPIE.matches(it.fileName.toString()) }.toList()
+            dateien.iterator().asSequence().filter { KOPIE.matches(it.fileName.toString()) }.toList()
         }.sortedByDescending { it.fileName.toString() }
     }
 
     /** Die jüngste lesbare Kopie samt Zeitpunkt – oder null. */
     fun kopieVorZuruecksetzen(): KopieVorZuruecksetzen? = kopien().firstNotNullOfOrNull { pfad ->
-        runCatching { Files.readString(pfad) }.getOrNull()?.let { text ->
+        runCatching { pfad.leseText() }.getOrNull()?.let { text ->
             Backup.lesen(text)?.let { KopieVorZuruecksetzen(pfad, Backup.erstellt(text), it) }
         }
     }

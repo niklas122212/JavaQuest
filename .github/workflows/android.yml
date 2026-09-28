@@ -1,0 +1,141 @@
+# Baut die Android-App (APK) und spielt sie auf einem echten Emulator durch.
+#
+# Die Android-Fassung kompiliert dieselben Kotlin-Quellen wie die Windows-Fassung
+# (Windows/src/main/kotlin) und dieselbe Kursdatei wie alle anderen. Deshalb läuft dieser
+# Workflow auch, wenn sich dort etwas ändert – nicht nur unter Android/.
+#
+# Ergebnis:
+#   * bei jedem Lauf das Artefakt „JavaQuest-Android“ mit der installierbaren APK,
+#   * bei einem Tag v… zusätzlich die APK an der Veröffentlichung auf GitHub.
+name: Android-App
+
+on:
+  push:
+    branches: ["**"]
+    tags: ["v*"]
+    paths:
+      - "Android/**"
+      - "Windows/src/**"
+      - "Windows/build.gradle.kts"
+      - "Packages/JavaQuestKit/Sources/JavaQuestKit/Resources/java_course.json"
+      - ".github/workflows/android.yml"
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  JAVAQUEST_VERSION: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
+
+jobs:
+  apk:
+    name: APK bauen und prüfen
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Android
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # für die Versionsnummer aus dem jüngsten Tag
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: APK bauen (Release, verkleinert)
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: ./gradlew assembleRelease lintRelease --console=plain --stacktrace
+
+      - name: APK benennen und Signatur zeigen
+        run: |
+          bt="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)"
+          apk=app/build/outputs/apk/release/app-release.apk
+          version=$("$bt/aapt2" dump badging "$apk" | sed -n "s/.*versionName='\([^']*\)'.*/\1/p" | head -1)
+          mkdir -p ../dist
+          cp "$apk" "../dist/JavaQuest-Android-${version:-dev}.apk"
+          ls -la ../dist
+          # Wer hat signiert? Ohne Secrets ist es der Debug-Schlüssel dieses Rechners.
+          "$bt/apksigner" verify --print-certs ../dist/*.apk | head -3
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: JavaQuest-Android
+          path: dist/*.apk
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lint-bericht
+          path: Android/app/build/reports/lint-results-release.html
+          if-no-files-found: ignore
+
+  emulator:
+    name: Auf dem Emulator durchspielen
+    needs: apk
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: JavaQuest-Android
+          path: apk
+      - name: KVM für den Emulator freischalten
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Durchlauf auf einem Pixel 6 mit Android 14
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          profile: pixel_6
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot
+          script: python3 Android/tools/emulator_durchlauf.py "$(ls apk/*.apk | head -1)" bildschirme
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Bildschirmfotos-Android
+          path: bildschirme/
+          if-no-files-found: ignore
+      - name: Bildschirmfotos verkleinert ins Protokoll (ansehen ohne Download)
+        if: always()
+        run: |
+          pip install --quiet pillow
+          python3 - <<'PY'
+          import base64, io, pathlib
+          from PIL import Image
+          for bild in sorted(pathlib.Path("bildschirme").glob("*.png")):
+              img = Image.open(bild).convert("RGB")
+              img.thumbnail((360, 800))
+              puffer = io.BytesIO()
+              img.save(puffer, "JPEG", quality=60)
+              print(f"=== BILD {bild.name} ===")
+              print(base64.b64encode(puffer.getvalue()).decode())
+              print("=== ENDE ===")
+          PY
+
+  veroeffentlichen:
+    name: APK an die Veröffentlichung hängen
+    needs: [apk, emulator]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: JavaQuest-Android
+          path: dist
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.apk

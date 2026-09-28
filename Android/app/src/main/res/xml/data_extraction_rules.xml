@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 12+: keine Cloud-Sicherung. Beim Umzug per Kabel/WLAN auf ein neues Gerät
+     darf der Lernstand mit – das bleibt lokal zwischen den eigenen Geräten. -->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="root" />
+        <exclude domain="file" />
+        <exclude domain="database" />
+        <exclude domain="sharedpref" />
+        <exclude domain="external" />
+    </cloud-backup>
+    <device-transfer>
+        <include domain="file" path="." />
+    </device-transfer>
+</data-extraction-rules>

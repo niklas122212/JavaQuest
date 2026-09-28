@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Keine einzige Berechtigung: JavaQuest braucht weder Internet noch Speicherzugriff.
+  Sicherungen laufen über die Dateiauswahl des Systems, Erinnerungen über die Kalender-App.
+  allowBackup="false": Der Lernstand soll das Gerät nicht über eine Cloud-Sicherung verlassen
+  („kein Konto, keine Cloud“) – zum Umziehen gibt es „Fortschritt sichern“ im Profil.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <application
+        android:allowBackup="false"
+        android:fullBackupContent="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:supportsRtl="false"
+        android:enableOnBackInvokedCallback="true"
+        android:theme="@style/Theme.JavaQuest"
+        tools:targetApi="36">
+
+        <!-- configChanges: Drehen, Größe ändern (Tablet, Fenster), Dunkelmodus und Tastatur
+             baut Compose selbst um. Ohne das würde die Activity neu erzeugt, und eine gerade
+             getippte Antwort ginge verloren. -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboard|keyboardHidden|navigation|uiMode|density|fontScale|layoutDirection|locale"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

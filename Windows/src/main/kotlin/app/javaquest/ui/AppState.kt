@@ -25,10 +25,11 @@ import app.javaquest.data.AttemptContext
 import app.javaquest.data.ProgressStore
 import app.javaquest.data.ScoreChange
 
-enum class Section(val title: String, val icon: ImageVector) {
+/** [kurz]: Beschriftung in der Leiste unten auf dem Handy, wo fünf Einträge nebeneinander passen müssen. */
+enum class Section(val title: String, val icon: ImageVector, val kurz: String = title) {
     DASHBOARD("Übersicht", Icons.Rounded.Dashboard),
     PATH("Lernpfad", Icons.Rounded.Route),
-    TOPICS("Alle Themen", Icons.Rounded.GridView),
+    TOPICS("Alle Themen", Icons.Rounded.GridView, "Themen"),
     ANALYSIS("Analyse", Icons.Rounded.Psychology),
     PROFILE("Profil", Icons.Rounded.Person),
 }
@@ -83,6 +84,20 @@ class AppState(val store: ProgressStore) {
 
     fun closeFlow() {
         flow = null
+    }
+
+    /** Ob die Zurück-Taste (Android) gerade etwas zu tun hat – sonst schließt das System die App. */
+    val kannZurueck: Boolean get() = !store.needsOnboarding && (flow != null || section != Section.DASHBOARD)
+
+    /**
+     * Zurück-Taste bzw. -Geste: erst die laufende Lektion schließen, dann zur Übersicht.
+     * Erst von der Übersicht aus verlässt „Zurück“ die App.
+     */
+    fun zurueck() {
+        when {
+            flow != null -> closeFlow()
+            section != Section.DASHBOARD -> section = Section.DASHBOARD
+        }
     }
 }
 

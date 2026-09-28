@@ -223,4 +223,43 @@ class UiFlowTest {
         click("start-next-lesson")
         shot("16-theory-dark")
     }
+
+    /** Handy hochkant (400 dp): Bereiche als Leiste unten, die während einer Lektion verschwindet. */
+    @Test
+    fun `Handy - Leiste unten, Lektion im Vollbild, Zurueck-Taste`() = runDesktopComposeUiTest(400, 860) {
+        val state = newState()
+        show(state)
+        click("welcome-start")
+        click("level-beginner")
+        click("experience-continue")
+        assertEquals("l01-hello", state.flow?.lessonId)
+        // In der Lektion keine Leiste – der Platz gehört der Aufgabe.
+        onNodeWithTag("nav-profile").assertDoesNotExist()
+        shot("handy-01-theorie")
+
+        // Zurück-Taste (Android): erst die Lektion schließen, dann zur Übersicht, dann nichts mehr.
+        assertTrue(state.kannZurueck)
+        state.zurueck()
+        waitForIdle()
+        assertNull(state.flow)
+        onNodeWithTag("master-score").assertExists()
+        onNodeWithTag("nav-profile").assertExists()
+        shot("handy-02-uebersicht")
+
+        click("nav-analysis")
+        onNodeWithText("Wissensanalyse").assertExists()
+        click("nav-profile")
+        onNodeWithText("Fortschritt sichern").assertExists()
+        // Ohne Plattform (Test) meldet der Knopf das, statt abzustürzen.
+        onNodeWithText("Sicherung speichern").performScrollTo().performClick()
+        waitForIdle()
+        onNodeWithText("Auf diesem System nicht verfügbar.").assertExists()
+        shot("handy-03-profil")
+
+        assertTrue(state.kannZurueck)
+        state.zurueck()
+        waitForIdle()
+        assertEquals(app.javaquest.ui.Section.DASHBOARD, state.section)
+        assertTrue(!state.kannZurueck)
+    }
 }

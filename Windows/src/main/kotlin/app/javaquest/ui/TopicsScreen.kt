@@ -45,12 +45,8 @@ import app.javaquest.core.Topic
 import app.javaquest.core.TrainingBuilder
 import app.javaquest.data.TopicPractice
 import kotlin.math.roundToInt
-import app.javaquest.core.Kalender
 import app.javaquest.core.ReviewReminder
 import androidx.compose.material.icons.rounded.Event
-import java.awt.Desktop
-import java.nio.file.Files
-import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -70,7 +66,7 @@ fun TopicsScreen(state: AppState) {
 
     ScreenScroll {
         Column {
-            Text("Such dir aus, was du üben willst", fontSize = 30.sp, fontWeight = FontWeight.Bold)
+            Text("Such dir aus, was du üben willst", fontSize = if (LocalKompakt.current) 24.sp else 30.sp, fontWeight = FontWeight.Bold)
             Text(
                 "Jedes Thema ist sofort übbar – auch wenn die Lektion im Lernpfad noch nicht dran war. " +
                     "Ohne Auswahl kommt alles gemischt.",
@@ -81,6 +77,7 @@ fun TopicsScreen(state: AppState) {
         val faellig = store.dueGoalCount
         val naechsterTermin = store.erinnerungsTermine().firstOrNull()
         var kalenderMeldung by remember { mutableStateOf<String?>(null) }
+        val plattform = LocalPlattform.current
         if (faellig > 0) {
             Column(Modifier.fillMaxWidth().card(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 SectionTitle(
@@ -101,7 +98,7 @@ fun TopicsScreen(state: AppState) {
                 ) { state.startReview() }
                 naechsterTermin?.let { termin ->
                     SecondaryButton("Erinnerung in den Kalender (${terminText(termin)} Uhr)", Icons.Rounded.Event) {
-                        kalenderMeldung = erinnerungInKalender(termin)
+                        plattform.erinnerungInKalender(termin) { kalenderMeldung = it }
                     }
                 }
                 kalenderMeldung?.let { Text(it, fontSize = 14.sp, color = secondaryText) }
@@ -116,7 +113,7 @@ fun TopicsScreen(state: AppState) {
                     Icons.Rounded.Event,
                 )
                 SecondaryButton("Erinnerung in den Kalender", Icons.Rounded.Event) {
-                    kalenderMeldung = erinnerungInKalender(naechsterTermin)
+                    plattform.erinnerungInKalender(naechsterTermin) { kalenderMeldung = it }
                 }
                 kalenderMeldung?.let { Text(it, fontSize = 14.sp, color = secondaryText) }
             }
@@ -281,20 +278,3 @@ private fun FilterChip(text: String, selected: Boolean, tint: Color, onClick: ()
 /** „Do., 24.09., 18:00“ – in Ortszeit. */
 private fun terminText(termin: ReviewReminder.Slot): String =
     DateTimeFormatter.ofPattern("EE, dd.MM., HH:mm", Locale.GERMAN).format(termin.date.atZone(ZoneId.systemDefault()))
-
-/**
- * Legt den Kalendereintrag als Datei an und öffnet ihn mit dem Standard-Kalender – dort
- * genügt dann ein Klick auf „Übernehmen“. Ohne Standard-Programm bleibt die Datei liegen.
- */
-private fun erinnerungInKalender(termin: ReviewReminder.Slot): String = try {
-    val datei = Files.createTempFile("javaquest-wiederholung-", ".ics")
-    Files.writeString(datei, Kalender.eintrag(termin, Instant.now(), ZoneId.systemDefault()))
-    if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.OPEN)) {
-        Desktop.getDesktop().open(datei.toFile())
-        "Kalendereintrag geöffnet – übernimm ihn in deinen Kalender."
-    } else {
-        "Kalendereintrag gespeichert: $datei – doppelklicke die Datei, um ihn zu übernehmen."
-    }
-} catch (e: Exception) {
-    "Kalendereintrag fehlgeschlagen: ${e.message}"
-}

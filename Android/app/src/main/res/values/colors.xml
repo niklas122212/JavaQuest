@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Hintergrund der App (Theme.kt: Surfaces.screen) – sichtbar, bis Compose zeichnet. -->
+    <color name="hintergrund">#FFF2F2F7</color>
+    <color name="icon_hintergrund">#FF5550E6</color>
+</resources>

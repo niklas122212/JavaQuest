@@ -88,7 +88,7 @@ fun OnboardingScreen(state: AppState, onFinished: (startLessonId: String?) -> Un
         if (step == Step.PLACEMENT && placement != null) {
             PlacementQuestionScreen(placement!!, store) { step = Step.RESULT }
         } else {
-            Box(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(32.dp), contentAlignment = Alignment.TopCenter) {
+            Box(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(if (LocalKompakt.current) 20.dp else 32.dp), contentAlignment = Alignment.TopCenter) {
                 Column(Modifier.widthIn(max = 640.dp).fillMaxWidth()) {
                     when (step) {
                         Step.WELCOME -> {
@@ -163,7 +163,7 @@ private fun ExperienceStep(selection: ExperienceLevel?, onSelect: (ExperienceLev
     Column(verticalArrangement = Arrangement.spacedBy(22.dp)) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Eyebrow("Schritt 1 von 2")
-            Text("Wie viel Java kannst du schon?", fontSize = 34.sp, fontWeight = FontWeight.Bold)
+            Text("Wie viel Java kannst du schon?", fontSize = TitelGroesse, fontWeight = FontWeight.Bold)
             Text("Wähle, was auf dich zutrifft. Mit Vorkenntnissen zeigt eine einzige Frage, wo du einsteigst.", fontSize = 17.sp, color = secondaryText)
         }
         for (level in ExperienceLevel.onboardingChoices) {
@@ -215,7 +215,7 @@ private fun PlacementIntroStep(store: ProgressStore, onBack: () -> Unit, onStart
     Column(verticalArrangement = Arrangement.spacedBy(22.dp)) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Eyebrow("Schritt 2 von 2")
-            Text(if (config.questionsPerTest == 1) "Eine Einstufungsfrage" else "Kurze Einstufung", fontSize = 34.sp, fontWeight = FontWeight.Bold)
+            Text(if (config.questionsPerTest == 1) "Eine Einstufungsfrage" else "Kurze Einstufung", fontSize = TitelGroesse, fontWeight = FontWeight.Bold)
             Text(ExperienceLevel.INTERMEDIATE.onboardingTitle, fontSize = 19.sp, color = secondaryText)
         }
         Column(Modifier.fillMaxWidth().card(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -295,7 +295,7 @@ private fun PlacementResultStep(test: PlacementTest, store: ProgressStore, onSta
             ExperienceLevel.INTERMEDIATE -> "Stark eingestuft!"
             ExperienceLevel.BEGINNER -> "Guter Startpunkt gefunden"
         }
-        Text(ueberschrift, fontSize = 34.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+        Text(ueberschrift, fontSize = TitelGroesse, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
         entryModule?.let {
             Text(
                 when (outcome.placedLevel) {

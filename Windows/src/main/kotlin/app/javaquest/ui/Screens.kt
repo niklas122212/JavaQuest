@@ -3,12 +3,21 @@ package app.javaquest.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -29,9 +38,13 @@ import androidx.compose.material.icons.rounded.Shield
 import androidx.compose.material.icons.rounded.Verified
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -53,9 +66,6 @@ import app.javaquest.core.LessonState
 import app.javaquest.core.TopicStatus
 import java.time.Duration
 import java.time.Instant
-import java.awt.FileDialog
-import java.nio.file.Files
-import java.nio.file.Path
 import java.time.LocalDate
 
 // ---------------------------------------------------------------- Lernpfad
@@ -66,7 +76,7 @@ fun PathScreen(state: AppState) {
     val states = store.lessonStates
     val results = store.lessonResults
     ScreenScroll {
-        Text("Lernpfad", fontSize = 34.sp, fontWeight = FontWeight.Bold)
+        Text("Lernpfad", fontSize = TitelGroesse, fontWeight = FontWeight.Bold)
         Text(
             "Eine Lektion wird frei, sobald die vorherige mit mindestens ${LessonSession.passPercent} % bestanden ist.",
             color = secondaryText, fontSize = 16.sp,
@@ -81,9 +91,15 @@ fun PathScreen(state: AppState) {
                     Column(Modifier.weight(1f)) {
                         Text(module.title, fontSize = 21.sp, fontWeight = FontWeight.Bold)
                         Text(module.subtitle, color = secondaryText, fontSize = 14.sp)
+                        if (LocalKompakt.current) {
+                            Spacer(Modifier.height(6.dp))
+                            Chip(module.tier.title, tint = tint)
+                        }
                     }
-                    Chip(module.tier.title, tint = tint)
-                    Spacer(Modifier.width(10.dp))
+                    if (!LocalKompakt.current) {
+                        Chip(module.tier.title, tint = tint)
+                        Spacer(Modifier.width(10.dp))
+                    }
                     Text("${progress.completedLessons}/${progress.totalLessons}", color = secondaryText, fontWeight = FontWeight.SemiBold)
                 }
                 ProgressBar(progress.fraction, height = 6.dp, brush = SolidColor(tint))
@@ -139,7 +155,7 @@ fun AnalysisScreen(state: AppState) {
     val store = state.store
     val report = store.knowledgeReport
     ScreenScroll {
-        Text("Wissensanalyse", fontSize = 34.sp, fontWeight = FontWeight.Bold)
+        Text("Wissensanalyse", fontSize = TitelGroesse, fontWeight = FontWeight.Bold)
         Text("Automatisch aus allen Antworten: Stärken, Wissenslücken und Themen, die du noch nicht kennst.", color = secondaryText, fontSize = 16.sp)
         Column(Modifier.fillMaxWidth().card(22.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -154,7 +170,7 @@ fun AnalysisScreen(state: AppState) {
                 }
             }
             DistributionBar(report)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            ChipZeile {
                 for (status in TopicStatus.entries) Chip("${report.topics(status).size} ${status.title}", statusIcon(status), Palette.status(status))
             }
         }
@@ -205,8 +221,9 @@ fun ProfileScreen(state: AppState) {
     val store = state.store
     var confirmReset by remember { mutableStateOf(false) }
     var sicherungMeldung by remember { mutableStateOf<String?>(null) }
+    val plattform = LocalPlattform.current
     ScreenScroll {
-        Text("Profil", fontSize = 34.sp, fontWeight = FontWeight.Bold)
+        Text("Profil", fontSize = TitelGroesse, fontWeight = FontWeight.Bold)
         Column(Modifier.fillMaxWidth().card(22.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             ProfileRow("Start", store.experienceLevel.onboardingTitle)
             store.data?.placementScore?.let { ProfileRow("Einstufungsfrage", "$it %") }
@@ -217,23 +234,23 @@ fun ProfileScreen(state: AppState) {
         }
         Column(Modifier.fillMaxWidth().card(22.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             SectionTitle("Privat & lokal", icon = Icons.Rounded.Shield)
-            Text("Dein Lernstand liegt nur auf diesem Rechner – kein Konto, keine Cloud, keine Datenübertragung.", fontSize = 15.sp)
-            Text(app.javaquest.data.ProgressFile.defaultLocation().path.toString(), fontFamily = CodeFont, fontSize = 12.sp, color = secondaryText)
+            Text("Dein Lernstand liegt nur auf ${plattform.geraet} – kein Konto, keine Cloud, keine Datenübertragung.", fontSize = 15.sp)
+            Text(plattform.lernstandOrt, fontFamily = CodeFont, fontSize = 12.sp, color = secondaryText)
         }
         Column(Modifier.fillMaxWidth().card(22.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             SectionTitle(
                 "Fortschritt sichern",
                 "Eine Datei zum Mitnehmen. Beim Einlesen wird nichts gelöscht: Aus beiden " +
                     "Ständen wird jeweils das bessere Ergebnis übernommen. " +
-                    "Die Datei passt in jede Fassung: Web-App, Mac, iPhone und Windows.",
+                    "Die Datei passt in jede Fassung: Web-App, Mac, iPhone, Windows und Android.",
                 Icons.Rounded.Inventory2,
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            ChipZeile(abstand = 10.dp) {
                 SecondaryButton("Sicherung speichern", Icons.Rounded.Inventory2) {
-                    sicherungMeldung = sicherungSpeichern(store)
+                    sicherungSpeichern(plattform, store) { sicherungMeldung = it }
                 }
                 SecondaryButton("Sicherung einlesen", Icons.Rounded.Update) {
-                    sicherungMeldung = sicherungLaden(store)
+                    sicherungLaden(plattform, store) { sicherungMeldung = it }
                 }
             }
             sicherungMeldung?.let { Text(it, fontSize = 14.sp, color = secondaryText) }
@@ -272,34 +289,33 @@ fun ProfileScreen(state: AppState) {
     }
 }
 
-/* Datei-Dialoge über java.awt.FileDialog: Den gibt es auf Windows, macOS und Linux,
-   und er sieht überall wie der Dialog des jeweiligen Systems aus. Compose Desktop
-   bringt keinen eigenen mit. */
-private fun sicherungSpeichern(store: ProgressStore): String {
-    val dialog = FileDialog(null as java.awt.Frame?, "Sicherung speichern", FileDialog.SAVE)
-    dialog.file = "javaquest-" + LocalDate.now() + ".json"
-    dialog.isVisible = true
-    val ordner = dialog.directory ?: return "Abgebrochen."
-    val name = dialog.file ?: return "Abgebrochen."
-    return try {
-        Files.writeString(Path.of(ordner, name), store.sicherungText())
-        "Gesichert: $ordner$name"
+/* Die Dateiauswahl selbst gehört der Plattform (FileDialog auf dem Desktop, Systemdialog
+   auf Android); hier steht nur, was mit dem Inhalt passiert und was gemeldet wird. */
+private fun sicherungSpeichern(plattform: Plattform, store: ProgressStore, meldung: (String) -> Unit) {
+    val text = try {
+        store.sicherungText()
     } catch (e: Exception) {
-        "Speichern fehlgeschlagen: ${e.message}"
+        meldung("Speichern fehlgeschlagen: ${e.message}")
+        return
     }
+    plattform.sicherungSpeichern("javaquest-" + LocalDate.now() + ".json", text, meldung)
 }
 
-private fun sicherungLaden(store: ProgressStore): String {
-    val dialog = FileDialog(null as java.awt.Frame?, "Sicherung einlesen", FileDialog.LOAD)
-    dialog.isVisible = true
-    val ordner = dialog.directory ?: return "Abgebrochen."
-    val name = dialog.file ?: return "Abgebrochen."
-    return try {
-        val dazu = store.sicherungEinlesen(Files.readString(Path.of(ordner, name)))
-            ?: return "Das sieht nicht nach einer JavaQuest-Sicherung aus."
-        "Eingelesen: $dazu Aufgabe(n) dazugekommen, nichts gelöscht."
-    } catch (e: Exception) {
-        "Einlesen fehlgeschlagen: ${e.message}"
+private fun sicherungLaden(plattform: Plattform, store: ProgressStore, meldung: (String) -> Unit) {
+    plattform.sicherungWaehlen { ergebnis ->
+        meldung(
+            when {
+                ergebnis == null -> "Abgebrochen."
+                ergebnis.isFailure -> "Einlesen fehlgeschlagen: ${ergebnis.exceptionOrNull()?.message}"
+                else -> try {
+                    val dazu = store.sicherungEinlesen(ergebnis.getOrThrow())
+                    if (dazu == null) "Das sieht nicht nach einer JavaQuest-Sicherung aus."
+                    else "Eingelesen: $dazu Aufgabe(n) dazugekommen, nichts gelöscht."
+                } catch (e: Exception) {
+                    "Einlesen fehlgeschlagen: ${e.message}"
+                }
+            },
+        )
     }
 }
 
@@ -322,24 +338,111 @@ fun kopieBeschreibung(kopie: app.javaquest.data.KopieVorZuruecksetzen): String {
 
 @Composable
 private fun ProfileRow(label: String, value: String) {
-    Row {
-        Text(label, color = secondaryText, modifier = Modifier.width(200.dp))
-        Text(value, fontWeight = FontWeight.SemiBold)
+    if (LocalKompakt.current) {
+        Column {
+            Text(label, color = secondaryText, fontSize = 13.sp)
+            Text(value, fontWeight = FontWeight.SemiBold)
+        }
+    } else {
+        Row {
+            Text(label, color = secondaryText, modifier = Modifier.width(200.dp))
+            Text(value, fontWeight = FontWeight.SemiBold)
+        }
     }
+}
+
+/** Chips oder Knöpfe nebeneinander, die auf schmalen Bildschirmen in die nächste Zeile rutschen. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun ChipZeile(abstand: androidx.compose.ui.unit.Dp = 8.dp, content: @Composable () -> Unit) {
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(abstand), verticalArrangement = Arrangement.spacedBy(abstand)) { content() }
 }
 
 // ---------------------------------------------------------------- Fenster
 
-/** Desktop-Aufbau: Seitenleiste links, Inhalt rechts; eine Lektion füllt den Inhaltsbereich. */
+/** Unter dieser Breite (Handy, schmales Fenster) wandert die Navigation nach unten. */
+val KOMPAKT_UNTER = 720.dp
+
+/**
+ * Aufbau je nach Breite: Seitenleiste links und Inhalt rechts (Desktop, Tablet, Handy quer),
+ * auf dem Handy hochkant Inhalt oben und die Bereiche als Leiste unten. Eine Lektion füllt
+ * jeweils den ganzen Inhaltsbereich.
+ *
+ * Die Ränder des Systems (Statusleiste, Kamera-Aussparung, Gestenleiste, Tastatur) hält
+ * `safeDrawing` frei; auf dem Desktop sind sie null.
+ */
 @Composable
 fun AppShell(state: AppState) {
-    val store = state.store
-    if (store.needsOnboarding) {
-        OnboardingScreen(state) { lessonId -> state.section = Section.DASHBOARD; lessonId?.let(state::startLesson) }
-        return
-    }
     val surfaces = LocalSurfaces.current
-    Row(Modifier.fillMaxSize().background(surfaces.screen)) {
+    BoxWithConstraints(Modifier.fillMaxSize().background(surfaces.screen)) {
+        val kompakt = maxWidth < KOMPAKT_UNTER
+        CompositionLocalProvider(LocalKompakt provides kompakt) {
+            when {
+                state.store.needsOnboarding -> Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
+                    OnboardingScreen(state) { lessonId -> state.section = Section.DASHBOARD; lessonId?.let(state::startLesson) }
+                }
+                kompakt -> KompakterAufbau(state)
+                else -> BreiterAufbau(state)
+            }
+        }
+    }
+}
+
+@Composable
+private fun Inhalt(state: AppState) {
+    val flow = state.flow
+    if (flow != null) {
+        LessonFlowScreen(flow, onClose = state::closeFlow, onStartLesson = state::startLesson, onTrainAgain = state::startTraining)
+    } else {
+        when (state.section) {
+            Section.DASHBOARD -> DashboardScreen(state)
+            Section.PATH -> PathScreen(state)
+            Section.TOPICS -> TopicsScreen(state)
+            Section.ANALYSIS -> AnalysisScreen(state)
+            Section.PROFILE -> ProfileScreen(state)
+        }
+    }
+}
+
+/** Handy: Inhalt oben, Bereiche unten. Während einer Lektion verschwindet die Leiste. */
+@Composable
+private fun KompakterAufbau(state: AppState) {
+    val surfaces = LocalSurfaces.current
+    val mitLeiste = state.flow == null
+    Column(Modifier.fillMaxSize()) {
+        val raender = if (mitLeiste) WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
+            else WindowInsets.safeDrawing
+        Box(Modifier.weight(1f).fillMaxWidth().windowInsetsPadding(raender)) { Inhalt(state) }
+        if (mitLeiste) {
+            Box(Modifier.fillMaxWidth().height(1.dp).background(surfaces.divider))
+            NavigationBar(containerColor = surfaces.card, tonalElevation = 0.dp) {
+                for (section in Section.entries) {
+                    NavigationBarItem(
+                        selected = state.section == section,
+                        onClick = { state.section = section },
+                        icon = { Icon(section.icon, contentDescription = null) },
+                        label = { Text(section.kurz, fontSize = 11.sp, maxLines = 1) },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = Palette.orange,
+                            selectedTextColor = Palette.orange,
+                            indicatorColor = Palette.orange.copy(alpha = 0.14f),
+                            unselectedIconColor = secondaryText,
+                            unselectedTextColor = secondaryText,
+                        ),
+                        modifier = Modifier.testTag("nav-${section.name.lowercase()}"),
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** Desktop und Tablet: Seitenleiste links, Inhalt rechts. */
+@Composable
+private fun BreiterAufbau(state: AppState) {
+    val store = state.store
+    val surfaces = LocalSurfaces.current
+    Row(Modifier.fillMaxSize().background(surfaces.screen).windowInsetsPadding(WindowInsets.safeDrawing)) {
         Column(
             Modifier.width(250.dp).fillMaxHeight().background(surfaces.card).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
@@ -379,19 +482,6 @@ fun AppShell(state: AppState) {
             }
         }
         Box(Modifier.width(1.dp).fillMaxHeight().background(surfaces.divider))
-        Box(Modifier.weight(1f).fillMaxHeight()) {
-            val flow = state.flow
-            if (flow != null) {
-                LessonFlowScreen(flow, onClose = state::closeFlow, onStartLesson = state::startLesson, onTrainAgain = state::startTraining)
-            } else {
-                when (state.section) {
-                    Section.DASHBOARD -> DashboardScreen(state)
-                    Section.PATH -> PathScreen(state)
-                    Section.TOPICS -> TopicsScreen(state)
-                    Section.ANALYSIS -> AnalysisScreen(state)
-                    Section.PROFILE -> ProfileScreen(state)
-                }
-            }
-        }
+        Box(Modifier.weight(1f).fillMaxHeight()) { Inhalt(state) }
     }
 }

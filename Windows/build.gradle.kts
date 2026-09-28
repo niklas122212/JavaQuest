@@ -45,6 +45,9 @@ java {
 
 kotlin {
     compilerOptions { jvmTarget.set(JvmTarget.JVM_21) }
+    // src/main/kotlin teilt sich die Windows-Fassung mit Android (siehe Android/app/build.gradle.kts);
+    // was nur auf dem Desktop läuft – Fenster, AWT-Dateidialog, Systemschriften –, liegt in src/desktop.
+    sourceSets["main"].kotlin.srcDir("src/desktop/kotlin")
 }
 
 dependencies {
