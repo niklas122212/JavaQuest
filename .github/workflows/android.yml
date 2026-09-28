@@ -10,8 +10,10 @@
 name: Android-App
 
 on:
+  # Branches mit PR baut „pull_request“; „push“ nur für main und Tags – sonst liefe jeder
+  # Push auf einen PR-Branch doppelt, und der abgebrochene Zwilling stünde an der PR.
   push:
-    branches: ["**"]
+    branches: [main]
     tags: ["v*"]
     paths:
       - "Android/**"
@@ -26,7 +28,7 @@ on:
 permissions:
   contents: write
 
-# Ein Push auf einen Branch mit offener PR löst „push“ und „pull_request“ aus – ein Lauf genügt.
+# Neue Pushes auf dieselbe PR brechen den überholten Lauf ab.
 concurrency:
   group: android-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true

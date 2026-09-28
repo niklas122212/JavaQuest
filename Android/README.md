@@ -56,7 +56,8 @@ ausgeschlossen. Beim Umzug auf ein neues Gerät per Kabel/WLAN darf der Lernstan
 ## Bauen
 
 Gebaut wird in GitHub Actions (`.github/workflows/android.yml`) bei jeder Änderung an
-`Android/`, `Windows/src/` oder der Kursdatei:
+`Android/`, `Windows/src/` oder der Kursdatei – auf `main`, in Pull Requests, bei Tags und
+von Hand (*Run workflow*):
 
 1. Release-APK bauen (R8 verkleinert), Lint mit `NewApi` als Fehler – eine Java-API über
    Android 8 hinaus wäre sonst ein Absturz auf älteren Geräten.
