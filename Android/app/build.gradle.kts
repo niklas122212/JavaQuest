@@ -66,6 +66,7 @@ android {
         targetSdk = 36
         versionCode = appVersionCode
         versionName = appVersion
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     signingConfigs {
@@ -128,4 +129,8 @@ dependencies {
     implementation("org.jetbrains.compose.material:material-icons-extended:1.7.3")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
     implementation("androidx.activity:activity-compose:1.10.1")
+
+    // Kernlogik auf dem Emulator (src/androidTest): ICU-Regex, java.time und java.nio von Android.
+    androidTestImplementation("androidx.test:runner:1.6.2")
+    androidTestImplementation("androidx.test.ext:junit:1.2.1")
 }

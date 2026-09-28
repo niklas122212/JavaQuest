@@ -52,7 +52,7 @@ def systemdialog_wegklicken(baum: ET.Element) -> bool:
     alles = " ".join(n.get("text") or "" for n in baum.iter("node"))
     if "isn't responding" not in alles and "reagiert nicht" not in alles:
         return False
-    if "JavaQuest" in alles:
+    if "JavaQuest isn't responding" in alles or "JavaQuest reagiert nicht" in alles:
         raise AssertionError(f"JavaQuest reagiert nicht (ANR): {alles}")
     print(f"  (System-Dialog weggeklickt: {alles.strip()[:80]})")
     for knoten in baum.iter("node"):
@@ -128,6 +128,8 @@ def main() -> int:
     time.sleep(15)
     adb("shell", "am", "broadcast", "-a", "android.intent.action.CLOSE_SYSTEM_DIALOGS", check=False)
     adb("logcat", "-c")
+    # Eine vorher installierte Debug-Fassung (instrumentierte Tests) trägt eine andere Signatur.
+    adb("uninstall", PAKET, check=False)
     print(f"Installiere {apk.name} ({apk.stat().st_size // 1024} KB)")
     adb("install", "-r", "-g", str(apk))
     start = time.time()

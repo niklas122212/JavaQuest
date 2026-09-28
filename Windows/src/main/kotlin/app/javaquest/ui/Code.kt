@@ -63,7 +63,8 @@ fun highlighted(code: String): AnnotatedString = buildAnnotatedString {
     }
 }
 
-private val placeholderRegex = Regex("""\{\{(\d+)}}""")
+// „}“ maskiert: Javas Regex verzeiht ein nacktes „}“, die ICU-Regex von Android nicht (Absturz beim Start).
+private val placeholderRegex = Regex("""\{\{(\d+)\}\}""")
 
 /** Eine Zeile des Lückentexts mit den aktuellen Eingaben (grün/rot nach dem Prüfen). */
 fun fillBlankLine(line: String, values: List<String>, states: List<Boolean>?): AnnotatedString = buildAnnotatedString {
