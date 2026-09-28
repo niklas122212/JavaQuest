@@ -18,6 +18,9 @@ interface Plattform {
     /** „diesem Rechner“ / „diesem Gerät“ – für den Hinweis „Dein Lernstand liegt nur auf …“. */
     val geraet: String
 
+    /** Bedienung per Finger: Hinweise sagen „tippen“ statt „klicken“. */
+    val touch: Boolean get() = false
+
     /** Lässt einen Speicherort wählen und schreibt [text] hinein. */
     fun sicherungSpeichern(dateiname: String, text: String, fertig: (String) -> Unit)
 

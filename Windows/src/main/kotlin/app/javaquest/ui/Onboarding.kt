@@ -137,7 +137,8 @@ private fun WelcomeStep(onContinue: () -> Unit) {
             fontSize = 17.sp, color = secondaryText, textAlign = TextAlign.Center,
         )
         Column(Modifier.fillMaxWidth().card(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            FeatureRow(Icons.AutoMirrored.Rounded.ManageSearch, Palette.indigo, "Jede Codezeile erklärt", "Klicke eine Zeile an – sie wird in Alltagssprache erklärt.")
+            FeatureRow(Icons.AutoMirrored.Rounded.ManageSearch, Palette.indigo, "Jede Codezeile erklärt",
+                "${if (LocalPlattform.current.touch) "Tippe" else "Klicke"} eine Zeile an – sie wird in Alltagssprache erklärt.")
             FeatureRow(Icons.AutoMirrored.Rounded.TrendingUp, Palette.orange, "Niveau 1 bis 5", "Aufgaben werden Schritt für Schritt anspruchsvoller.")
             FeatureRow(Icons.Rounded.Psychology, Palette.success, "Automatische Analyse", "Stärken, Lücken und neue Themen auf einen Blick.")
             FeatureRow(Icons.Rounded.Shield, Palette.violet, "Privat & lokal", "Kein Konto, keine Cloud, kein API-Key.")

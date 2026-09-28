@@ -24,6 +24,7 @@ import java.io.FileNotFoundException
 class AndroidPlattform(private val activity: ComponentActivity, lernstand: File) : Plattform {
     override val lernstandOrt: String = "App-Speicher: ${lernstand.absolutePath}"
     override val geraet = "diesem Gerät"
+    override val touch = true
 
     private var ausstehenderText: String? = null
     private var nachSpeichern: ((String) -> Unit)? = null

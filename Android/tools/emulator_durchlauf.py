@@ -158,14 +158,23 @@ def main() -> int:
         tippe("Weiter", genau=True)
     tippe("Zu den Aufgaben")
 
-    schritt("Erste Aufgabe")
+    schritt("Erste Aufgabe beantworten")
     finde("Prüfen", genau=True)
     foto("aufgabe")
+    # Die erste Aufgabe der ersten Lektion ist eine Auswahl; richtig ist „In der Methode main“.
+    # Kommt eine andere Variante, bleibt es beim Foto der Frage.
+    if any(t == "In der Methode main" for t in texte(bildschirm())):
+        tippe("In der Methode main", genau=True)
+        tippe("Prüfen", genau=True)
+        finde("Weiter", genau=True)  # den Knopf gibt es erst nach einer richtigen Antwort
+        foto("aufgabe-geloest")
+    else:
+        print("  (andere Variante als erste Aufgabe – Antworten übersprungen)")
 
     schritt("Zurück-Taste schließt die Lektion")
     adb("shell", "input", "keyevent", "KEYCODE_BACK")
     time.sleep(1.5)
-    finde("Java Master Score")
+    finde("von 1.000")
     foto("uebersicht")
     wische_hoch()
     foto("uebersicht-unten")
@@ -184,7 +193,7 @@ def main() -> int:
     schritt("Zurück-Taste führt zur Übersicht")
     adb("shell", "input", "keyevent", "KEYCODE_BACK")
     time.sleep(1.5)
-    finde("Java Master Score")
+    finde("von 1.000")
 
     schritt("Querformat: Seitenleiste statt Leiste unten")
     adb("shell", "settings", "put", "system", "accelerometer_rotation", "0")
@@ -198,7 +207,7 @@ def main() -> int:
     schritt("Lernstand übersteht einen Neustart")
     adb("shell", "am", "force-stop", PAKET)
     adb("shell", "am", "start", "-W", "-n", ACTIVITY)
-    finde("Java Master Score", versuche=40)
+    finde("von 1.000", versuche=40)
 
     abstuerze = adb("logcat", "-d", "-b", "crash")
     if PAKET in abstuerze or "FATAL EXCEPTION" in abstuerze:
