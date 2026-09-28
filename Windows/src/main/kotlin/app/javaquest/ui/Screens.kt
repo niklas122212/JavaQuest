@@ -382,7 +382,9 @@ fun AppShell(state: AppState) {
                     OnboardingScreen(state) { lessonId -> state.section = Section.DASHBOARD; lessonId?.let(state::startLesson) }
                 }
                 kompakt -> KompakterAufbau(state)
-                else -> BreiterAufbau(state)
+                // Handy quer ist breit, aber nur gut 400 dp hoch: Dann passt der Score-Kasten
+                // nicht mehr unter die Bereiche – er steht ohnehin groß auf der Übersicht.
+                else -> BreiterAufbau(state, mitScore = maxHeight >= 560.dp)
             }
         }
     }
@@ -439,7 +441,7 @@ private fun KompakterAufbau(state: AppState) {
 
 /** Desktop und Tablet: Seitenleiste links, Inhalt rechts. */
 @Composable
-private fun BreiterAufbau(state: AppState) {
+private fun BreiterAufbau(state: AppState, mitScore: Boolean = true) {
     val store = state.store
     val surfaces = LocalSurfaces.current
     Row(Modifier.fillMaxSize().background(surfaces.screen).windowInsetsPadding(WindowInsets.safeDrawing)) {
@@ -472,13 +474,15 @@ private fun BreiterAufbau(state: AppState) {
                 }
             }
             Spacer(Modifier.weight(1f))
-            Column(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Palette.hero).padding(14.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                Eyebrow("Master Score", Color.White.copy(alpha = 0.85f))
-                Text("${store.masterScore}", color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.Black)
-                Text(store.rank.title, color = Color.White.copy(alpha = 0.9f), fontSize = 13.sp)
+            if (mitScore) {
+                Column(
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Palette.hero).padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Eyebrow("Master Score", Color.White.copy(alpha = 0.85f))
+                    Text("${store.masterScore}", color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.Black)
+                    Text(store.rank.title, color = Color.White.copy(alpha = 0.9f), fontSize = 13.sp)
+                }
             }
         }
         Box(Modifier.width(1.dp).fillMaxHeight().background(surfaces.divider))
