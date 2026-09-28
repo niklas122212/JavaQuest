@@ -32,13 +32,38 @@ def adb(*args: str, check: bool = True, binaer: bool = False):
 
 def bildschirm() -> ET.Element:
     """Die aktuelle Oberfläche als Baum. uiautomator braucht manchmal einen zweiten Anlauf."""
-    for _ in range(5):
+    for _ in range(8):
         adb("shell", "uiautomator", "dump", "/sdcard/ui.xml", check=False)
         roh = adb("shell", "cat", "/sdcard/ui.xml", check=False)
         if "<hierarchy" in roh:
-            return ET.fromstring(roh[roh.index("<hierarchy"):])
+            baum = ET.fromstring(roh[roh.index("<hierarchy"):])
+            if not systemdialog_wegklicken(baum):
+                return baum
         time.sleep(1)
     raise RuntimeError("uiautomator dump lieferte keine Oberfläche")
+
+
+def systemdialog_wegklicken(baum: ET.Element) -> bool:
+    """
+    Auf CI-Emulatoren meldet sich gern eine System-App als hängend („Pixel Launcher isn't
+    responding“) und legt ihren Dialog über alles. Das ist nicht JavaQuest – „Wait“ tippen
+    und weitermachen. Stammt der Dialog von JavaQuest, ist das ein echter Fehler.
+    """
+    alles = " ".join(n.get("text") or "" for n in baum.iter("node"))
+    if "isn't responding" not in alles and "reagiert nicht" not in alles:
+        return False
+    if "JavaQuest" in alles:
+        raise AssertionError(f"JavaQuest reagiert nicht (ANR): {alles}")
+    print(f"  (System-Dialog weggeklickt: {alles.strip()[:80]})")
+    for knoten in baum.iter("node"):
+        if (knoten.get("text") or "") in ("Wait", "Warten"):
+            x1, y1, x2, y2 = map(int, re.findall(r"\d+", knoten.get("bounds")))
+            adb("shell", "input", "tap", str((x1 + x2) // 2), str((y1 + y2) // 2))
+            time.sleep(1)
+            return True
+    adb("shell", "am", "broadcast", "-a", "android.intent.action.CLOSE_SYSTEM_DIALOGS", check=False)
+    time.sleep(1)
+    return True
 
 
 def texte(baum: ET.Element) -> list[str]:
@@ -99,11 +124,16 @@ def main() -> int:
         if not lebt():
             raise AssertionError(f"App läuft nicht mehr (vor: {name})")
 
+    # Nach dem Hochfahren arbeiten System-Apps noch eine Weile – erst dann starten.
+    time.sleep(15)
+    adb("shell", "am", "broadcast", "-a", "android.intent.action.CLOSE_SYSTEM_DIALOGS", check=False)
     adb("logcat", "-c")
     print(f"Installiere {apk.name} ({apk.stat().st_size // 1024} KB)")
     adb("install", "-r", "-g", str(apk))
     start = time.time()
     adb("shell", "am", "start", "-W", "-n", ACTIVITY)
+    time.sleep(2)
+    print(f"  läuft: {'ja' if lebt() else 'NEIN'}")
 
     schritt("Start: Kurs laden, Willkommen")
     finde("Level für Level", versuche=40)
@@ -184,5 +214,16 @@ if __name__ == "__main__":
         sys.exit(main())
     except Exception as fehler:  # noqa: BLE001 – für die CI: Protokoll ausgeben, dann scheitern
         print(f"✗ {fehler}")
-        print(adb("logcat", "-d", "-t", "300", check=False)[-20000:])
+        print("--- Absturz-Puffer ---")
+        print(adb("logcat", "-d", "-b", "crash", check=False)[-8000:])
+        print("--- JavaQuest und Laufzeit ---")
+        protokoll = adb("logcat", "-d", check=False).splitlines()
+        wichtig = [z for z in protokoll if PAKET in z or " JavaQuest" in z or "AndroidRuntime" in z or " E " in z]
+        print("\n".join(wichtig[-150:]))
+        try:
+            ordner = Path(sys.argv[2])
+            ordner.mkdir(parents=True, exist_ok=True)
+            (ordner / "99-fehler.png").write_bytes(adb("exec-out", "screencap", "-p", binaer=True))
+        except Exception:  # noqa: BLE001
+            pass
         sys.exit(1)

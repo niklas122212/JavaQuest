@@ -98,11 +98,15 @@ jobs:
         with:
           api-level: 34
           arch: x86_64
-          target: google_apis
+          # Schlankes AOSP-Abbild ohne Google-Apps: Auf dem Runner hing sonst der Pixel
+          # Launcher und legte seinen „reagiert nicht“-Dialog über die App.
+          target: default
           profile: pixel_6
+          cores: 4
+          ram-size: 4096M
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot
-          script: python3 Android/tools/emulator_durchlauf.py "$(ls apk/*.apk | head -1)" bildschirme
+          script: python3 -u Android/tools/emulator_durchlauf.py "$(ls apk/*.apk | head -1)" bildschirme
       - uses: actions/upload-artifact@v4
         if: always()
         with:
