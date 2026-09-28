@@ -490,7 +490,8 @@ class ProgressStore(
     }
 
     private fun now(): String = clock.instant().toString()
-    private fun today(): LocalDate = LocalDate.ofInstant(clock.instant(), clock.zone ?: ZoneId.systemDefault())
+    // LocalDate.now(clock) statt LocalDate.ofInstant: gleiches Ergebnis, aber Java 8 – ofInstant gibt es auf Android erst ab 14.
+    private fun today(): LocalDate = LocalDate.now(clock)
 }
 
 /** Übungsstand eines Themas für die Themenübersicht. */
