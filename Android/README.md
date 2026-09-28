@@ -65,7 +65,7 @@ Gebaut wird in GitHub Actions (`.github/workflows/android.yml`) bei jeder Änder
    Neustart mit erhaltenem Lernstand. Die Bildschirmfotos hängen als Artefakt am Lauf.
 3. Bei einem Tag `v…` die APK an die Veröffentlichung hängen.
 
-Lokal (Android Studio oder JDK 17+ mit Android-SDK 36):
+Lokal (Android Studio oder JDK 17+ mit Android-SDK 37):
 
 ```bash
 cd Android

@@ -379,7 +379,7 @@ Einzelheiten, Aufbau und Signatur: [Android/README.md](Android/README.md).
 
 | Aufgabe | Befehl (im Ordner `Android/`) |
 |---|---|
-| Release-APK bauen (braucht Android-SDK 36) | `./gradlew assembleRelease` |
+| Release-APK bauen (braucht Android-SDK 37) | `./gradlew assembleRelease` |
 | Auf ein angeschlossenes Gerät | `./gradlew installDebug` |
 | In der CI | `.github/workflows/android.yml`: APK bauen, Lint (`NewApi` als Fehler), Klick-Durchlauf auf einem Pixel-6-Emulator, bei `v…` an die Veröffentlichung |
 

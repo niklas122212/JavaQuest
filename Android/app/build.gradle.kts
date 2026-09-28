@@ -57,7 +57,8 @@ val keystoreDatei = keystoreBase64?.let { inhalt ->
 
 android {
     namespace = "app.javaquest.android"
-    compileSdk = 36
+    // Compose 1.12 verlangt mindestens SDK 37 zum Kompilieren; targetSdk bleibt davon unabhängig.
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "io.github.niklas122212.javaquest"
