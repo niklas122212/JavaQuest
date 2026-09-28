@@ -1,12 +1,14 @@
 # JavaQuest – Java lernen, Level für Level
 
-Java-Lern-App für **iPhone, iPad, Mac und Windows**. Sie läuft vollständig lokal: kein Server,
+Java-Lern-App für **iPhone, iPad, Mac, Windows und Android**. Sie läuft vollständig lokal: kein Server,
 kein Konto, kein API-Key. Kurze Theorie-Happen, **jede Codezeile in Alltagssprache erklärt**,
 Aufgaben mit Niveau 1–5, eine automatische Auswertung von Stärken und Wissenslücken und ein
 Java Master Score von 0 bis 1000.
 
 - **Apple:** iOS/iPadOS 17, macOS 14 · Swift 6 (strict concurrency) · SwiftUI · SwiftData · Swift Charts
 - **Windows:** Windows 10/11 (64 Bit) · Kotlin 2.4 · Compose Multiplatform 1.12 (Desktop) – Ordner `Windows/`
+- **Android:** Android 8.0+ (Handy und Tablet) · dieselben Kotlin-Quellen und dieselbe Oberfläche wie Windows,
+  AGP 9 – Ordner `Android/`, APK aus der CI (siehe [Android](#android))
 - **Inhalt:** 14 Module, 35 Lektionen, 185 Lektionsaufgaben + 590 Übungsaufgaben im Pool (775 übbar),
   jedes der 32 Themen mit mindestens 20 Aufgaben, mindestens zwei je Schwierigkeitsstufe und immer
   mehreren Aufgabentypen je Stufe; jedes Lernziel mit mindestens drei Varianten,
@@ -362,6 +364,24 @@ fürs Aussehen – ein Windows-Installer ersetzt eine vorhandene Installation nu
 `package_windows.sh` baut die App, entfernt ungenutzte Symbole (122 → 86 MB), zeichnet als Selbsttest jeden
 Bildschirm aller 35 Lektionen, eine Trainingsrunde und eine freie UML-Runde aus der fertigen JAR und legt die geprüfte Java-Laufzeit (Eclipse Temurin 21,
 SHA-256-geprüft) bei.
+
+## Android
+
+Eigene App im Ordner `Android/` – aber ohne eigenen Code für Inhalt und Oberfläche: Sie übersetzt
+`Windows/src/main/kotlin` (Kern, Speicher, Compose-Oberfläche) und die gemeinsame Kursdatei mit. Nur was das
+System betrifft, ist eigen: Dateiauswahl für Sicherungen (ohne Berechtigung), Kalender-Eintrag für Erinnerungen,
+Zurück-Taste, Laden des Kurses im Hintergrund. Auf dem Handy hochkant stehen die Bereiche in einer Leiste unten,
+auf Tablet und im Querformat in der Seitenleiste. Keine Berechtigungen, keine Cloud-Sicherung.
+
+**APK holen:** GitHub → *Actions* → *Android-App* → jüngster grüner Lauf → Artefakt **JavaQuest-Android**;
+bei einer Veröffentlichung `v…` auch unter *Releases*. Aufs Handy bringen, antippen, Installation erlauben.
+Einzelheiten, Aufbau und Signatur: [Android/README.md](Android/README.md).
+
+| Aufgabe | Befehl (im Ordner `Android/`) |
+|---|---|
+| Release-APK bauen (braucht Android-SDK 36) | `./gradlew assembleRelease` |
+| Auf ein angeschlossenes Gerät | `./gradlew installDebug` |
+| In der CI | `.github/workflows/android.yml`: APK bauen, Lint (`NewApi` als Fehler), Klick-Durchlauf auf einem Pixel-6-Emulator, bei `v…` an die Veröffentlichung |
 
 ## Geprüft (Stand 25.09.2026)
 
