@@ -54,10 +54,9 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.platform.SystemFont
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import app.javaquest.core.Difficulty
 import app.javaquest.core.ExperienceLevel
 import app.javaquest.core.JavaHighlighter
@@ -112,6 +111,16 @@ val LocalSurfaces = staticCompositionLocalOf {
     Surfaces(Color(0xFFF2F2F7), Color.White, Color(0x1F767680), Color(0x1F000000), Color(0xFF6C6C70))
 }
 
+/**
+ * Schmaler Bildschirm (Handy hochkant, unter [KOMPAKT_UNTER]): kleinere Ränder und Titel,
+ * Kacheln zu zweit statt zu viert. Setzt AppShell anhand der verfügbaren Breite.
+ */
+val LocalKompakt = staticCompositionLocalOf { false }
+
+/** Überschrift eines Bildschirms: 34 sp, auf dem Handy 28 sp. */
+val TitelGroesse: androidx.compose.ui.unit.TextUnit
+    @Composable get() = if (LocalKompakt.current) 28.sp else 34.sp
+
 /** Code wird immer auf dunklem Grund gezeigt – wie in einem Editor. */
 object CodeColors {
     val background = Color(0xFF1C1F29)
@@ -129,16 +138,12 @@ object CodeColors {
     }
 }
 
-/** Monospace-Schrift: Consolas unter Windows, Menlo auf dem Mac. */
-@OptIn(ExperimentalTextApi::class)
-val CodeFont: FontFamily by lazy {
-    val os = System.getProperty("os.name").lowercase()
-    when {
-        "win" in os -> FontFamily(SystemFont("Consolas"))
-        "mac" in os -> FontFamily(SystemFont("Menlo"))
-        else -> FontFamily.Monospace
-    }
-}
+/**
+ * Monospace-Schrift für Code. Jede Fassung setzt sie beim Start, bevor etwas gezeichnet wird:
+ * Consolas unter Windows, Menlo auf dem Mac (siehe DesktopPlattform), sonst die Monospace
+ * des Systems – auf Android Droid Sans Mono.
+ */
+var CodeFont: FontFamily = FontFamily.Monospace
 
 private val lightScheme: ColorScheme = lightColorScheme(
     primary = Palette.orange,

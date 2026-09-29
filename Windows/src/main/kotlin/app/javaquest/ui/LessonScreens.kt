@@ -25,6 +25,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
@@ -128,20 +133,21 @@ fun LessonFlowScreen(model: LessonFlowModel, onClose: () -> Unit, onStartLesson:
                 }
             },
     ) {
+        val kompakt = LocalKompakt.current
         Row(
-            Modifier.fillMaxWidth().background(surfaces.card).padding(horizontal = 20.dp, vertical = 12.dp),
+            Modifier.fillMaxWidth().background(surfaces.card).padding(horizontal = if (kompakt) 12.dp else 20.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
                 Modifier.size(38.dp).clip(CircleShape).background(surfaces.field).clickableHand(onClick = onClose).testTag("close-lesson"),
                 contentAlignment = Alignment.Center,
             ) { Icon(Icons.Rounded.Close, "Schließen", modifier = Modifier.size(20.dp)) }
-            Spacer(Modifier.width(16.dp))
+            Spacer(Modifier.width(if (kompakt) 12.dp else 16.dp))
             Column(Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(model.title, fontWeight = FontWeight.SemiBold, fontSize = 17.sp, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
                     model.taskPosition?.let { (index, count) ->
-                        Text("Aufgabe $index von $count", color = secondaryText, fontSize = 14.sp)
+                        Text(if (kompakt) "$index/$count" else "Aufgabe $index von $count", color = secondaryText, fontSize = 14.sp)
                     }
                 }
                 Spacer(Modifier.height(8.dp))
@@ -170,7 +176,8 @@ private fun primaryAction(model: LessonFlowModel) {
 @Composable
 private fun ActionBar(content: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit) {
     val surfaces = LocalSurfaces.current
-    Box(Modifier.fillMaxWidth().background(surfaces.card).padding(horizontal = 20.dp, vertical = 12.dp), contentAlignment = Alignment.Center) {
+    val rand = if (LocalKompakt.current) 12.dp else 20.dp
+    Box(Modifier.fillMaxWidth().background(surfaces.card).padding(horizontal = rand, vertical = 12.dp), contentAlignment = Alignment.Center) {
         Row(Modifier.widthIn(max = 760.dp).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), content = content)
     }
 }
@@ -183,13 +190,13 @@ private fun TheoryStep(model: LessonFlowModel, page: Int) {
     Column(Modifier.fillMaxSize()) {
         // Neue Karte beginnt immer oben – der Scroll-Zustand gehört zur Seite.
         key(page) {
-            Box(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(24.dp), contentAlignment = Alignment.TopCenter) {
+            Box(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(if (LocalKompakt.current) 12.dp else 24.dp), contentAlignment = Alignment.TopCenter) {
                 TheoryCardContent(cards[page], page, cards.size, model.store.course.glossary)
             }
         }
         ActionBar {
             if (page > 0) {
-                SecondaryButton("Zurück", Icons.AutoMirrored.Rounded.KeyboardArrowLeft, Modifier.width(160.dp)) { model.goBackInTheory() }
+                SecondaryButton("Zurück", Icons.AutoMirrored.Rounded.KeyboardArrowLeft, Modifier.width(if (LocalKompakt.current) 124.dp else 160.dp)) { model.goBackInTheory() }
             }
             val last = page + 1 >= cards.size
             PrimaryButton(
@@ -203,7 +210,8 @@ private fun TheoryStep(model: LessonFlowModel, page: Int) {
 
 @Composable
 fun TheoryCardContent(card: TheoryCard, page: Int, count: Int, glossary: Map<String, String>) {
-    Column(Modifier.widthIn(max = 820.dp).fillMaxWidth().card(28.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
+    val kompakt = LocalKompakt.current
+    Column(Modifier.widthIn(max = 820.dp).fillMaxWidth().card(if (kompakt) 18.dp else 28.dp), verticalArrangement = Arrangement.spacedBy(if (kompakt) 14.dp else 18.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Chip("Theorie-Happen ${page + 1}/$count", Icons.AutoMirrored.Rounded.MenuBook, Palette.indigo)
             Spacer(Modifier.weight(1f))
@@ -216,8 +224,8 @@ fun TheoryCardContent(card: TheoryCard, page: Int, count: Int, glossary: Map<Str
                 }
             }
         }
-        Text(card.title, fontSize = 32.sp, fontWeight = FontWeight.Bold, lineHeight = 38.sp)
-        Text(card.body, fontSize = 19.sp, lineHeight = 28.sp)
+        Text(card.title, fontSize = if (kompakt) 26.sp else 32.sp, fontWeight = FontWeight.Bold, lineHeight = if (kompakt) 32.sp else 38.sp)
+        Text(card.body, fontSize = if (kompakt) 17.sp else 19.sp, lineHeight = if (kompakt) 25.sp else 28.sp)
         card.diagram?.let { UmlDiagramView(it) }
         card.example?.let { CodeExegesis(it.explained(glossary), caption = "Beispiel") }
         card.callout?.let { CalloutBox(it) }
@@ -237,7 +245,7 @@ private fun TaskStep(model: LessonFlowModel) {
             LaunchedEffect(model.attempts, model.isRevealed) {
                 if (model.lastResult != null || model.isRevealed) feedbackRequester.bringIntoView()
             }
-            BoxWithConstraints(Modifier.weight(1f).verticalScroll(scroll).padding(24.dp), contentAlignment = Alignment.TopCenter) {
+            BoxWithConstraints(Modifier.weight(1f).verticalScroll(scroll).padding(if (LocalKompakt.current) 12.dp else 24.dp), contentAlignment = Alignment.TopCenter) {
                 val wide = maxWidth >= 1000.dp
                 val evaluation = TaskEvaluation(
                     isCorrect = model.lastResult?.isCorrect == true,
@@ -512,6 +520,8 @@ private fun BlankFields(count: Int, values: List<String>, states: List<Boolean>?
                         onValueChange = { text -> onChange(values.toMutableList().also { while (it.size <= index) it.add(""); it[index] = text }) },
                         readOnly = isLocked,
                         singleLine = true,
+                        keyboardOptions = CodeTastatur.copy(imeAction = ImeAction.Next),
+                        keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Next) }),
                         textStyle = TextStyle(fontFamily = CodeFont, fontSize = 17.sp, color = androidx.compose.material3.MaterialTheme.colorScheme.onSurface),
                         cursorBrush = SolidColor(Palette.orange),
                         modifier = Modifier.fillMaxWidth().testTag("blank-$index").onPreviewKeyEvent { event ->
@@ -537,6 +547,16 @@ private fun BlankFields(count: Int, values: List<String>, states: List<Boolean>?
     }
 }
 
+/**
+ * Bildschirmtastatur für Code (Android): keine Autokorrektur, kein Großbuchstabe am Anfang –
+ * sonst wird aus `int` ein „Int“ und aus `System.out` ein Vorschlag. Am Desktop ohne Wirkung.
+ */
+private val CodeTastatur = KeyboardOptions(
+    capitalization = KeyboardCapitalization.None,
+    autoCorrectEnabled = false,
+    keyboardType = KeyboardType.Ascii,
+)
+
 /** Mehrzeiliger Editor auf dunklem Grund; Tab rückt um vier Leerzeichen ein. */
 @Composable
 fun CodeEditor(text: String, placeholder: String, minHeight: androidx.compose.ui.unit.Dp, isLocked: Boolean, tag: String, onChange: (String) -> Unit) {
@@ -550,6 +570,7 @@ fun CodeEditor(text: String, placeholder: String, minHeight: androidx.compose.ui
             value = value,
             onValueChange = { value = it; onChange(it.text) },
             readOnly = isLocked,
+            keyboardOptions = CodeTastatur,
             textStyle = TextStyle(fontFamily = CodeFont, fontSize = 15.sp, color = CodeColors.plain, lineHeight = 22.sp),
             cursorBrush = SolidColor(Palette.orange),
             modifier = Modifier.fillMaxWidth().heightIn(min = minHeight - 28.dp).testTag(tag).onPreviewKeyEvent { event ->
@@ -697,7 +718,7 @@ private fun SummaryStep(model: LessonFlowModel, onClose: () -> Unit, onStartLess
     val passed = summary.passed
     val next = model.nextLessonAfterCurrent
     Column(Modifier.fillMaxSize()) {
-        Box(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(24.dp), contentAlignment = Alignment.TopCenter) {
+        Box(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(if (LocalKompakt.current) 16.dp else 24.dp), contentAlignment = Alignment.TopCenter) {
             Column(Modifier.widthIn(max = 720.dp).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(20.dp)) {
                 Icon(
                     if (passed || model.isPractice) Icons.Rounded.EmojiEvents else Icons.Rounded.Refresh,
@@ -705,7 +726,7 @@ private fun SummaryStep(model: LessonFlowModel, onClose: () -> Unit, onStartLess
                 )
                 Text(
                     when { model.isTraining -> "Runde geschafft"; model.isPractice -> "Übung abgeschlossen"; passed -> "Lektion gemeistert!"; else -> "Fast geschafft!" },
-                    fontSize = 34.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center,
+                    fontSize = TitelGroesse, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center,
                 )
                 Text(
                     when {

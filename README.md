@@ -1,12 +1,14 @@
 # JavaQuest – Java lernen, Level für Level
 
-Java-Lern-App für **iPhone, iPad, Mac und Windows**. Sie läuft vollständig lokal: kein Server,
+Java-Lern-App für **iPhone, iPad, Mac, Windows und Android**. Sie läuft vollständig lokal: kein Server,
 kein Konto, kein API-Key. Kurze Theorie-Happen, **jede Codezeile in Alltagssprache erklärt**,
 Aufgaben mit Niveau 1–5, eine automatische Auswertung von Stärken und Wissenslücken und ein
 Java Master Score von 0 bis 1000.
 
 - **Apple:** iOS/iPadOS 17, macOS 14 · Swift 6 (strict concurrency) · SwiftUI · SwiftData · Swift Charts
 - **Windows:** Windows 10/11 (64 Bit) · Kotlin 2.4 · Compose Multiplatform 1.12 (Desktop) – Ordner `Windows/`
+- **Android:** Android 8.0+ (Handy und Tablet) · dieselben Kotlin-Quellen und dieselbe Oberfläche wie Windows,
+  AGP 9 – Ordner `Android/`, APK aus der CI (siehe [Android](#android))
 - **Inhalt:** 14 Module, 35 Lektionen, 185 Lektionsaufgaben + 590 Übungsaufgaben im Pool (775 übbar),
   jedes der 32 Themen mit mindestens 20 Aufgaben, mindestens zwei je Schwierigkeitsstufe und immer
   mehreren Aufgabentypen je Stufe; jedes Lernziel mit mindestens drei Varianten,
@@ -363,6 +365,24 @@ fürs Aussehen – ein Windows-Installer ersetzt eine vorhandene Installation nu
 Bildschirm aller 35 Lektionen, eine Trainingsrunde und eine freie UML-Runde aus der fertigen JAR und legt die geprüfte Java-Laufzeit (Eclipse Temurin 21,
 SHA-256-geprüft) bei.
 
+## Android
+
+Eigene App im Ordner `Android/` – aber ohne eigenen Code für Inhalt und Oberfläche: Sie übersetzt
+`Windows/src/main/kotlin` (Kern, Speicher, Compose-Oberfläche) und die gemeinsame Kursdatei mit. Nur was das
+System betrifft, ist eigen: Dateiauswahl für Sicherungen (ohne Berechtigung), Kalender-Eintrag für Erinnerungen,
+Zurück-Taste, Laden des Kurses im Hintergrund. Auf dem Handy hochkant stehen die Bereiche in einer Leiste unten,
+auf Tablet und im Querformat in der Seitenleiste. Keine Berechtigungen, keine Cloud-Sicherung.
+
+**APK holen:** GitHub → *Actions* → *Android-App* → jüngster grüner Lauf → Artefakt **JavaQuest-Android**;
+bei einer Veröffentlichung `v…` auch unter *Releases*. Aufs Handy bringen, antippen, Installation erlauben.
+Einzelheiten, Aufbau und Signatur: [Android/README.md](Android/README.md).
+
+| Aufgabe | Befehl (im Ordner `Android/`) |
+|---|---|
+| Release-APK bauen (braucht Android-SDK 37) | `./gradlew assembleRelease` |
+| Auf ein angeschlossenes Gerät | `./gradlew installDebug` |
+| In der CI | `.github/workflows/android.yml`: APK bauen, Lint (`NewApi` als Fehler), Klick-Durchlauf auf einem Pixel-6-Emulator, bei `v…` an die Veröffentlichung |
+
 ## Geprüft (Stand 25.09.2026)
 
 | Prüfung | Ergebnis |
@@ -377,7 +397,8 @@ SHA-256-geprüft) bei.
 | `xcodebuild` (Xcode 27) für iOS-Simulator, iOS-Gerät, macOS | BUILD SUCCEEDED, 0 Warnungen |
 | iPhone-Simulator (iOS 27), von Hand durchgeklickt | Sicherung gespeichert (6 KB) und wieder eingelesen: „0 Aufgabe(n) dazugekommen, nichts gelöscht“, Score und Lektionen unverändert. |
 | iPhone-Simulator (iOS 27), früher von Hand durchgeklickt | Onboarding (beide Optionen), Einstufung 5/6 = 83 %, Theorie mit Code-Exegese, alle 4 Aufgabentypen, 78 % → „Fast geschafft“, 100 % → 3 Sterne und +40 Score, Dunkelmodus; Endlos-Training: Runde mit 8 Aufgaben (Niveau 1→5), Lösung aufdecken, Auswertung, „Nächste Runde“, Score bleibt unverändert |
-| Windows-App: `./gradlew test` | 84 Tests bestanden (79 Logik/Speicherung, darunter Zurücksetzen mit Kopie und Wiederherstellen mit echter Datei, Erinnerungstermine wie in Swift und im Web und der Kalendereintrag, 5 Klick-Durchläufe der echten Oberfläche mit Screenshots) – darunter das Einlesen einer Mac- und einer Web-Sicherung, das vorher bei jeder Mac-Sicherung mit Trainingsantwort scheiterte – darunter dieselben Werte für das verteilte Wiederholen wie auf Apple-Geräten |
+| Android-App (CI, Stand 28.09.2026) | Release-APK (2 MB, R8) gebaut, Lint mit `NewApi` als Fehler – fand `LocalDate.ofInstant`, das es erst ab Android 14 gibt. Instrumentierte Testreihe auf dem Emulator (Android 14): jedes Bewertungsmuster lässt sich mit der ICU-Regex von Android übersetzen, jede Musterlösung und jede gleichwertige Lösung wird akzeptiert, Startercode und leere Antworten nicht, jede Codezeile erklärt, Lernstand übersteht Speichern und Neuladen. Klick-Durchlauf der Release-APK auf einem Pixel 6: Willkommen nach 5 s, Onboarding, Theorie mit Code-Exegese, erste Aufgabe richtig beantwortet, Zurück-Taste, alle fünf Bereiche der Leiste unten, Querformat mit Seitenleiste, Neustart mit erhaltenem Stand, kein Absturz. Dabei gefunden und behoben: Das Platzhalter-Muster `\{\{(\d+)}}` ließ die App auf Android beim ersten Theorie-Bildschirm abstürzen (ICU verlangt maskierte „}“) |
+| Windows-App: `./gradlew test` | 84 Tests bestanden (79 Logik/Speicherung, darunter Zurücksetzen mit Kopie und Wiederherstellen mit echter Datei, Erinnerungstermine wie in Swift und im Web und der Kalendereintrag, 5 Klick-Durchläufe der echten Oberfläche mit Screenshots; seit 28.09. ein sechster in Handy-Breite: Leiste unten, Lektion im Vollbild, Zurück-Taste) – darunter das Einlesen einer Mac- und einer Web-Sicherung, das vorher bei jeder Mac-Sicherung mit Trainingsantwort scheiterte – darunter dieselben Werte für das verteilte Wiederholen wie auf Apple-Geräten |
 | Windows-Paket: Selbsttest der fertigen JAR (Stand v1.0.1) | 409 Bildschirme gezeichnet, alle 32 Lektionen und 160 Aufgaben durchgespielt, dazu Endlos-Training und eine freie UML-Runde, Score 1000; 4528 erklärte Codezeilen |
 
 Nicht geprüft: Start auf einem echten Windows-PC (hier steht nur ein Mac zur Verfügung – die Windows-Bibliothek

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Nur für den Moment bis zum ersten Bild: Alles andere zeichnet Compose (Theme.kt). -->
+    <style name="Theme.JavaQuest" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/hintergrund</item>
+    </style>
+</resources>

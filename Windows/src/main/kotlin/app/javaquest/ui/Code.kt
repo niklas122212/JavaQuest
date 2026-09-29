@@ -63,7 +63,8 @@ fun highlighted(code: String): AnnotatedString = buildAnnotatedString {
     }
 }
 
-private val placeholderRegex = Regex("""\{\{(\d+)}}""")
+// „}“ maskiert: Javas Regex verzeiht ein nacktes „}“, die ICU-Regex von Android nicht (Absturz beim Start).
+private val placeholderRegex = Regex("""\{\{(\d+)\}\}""")
 
 /** Eine Zeile des Lückentexts mit den aktuellen Eingaben (grün/rot nach dem Prüfen). */
 fun fillBlankLine(line: String, values: List<String>, states: List<Boolean>?): AnnotatedString = buildAnnotatedString {
@@ -102,7 +103,7 @@ private fun EditorChrome(caption: String, hint: Boolean, content: @Composable ()
             if (hint) {
                 Icon(Icons.Rounded.TouchApp, null, tint = CodeColors.plain.copy(alpha = 0.5f), modifier = Modifier.size(14.dp))
                 Spacer(Modifier.width(4.dp))
-                Text("Zeile anklicken", color = CodeColors.plain.copy(alpha = 0.5f), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                Text(if (LocalPlattform.current.touch) "Zeile antippen" else "Zeile anklicken", color = CodeColors.plain.copy(alpha = 0.5f), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.width(10.dp))
             }
             Text(caption, color = CodeColors.plain.copy(alpha = 0.45f), fontSize = 11.sp, fontFamily = CodeFont, fontWeight = FontWeight.SemiBold)

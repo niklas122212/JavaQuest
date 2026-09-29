@@ -12,3 +12,10 @@ dist/
 .DS_Store
 Tools/course/.build/
 Tools/course/__pycache__/
+# Android-Version (Gradle)
+Android/.gradle/
+Android/.kotlin/
+Android/build/
+Android/app/build/
+Android/local.properties
+__pycache__/

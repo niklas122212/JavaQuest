@@ -66,7 +66,7 @@ fun DashboardScreen(state: AppState) {
             Column(Modifier.weight(1f)) {
                 Text(
                     when (hour) { in 5..10 -> "Guten Morgen!"; in 11..17 -> "Hallo!"; else -> "Guten Abend!" },
-                    fontSize = 34.sp, fontWeight = FontWeight.Bold,
+                    fontSize = if (LocalKompakt.current) 28.sp else 34.sp, fontWeight = FontWeight.Bold,
                 )
                 Text("Ein Theorie-Happen, ein paar Aufgaben – Schritt für Schritt zum Java Master.", color = secondaryText, fontSize = 16.sp)
             }
@@ -96,11 +96,25 @@ fun DashboardScreen(state: AppState) {
             }
         }
         PathSummaryCard(state)
-        Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-            StatTile(Icons.Rounded.CheckCircle, Palette.success, "${store.completedLessonCount}/${store.course.allLessons.size}", "Lektionen abgeschlossen", Modifier.weight(1f))
-            StatTile(Icons.Rounded.Code, Palette.indigo, "${store.solvedTaskCount}", "Aufgaben gelöst", Modifier.weight(1f))
-            StatTile(Icons.Rounded.GpsFixed, Palette.violet, store.firstTryRate?.let { "${(it * 100).roundToInt()} %" } ?: "–", "Beim ersten Versuch", Modifier.weight(1f))
-            StatTile(Icons.Rounded.LocalFireDepartment, Palette.orange, "${store.displayedStreak}", if (store.displayedStreak == 1) "Tag in Folge" else "Tage in Folge", Modifier.weight(1f))
+        val kacheln: List<@Composable (Modifier) -> Unit> = listOf(
+            { StatTile(Icons.Rounded.CheckCircle, Palette.success, "${store.completedLessonCount}/${store.course.allLessons.size}", "Lektionen abgeschlossen", it) },
+            { StatTile(Icons.Rounded.Code, Palette.indigo, "${store.solvedTaskCount}", "Aufgaben gelöst", it) },
+            { StatTile(Icons.Rounded.GpsFixed, Palette.violet, store.firstTryRate?.let { rate -> "${(rate * 100).roundToInt()} %" } ?: "–", "Beim ersten Versuch", it) },
+            { StatTile(Icons.Rounded.LocalFireDepartment, Palette.orange, "${store.displayedStreak}", if (store.displayedStreak == 1) "Tag in Folge" else "Tage in Folge", it) },
+        )
+        KachelRaster(kacheln, abstand = 14.dp)
+    }
+}
+
+/** Vier Kacheln nebeneinander – auf dem Handy zwei Reihen zu je zwei. */
+@Composable
+fun KachelRaster(kacheln: List<@Composable (Modifier) -> Unit>, abstand: androidx.compose.ui.unit.Dp) {
+    val jeZeile = if (LocalKompakt.current) 2 else kacheln.size
+    Column(verticalArrangement = Arrangement.spacedBy(abstand)) {
+        for (zeile in kacheln.chunked(jeZeile)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(abstand)) {
+                for (kachel in zeile) kachel(Modifier.weight(1f))
+            }
         }
     }
 }
@@ -108,8 +122,9 @@ fun DashboardScreen(state: AppState) {
 /** Scrollbarer Bildschirm mit begrenzter Breite. */
 @Composable
 fun ScreenScroll(content: @Composable ColumnScope.() -> Unit) {
-    Box(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(28.dp), contentAlignment = Alignment.TopCenter) {
-        Column(Modifier.widthIn(max = 1180.dp).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(20.dp), content = content)
+    val kompakt = LocalKompakt.current
+    Box(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(if (kompakt) 16.dp else 28.dp), contentAlignment = Alignment.TopCenter) {
+        Column(Modifier.widthIn(max = 1180.dp).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(if (kompakt) 16.dp else 20.dp), content = content)
     }
 }
 
@@ -118,17 +133,17 @@ fun MasterScoreCard(store: ProgressStore) {
     val score = store.masterScore
     Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(CardRadius)).background(Palette.hero).padding(24.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(130.dp), contentAlignment = Alignment.Center) {
+            Box(Modifier.size(if (LocalKompakt.current) 104.dp else 130.dp), contentAlignment = Alignment.Center) {
                 ProgressRing(score / 1000.0, Modifier.fillMaxSize(), 14.dp, brush = androidx.compose.ui.graphics.SolidColor(Color.White), track = Color.White.copy(alpha = 0.25f))
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("$score", color = Color.White, fontSize = 40.sp, fontWeight = FontWeight.Black, modifier = Modifier.testTag("master-score"))
                     Text("von 1.000", color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp)
                 }
             }
-            Spacer(Modifier.width(22.dp))
+            Spacer(Modifier.width(if (LocalKompakt.current) 16.dp else 22.dp))
             Column(Modifier.weight(1f)) {
                 Eyebrow("Java Master Score", Color.White.copy(alpha = 0.9f))
-                Text(store.rank.title, color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.Bold)
+                Text(store.rank.title, color = Color.White, fontSize = if (LocalKompakt.current) 22.sp else 28.sp, fontWeight = FontWeight.Bold)
                 if (store.scoreHistory.size >= 2) {
                     Spacer(Modifier.height(8.dp))
                     Sparkline(store.scoreHistory, Modifier.fillMaxWidth().height(36.dp))
@@ -166,7 +181,7 @@ private fun ContinueCard(state: AppState) {
         }
         Text(lesson.title, fontSize = 24.sp, fontWeight = FontWeight.Bold)
         Text(lesson.summary, color = secondaryText, fontSize = 16.sp)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        ChipZeile {
             Chip("${lesson.estimatedMinutes} Min", Icons.Rounded.Schedule)
             Chip("${lesson.theory.size} Karten", Icons.Rounded.Style)
             Chip("${lesson.tasks.size} Aufgaben", Icons.AutoMirrored.Rounded.ListAlt)
@@ -213,9 +228,10 @@ private fun KnowledgeSnapshotCard(state: AppState) {
             Text("Details", color = Palette.orange, fontWeight = FontWeight.SemiBold, modifier = Modifier.clickableHand { state.section = Section.ANALYSIS })
         }
         DistributionBar(report)
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            for (status in TopicStatus.entries) StatusCounter(status, report.topics(status).size, Modifier.weight(1f))
-        }
+        KachelRaster(
+            TopicStatus.entries.map<TopicStatus, @Composable (Modifier) -> Unit> { status -> { m -> StatusCounter(status, report.topics(status).size, m) } },
+            abstand = 10.dp,
+        )
         val practiced = report.insights.filter { it.mastery != null }.sortedBy { it.mastery }
         if (practiced.isNotEmpty()) {
             Text("SCHWÄCHSTE THEMEN", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = secondaryText)
@@ -280,7 +296,7 @@ fun MasteryBars(insights: List<TopicInsight>, showStrengthLine: Boolean = false)
             val mastery = insight.mastery ?: 0.0
             val tint = Palette.status(insight.status)
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(insight.topic.title, fontSize = 14.sp, modifier = Modifier.width(170.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(insight.topic.title, fontSize = 14.sp, modifier = Modifier.width(if (LocalKompakt.current) 112.dp else 170.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Box(Modifier.weight(1f).height(18.dp)) {
                     Box(Modifier.fillMaxWidth().height(18.dp).clip(RoundedCornerShape(6.dp)).background(LocalSurfaces.current.field))
                     Box(Modifier.fillMaxWidth(mastery.toFloat()).height(18.dp).clip(RoundedCornerShape(6.dp)).background(tint))

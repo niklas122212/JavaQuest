@@ -11,7 +11,9 @@ name: Prüfungen
 
 on:
   push:
-    branches: [main]
+    # Jeder Branch, nicht nur main: Die Windows-Testreihe prüft auch die Oberfläche, die
+    # sich Windows und Android teilen – ein Fehler soll auffallen, bevor er auf main liegt.
+    branches: ["**"]
   pull_request:
     branches: [main]
   workflow_call:
