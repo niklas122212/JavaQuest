@@ -341,6 +341,14 @@ passende Regel, bricht der Bau ab. Danach `swift test` und `python3 Tools/verify
 laufen lassen. Der `CourseValidator` meldet doppelte IDs, falsche Sortierung, ungültige RegEx und
 Musterlösungen, die der Evaluator nicht akzeptiert. In Debug-Builds läuft er auch beim App-Start.
 
+Ohne Mac: Auf jedem Branch (nicht `main`), der `Tools/course/` oder die Erklär-Engine ändert, baut der
+Workflow *Kursdatei bauen* (`.github/workflows/kurs-bauen.yml`) die Datei auf einem macOS-Rechner, zieht die
+Web-Fassung samt Versionsnummer nach und schreibt beides als Commit zurück. Vorher laufen die Swift-Tests.
+
+**Vergleiche:** Bei `<`, `>`, `<=` und `>=` sagt die Erklärung in Worten, was gefragt ist („ist x also größer
+als 5“), und nennt bei Boxen mit festem Wert die echten Zahlen („mit x = 7: ist 7 größer als 5“) – das Ergebnis
+selbst nicht, sonst wäre es bei „Was wird ausgegeben?“ verraten.
+
 ## Windows
 
 Eigene App im Ordner `Windows/` (Kotlin + Compose Desktop), gleiche Inhalte, gleiche Regeln, gleiche Gestaltung:
