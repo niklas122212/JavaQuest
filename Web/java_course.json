@@ -954,7 +954,7 @@
                   },
                   {
                     "code": "boolean erwachsen = alter >= 18;          // true",
-                    "explain": "Hier erstellen wir eine Box namens „erwachsen“ und legen die Antwort auf die Frage „alter >= 18?“ (true = ja, false = nein) hinein. Das Etikett boolean heißt: In diese Box passt nur „wahr“ (true) oder „falsch“ (false). Der Notizzettel dahinter verrät, was herauskommt: true.",
+                    "explain": "Hier erstellen wir eine Box namens „erwachsen“ und legen die Antwort auf die Frage „alter >= 18?“ (also: ist alter größer als 18 oder gleich 18 – mit alter = 20: ist 20 größer als 18 oder gleich 18? true = ja, false = nein) hinein. Das Etikett boolean heißt: In diese Box passt nur „wahr“ (true) oder „falsch“ (false). Der Notizzettel dahinter verrät, was herauskommt: true.",
                     "terms": [
                       "boolean",
                       "=",
@@ -1191,7 +1191,7 @@
                   },
                   {
                     "code": "System.out.println(punkte < 0);",
-                    "explain": "Schreibt die Antwort auf die Frage „punkte < 0?“ (true = ja, false = nein) auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
+                    "explain": "Schreibt die Antwort auf die Frage „punkte < 0?“ (also: ist punkte kleiner als 0? true = ja, false = nein) auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste.",
                     "terms": [
                       "System.out",
                       "println()",
@@ -1426,7 +1426,7 @@
                   },
                   {
                     "code": "if (temperatur > 25) {",
-                    "explain": "Hier stellt das Programm eine Frage: Stimmt „temperatur > 25“? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
+                    "explain": "Hier stellt das Programm eine Frage: Stimmt „temperatur > 25“ – ist temperatur also größer als 25 – mit temperatur = 28: ist 28 größer als 25? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
                     "terms": [
                       "if",
                       ">"
@@ -1469,7 +1469,7 @@
                 "lines": [
                   {
                     "code": "if (punkte >= 90) {",
-                    "explain": "Hier stellt das Programm eine Frage: Stimmt „punkte >= 90“? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
+                    "explain": "Hier stellt das Programm eine Frage: Stimmt „punkte >= 90“ – ist punkte also größer als 90 oder gleich 90? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
                     "terms": [
                       "if",
                       ">="
@@ -1485,7 +1485,7 @@
                   },
                   {
                     "code": "} else if (punkte >= 70) {",
-                    "explain": "Falls die Antwort oben „nein“ war, stellt das Programm die nächste Frage: Stimmt „punkte >= 70“? Nur bei „ja“ läuft der folgende Block.",
+                    "explain": "Falls die Antwort oben „nein“ war, stellt das Programm die nächste Frage: Stimmt „punkte >= 70“ – ist punkte also größer als 70 oder gleich 70? Nur bei „ja“ läuft der folgende Block.",
                     "terms": [
                       "else",
                       "if",
@@ -1623,7 +1623,7 @@
                   },
                   {
                     "code": "if (alter >= 18) {",
-                    "explain": "Hier stellt das Programm eine Frage: Stimmt „alter >= 18“? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
+                    "explain": "Hier stellt das Programm eine Frage: Stimmt „alter >= 18“ – ist alter also größer als 18 oder gleich 18 – mit alter = 16: ist 16 größer als 18 oder gleich 18? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
                     "terms": [
                       "if",
                       ">="
@@ -1731,7 +1731,7 @@
                   },
                   {
                     "code": "if (punkte >= 90) {",
-                    "explain": "Hier stellt das Programm eine Frage: Stimmt „punkte >= 90“? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
+                    "explain": "Hier stellt das Programm eine Frage: Stimmt „punkte >= 90“ – ist punkte also größer als 90 oder gleich 90 – mit punkte = 72: ist 72 größer als 90 oder gleich 90? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
                     "terms": [
                       "if",
                       ">="
@@ -1747,7 +1747,7 @@
                   },
                   {
                     "code": "} else if (punkte >= 70) {",
-                    "explain": "Falls die Antwort oben „nein“ war, stellt das Programm die nächste Frage: Stimmt „punkte >= 70“? Nur bei „ja“ läuft der folgende Block.",
+                    "explain": "Falls die Antwort oben „nein“ war, stellt das Programm die nächste Frage: Stimmt „punkte >= 70“ – ist punkte also größer als 70 oder gleich 70 – mit punkte = 72: ist 72 größer als 70 oder gleich 70? Nur bei „ja“ läuft der folgende Block.",
                     "terms": [
                       "else",
                       "if",
@@ -1764,7 +1764,7 @@
                   },
                   {
                     "code": "} else if (punkte >= 50) {",
-                    "explain": "Falls die Antwort oben „nein“ war, stellt das Programm die nächste Frage: Stimmt „punkte >= 50“? Nur bei „ja“ läuft der folgende Block.",
+                    "explain": "Falls die Antwort oben „nein“ war, stellt das Programm die nächste Frage: Stimmt „punkte >= 50“ – ist punkte also größer als 50 oder gleich 50 – mit punkte = 72: ist 72 größer als 50 oder gleich 50? Nur bei „ja“ läuft der folgende Block.",
                     "terms": [
                       "else",
                       "if",
@@ -2024,7 +2024,7 @@
                   },
                   {
                     "code": "    if (i > 5) break;         // ab 6 Schluss",
-                    "explain": "Frage: Stimmt „i > 5“? Wenn ja: Mit break geht es sofort raus aus der Schleife – auch wenn noch Runden übrig wären. Der Notizzettel dahinter („ab 6 Schluss“) ist nur für Menschen – Java überliest ihn.",
+                    "explain": "Frage: Stimmt „i > 5“ – ist i also größer als 5? Wenn ja: Mit break geht es sofort raus aus der Schleife – auch wenn noch Runden übrig wären. Der Notizzettel dahinter („ab 6 Schluss“) ist nur für Menschen – Java überliest ihn.",
                     "terms": [
                       "if",
                       ">",
@@ -2230,7 +2230,7 @@
                   },
                   {
                     "code": "    if (i > 7) {",
-                    "explain": "Hier stellt das Programm eine Frage: Stimmt „i > 7“? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
+                    "explain": "Hier stellt das Programm eine Frage: Stimmt „i > 7“ – ist i also größer als 7? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
                     "terms": [
                       "if",
                       ">"
@@ -2682,7 +2682,7 @@
                   },
                   {
                     "code": "    if (a > b) {",
-                    "explain": "Hier stellt das Programm eine Frage: Stimmt „a > b“? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
+                    "explain": "Hier stellt das Programm eine Frage: Stimmt „a > b“ – ist a also größer als b? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
                     "terms": [
                       "if",
                       ">"
@@ -2765,7 +2765,7 @@
                   },
                   {
                     "code": "        if (z > max) {",
-                    "explain": "Hier stellt das Programm eine Frage: Stimmt „z > max“? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
+                    "explain": "Hier stellt das Programm eine Frage: Stimmt „z > max“ – ist z also größer als max? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
                     "terms": [
                       "if",
                       ">",
@@ -3507,7 +3507,7 @@
                   },
                   {
                     "code": "    if (z > max) {",
-                    "explain": "Hier stellt das Programm eine Frage: Stimmt „z > max“? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
+                    "explain": "Hier stellt das Programm eine Frage: Stimmt „z > max“ – ist z also größer als max? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
                     "terms": [
                       "if",
                       ">",
@@ -5492,7 +5492,7 @@
                 "lines": [
                   {
                     "code": "if (alter < 0) {",
-                    "explain": "Hier stellt das Programm eine Frage: Stimmt „alter < 0“? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
+                    "explain": "Hier stellt das Programm eine Frage: Stimmt „alter < 0“ – ist alter also kleiner als 0? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
                     "terms": [
                       "if",
                       "<"
@@ -5785,7 +5785,7 @@
                   },
                   {
                     "code": "    if (alter < 0) {",
-                    "explain": "Hier stellt das Programm eine Frage: Stimmt „alter < 0“? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
+                    "explain": "Hier stellt das Programm eine Frage: Stimmt „alter < 0“ – ist alter also kleiner als 0? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
                     "terms": [
                       "if",
                       "<"
@@ -10443,7 +10443,7 @@
                   },
                   {
                     "code": "    if (n <= 1) {",
-                    "explain": "Hier stellt das Programm eine Frage: Stimmt „n <= 1“? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
+                    "explain": "Hier stellt das Programm eine Frage: Stimmt „n <= 1“ – ist n also kleiner als 1 oder gleich 1? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
                     "terms": [
                       "if",
                       "<="
@@ -10684,7 +10684,7 @@
                   },
                   {
                     "code": "    if (n < 2) {",
-                    "explain": "Hier stellt das Programm eine Frage: Stimmt „n < 2“? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
+                    "explain": "Hier stellt das Programm eine Frage: Stimmt „n < 2“ – ist n also kleiner als 2? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
                     "terms": [
                       "if",
                       "<"
@@ -10919,7 +10919,7 @@
                   },
                   {
                     "code": "    if (n < 10) {",
-                    "explain": "Hier stellt das Programm eine Frage: Stimmt „n < 10“? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
+                    "explain": "Hier stellt das Programm eine Frage: Stimmt „n < 10“ – ist n also kleiner als 10? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
                     "terms": [
                       "if",
                       "<"
@@ -15561,7 +15561,7 @@
             },
             {
               "title": "In der Praxis: eine Bibliothek",
-              "body": "Selbst gebautes JSON bricht, sobald ein Wert ein Anführungszeichen oder einen Zeilenumbruch enthält – beides muss maskiert werden. Und JSON wieder in Objekte zu verwandeln, ist mühsam. Echte Projekte nehmen deshalb eine Bibliothek wie Jackson: Sie macht aus einem Record JSON und aus JSON wieder einen Record. Sie gehört nicht zum JDK – du bindest sie mit Maven oder Gradle ein.",
+              "body": "Selbst gebautes JSON bricht, sobald ein Wert ein Anführungszeichen, einen Backslash oder einen Zeilenumbruch enthält – all das muss maskiert werden, der Backslash sogar zuerst. Und JSON wieder in Objekte zu verwandeln, ist mühsam. Echte Projekte nehmen deshalb eine Bibliothek wie Jackson: Sie macht aus einem Record JSON und aus JSON wieder einen Record. Sie gehört nicht zum JDK – du bindest sie mit Maven oder Gradle ein.",
               "code": {
                 "lines": [
                   {
@@ -15792,7 +15792,7 @@
                 ]
               },
               "hint": "Folge den Anführungszeichen im Namen: Wo würde ein JSON-Leser glauben, dass der Text schon zu Ende ist?",
-              "explanation": "Der Name enthält selbst Anführungszeichen. In der ersten Zeile beenden sie den JSON-Text mitten im Namen – ein Programm würde das ablehnen. In der zweiten setzt replace vor jedes Anführungszeichen einen Backslash: Dann bleibt es Teil des Textes, und das JSON ist gültig.",
+              "explanation": "Der Name enthält selbst Anführungszeichen. In der ersten Zeile beenden sie den JSON-Text mitten im Namen – ein Programm würde das ablehnen. In der zweiten setzt replace vor jedes Anführungszeichen einen Backslash: Dann bleibt es Teil des Textes, und das JSON ist gültig. Ganz sicher ist das noch nicht – enthielte der Name selbst einen Backslash, müsste der vorher verdoppelt werden. Genau solche Fallen nimmt einem eine JSON-Bibliothek ab.",
               "expectedOutput": "{\"name\": \"Tom \"der Blitz\"\"}\n{\"name\": \"Tom \\\"der Blitz\\\"\"}"
             },
             {
@@ -16953,7 +16953,7 @@
               },
               "callout": {
                 "kind": "info",
-                "text": "Zum Ausführen braucht es einen Treiber für die jeweilige Datenbank, etwa sqlite-jdbc oder H2 – das JDK bringt nur die Schnittstelle mit. JavaQuest prüft bei allen Datenbank-Beispielen, dass sie übersetzen, führt sie aber nicht aus."
+                "text": "Zum Ausführen braucht es einen Treiber für die jeweilige Datenbank, etwa sqlite-jdbc oder H2 – das JDK bringt nur die Schnittstelle mit. JavaQuest prüft bei allen Datenbank-Beispielen, dass sie übersetzen, führt sie aber nicht aus. Auch PreparedStatement und ResultSet belegen Ressourcen: Hier schließt sie die Verbindung mit; in größeren Programmen bekommen sie eigene try-Klammern."
               }
             },
             {
@@ -17037,8 +17037,8 @@
               "code": {
                 "lines": [
                   {
-                    "code": "String eingabe = \"' OR 1=1 --\";",
-                    "explain": "Hier erstellen wir eine Box namens „eingabe“ und legen den Text „' OR 1=1 --“ hinein. Das Etikett String heißt: In diese Box passen Texte.",
+                    "code": "String eingabe = \"' OR 1=1 -- \";",
+                    "explain": "Hier erstellen wir eine Box namens „eingabe“ und legen den Text „' OR 1=1 -- “ hinein. Das Etikett String heißt: In diese Box passen Texte.",
                     "terms": [
                       "String",
                       "="
@@ -17064,8 +17064,8 @@
                 ]
               },
               "hint": "Setz die Eingabe Zeichen für Zeichen an ihre Stelle ein – der Code prüft nicht, was drinsteht.",
-              "explanation": "Die Eingabe wird wörtlich in den SQL-Text geklebt. Ihr erstes Anführungszeichen beendet den Namen, OR 1=1 ist eine Bedingung, die immer stimmt, und -- macht den Rest zum Kommentar. Die Datenbank würde alle Konten liefern – genau das ist SQL-Injection.",
-              "expectedOutput": "SELECT * FROM konto WHERE name = '' OR 1=1 --'"
+              "explanation": "Die Eingabe wird wörtlich in den SQL-Text geklebt. Ihr erstes Anführungszeichen beendet den Namen, OR 1=1 ist eine Bedingung, die immer stimmt, und -- mit Leerzeichen dahinter macht den Rest zum Kommentar (MySQL verlangt das Leerzeichen, andere Datenbanken nicht). Die Datenbank würde alle Konten liefern – genau das ist SQL-Injection.",
+              "expectedOutput": "SELECT * FROM konto WHERE name = '' OR 1=1 -- '"
             },
             {
               "id": "t35-3",
@@ -17607,7 +17607,7 @@
                   },
                   {
                     "code": "        if (n <= 4) {",
-                    "explain": "Hier stellt das Programm eine Frage: Stimmt „n <= 4“? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
+                    "explain": "Hier stellt das Programm eine Frage: Stimmt „n <= 4“ – ist n also kleiner als 4 oder gleich 4? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
                     "terms": [
                       "if",
                       "<="
@@ -21462,7 +21462,7 @@
           },
           {
             "code": "if (alter >= 18) {",
-            "explain": "Hier stellt das Programm eine Frage: Stimmt „alter >= 18“? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
+            "explain": "Hier stellt das Programm eine Frage: Stimmt „alter >= 18“ – ist alter also größer als 18 oder gleich 18 – mit alter = 20: ist 20 größer als 18 oder gleich 18? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
             "terms": [
               "if",
               ">="
@@ -21520,7 +21520,7 @@
           },
           {
             "code": "if (temperatur > 20) {",
-            "explain": "Hier stellt das Programm eine Frage: Stimmt „temperatur > 20“? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
+            "explain": "Hier stellt das Programm eine Frage: Stimmt „temperatur > 20“ – ist temperatur also größer als 20 – mit temperatur = 3: ist 3 größer als 20? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
             "terms": [
               "if",
               ">"
@@ -21536,7 +21536,7 @@
           },
           {
             "code": "} else if (temperatur > 10) {",
-            "explain": "Falls die Antwort oben „nein“ war, stellt das Programm die nächste Frage: Stimmt „temperatur > 10“? Nur bei „ja“ läuft der folgende Block.",
+            "explain": "Falls die Antwort oben „nein“ war, stellt das Programm die nächste Frage: Stimmt „temperatur > 10“ – ist temperatur also größer als 10 – mit temperatur = 3: ist 3 größer als 10? Nur bei „ja“ läuft der folgende Block.",
             "terms": [
               "else",
               "if",
@@ -21647,7 +21647,7 @@
           },
           {
             "code": "if (punkte >= 90) {",
-            "explain": "Hier stellt das Programm eine Frage: Stimmt „punkte >= 90“? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
+            "explain": "Hier stellt das Programm eine Frage: Stimmt „punkte >= 90“ – ist punkte also größer als 90 oder gleich 90 – mit punkte = 55: ist 55 größer als 90 oder gleich 90? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
             "terms": [
               "if",
               ">="
@@ -21663,7 +21663,7 @@
           },
           {
             "code": "} else if (punkte >= 70) {",
-            "explain": "Falls die Antwort oben „nein“ war, stellt das Programm die nächste Frage: Stimmt „punkte >= 70“? Nur bei „ja“ läuft der folgende Block.",
+            "explain": "Falls die Antwort oben „nein“ war, stellt das Programm die nächste Frage: Stimmt „punkte >= 70“ – ist punkte also größer als 70 oder gleich 70 – mit punkte = 55: ist 55 größer als 70 oder gleich 70? Nur bei „ja“ läuft der folgende Block.",
             "terms": [
               "else",
               "if",
@@ -21680,7 +21680,7 @@
           },
           {
             "code": "} else if (punkte >= 50) {",
-            "explain": "Falls die Antwort oben „nein“ war, stellt das Programm die nächste Frage: Stimmt „punkte >= 50“? Nur bei „ja“ läuft der folgende Block.",
+            "explain": "Falls die Antwort oben „nein“ war, stellt das Programm die nächste Frage: Stimmt „punkte >= 50“ – ist punkte also größer als 50 oder gleich 50 – mit punkte = 55: ist 55 größer als 50 oder gleich 50? Nur bei „ja“ läuft der folgende Block.",
             "terms": [
               "else",
               "if",
@@ -22186,7 +22186,7 @@
           },
           {
             "code": "    return zahl > 0;",
-            "explain": "Das Rezept ist fertig: Es gibt die Antwort auf die Frage „zahl > 0?“ (true = ja, false = nein) zurück an die Stelle, die es aufgerufen hat – wie ein Automat, der sein Produkt ausgibt.",
+            "explain": "Das Rezept ist fertig: Es gibt die Antwort auf die Frage „zahl > 0?“ (also: ist zahl größer als 0? true = ja, false = nein) zurück an die Stelle, die es aufgerufen hat – wie ein Automat, der sein Produkt ausgibt.",
             "terms": [
               "return",
               ">"
@@ -24170,7 +24170,7 @@
           },
           {
             "code": "boolean gross = x > 5;",
-            "explain": "Hier erstellen wir eine Box namens „gross“ und legen die Antwort auf die Frage „x > 5?“ (true = ja, false = nein) hinein. Das Etikett boolean heißt: In diese Box passt nur „wahr“ (true) oder „falsch“ (false).",
+            "explain": "Hier erstellen wir eine Box namens „gross“ und legen die Antwort auf die Frage „x > 5?“ (also: ist x größer als 5 – mit x = 7: ist 7 größer als 5? true = ja, false = nein) hinein. Das Etikett boolean heißt: In diese Box passt nur „wahr“ (true) oder „falsch“ (false).",
             "terms": [
               "boolean",
               "=",
@@ -24466,7 +24466,7 @@
           },
           {
             "code": "if (zahl > 0) {",
-            "explain": "Hier stellt das Programm eine Frage: Stimmt „zahl > 0“? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
+            "explain": "Hier stellt das Programm eine Frage: Stimmt „zahl > 0“ – ist zahl also größer als 0 – mit zahl = -4: ist -4 größer als 0? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
             "terms": [
               "if",
               ">"
@@ -24482,7 +24482,7 @@
           },
           {
             "code": "} else if (zahl < 0) {",
-            "explain": "Falls die Antwort oben „nein“ war, stellt das Programm die nächste Frage: Stimmt „zahl < 0“? Nur bei „ja“ läuft der folgende Block.",
+            "explain": "Falls die Antwort oben „nein“ war, stellt das Programm die nächste Frage: Stimmt „zahl < 0“ – ist zahl also kleiner als 0 – mit zahl = -4: ist -4 kleiner als 0? Nur bei „ja“ läuft der folgende Block.",
             "terms": [
               "else",
               "if",
@@ -24772,7 +24772,7 @@
           },
           {
             "code": "    if (a > b) {",
-            "explain": "Hier stellt das Programm eine Frage: Stimmt „a > b“? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
+            "explain": "Hier stellt das Programm eine Frage: Stimmt „a > b“ – ist a also größer als b? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
             "terms": [
               "if",
               ">"
@@ -25148,7 +25148,7 @@
           },
           {
             "code": "    if (z < kleinster) {",
-            "explain": "Hier stellt das Programm eine Frage: Stimmt „z < kleinster“? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
+            "explain": "Hier stellt das Programm eine Frage: Stimmt „z < kleinster“ – ist z also kleiner als kleinster? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
             "terms": [
               "if",
               "<"
@@ -27234,7 +27234,7 @@
           },
           {
             "code": "    if (n <= 1) {",
-            "explain": "Hier stellt das Programm eine Frage: Stimmt „n <= 1“? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
+            "explain": "Hier stellt das Programm eine Frage: Stimmt „n <= 1“ – ist n also kleiner als 1 oder gleich 1? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
             "terms": [
               "if",
               "<="
@@ -27358,7 +27358,7 @@
           },
           {
             "code": "    if (n <= 0) {",
-            "explain": "Hier stellt das Programm eine Frage: Stimmt „n <= 0“? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
+            "explain": "Hier stellt das Programm eine Frage: Stimmt „n <= 0“ – ist n also kleiner als 0 oder gleich 0? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
             "terms": [
               "if",
               "<="
@@ -27582,7 +27582,7 @@
           },
           {
             "code": "    if (z > 10) {",
-            "explain": "Hier stellt das Programm eine Frage: Stimmt „z > 10“? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
+            "explain": "Hier stellt das Programm eine Frage: Stimmt „z > 10“ – ist z also größer als 10? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
             "terms": [
               "if",
               ">"
@@ -27851,7 +27851,7 @@
           },
           {
             "code": "    if (n < 0) {",
-            "explain": "Hier stellt das Programm eine Frage: Stimmt „n < 0“? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
+            "explain": "Hier stellt das Programm eine Frage: Stimmt „n < 0“ – ist n also kleiner als 0? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
             "terms": [
               "if",
               "<"
@@ -30608,7 +30608,7 @@
           },
           {
             "code": "    if (a > b) {",
-            "explain": "Hier stellt das Programm eine Frage: Stimmt „a > b“? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
+            "explain": "Hier stellt das Programm eine Frage: Stimmt „a > b“ – ist a also größer als b? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
             "terms": [
               "if",
               ">"
@@ -30817,7 +30817,7 @@
           },
           {
             "code": "    if (n < 10) {",
-            "explain": "Hier stellt das Programm eine Frage: Stimmt „n < 10“? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
+            "explain": "Hier stellt das Programm eine Frage: Stimmt „n < 10“ – ist n also kleiner als 10? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
             "terms": [
               "if",
               "<"
@@ -31434,7 +31434,7 @@
           },
           {
             "code": "{{0}} (alter >= 18) {",
-            "explain": "Hier stellt das Programm eine Frage: Stimmt „alter >= 18“? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
+            "explain": "Hier stellt das Programm eine Frage: Stimmt „alter >= 18“ – ist alter also größer als 18 oder gleich 18 – mit alter = 12: ist 12 größer als 18 oder gleich 18? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
             "terms": [
               ">="
             ]
@@ -35293,7 +35293,7 @@
           },
           {
             "code": "    if (n <= 1) {",
-            "explain": "Hier stellt das Programm eine Frage: Stimmt „n <= 1“? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
+            "explain": "Hier stellt das Programm eine Frage: Stimmt „n <= 1“ – ist n also kleiner als 1 oder gleich 1? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
             "terms": [
               "if",
               "<="
@@ -37139,7 +37139,7 @@
           },
           {
             "code": "    if (n <= 4) {",
-            "explain": "Hier stellt das Programm eine Frage: Stimmt „n <= 4“? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
+            "explain": "Hier stellt das Programm eine Frage: Stimmt „n <= 4“ – ist n also kleiner als 4 oder gleich 4? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
             "terms": [
               "if",
               "<="
@@ -37304,7 +37304,7 @@
           },
           {
             "code": "        if (n < beste) {",
-            "explain": "Hier stellt das Programm eine Frage: Stimmt „n < beste“? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
+            "explain": "Hier stellt das Programm eine Frage: Stimmt „n < beste“ – ist n also kleiner als beste? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
             "terms": [
               "if",
               "<"
@@ -37323,7 +37323,7 @@
           },
           {
             "code": "        if (n > schlechteste) {",
-            "explain": "Hier stellt das Programm eine Frage: Stimmt „n > schlechteste“? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
+            "explain": "Hier stellt das Programm eine Frage: Stimmt „n > schlechteste“ – ist n also größer als schlechteste? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
             "terms": [
               "if",
               ">"
@@ -39739,7 +39739,7 @@
           },
           {
             "code": "if (alter >= 18) {",
-            "explain": "Hier stellt das Programm eine Frage: Stimmt „alter >= 18“? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
+            "explain": "Hier stellt das Programm eine Frage: Stimmt „alter >= 18“ – ist alter also größer als 18 oder gleich 18 – mit alter = 17: ist 17 größer als 18 oder gleich 18? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
             "terms": [
               "if",
               ">="
@@ -39865,7 +39865,7 @@
           },
           {
             "code": "if (punkte >= 90) {",
-            "explain": "Hier stellt das Programm eine Frage: Stimmt „punkte >= 90“? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
+            "explain": "Hier stellt das Programm eine Frage: Stimmt „punkte >= 90“ – ist punkte also größer als 90 oder gleich 90 – mit punkte = 75: ist 75 größer als 90 oder gleich 90? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
             "terms": [
               "if",
               ">="
@@ -39880,7 +39880,7 @@
           },
           {
             "code": "} else if (punkte >= 75) {",
-            "explain": "Falls die Antwort oben „nein“ war, stellt das Programm die nächste Frage: Stimmt „punkte >= 75“? Nur bei „ja“ läuft der folgende Block.",
+            "explain": "Falls die Antwort oben „nein“ war, stellt das Programm die nächste Frage: Stimmt „punkte >= 75“ – ist punkte also größer als 75 oder gleich 75 – mit punkte = 75: ist 75 größer als 75 oder gleich 75? Nur bei „ja“ läuft der folgende Block.",
             "terms": [
               "else",
               "if",
@@ -39896,7 +39896,7 @@
           },
           {
             "code": "} else if (punkte >= 50) {",
-            "explain": "Falls die Antwort oben „nein“ war, stellt das Programm die nächste Frage: Stimmt „punkte >= 50“? Nur bei „ja“ läuft der folgende Block.",
+            "explain": "Falls die Antwort oben „nein“ war, stellt das Programm die nächste Frage: Stimmt „punkte >= 50“ – ist punkte also größer als 50 oder gleich 50 – mit punkte = 75: ist 75 größer als 50 oder gleich 50? Nur bei „ja“ läuft der folgende Block.",
             "terms": [
               "else",
               "if",
@@ -40708,7 +40708,7 @@
           },
           {
             "code": "    if (z > 10) {",
-            "explain": "Hier stellt das Programm eine Frage: Stimmt „z > 10“? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
+            "explain": "Hier stellt das Programm eine Frage: Stimmt „z > 10“ – ist z also größer als 10? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
             "terms": [
               "if",
               ">"
@@ -42606,7 +42606,7 @@
           },
           {
             "code": "    if (n < 0) {",
-            "explain": "Hier stellt das Programm eine Frage: Stimmt „n < 0“? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
+            "explain": "Hier stellt das Programm eine Frage: Stimmt „n < 0“ – ist n also kleiner als 0? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
             "terms": [
               "if",
               "<"
@@ -45348,7 +45348,7 @@
           },
           {
             "code": "    if (i > 1) {",
-            "explain": "Hier stellt das Programm eine Frage: Stimmt „i > 1“? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
+            "explain": "Hier stellt das Programm eine Frage: Stimmt „i > 1“ – ist i also größer als 1? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
             "terms": [
               "if",
               ">"
@@ -46094,7 +46094,7 @@
           },
           {
             "code": "    if (n < 2) {",
-            "explain": "Hier stellt das Programm eine Frage: Stimmt „n < 2“? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
+            "explain": "Hier stellt das Programm eine Frage: Stimmt „n < 2“ – ist n also kleiner als 2? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
             "terms": [
               "if",
               "<"
@@ -46206,7 +46206,7 @@
           },
           {
             "code": "    if (n <= 1) {",
-            "explain": "Hier stellt das Programm eine Frage: Stimmt „n <= 1“? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
+            "explain": "Hier stellt das Programm eine Frage: Stimmt „n <= 1“ – ist n also kleiner als 1 oder gleich 1? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
             "terms": [
               "if",
               "<="
@@ -50215,7 +50215,7 @@
           },
           {
             "code": "if (punkte > 5) {",
-            "explain": "Hier stellt das Programm eine Frage: Stimmt „punkte > 5“? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
+            "explain": "Hier stellt das Programm eine Frage: Stimmt „punkte > 5“ – ist punkte also größer als 5 – mit punkte = 10: ist 10 größer als 5? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
             "terms": [
               "if",
               ">"
@@ -50515,7 +50515,7 @@
           },
           {
             "code": "        if (neu {{1}} 0) {",
-            "explain": "Hier stellt das Programm eine Frage: Stimmt „neu >= 0“? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
+            "explain": "Hier stellt das Programm eine Frage: Stimmt „neu >= 0“ – ist neu also größer als 0 oder gleich 0? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
             "terms": [
               "if"
             ]
@@ -55451,7 +55451,7 @@
           },
           {
             "code": "    if (n {{0}} 4) {",
-            "explain": "Hier stellt das Programm eine Frage: Stimmt „n <= 4“? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
+            "explain": "Hier stellt das Programm eine Frage: Stimmt „n <= 4“ – ist n also kleiner als 4 oder gleich 4? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
             "terms": [
               "if"
             ]
@@ -59123,7 +59123,7 @@
           },
           {
             "code": "        if (wert < 0) {",
-            "explain": "Hier stellt das Programm eine Frage: Stimmt „wert < 0“? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
+            "explain": "Hier stellt das Programm eine Frage: Stimmt „wert < 0“ – ist wert also kleiner als 0? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
             "terms": [
               "if",
               "<"
@@ -59259,7 +59259,7 @@
           },
           {
             "code": "        if (wert < 0) {",
-            "explain": "Hier stellt das Programm eine Frage: Stimmt „wert < 0“? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
+            "explain": "Hier stellt das Programm eine Frage: Stimmt „wert < 0“ – ist wert also kleiner als 0? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
             "terms": [
               "if",
               "<"
@@ -62009,8 +62009,8 @@
             ]
           },
           {
-            "code": "    // Spieler \"Tom\" per PreparedStatement löschen",
-            "explain": "Das ist ein Kommentar – ein Notizzettel für Menschen: „Spieler \"Tom\" per PreparedStatement löschen“. Java überliest diese Zeile komplett."
+            "code": "    // Spieler \"Tom\" hier per PreparedStatement löschen",
+            "explain": "Ein Notizzettel als Platzhalter („Spieler \"Tom\" hier per PreparedStatement löschen“): Genau an dieser Stelle schreibst du deinen eigenen Code hin. Java überliest Kommentare."
           },
           {
             "code": "}",
@@ -62707,7 +62707,7 @@
               },
               {
                 "code": "if (x > 3) {",
-                "explain": "Hier stellt das Programm eine Frage: Stimmt „x > 3“? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
+                "explain": "Hier stellt das Programm eine Frage: Stimmt „x > 3“ – ist x also größer als 3 – mit x = 5: ist 5 größer als 3? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
                 "terms": [
                   "if",
                   ">"
@@ -63392,7 +63392,7 @@
               },
               {
                 "code": "    {{4}} (summe > 10) {",
-                "explain": "Hier stellt das Programm eine Frage: Stimmt „summe > 10“? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
+                "explain": "Hier stellt das Programm eine Frage: Stimmt „summe > 10“ – ist summe also größer als 10? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg.",
                 "terms": [
                   ">"
                 ]
@@ -63914,11 +63914,11 @@
       "term": "::"
     },
     {
-      "meaning": "Frage „Kleiner als?“.",
+      "meaning": "Frage „Ist links kleiner als rechts?“: 5 < 7 ist true, 7 < 5 ist false. Merkhilfe: Die Spitze zeigt zur kleineren Zahl, die offene Seite zur größeren.",
       "term": "<"
     },
     {
-      "meaning": "Frage „Kleiner oder gleich?“.",
+      "meaning": "Frage „Ist links kleiner als rechts oder gleich?“: 5 <= 7 und 7 <= 7 sind true, 8 <= 7 ist false.",
       "term": "<="
     },
     {
@@ -63934,11 +63934,11 @@
       "term": "=="
     },
     {
-      "meaning": "Frage „Größer als?“.",
+      "meaning": "Frage „Ist links größer als rechts?“: 7 > 5 ist true, 5 > 7 ist false. Merkhilfe: Die offene Seite zeigt zur größeren Zahl, die Spitze zur kleineren.",
       "term": ">"
     },
     {
-      "meaning": "Frage „Größer oder gleich?“.",
+      "meaning": "Frage „Ist links größer als rechts oder gleich?“: 7 >= 5 und 7 >= 7 sind true, 5 >= 7 ist false.",
       "term": ">="
     },
     {
