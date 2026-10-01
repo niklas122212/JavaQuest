@@ -65,6 +65,34 @@ struct ExplanationTests {
         #expect(lines[3].explanation.contains("backen"), "\(lines[3].explanation)")
     }
 
+    @Test("Vergleiche stehen in Worten da – mit den echten Zahlen, aber ohne das Ergebnis")
+    func comparisonsInWords() {
+        let lines = CodeExplainer.explain("""
+        int x = 7;
+        boolean gross = x > 5;
+        if (x <= 10) {
+            System.out.println(x < 3);
+        }
+        """)
+        let gross = lines[1].explanation
+        #expect(gross.contains("ist x größer als 5"), "\(gross)")
+        #expect(gross.contains("mit x = 7: ist 7 größer als 5"), "\(gross)")
+        // Das Ergebnis (true) verrät die Erklärung nicht – bei „Was wird ausgegeben?“ ist sie vorher sichtbar.
+        #expect(!gross.contains("also true"), "\(gross)")
+        #expect(lines[2].explanation.contains("ist x also kleiner als 10 oder gleich 10 – mit x = 7: ist 7 kleiner als 10 oder gleich 10"),
+                "\(lines[2].explanation)")
+        #expect(lines[3].explanation.contains("ist 7 kleiner als 3"), "\(lines[3].explanation)")
+
+        // Eine Box, die sich ändert, bekommt keine festen Zahlen – nur die Worte.
+        let schleife = CodeExplainer.explain("""
+        int n = 3;
+        n++;
+        boolean viel = n > 2;
+        """)
+        #expect(schleife[2].explanation.contains("ist n größer als 2"), "\(schleife[2].explanation)")
+        #expect(!schleife[2].explanation.contains("mit n ="), "\(schleife[2].explanation)")
+    }
+
     @Test("Schließende Klammern sagen, was genau endet")
     func closingBracesNameTheirBlock() {
         let lines = CodeExplainer.explain("""
