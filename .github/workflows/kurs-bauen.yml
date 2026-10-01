@@ -1,0 +1,54 @@
+# Baut java_course.json aus dem Quelltext neu und legt sie auf den Branch.
+#
+# Die Kursdatei entsteht aus Tools/course/*.py und der Swift-Erklär-Engine
+# (Packages/JavaQuestKit) – bauen lässt sie sich nur auf einem Mac. Ändert ein
+# Branch den Quelltext, baut dieser Workflow die Datei auf einem macOS-Rechner,
+# kopiert sie in die Web-Fassung (samt neuer Versionsnummer, damit Stammnutzer
+# den neuen Kurs bekommen) und schreibt beides als Commit zurück.
+#
+# Auf main läuft er nie: Dort kommt nur an, was auf einem Branch schon gebaut wurde.
+name: Kursdatei bauen
+
+on:
+  push:
+    branches-ignore: [main]
+    paths:
+      - "Tools/course/**"
+      - "Packages/JavaQuestKit/Sources/JavaQuestKit/Content/**"
+      - "Packages/JavaQuestKit/Sources/JavaQuestKit/Evaluation/**"
+      - ".github/workflows/kurs-bauen.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: kurs-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bauen:
+    name: java_course.json neu bauen
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+      - name: Erklär-Engine testen
+        run: swift test --package-path Packages/JavaQuestKit
+      - name: Kurs bauen
+        run: zsh Tools/course/build_course.sh
+      - name: Web-Fassung nachziehen
+        run: zsh Tools/build_web.sh
+      - name: Ergebnis zurückschreiben
+        run: |
+          git add Packages/JavaQuestKit/Sources/JavaQuestKit/Resources/java_course.json Web/java_course.json Web/sw.js Web/index.html
+          if git diff --cached --quiet; then
+            echo "Kursdatei war schon aktuell."
+            exit 0
+          fi
+          git diff --cached --stat
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Kursdatei aus dem Quelltext neu gebaut"
+          git push

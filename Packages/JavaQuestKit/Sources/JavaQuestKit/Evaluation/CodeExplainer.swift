@@ -33,7 +33,16 @@ public struct ExplainedLine: Sendable, Hashable, Identifiable {
 /// Der Generator liefert die Erklärungen, die im Kurs-JSON gespeichert werden,
 /// und springt zur Laufzeit ein, falls einer Zeile dort die Erklärung fehlt.
 public enum CodeExplainer {
+    /// Zahl-Boxen, die im ganzen Schnipsel genau einmal mit einer festen Zahl gefüllt und nie
+    /// verändert werden (int x = 7;) – Name → Wert. Damit nennt die Erklärung bei Vergleichen
+    /// die echten Zahlen: „ist x also größer als 5 – mit x = 7: ist 7 größer als 5“.
+    @TaskLocal static var konstanten: [String: String] = [:]
+
     public static func explain(_ code: String) -> [ExplainedLine] {
+        $konstanten.withValue(Syntax.constants(in: code)) { explainLines(code) }
+    }
+
+    private static func explainLines(_ code: String) -> [ExplainedLine] {
         var context = Context()
         var result: [ExplainedLine] = []
         var seenTerms = Set<String>()
@@ -1341,9 +1350,61 @@ private enum Syntax {
 
     static func idiomHint(_ condition: String) -> String {
         if condition.hasSuffix(".next()") { return " – gibt es also noch eine Zeile im Ergebnis (next() rückt dabei auf sie vor)" }
+        if let words = comparisonInWords(condition) { return " – \(words)" }
         if let g = groups(rx(#"^(\w+)\s*%\s*2\s*==\s*0$"#), condition) { return " – ist \(g[1]) also gerade" }
         if let g = groups(rx(#"^(\w+)\s*%\s*2\s*!=\s*0$"#), condition) { return " – ist \(g[1]) also ungerade" }
         return ""
+    }
+
+    static let comparison = rx(#"^([A-Za-z_]\w*(?:\.\w+)*(?:\(\))?|-?\d+(?:\.\d+)?) (<=|>=|<|>) ([A-Za-z_]\w*(?:\.\w+)*(?:\(\))?|-?\d+(?:\.\d+)?)$"#)
+
+    /// „x > 5“ in Worten: „ist x also größer als 5“ – die Zeichen < und > werden gern verwechselt.
+    /// Sind die Zahlen bekannt (int x = 7; und nie verändert), kommen sie dazu:
+    /// „ist x also größer als 5 – mit x = 7: ist 7 größer als 5“. Das Ergebnis selbst
+    /// steht bewusst nicht da – bei „Was wird ausgegeben?“ wäre es sonst verraten.
+    static func comparisonInWords(_ condition: String) -> String? {
+        guard let g = groups(comparison, condition) else { return nil }
+        let (left, op, right) = (g[1], g[2], g[3])
+        let words = switch op {
+        case "<": "kleiner als \(right)"
+        case ">": "größer als \(right)"
+        case "<=": "kleiner als \(right) oder gleich \(right)"
+        default: "größer als \(right) oder gleich \(right)"
+        }
+        var text = "ist \(left) also \(words)"
+        let known = CodeExplainer.konstanten
+        if known[left] != nil || known[right] != nil {
+            let names = [left, right].filter { known[$0] != nil }.map { "\($0) = \(known[$0]!)" }
+            let l = known[left] ?? left, r = known[right] ?? right
+            let concrete = switch op {
+            case "<": "kleiner als \(r)"
+            case ">": "größer als \(r)"
+            case "<=": "kleiner als \(r) oder gleich \(r)"
+            default: "größer als \(r) oder gleich \(r)"
+            }
+            text += " – mit \(names.joined(separator: " und ")): ist \(l) \(concrete)"
+        }
+        return text
+    }
+
+    /// Zahl-Boxen mit festem Wert: genau eine Deklaration mit einer Zahl, danach nie verändert.
+    static func constants(in code: String) -> [String: String] {
+        let masked = JavaSource.maskingLiterals(code)
+        let declaration = rx(#"^\s*(?:final\s+)?(?:int|long|short|byte|double|float)\s+([a-z]\w*)\s*=\s*(-?\d+(?:\.\d+)?)\s*;"#)
+        var found: [String: String] = [:]
+        for line in masked.components(separatedBy: "\n") {
+            if let g = groups(declaration, line) { found[g[1]] = g[2] }
+        }
+        func count(_ pattern: String) -> Int {
+            rx(pattern).numberOfMatches(in: masked, range: NSRange(masked.startIndex..., in: masked))
+        }
+        return found.filter { name, _ in
+            // Jede Zuweisung (=, +=, …) und jedes ++/-- zählt; die Deklaration selbst ist eine davon.
+            let changes = count(#"\b\#(name)\s*(?:[-+*/%]?=(?!=)|\+\+|--)|(?:\+\+|--)\s*\#(name)\b"#)
+            // Ein zweites „Typ name“ (Parameter, Schleifenzähler, andere Methode) – dann ist es nicht eindeutig.
+            let declarations = count(#"\b(?:int|long|short|byte|double|float|var|char|boolean|String|[A-Z]\w*(?:<[^<>]*>)?(?:\[\])*)\s+\#(name)\b"#)
+            return changes == 1 && declarations == 1
+        }
     }
 
     /// Häufige „Fabrik“-Aufrufe in Alltagssprache.
