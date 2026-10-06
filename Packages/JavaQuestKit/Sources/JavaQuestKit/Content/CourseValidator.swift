@@ -99,6 +99,17 @@ public enum CourseValidator {
             }
         case .predictOutput(let spec):
             if spec.expectedOutput.isEmpty { issues.append(CourseIssue(location: location, message: "expectedOutput ist leer")) }
+        case .ordering(let spec):
+            if spec.pieces.count < 3 { issues.append(CourseIssue(location: location, message: "Code-Puzzle mit weniger als 3 Zeilen")) }
+            if spec.pieces.contains(where: \.isEmpty) { issues.append(CourseIssue(location: location, message: "Code-Puzzle mit Leerzeile")) }
+        case .findBug(let spec):
+            let lineCount = task.codeSnippet?.lines.count ?? 0
+            if !(1...max(lineCount, 1)).contains(spec.bugLine) || lineCount == 0 {
+                issues.append(CourseIssue(location: location, message: "bugLine liegt außerhalb des Codes"))
+            } else if task.codeSnippet?.lines[spec.bugLine - 1].code.trimmingCharacters(in: .whitespaces) == spec.fix.code.trimmingCharacters(in: .whitespaces) {
+                issues.append(CourseIssue(location: location, message: "Die korrigierte Zeile ist identisch mit der fehlerhaften"))
+            }
+            if (spec.fix.explain ?? "").isEmpty { issues.append(CourseIssue(location: location, message: "Korrektur ohne Erklärung")) }
         case .code(let spec):
             // anyOf zählt wie require: Auch damit muss etwas erfüllt sein.
             if !spec.rules.contains(where: { $0.rule == .require || $0.rule == .anyOf }) {

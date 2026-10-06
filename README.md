@@ -16,6 +16,23 @@ Java Master Score von 0 bis 1000.
   UML-Klassendiagramme, Endlos-Training und freies Lernen – eine gemeinsame Kursdatei für alle Plattformen
 - **Bestanden ab 69 %** (zentral in `LessonSession.passThreshold`)
 
+**Nur in der Apple-App (iPhone, iPad, Mac):**
+- **Arena:** Den Roboter „Byte“ mit echtem Java steuern – Lektion 1–7 enden mit einer Mission, dazu
+  3 Boss-Level, 3 Trainingsmissionen, eine tägliche Mission und ein freier Spielplatz. Der Code läuft
+  animiert Zeile für Zeile, mit Variablen- und Konsolenanzeige und bis zu 3 Sternen je Mission
+  (`Packages/JavaQuestKit/Sources/JavaQuestKit/Arena`, Missionen in `arena_missions.json`).
+- **Eingebauter Java-Interpreter** (`JavaQuestKit/Interpreter`): Variablen, Kontrollfluss, statische Methoden,
+  Arrays und Strings. Code-Aufgaben werden damit wirklich ausgeführt und die Ausgabe verglichen; dazu ein
+  „Testlauf“, der keinen Versuch kostet. Gegen ein echtes JDK geprüft (`Tests/…/Fixtures/java_differential.json`)
+  und gegen alle 149 Kursprogramme, die er versteht – Klassen, Lambdas, Collections und try/catch erkennt er
+  als „nicht unterstützt“ und überlässt sie der Regelprüfung.
+- **Bonus-Aufgaben:** Code-Puzzle (Zeilen ordnen) und Bug-Jagd (Fehlerzeile finden), je eine in Lektion 1–13
+  (`apple_extra_tasks.json`, beim Laden einsortiert). Sie bringen XP, zählen aber **nicht** für Trefferquote und
+  Master Score – so bleibt der Score auf allen Plattformen gleich. Die gemeinsame Kursdatei bleibt unverändert.
+- **Motivation:** XP und Level, Combos, 19 Abzeichen, Missionssterne und Boss-Level im Lernpfad.
+  Missionsergebnisse stehen im vorhandenen Aufgaben-Protokoll (Kontext `mission`/`daily`, `credit` = Sterne ÷ 3) –
+  kein neues Speicherschema, alte Lernstände bleiben unverändert lesbar, Sicherungen nehmen sie mit.
+
 **Sofort ausprobieren – ohne Installation:** <https://niklas122212.github.io/JavaQuest/>
 Im Browser öffnen; auf dem iPhone in Safari über *Teilen → Zum Home-Bildschirm* als App ablegen.
 Läuft danach offline, ohne App Store und ohne Konto (siehe [Web/](Web/README.md)).

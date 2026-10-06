@@ -642,7 +642,7 @@ private struct Context {
             if rest == "{" { stack.append(.loop) }
             let frage = cond.hasSuffix(".hasNext()") ? " hasNext() fragt das Lesezeichen: Kommt noch ein Element?"
                 : cond.hasSuffix(".next()") ? " next() rückt das Ergebnis eine Zeile weiter und antwortet, ob es noch eine gab." : ""
-            return "Eine Schleife: Solange die Frage „\(cond)?“ mit „ja“ beantwortet wird, wiederholt das Programm die Zeilen im Block. Ist die Antwort schon am Anfang „nein“, läuft der Block gar nicht.\(frage)"
+            return "Eine Schleife: Solange die Frage „\(cond)?“\(Syntax.idiomHint(cond).isEmpty ? "" : Syntax.idiomHint(cond) + " –") mit „ja“ beantwortet wird, wiederholt das Programm die Zeilen im Block. Ist die Antwort schon am Anfang „nein“, läuft der Block gar nicht.\(frage)"
         }
 
         if s == "do {" {
@@ -913,6 +913,10 @@ private struct Context {
         guard let call = Syntax.topLevelCall(expression) else { return nil }
         let name = call.method, args = call.arguments
         let argumentList = Syntax.splitArguments(args)
+
+        if call.receiver == "robot", let text = Syntax.robotCommand(name) {
+            return text
+        }
 
         guard let receiver = call.receiver else {
             if name == "assertEquals", argumentList.count == 2 {
@@ -1349,6 +1353,9 @@ private enum Syntax {
     }
 
     static func idiomHint(_ condition: String) -> String {
+        if let g = groups(rx(#"^(!?)\s*robot\.(\w+)\(\)$"#), condition), let question = robotQuestions[g[2]] {
+            return " – also: " + (g[1].isEmpty ? question.yes : question.no)
+        }
         if condition.hasSuffix(".next()") { return " – gibt es also noch eine Zeile im Ergebnis (next() rückt dabei auf sie vor)" }
         if let words = comparisonInWords(condition) { return " – \(words)" }
         if let g = groups(rx(#"^(\w+)\s*%\s*2\s*==\s*0$"#), condition) { return " – ist \(g[1]) also gerade" }
@@ -1404,6 +1411,26 @@ private enum Syntax {
             // Ein zweites „Typ name“ (Parameter, Schleifenzähler, andere Methode) – dann ist es nicht eindeutig.
             let declarations = count(#"\b(?:int|long|short|byte|double|float|var|char|boolean|String|[A-Z]\w*(?:<[^<>]*>)?(?:\[\])*)\s+\#(name)\b"#)
             return changes == 1 && declarations == 1
+        }
+    }
+
+    /// Fragen, die der Arena-Roboter beantworten kann (true/false).
+    static let robotQuestions: [String: (yes: String, no: String)] = [
+        "frontIsClear": ("ist das Feld vor dem Roboter frei (keine Wand)", "steht vor dem Roboter eine Wand"),
+        "leftIsClear": ("ist links neben dem Roboter frei", "ist links neben dem Roboter eine Wand"),
+        "rightIsClear": ("ist rechts neben dem Roboter frei", "ist rechts neben dem Roboter eine Wand"),
+        "onCoin": ("liegt auf dem Feld des Roboters eine Münze", "liegt auf dem Feld des Roboters keine Münze"),
+        "atGoal": ("steht der Roboter auf dem Zielfeld", "ist der Roboter noch nicht am Ziel"),
+    ]
+
+    /// Befehle des Arena-Roboters in Alltagssprache.
+    static func robotCommand(_ name: String) -> String? {
+        switch name {
+        case "move": "Der Roboter fährt ein Feld nach vorne – in die Richtung, in die er gerade schaut."
+        case "turnLeft": "Der Roboter dreht sich auf der Stelle um 90° nach links. Er bleibt dabei auf seinem Feld."
+        case "turnRight": "Der Roboter dreht sich auf der Stelle um 90° nach rechts. Er bleibt dabei auf seinem Feld."
+        case "pickCoin": "Der Roboter hebt die Münze auf seinem Feld auf und steckt sie ein."
+        default: nil
         }
     }
 

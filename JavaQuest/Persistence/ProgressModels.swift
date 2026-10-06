@@ -72,7 +72,9 @@ final class TopicMastery {
     }
 }
 
-/// Protokoll jeder abgeschlossenen Aufgabe (Lektion, Übung oder Einstufung).
+/// Protokoll jeder abgeschlossenen Aufgabe (Lektion, Übung, Wiederholung oder Einstufung).
+/// Auch geschaffte Arena-Missionen landen hier (Kontext `mission`/`daily`, `credit` = Sterne ÷ 3) –
+/// so braucht die Arena kein neues Speicherschema und alte Fortschritte bleiben lesbar.
 @Model
 final class TaskAttempt {
     var taskId: String = ""
@@ -117,6 +119,9 @@ enum AttemptContext: String, Sendable {
     case practice
     case training
     case placement
+    /// Arena-Mission bzw. Tagesmission – Sterne stehen als credit = Sterne ÷ 3 im Protokoll.
+    case mission
+    case daily
 }
 
 extension LearnerProfile {

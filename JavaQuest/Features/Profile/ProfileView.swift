@@ -36,6 +36,17 @@ struct ProfileView: View {
                 Section("Fortschritt") {
                     LabeledContent("Java Master Score", value: "\(store.masterScore) / \(MasterScore.maximum)")
                     LabeledContent("Rang", value: store.rank.title)
+                    LabeledContent("Level", value: "\(store.levelProgress.level) (\(store.levelProgress.xp) XP)")
+                    LabeledContent("Arena-Sterne", value: "\(store.missionStars.values.reduce(0, +)) von \(store.catalog.missions.count * 3)")
+                    #if os(iOS)
+                    NavigationLink {
+                        AchievementsView()
+                    } label: {
+                        LabeledContent("Abzeichen", value: "\(store.unlockedAchievements.count) von \(Achievement.all.count)")
+                    }
+                    #else
+                    LabeledContent("Abzeichen", value: "\(store.unlockedAchievements.count) von \(Achievement.all.count)")
+                    #endif
                     LabeledContent("Längste Serie", value: profile.longestStreak == 1 ? "1 Tag" : "\(profile.longestStreak) Tage")
                     LabeledContent("Lektionen", value: "\(store.completedLessonCount) von \(store.course.allLessons.count)")
                 }

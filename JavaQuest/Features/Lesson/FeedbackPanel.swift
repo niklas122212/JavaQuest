@@ -18,6 +18,8 @@ struct FeedbackPanel: View {
     var wrongChoice: (label: String, reason: String?)?
     /// Was richtig gewesen wäre. Erscheint erst, wenn die Aufgabe abgeschlossen ist.
     var correctAnswer: String?
+    /// XP der gerade gelösten Aufgabe – für die „+20 XP“-Einblendung.
+    var awardedXP: Int?
 
     private var isCorrect: Bool { result?.isCorrect == true }
 
@@ -61,6 +63,15 @@ struct FeedbackPanel: View {
                     Text(subline).font(.subheadline).foregroundStyle(.secondary)
                 }
                 Spacer(minLength: 8)
+                if isCorrect, let awardedXP {
+                    Text("+\(awardedXP) XP")
+                        .font(.subheadline.weight(.heavy).monospacedDigit())
+                        .foregroundStyle(Theme.violet)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(Theme.violet.opacity(0.12), in: Capsule())
+                        .transition(.scale.combined(with: .opacity))
+                }
                 if let result, !isCorrect, !isRevealed {
                     VStack(spacing: 0) {
                         Text("\(result.percent) %").font(.headline.monospacedDigit())
@@ -111,6 +122,10 @@ struct FeedbackPanel: View {
                 }
             }
 
+            if let execution = result?.execution, !isRevealed {
+                ExecutionConsole(report: execution)
+            }
+
             if !isCorrect, !isRevealed, let hint {
                 Label {
                     Text(hint).font(.subheadline)
@@ -146,6 +161,74 @@ struct FeedbackPanel: View {
         .overlay {
             RoundedRectangle(cornerRadius: Theme.cornerRadius, style: .continuous)
                 .strokeBorder(tint.opacity(0.3))
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
+/// Ergebnis eines Testlaufs – ohne Bewertung, beliebig oft.
+struct TestRunPanel: View {
+    let result: JavaRunResult
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Label("Testlauf – zählt nicht als Versuch", systemImage: "play.circle.fill")
+                .font(.caption.weight(.bold))
+                .foregroundStyle(Theme.teal)
+            if result.problem?.kind == .unsupported {
+                Text("Diesen Code kann die App nicht selbst ausführen (\(result.problem?.message ?? "")). Prüfen funktioniert trotzdem – dann mit den Regeln der Aufgabe.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            } else {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(result.output.isEmpty ? "(keine Ausgabe)" : result.output.trimmingCharacters(in: .newlines))
+                        .foregroundStyle(result.output.isEmpty ? CodeTheme.plain.opacity(0.4) : CodeTheme.plain)
+                    if let problem = result.problem {
+                        Text("✗ \(problem.description)")
+                            .foregroundStyle(Color(red: 1, green: 0.55, blue: 0.55))
+                    }
+                }
+                .font(.system(.footnote, design: .monospaced))
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(10)
+                .background(CodeTheme.background, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .textSelection(.enabled)
+            }
+            ForEach(result.warnings, id: \.self) { warning in
+                Label("Zeile \(warning.line): \(warning.message)", systemImage: "lightbulb.fill")
+                    .font(.footnote)
+                    .foregroundStyle(Theme.orange)
+            }
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Theme.teal.opacity(0.08), in: RoundedRectangle(cornerRadius: Theme.innerRadius, style: .continuous))
+        .accessibilityElement(children: .combine)
+    }
+}
+
+/// Was das Programm beim echten Ausführen ausgegeben hat.
+private struct ExecutionConsole: View {
+    let report: ExecutionReport
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Label("Ausgeführt – das hat dein Programm ausgegeben", systemImage: "terminal.fill")
+                .font(.caption.weight(.bold))
+                .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(report.output.isEmpty ? "(keine Ausgabe)" : report.output.trimmingCharacters(in: .newlines))
+                    .foregroundStyle(report.output.isEmpty ? CodeTheme.plain.opacity(0.4) : CodeTheme.plain)
+                if let problem = report.problem {
+                    Text("✗ \(report.problemLine.map { "Zeile \($0): " } ?? "")\(problem)")
+                        .foregroundStyle(Color(red: 1, green: 0.55, blue: 0.55))
+                }
+            }
+            .font(.system(.footnote, design: .monospaced))
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(10)
+            .background(CodeTheme.background, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .textSelection(.enabled)
         }
         .accessibilityElement(children: .combine)
     }
@@ -198,6 +281,15 @@ struct TaskActionBar: View {
                 if model.session.lastResult != nil {
                     Button("Lösung zeigen", systemImage: "eye") { dismissKeyboard(); withAnimation(.smooth) { model.revealSolution() } }
                         .buttonStyle(.secondary)
+                }
+                if case .code? = model.currentTask?.kind {
+                    Button(action: { dismissKeyboard(); model.testRun() }) {
+                        if model.isTestRunning { ProgressView() } else { Label("Testlauf", systemImage: "play") }
+                    }
+                    .buttonStyle(SecondaryButtonStyle(tint: Theme.teal))
+                    .disabled(!model.canTestRun)
+                    .keyboardShortcut("r", modifiers: .command)
+                    .help("Code ausführen und die Ausgabe ansehen – kostet keinen Versuch")
                 }
                 if model.session.lastResult == nil || model.session.canRetry {
                     Button(action: { dismissKeyboard(); withAnimation(.smooth) { model.submit() } }) {

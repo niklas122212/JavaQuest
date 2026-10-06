@@ -66,6 +66,10 @@ public struct Course: Decodable, Sendable, Hashable {
             case .code(let spec):
                 result.append(("\(task.id) starterCode", spec.starter))
                 result.append(("\(task.id) sampleSolution", spec.solution))
+            case .ordering(let spec):
+                result.append(("\(task.id) puzzle", spec.puzzle))
+            case .findBug(let spec):
+                if let code = task.codeSnippet { result.append(("\(task.id) fixed", spec.fixed(code))) }
             default: break
             }
         }
@@ -119,7 +123,8 @@ public struct Lesson: Decodable, Sendable, Hashable, Identifiable {
     public let tasks: [LearningTask]
 
     /// Punktgewicht der Lektion im Java Master Score (Summe der Aufgabenniveaus).
-    public var difficultyWeight: Double { tasks.reduce(0) { $0 + $1.difficulty.weight } }
+    /// Bonus-Aufgaben zählen nicht mit (siehe `TaskType.isBonus`).
+    public var difficultyWeight: Double { tasks.filter { !$0.type.isBonus }.reduce(0) { $0 + $1.difficulty.weight } }
 }
 
 /// Ein „Theorie-Happen“: eine kurze Karte mit Text, optional Codebeispiel (mit
@@ -185,11 +190,44 @@ public enum CourseLoader {
     public static let bundledResourceName = "java_course"
 
     /// Lädt den mitgelieferten Kurs – synchron, weil die Datei klein ist und lokal liegt.
+    /// Zusatzaufgaben nur für die Apple-App (Code-Puzzle, Bug-Jagd). Die gemeinsame Kursdatei bleibt
+    /// unverändert, damit Windows, Android und Web sie weiter lesen können.
+    public static let appleExtraTasksResourceName = "apple_extra_tasks"
+
     public static func loadBundled() throws -> Course {
         guard let url = resourceBundle.url(forResource: bundledResourceName, withExtension: "json") else {
             throw CourseLoadingError.missingResource(bundledResourceName)
         }
-        return try load(from: Data(contentsOf: url))
+        var data = try Data(contentsOf: url)
+        if let extra = resourceBundle.url(forResource: appleExtraTasksResourceName, withExtension: "json") {
+            data = try mergingExtraTasks(into: data, extra: Data(contentsOf: extra))
+        }
+        return try load(from: data)
+    }
+
+    /// Sortiert Zusatzaufgaben in ihre Lektionen ein – hinter die letzte Aufgabe mit gleichem oder
+    /// niedrigerem Niveau, damit jede Lektion aufsteigend bleibt.
+    static func mergingExtraTasks(into course: Data, extra: Data) throws -> Data {
+        guard var root = try JSONSerialization.jsonObject(with: course) as? [String: Any],
+              var modules = root["modules"] as? [[String: Any]],
+              let byLesson = (try JSONSerialization.jsonObject(with: extra) as? [String: Any])?["lessons"] as? [String: [[String: Any]]]
+        else { return course }
+        for m in modules.indices {
+            guard var lessons = modules[m]["lessons"] as? [[String: Any]] else { continue }
+            for l in lessons.indices {
+                guard let id = lessons[l]["id"] as? String, let additions = byLesson[id],
+                      var tasks = lessons[l]["tasks"] as? [[String: Any]] else { continue }
+                for task in additions {
+                    let level = task["difficulty"] as? Int ?? 1
+                    let position = (tasks.lastIndex { ($0["difficulty"] as? Int ?? 1) <= level } ?? -1) + 1
+                    tasks.insert(task, at: position)
+                }
+                lessons[l]["tasks"] = tasks
+            }
+            modules[m]["lessons"] = lessons
+        }
+        root["modules"] = modules
+        return try JSONSerialization.data(withJSONObject: root)
     }
 
     public static func load(from data: Data) throws -> Course {

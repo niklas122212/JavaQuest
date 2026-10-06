@@ -17,7 +17,9 @@ let package = Package(
         ),
         .testTarget(
             name: "JavaQuestKitTests",
-            dependencies: ["JavaQuestKit"]
+            dependencies: ["JavaQuestKit"],
+            // Ausgaben echter JDK-Läufe – der Interpreter muss exakt dasselbe liefern.
+            resources: [.copy("Fixtures")]
         )
     ]
 )

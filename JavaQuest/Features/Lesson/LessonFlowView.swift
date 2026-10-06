@@ -33,6 +33,8 @@ struct LessonFlowView: View {
                 title: model.session.title,
                 progress: model.session.progress,
                 position: model.taskPosition,
+                combo: model.session.currentCombo,
+                isMission: model.mission != nil,
                 onClose: { dismiss() }
             )
             Group {
@@ -43,6 +45,12 @@ struct LessonFlowView: View {
                                    onBack: { withAnimation(.smooth) { model.goBackInTheory() } })
                 case .task:
                     TaskStepView(model: model)
+                case .mission:
+                    if let missionModel = model.missionModel {
+                        ArenaMissionView(model: missionModel, context: .lesson(onFinish: { result in
+                            withAnimation(.smooth) { model.finishMission(with: result) }
+                        }))
+                    }
                 case .summary:
                     LessonSummaryView(model: model, onClose: { dismiss() }, onStartLesson: { id in router.startLesson(id) }, onTrainAgain: { router.train() })
                 }
@@ -57,6 +65,8 @@ private struct LessonTopBar: View {
     let title: String
     let progress: Double
     let position: (index: Int, count: Int)?
+    var combo = 0
+    var isMission = false
     let onClose: () -> Void
 
     var body: some View {
@@ -76,7 +86,26 @@ private struct LessonTopBar: View {
                 HStack {
                     Text(title).font(.subheadline.weight(.semibold)).lineLimit(1)
                     Spacer()
-                    if let position {
+                    if combo >= 2 {
+                        Label("Combo ×\(combo)", systemImage: "flame.fill")
+                            .font(.caption.weight(.heavy).monospacedDigit())
+                            .lineLimit(1)
+                            .fixedSize()
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .background(Theme.accentGradient, in: Capsule())
+                            .contentTransition(.numericText(value: Double(combo)))
+                            .transition(.scale.combined(with: .opacity))
+                            .accessibilityLabel(Text("Combo: \(combo) Aufgaben in Folge beim ersten Versuch"))
+                    }
+                    if isMission {
+                        Label("Mission", systemImage: "gamecontroller.fill")
+                            .font(.caption.weight(.semibold))
+                            .lineLimit(1)
+                            .fixedSize()
+                            .foregroundStyle(Theme.indigo)
+                    } else if let position {
                         Text("Aufgabe \(position.index) von \(position.count)")
                             .font(.caption.weight(.medium).monospacedDigit())
                             .foregroundStyle(.secondary)

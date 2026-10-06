@@ -64,6 +64,8 @@ public struct LearningTask: Decodable, Sendable, Hashable, Identifiable {
         case .fillBlank: kind = .fillBlank(try FillBlankSpec(from: decoder))
         case .predictOutput: kind = .predictOutput(try PredictOutputSpec(from: decoder))
         case .code: kind = .code(try CodeTaskSpec(from: decoder))
+        case .ordering: kind = .ordering(try OrderingSpec(from: decoder))
+        case .findBug: kind = .findBug(try FindBugSpec(from: decoder))
         }
     }
 
@@ -99,6 +101,10 @@ public enum TaskType: String, Decodable, Sendable, CaseIterable {
     case fillBlank
     case predictOutput
     case code
+    /// Code-Puzzle: Zeilen in die richtige Reihenfolge bringen.
+    case ordering
+    /// Bug-Jagd: die fehlerhafte Zeile finden.
+    case findBug
 
     public var title: String {
         switch self {
@@ -106,8 +112,14 @@ public enum TaskType: String, Decodable, Sendable, CaseIterable {
         case .fillBlank: "Lückentext"
         case .predictOutput: "Ausgabe vorhersagen"
         case .code: "Code schreiben"
+        case .ordering: "Code-Puzzle"
+        case .findBug: "Bug-Jagd"
         }
     }
+
+    /// Bonus-Aufgaben (nur in der Apple-App) bringen XP und zählen für die Wissensanalyse,
+    /// aber nicht für Trefferquote und Master Score – so bleibt der Score auf allen Plattformen gleich.
+    public var isBonus: Bool { self == .ordering || self == .findBug }
 
     public var symbolName: String {
         switch self {
@@ -115,6 +127,8 @@ public enum TaskType: String, Decodable, Sendable, CaseIterable {
         case .fillBlank: "rectangle.and.pencil.and.ellipsis"
         case .predictOutput: "terminal.fill"
         case .code: "chevron.left.forwardslash.chevron.right"
+        case .ordering: "puzzlepiece.fill"
+        case .findBug: "ant.fill"
         }
     }
 }
@@ -124,6 +138,8 @@ public enum TaskKind: Sendable, Hashable {
     case fillBlank(FillBlankSpec)
     case predictOutput(PredictOutputSpec)
     case code(CodeTaskSpec)
+    case ordering(OrderingSpec)
+    case findBug(FindBugSpec)
 
     public var type: TaskType {
         switch self {
@@ -131,6 +147,8 @@ public enum TaskKind: Sendable, Hashable {
         case .fillBlank: .fillBlank
         case .predictOutput: .predictOutput
         case .code: .code
+        case .ordering: .ordering
+        case .findBug: .findBug
         }
     }
 }
@@ -372,4 +390,85 @@ public enum StructureCheck: String, Decodable, Sendable, CaseIterable {
     case balancedDelimiters
     /// Anweisungen enden mit Semikolon (heuristisch).
     case semicolons
+}
+
+/// Code-Puzzle: Die Zeilen von `puzzle` stehen in der richtigen Reihenfolge im JSON
+/// und werden gemischt angezeigt. Einrückung entsteht beim Zusammensetzen automatisch.
+public struct OrderingSpec: Decodable, Sendable, Hashable {
+    public let puzzle: CodeSnippet
+
+    enum CodingKeys: String, CodingKey { case puzzle }
+
+    public init(puzzle: CodeSnippet) {
+        self.puzzle = puzzle
+    }
+
+    public var pieces: [String] { puzzle.lines.map { $0.code.trimmingCharacters(in: .whitespaces) } }
+
+    /// Gemischte Reihenfolge (Indizes in `pieces`) – je Aufgabe immer gleich und nie schon richtig.
+    public func shuffledOrder(seed: String) -> [Int] {
+        var generator = SeededGenerator(seed: seed)
+        let indices = Array(pieces.indices)
+        guard indices.count > 1 else { return indices }
+        for _ in 0..<20 {
+            let candidate = indices.shuffled(using: &generator)
+            if candidate.map({ pieces[$0] }) != pieces { return candidate }
+        }
+        return Array(indices.reversed())
+    }
+
+    /// Setzt Zeilen in der gewählten Reihenfolge zusammen und rückt nach Klammertiefe ein.
+    public static func assemble(_ lines: [String]) -> String {
+        var depth = 0
+        return lines.map { line in
+            if line.hasPrefix("}") { depth = max(depth - 1, 0) }
+            let indented = String(repeating: "    ", count: depth) + line
+            let opens = line.filter { $0 == "{" }.count
+            let closes = line.filter { $0 == "}" }.count - (line.hasPrefix("}") ? 1 : 0)
+            depth = max(depth + opens - closes, 0)
+            return indented
+        }.joined(separator: "\n")
+    }
+}
+
+/// Bug-Jagd: Im Code der Aufgabe (`code`) ist genau eine Zeile falsch.
+public struct FindBugSpec: Decodable, Sendable, Hashable {
+    /// Fehlerhafte Zeile (ab 1).
+    public let bugLine: Int
+    /// Die korrigierte Zeile samt Erklärung.
+    public let fix: CodeSnippet.Line
+
+    enum CodingKeys: String, CodingKey { case bugLine, fix }
+
+    public init(bugLine: Int, fix: CodeSnippet.Line) {
+        self.bugLine = bugLine
+        self.fix = fix
+    }
+
+    /// Der Code mit korrigierter Zeile – für die Erklärung nach dem Lösen.
+    public func fixed(_ snippet: CodeSnippet) -> CodeSnippet {
+        var lines = snippet.lines
+        guard bugLine >= 1, bugLine <= lines.count else { return snippet }
+        let indentation = String(lines[bugLine - 1].code.prefix { $0 == " " })
+        lines[bugLine - 1] = CodeSnippet.Line(code: indentation + fix.code.trimmingCharacters(in: .whitespaces), explain: fix.explain)
+        return CodeSnippet(lines: lines)
+    }
+}
+
+/// Kleiner deterministischer Zufallsgenerator (SplitMix64), damit gemischte Reihenfolgen stabil bleiben.
+struct SeededGenerator: RandomNumberGenerator {
+    private var state: UInt64
+
+    init(seed: String) {
+        // FNV-1a über die Bytes – stabil über App-Starts hinweg (anders als hashValue).
+        state = seed.utf8.reduce(0xcbf2_9ce4_8422_2325) { ($0 ^ UInt64($1)) &* 0x100_0000_01b3 }
+    }
+
+    mutating func next() -> UInt64 {
+        state &+= 0x9E37_79B9_7F4A_7C15
+        var z = state
+        z = (z ^ (z >> 30)) &* 0xBF58_476D_1CE4_E5B9
+        z = (z ^ (z >> 27)) &* 0x94D0_49BB_1331_11EB
+        return z ^ (z >> 31)
+    }
 }

@@ -189,7 +189,8 @@ struct LessonSessionTests {
             session.advanceToNextTask()
             index += 1
         }
-        let weights = lesson.tasks.map(\.difficulty.weight)
+        // Bonus-Aufgaben (Puzzle, Bug-Jagd) zählen nicht zur Quote.
+        let weights = lesson.tasks.filter { !$0.type.isBonus }.map(\.difficulty.weight)
         let expected = (weights.dropLast().reduce(0, +) + weights.last! * 0.5) / weights.reduce(0, +)
         #expect(abs(session.summary.accuracy - expected) < 0.0001)
         #expect(expected < 1, "Halbe Punkte auf die schwerste Aufgabe drücken die gewichtete Quote")
@@ -417,7 +418,7 @@ struct ProgressTests {
 
     @Test("Jedes Lernziel hat mindestens zwei Varianten – sonst käme nach einem Fehler dieselbe Frage")
     func everyGoalHasAVariant() {
-        let ohneVariante = VariantSelector.groups(course.practiceableTasks)
+        let ohneVariante = VariantSelector.groups(course.practiceableTasks.filter { !$0.type.isBonus })
             .filter { $0.variants.count < 2 }
             .map(\.key)
         #expect(ohneVariante.isEmpty, "Lernziele mit nur einer Aufgabe: \(ohneVariante.sorted())")

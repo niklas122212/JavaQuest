@@ -48,6 +48,18 @@ public enum SecondHint {
                 .filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
                 .count
             return zeilen > 0 ? "Die Musterlösung kommt mit \(zeilen) Zeilen aus – mehr brauchst du nicht." : nil
+
+        case .ordering(let spec):
+            // Den Anfang verraten – der Rest bleibt zu tun.
+            guard let first = spec.pieces.first else { return nil }
+            return "Das Programm beginnt mit „\(first)“. Überleg dann Zeile für Zeile, was davon abhängt."
+
+        case .findBug(let spec):
+            // Den Suchbereich auf drei Zeilen eingrenzen, ohne die Zeile selbst zu nennen.
+            let count = task.codeSnippet?.lines.count ?? 0
+            guard count > 3 else { return nil }
+            let start = min(max(spec.bugLine - 1, 1), count - 2)
+            return "Der Fehler steckt irgendwo in den Zeilen \(start) bis \(start + 2)."
         }
     }
 }

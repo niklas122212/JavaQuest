@@ -7,13 +7,17 @@ struct AnswerDraft: Equatable {
     var choice: Int?
     var blanks: [String] = []
     var text: String = ""
+    /// Code-Puzzle: gewählte Teile in Reihenfolge (Indizes in `OrderingSpec.pieces`).
+    var order: [Int] = []
+    /// Bug-Jagd: angetippte Zeile (ab 1).
+    var selectedLine: Int?
 
     init(task: LearningTask? = nil) {
         guard let task else { return }
         switch task.kind {
         case .fillBlank(let spec): blanks = Array(repeating: "", count: spec.blanks.count)
         case .code(let spec): text = spec.starterCode
-        case .singleChoice, .predictOutput: break
+        case .singleChoice, .predictOutput, .ordering, .findBug: break
         }
     }
 
@@ -26,6 +30,11 @@ struct AnswerDraft: Equatable {
             return blanks.contains { !$0.trimmingCharacters(in: .whitespaces).isEmpty } ? .blanks(blanks) : nil
         case .predictOutput, .code:
             return text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : .text(text)
+        case .ordering(let spec):
+            // Geprüft wird erst, wenn alle Teile liegen.
+            return order.count == spec.pieces.count ? .order(order) : nil
+        case .findBug:
+            return selectedLine.map(TaskAnswer.line)
         }
     }
 
@@ -34,6 +43,8 @@ struct AnswerDraft: Equatable {
         case .choice(let index): choice = index
         case .blanks(let values): blanks = values
         case .text(let value): text = value
+        case .order(let value): order = value
+        case .line(let value): selectedLine = value
         }
     }
 }
@@ -47,9 +58,38 @@ final class LessonFlowModel {
     private(set) var scoreChange: ScoreChange?
     private(set) var successCount = 0
     private(set) var failureCount = 0
+    /// XP der zuletzt gelösten Aufgabe – für die kleine „+20 XP“-Einblendung.
+    private(set) var lastAwardedXP: Int?
+    /// Was die ganze Sitzung gebracht hat (XP, Level, Abzeichen) – gesetzt bei der Auswertung.
+    private(set) var rewardGain: RewardGain?
+    /// Ergebnis der Abschluss-Mission, falls gespielt.
+    private(set) var missionResult: ArenaResult?
+    /// Die laufende Abschluss-Mission (entsteht beim Erreichen der Missions-Phase).
+    private(set) var missionModel: ArenaMissionModel?
+    /// Ergebnis des letzten Testlaufs (Code ausführen, ohne einen Versuch zu verbrauchen).
+    private(set) var testRunResult: JavaRunResult?
+    private(set) var isTestRunning = false
 
-    private let store: ProgressStore
+    var canTestRun: Bool {
+        guard let task = currentTask, case .code = task.kind, !session.isCurrentTaskFinished else { return false }
+        return !draft.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isTestRunning
+    }
+
+    func testRun() {
+        guard canTestRun else { return }
+        let source = draft.text
+        isTestRunning = true
+        Task {
+            let result = await Task.detached(priority: .userInitiated) { AnswerEvaluator.testRun(source) }.value
+            self.testRunResult = result
+            self.isTestRunning = false
+        }
+    }
+
+    let store: ProgressStore
     private let evaluator = AnswerEvaluator()
+    private let rewardStart: RewardSnapshot
+    private var lessonRecorded = false
 
     init(request: SessionRequest, store: ProgressStore) {
         let session: LessonSession
@@ -61,7 +101,8 @@ final class LessonFlowModel {
                     mode: .lesson(lessonId: lesson.id),
                     title: lesson.title,
                     theory: lesson.theory,
-                    tasks: store.lessonTasks(for: lesson)
+                    tasks: store.lessonTasks(for: lesson),
+                    missionId: store.catalog.lessonMission(for: id)?.id
                 )
             } else {
                 session = LessonSession(mode: .lesson(lessonId: id), title: "Lektion nicht gefunden", theory: [], tasks: [])
@@ -96,11 +137,45 @@ final class LessonFlowModel {
                 theory: [],
                 tasks: store.freeTrainingTasks(topicIds: topics, difficulties: levels, count: count)
             )
+        case .mission, .playground:
+            // Missionen laufen im eigenen Arena-Bildschirm, nicht im Lern-Loop.
+            session = LessonSession(mode: .free(topicIds: []), title: "", theory: [], tasks: [])
         }
         self.store = store
         self.session = session
         self.draft = AnswerDraft(task: session.currentTask)
+        self.rewardStart = store.rewardSnapshot()
+        #if DEBUG
+        applyDebugSkip()
+        #endif
     }
+
+    #if DEBUG
+    /// Nur für Screenshots (`-inMemoryStore`): `-skipToTask N` löst die ersten N Aufgaben mit der Musterlösung,
+    /// `-skipToTask 99` springt bis zur Mission bzw. Auswertung. `-answerWrong` beantwortet die Zielaufgabe falsch.
+    private func applyDebugSkip() {
+        let defaults = UserDefaults.standard
+        guard ProcessInfo.processInfo.arguments.contains("-inMemoryStore"), defaults.object(forKey: "skipToTask") != nil else { return }
+        let count = defaults.integer(forKey: "skipToTask")
+        while case .theory = session.phase { session.advanceTheory() }
+        for _ in 0..<count {
+            guard let task = currentTask else { break }
+            draft.apply(evaluator.referenceAnswer(for: task))
+            submit()
+            next()
+        }
+        if ProcessInfo.processInfo.arguments.contains("-answerWrong"), let task = currentTask {
+            draft.apply(PreviewSupport.wrongAnswer(for: task))
+            submit()
+        }
+    }
+    #endif
+
+    var mission: ArenaMission? {
+        guard case .mission(let id) = session.phase else { return nil }
+        return store.catalog.mission(id: id)
+    }
+
 
     var course: Course { store.course }
     var currentTask: LearningTask? { session.currentTask }
@@ -121,6 +196,10 @@ final class LessonFlowModel {
         guard session.lastResult == nil || session.canRetry else { return false }
         if case .code(let spec) = task.kind,
            draft.text.trimmingCharacters(in: .whitespacesAndNewlines) == spec.starterCode.trimmingCharacters(in: .whitespacesAndNewlines) {
+            return false
+        }
+        if session.lastResult != nil, let answer = draft.answer(for: task), answer == lastSubmittedAnswer {
+            // Dieselbe Antwort noch einmal zu prüfen, kostet nur einen Versuch.
             return false
         }
         return draft.answer(for: task) != nil
@@ -161,9 +240,11 @@ final class LessonFlowModel {
         case .fillBlank(let spec):
             let werte = spec.blanks.enumerated().map { "Lücke \($0.offset + 1): \($0.element.accepted.first ?? "")" }
             return werte.joined(separator: " · ")
-        case .code:
-            // Bei Code steht die Musterlösung ohnehin Zeile für Zeile darunter.
+        case .code, .ordering:
+            // Bei Code und Puzzle steht die Lösung ohnehin Zeile für Zeile darunter.
             return nil
+        case .findBug(let spec):
+            return "Zeile \(spec.bugLine) – richtig wäre: \(spec.fix.code.trimmingCharacters(in: .whitespaces))"
         }
     }
 
@@ -176,13 +257,22 @@ final class LessonFlowModel {
     func advanceTheory() { session.advanceTheory() }
     func goBackInTheory() { session.goBackInTheory() }
 
+    private var lastSubmittedAnswer: TaskAnswer?
+
     func submit() {
         guard canSubmit, let task = currentTask, let answer = draft.answer(for: task) else { return }
         if session.lastResult != nil { session.prepareRetry() }
         guard let result = session.submit(answer, using: evaluator) else { return }
+        lastSubmittedAnswer = answer
         if result.isCorrect {
             successCount += 1
             persistFinishedOutcome()
+            if let outcome = session.finishedOutcome {
+                lastAwardedXP = Experience.points(forTask: ActivityRecord(
+                    taskId: outcome.taskId, topicId: outcome.topicId, context: .lesson, difficulty: outcome.difficulty.rawValue,
+                    credit: outcome.credit, solved: true, tries: outcome.attempts, date: .now
+                ))
+            }
         } else {
             failureCount += 1
         }
@@ -198,9 +288,34 @@ final class LessonFlowModel {
     func next() {
         session.advanceToNextTask()
         draft = AnswerDraft(task: session.currentTask)
-        if session.phase == .summary, let lessonId = session.lessonId {
-            scoreChange = store.completeLesson(lessonId, summary: session.summary)
+        lastAwardedXP = nil
+        lastSubmittedAnswer = nil
+        testRunResult = nil
+        recordLessonIfFinished()
+    }
+
+    /// Die Lektion zählt, sobald die letzte Aufgabe erledigt ist – auch wenn die Mission danach abgebrochen wird.
+    private func recordLessonIfFinished() {
+        if case .mission(let id) = session.phase, missionModel == nil, let mission = store.catalog.mission(id: id) {
+            missionModel = ArenaMissionModel(mission: mission, store: store)
         }
+        switch session.phase {
+        case .mission, .summary:
+            if !lessonRecorded, let lessonId = session.lessonId {
+                lessonRecorded = true
+                scoreChange = store.completeLesson(lessonId, summary: session.summary)
+            }
+            if session.phase == .summary { rewardGain = store.rewardSnapshot().gains(since: rewardStart) }
+        default:
+            break
+        }
+    }
+
+    /// Mission geschafft (Ergebnis wird gespeichert) oder übersprungen (`nil`).
+    func finishMission(with result: ArenaResult?) {
+        missionResult = result
+        session.finishMission()
+        recordLessonIfFinished()
     }
 
     /// Ergebnis einer bereits bewerteten Lücke, für die farbige Markierung.

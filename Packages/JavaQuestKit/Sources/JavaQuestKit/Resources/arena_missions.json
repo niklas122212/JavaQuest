@@ -1,0 +1,689 @@
+{
+ "playground": {
+  "map": [
+   "##########",
+   "#R...o...#",
+   "#..#...o.#",
+   "#..#.##..#",
+   "#o.....#.#",
+   "#...o....#",
+   "##########"
+  ]
+ },
+ "missions": [
+  {
+   "id": "a01-erste-schritte",
+   "kind": "lesson",
+   "lessonId": "l01-hello",
+   "topicId": "syntax",
+   "difficulty": 1,
+   "title": "Erste Schritte",
+   "story": "Das ist Byte, dein Roboter. Er versteht Java! Fahr ihn mit robot.move(); bis zur Zielflagge, heb unterwegs die Münze mit robot.pickCoin(); auf und lass ihn am Ende „Angekommen!“ ausgeben.",
+   "worlds": [
+    {
+     "map": [
+      "#######",
+      "#R.o.G#",
+      "#######"
+     ],
+     "expectedOutput": "Angekommen!"
+    }
+   ],
+   "starterCode": "// Jede Zeile ist ein Befehl und endet mit ;\nrobot.move();",
+   "solution": "robot.move();\nrobot.move();\nrobot.pickCoin();\nrobot.move();\nrobot.move();\nSystem.out.println(\"Angekommen!\");",
+   "hint": "Byte steht 4 Felder vor dem Ziel – also 4-mal robot.move();. Auf dem Münzfeld kommt robot.pickCoin(); dazwischen.",
+   "bonus": [
+    {
+     "type": "allCoins"
+    },
+    {
+     "type": "maxActions",
+     "value": 5
+    }
+   ],
+   "newCommands": [
+    "move",
+    "pickCoin"
+   ],
+   "requirements": [],
+   "collectAllCoins": false,
+   "reachGoal": true
+  },
+  {
+   "id": "a02-muenzen-zaehlen",
+   "kind": "lesson",
+   "lessonId": "l02-variables",
+   "topicId": "variables",
+   "difficulty": 2,
+   "title": "Münzen zählen",
+   "story": "Im Gang liegen Münzen. Sammle alle ein und zähle dabei mit einer int-Variablen mit. Am Ziel gibt Byte den Zählerstand aus: „Münzen: 3“.",
+   "worlds": [
+    {
+     "map": [
+      "########",
+      "#Rooo.G#",
+      "########"
+     ],
+     "expectedOutput": "Münzen: 3"
+    }
+   ],
+   "starterCode": "int muenzen = 0;\n// Nach jedem robot.pickCoin(); den Zähler um 1 erhöhen",
+   "solution": "int muenzen = 0;\nrobot.move();\nrobot.pickCoin();\nmuenzen = muenzen + 1;\nrobot.move();\nrobot.pickCoin();\nmuenzen = muenzen + 1;\nrobot.move();\nrobot.pickCoin();\nmuenzen = muenzen + 1;\nrobot.move();\nrobot.move();\nSystem.out.println(\"Münzen: \" + muenzen);",
+   "hint": "muenzen = muenzen + 1; nimmt den alten Inhalt der Box, legt 1 dazu und speichert das Ergebnis wieder in der Box.",
+   "requirements": [
+    {
+     "rule": "require",
+     "pattern": "\\bint\\s+\\w+\\s*=",
+     "message": "Zähle mit einer int-Variablen."
+    },
+    {
+     "rule": "forbid",
+     "pattern": "Münzen:\\s*\\d",
+     "message": "Schreib die Zahl nicht direkt in den Text – gib die Variable aus.",
+     "scope": "raw"
+    }
+   ],
+   "bonus": [
+    {
+     "type": "allCoins"
+    },
+    {
+     "type": "maxActions",
+     "value": 8
+    }
+   ],
+   "newCommands": [],
+   "collectAllCoins": false,
+   "reachGoal": true
+  },
+  {
+   "id": "a03-rechenmeister",
+   "kind": "lesson",
+   "lessonId": "l03-operators",
+   "topicId": "operators",
+   "difficulty": 2,
+   "title": "Rechenmeister",
+   "story": "Jede Münze ist 5 Euro wert. Sammle alle Münzen ein und berechne den Gesamtwert mit *. Tipp: robot.coins() verrät, wie viele Münzen Byte schon hat.",
+   "worlds": [
+    {
+     "map": [
+      "##########",
+      "#Ro.oo.oG#",
+      "##########"
+     ],
+     "expectedOutput": "Wert: 20"
+    }
+   ],
+   "starterCode": "// Sammle die Münzen ein ...\n// ... und rechne dann: Anzahl * 5",
+   "solution": "robot.move();\nrobot.pickCoin();\nrobot.move();\nrobot.move();\nrobot.pickCoin();\nrobot.move();\nrobot.pickCoin();\nrobot.move();\nrobot.move();\nrobot.pickCoin();\nrobot.move();\nint wert = robot.coins() * 5;\nSystem.out.println(\"Wert: \" + wert);",
+   "hint": "int wert = robot.coins() * 5; fragt Byte nach seinen Münzen und multipliziert die Antwort mit 5.",
+   "requirements": [
+    {
+     "rule": "require",
+     "pattern": "\\*",
+     "message": "Berechne den Wert mit *."
+    },
+    {
+     "rule": "forbid",
+     "pattern": "Wert:\\s*\\d",
+     "message": "Schreib das Ergebnis nicht direkt hin – lass Java rechnen.",
+     "scope": "raw"
+    }
+   ],
+   "bonus": [
+    {
+     "type": "maxActions",
+     "value": 11
+    },
+    {
+     "type": "uses",
+     "pattern": "robot\\.coins\\(\\)",
+     "label": "Frag Byte mit robot.coins()"
+    }
+   ],
+   "newCommands": [
+    "coins"
+   ],
+   "collectAllCoins": false,
+   "reachGoal": true
+  },
+  {
+   "id": "b1-tunnelschatz",
+   "kind": "boss",
+   "lessonId": "l03-operators",
+   "moduleId": "m1-first-steps",
+   "topicId": "operators",
+   "difficulty": 3,
+   "title": "Boss: Der Tunnelschatz",
+   "story": "Ein verwinkelter Tunnel! Byte muss um zwei Ecken fahren, alle drei Münzen einsammeln und dann melden: „Gefunden: 3“ und den Wert „Wert: 15“ (5 Euro pro Münze).",
+   "worlds": [
+    {
+     "map": [
+      "#######",
+      "#R.o..#",
+      "#####.#",
+      "#####o#",
+      "#G.o..#",
+      "#######"
+     ],
+     "expectedOutput": "Gefunden: 3\nWert: 15"
+    }
+   ],
+   "starterCode": "// robot.turnRight(); dreht Byte nach rechts",
+   "solution": "robot.move();\nrobot.move();\nrobot.pickCoin();\nrobot.move();\nrobot.move();\nrobot.turnRight();\nrobot.move();\nrobot.move();\nrobot.pickCoin();\nrobot.move();\nrobot.turnRight();\nrobot.move();\nrobot.move();\nrobot.pickCoin();\nrobot.move();\nrobot.move();\nint anzahl = robot.coins();\nSystem.out.println(\"Gefunden: \" + anzahl);\nSystem.out.println(\"Wert: \" + anzahl * 5);",
+   "hint": "Zähl die Felder bis zur Ecke, dreh mit robot.turnRight(); und fahr weiter. Für den Wert: anzahl * 5.",
+   "requirements": [
+    {
+     "rule": "require",
+     "pattern": "\\*",
+     "message": "Berechne den Wert mit *."
+    },
+    {
+     "rule": "forbid",
+     "pattern": "(Gefunden|Wert):\\s*\\d",
+     "message": "Lass Java die Zahlen ausrechnen, statt sie hinzuschreiben.",
+     "scope": "raw"
+    }
+   ],
+   "bonus": [
+    {
+     "type": "maxActions",
+     "value": 16
+    },
+    {
+     "type": "maxLines",
+     "value": 19
+    }
+   ],
+   "newCommands": [
+    "turnRight"
+   ],
+   "collectAllCoins": false,
+   "reachGoal": true
+  },
+  {
+   "id": "a04-die-weiche",
+   "kind": "lesson",
+   "lessonId": "l04-conditionals",
+   "topicId": "conditionals",
+   "difficulty": 3,
+   "title": "Mal hier, mal da",
+   "story": "Derselbe Gang – aber in jeder Welt liegen die Münzen woanders! Dein Code muss in allen drei Welten funktionieren. Frag Byte mit if (robot.onCoin()), ob er gerade auf einer Münze steht.",
+   "worlds": [
+    {
+     "map": [
+      "#######",
+      "#Ro.oG#",
+      "#######"
+     ]
+    },
+    {
+     "map": [
+      "#######",
+      "#R.o.G#",
+      "#######"
+     ]
+    },
+    {
+     "map": [
+      "#######",
+      "#RoooG#",
+      "#######"
+     ]
+    }
+   ],
+   "starterCode": "robot.move();\n// Liegt hier eine Münze? Dann aufheben!",
+   "solution": "robot.move();\nif (robot.onCoin()) {\n    robot.pickCoin();\n}\nrobot.move();\nif (robot.onCoin()) {\n    robot.pickCoin();\n}\nrobot.move();\nif (robot.onCoin()) {\n    robot.pickCoin();\n}\nrobot.move();",
+   "hint": "Nach jedem robot.move(); fragst du: if (robot.onCoin()) { robot.pickCoin(); } – so klappt es egal, wo die Münzen liegen.",
+   "collectAllCoins": true,
+   "requirements": [
+    {
+     "rule": "require",
+     "pattern": "\\bif\\b",
+     "message": "Nutze if – die Münzen liegen in jeder Welt anders."
+    }
+   ],
+   "bonus": [
+    {
+     "type": "maxLines",
+     "value": 10
+    },
+    {
+     "type": "maxActions",
+     "value": 7
+    }
+   ],
+   "newCommands": [
+    "onCoin"
+   ],
+   "reachGoal": true
+  },
+  {
+   "id": "a05-langer-gang",
+   "kind": "lesson",
+   "lessonId": "l05-loops",
+   "topicId": "loops",
+   "difficulty": 3,
+   "title": "Der endlose Gang",
+   "story": "Diesmal ist der Gang in jeder Welt verschieden lang. Abzählen klappt nicht mehr – lass Byte fahren, solange er nicht am Ziel ist, und unterwegs jede Münze einsammeln.",
+   "worlds": [
+    {
+     "map": [
+      "#########",
+      "#R.o..oG#",
+      "#########"
+     ]
+    },
+    {
+     "map": [
+      "#############",
+      "#Ro.o.o.o..G#",
+      "#############"
+     ]
+    }
+   ],
+   "starterCode": "while (!robot.atGoal()) {\n    // Was soll in jeder Runde passieren?\n}",
+   "solution": "while (!robot.atGoal()) {\n    robot.move();\n    if (robot.onCoin()) {\n        robot.pickCoin();\n    }\n}",
+   "hint": "In jeder Runde: ein Feld fahren, dann prüfen, ob dort eine Münze liegt. Die while-Schleife hört von selbst auf, sobald robot.atGoal() true ist.",
+   "collectAllCoins": true,
+   "requirements": [
+    {
+     "rule": "require",
+     "pattern": "\\bwhile\\b|\\bfor\\b",
+     "message": "Nutze eine Schleife – die Gänge sind verschieden lang."
+    }
+   ],
+   "bonus": [
+    {
+     "type": "maxLines",
+     "value": 4
+    },
+    {
+     "type": "uses",
+     "pattern": "robot\\.atGoal\\(\\)",
+     "label": "Frag mit robot.atGoal(), ob das Ziel erreicht ist"
+    }
+   ],
+   "newCommands": [
+    "atGoal"
+   ],
+   "reachGoal": true
+  },
+  {
+   "id": "t1-countdown",
+   "kind": "training",
+   "lessonId": "l05-loops",
+   "topicId": "loops",
+   "difficulty": 2,
+   "title": "Countdown",
+   "story": "Byte zählt die Felder bis zum Ziel laut herunter: „Noch 5“, „Noch 4“ … „Noch 1“ – und am Ende „Ziel!“. Unterwegs liegen zwei Münzen.",
+   "worlds": [
+    {
+     "map": [
+      "########",
+      "#R.o.oG#",
+      "########"
+     ],
+     "expectedOutput": "Noch 5\nNoch 4\nNoch 3\nNoch 2\nNoch 1\nZiel!"
+    }
+   ],
+   "starterCode": "// Eine for-Schleife, die von 5 bis 1 herunterzählt",
+   "solution": "for (int i = 5; i > 0; i--) {\n    System.out.println(\"Noch \" + i);\n    robot.move();\n    if (robot.onCoin()) robot.pickCoin();\n}\nSystem.out.println(\"Ziel!\");",
+   "hint": "for (int i = 5; i > 0; i--) zählt 5, 4, 3, 2, 1. In jeder Runde: ausgeben, dann fahren.",
+   "requirements": [
+    {
+     "rule": "require",
+     "pattern": "\\bfor\\b",
+     "message": "Nutze eine for-Schleife zum Herunterzählen."
+    },
+    {
+     "rule": "forbid",
+     "pattern": "\\\"Noch \\d",
+     "message": "Lass die Zahl von der Schleife kommen, statt sie hinzuschreiben.",
+     "scope": "raw"
+    }
+   ],
+   "bonus": [
+    {
+     "type": "allCoins"
+    },
+    {
+     "type": "maxLines",
+     "value": 5
+    }
+   ],
+   "newCommands": [],
+   "collectAllCoins": false,
+   "reachGoal": true
+  },
+  {
+   "id": "t2-zickzack",
+   "kind": "training",
+   "lessonId": "l05-loops",
+   "topicId": "loops",
+   "difficulty": 3,
+   "title": "Hin und zurück",
+   "story": "Zwei Reihen voller Münzen: Byte fährt die obere Reihe bis zur Wand, wechselt nach unten und fährt zurück bis zur Flagge. Die Reihen sind in jeder Welt unterschiedlich lang.",
+   "worlds": [
+    {
+     "map": [
+      "########",
+      "#R.o.oo#",
+      "#G.oo..#",
+      "########"
+     ]
+    },
+    {
+     "map": [
+      "###########",
+      "#R.oo..o.o#",
+      "#G..o.o...#",
+      "###########"
+     ]
+    }
+   ],
+   "starterCode": "// Fahre, solange vorne frei ist: while (robot.frontIsClear())",
+   "solution": "static void bisZurWand() {\n    while (robot.frontIsClear()) {\n        robot.move();\n        if (robot.onCoin()) {\n            robot.pickCoin();\n        }\n    }\n}\n\nbisZurWand();\nrobot.turnRight();\nrobot.move();\nrobot.turnRight();\nbisZurWand();",
+   "hint": "Die Fahrt bis zur Wand brauchst du zweimal – perfekt für eine eigene Methode. Dazwischen: rechts drehen, ein Feld runter, wieder rechts drehen.",
+   "collectAllCoins": true,
+   "requirements": [
+    {
+     "rule": "require",
+     "pattern": "\\bwhile\\b|\\bfor\\b",
+     "message": "Nutze eine Schleife – die Reihen sind verschieden lang."
+    }
+   ],
+   "bonus": [
+    {
+     "type": "uses",
+     "pattern": "\\bstatic\\s+void\\s+\\w+\\s*\\(",
+     "label": "Eigene Methode für „bis zur Wand“"
+    },
+    {
+     "type": "maxLines",
+     "value": 10
+    }
+   ],
+   "newCommands": [
+    "frontIsClear"
+   ],
+   "reachGoal": true
+  },
+  {
+   "id": "a06-die-treppe",
+   "kind": "lesson",
+   "lessonId": "l06-methods",
+   "topicId": "methods",
+   "difficulty": 4,
+   "title": "Die Treppe",
+   "story": "Byte muss eine Treppe hinauf. Jede Stufe geht gleich: links drehen, hoch, rechts drehen, vor. Schreib dafür eine eigene Methode stufe() und ruf sie für jede Stufe auf.",
+   "worlds": [
+    {
+     "map": [
+      "#######",
+      "####.G#",
+      "###.o##",
+      "##..###",
+      "#.o####",
+      "#R#####",
+      "#######"
+     ],
+     "facing": "east"
+    }
+   ],
+   "starterCode": "static void stufe() {\n    // Die Befehle für eine einzige Stufe\n}\n\nstufe();",
+   "solution": "static void stufe() {\n    robot.turnLeft();\n    robot.move();\n    robot.turnRight();\n    robot.move();\n    if (robot.onCoin()) {\n        robot.pickCoin();\n    }\n}\n\nfor (int i = 0; i < 4; i++) {\n    stufe();\n}",
+   "hint": "Eine Stufe: robot.turnLeft(); robot.move(); robot.turnRight(); robot.move(); – das kommt in die Methode. Dann viermal stufe(); aufrufen.",
+   "requirements": [
+    {
+     "rule": "require",
+     "pattern": "\\bvoid\\s+\\w+\\s*\\(",
+     "message": "Schreibe eine eigene Methode für eine Stufe."
+    }
+   ],
+   "bonus": [
+    {
+     "type": "allCoins"
+    },
+    {
+     "type": "maxLines",
+     "value": 9
+    }
+   ],
+   "newCommands": [
+    "turnLeft"
+   ],
+   "collectAllCoins": false,
+   "reachGoal": true
+  },
+  {
+   "id": "t3-huerdenlauf",
+   "kind": "training",
+   "lessonId": "l06-methods",
+   "topicId": "methods",
+   "difficulty": 4,
+   "title": "Hürdenlauf",
+   "story": "Auf der Strecke stehen Hürden. Ist vorne frei, fährt Byte weiter – sonst springt er drüber: hoch, zwei Felder vor, wieder runter. Die Hürden stehen in jeder Welt woanders.",
+   "worlds": [
+    {
+     "map": [
+      "##########",
+      "#........#",
+      "#R.#.o#.G#",
+      "##########"
+     ]
+    },
+    {
+     "map": [
+      "###########",
+      "#.........#",
+      "#Ro.#.#..G#",
+      "###########"
+     ]
+    }
+   ],
+   "starterCode": "static void springe() {\n    // hoch, zwei Felder vor, wieder runter\n}",
+   "solution": "static void springe() {\n    robot.turnLeft();\n    robot.move();\n    robot.turnRight();\n    robot.move();\n    robot.move();\n    robot.turnRight();\n    robot.move();\n    robot.turnLeft();\n}\n\nwhile (!robot.atGoal()) {\n    if (robot.frontIsClear()) {\n        robot.move();\n        if (robot.onCoin()) robot.pickCoin();\n    } else {\n        springe();\n    }\n}",
+   "hint": "Die Hauptschleife: solange nicht am Ziel – ist vorne frei, ein Feld fahren, sonst springe(). Der Sprung: links drehen, vor, rechts drehen, zweimal vor, rechts drehen, vor, links drehen.",
+   "requirements": [
+    {
+     "rule": "require",
+     "pattern": "\\bwhile\\b|\\bfor\\b",
+     "message": "Nutze eine Schleife – die Hürden stehen überall anders."
+    },
+    {
+     "rule": "require",
+     "pattern": "\\bif\\b",
+     "message": "Entscheide mit if, ob Byte fahren oder springen muss."
+    }
+   ],
+   "bonus": [
+    {
+     "type": "allCoins"
+    },
+    {
+     "type": "uses",
+     "pattern": "\\bstatic\\s+void\\s+\\w+\\s*\\(",
+     "label": "Eigene Methode für den Sprung"
+    }
+   ],
+   "newCommands": [
+    "frontIsClear"
+   ],
+   "collectAllCoins": false,
+   "reachGoal": true
+  },
+  {
+   "id": "b2-labyrinth",
+   "kind": "boss",
+   "lessonId": "l06-methods",
+   "moduleId": "m2-control-flow",
+   "topicId": "loops",
+   "difficulty": 5,
+   "title": "Boss: Das Labyrinth",
+   "story": "Zwei Labyrinthe, ein Programm! Der Trick echter Labyrinth-Profis: Halte immer die rechte Hand an der Wand. Ist rechts frei, biegst du rechts ab – sonst geradeaus – und wenn auch das nicht geht, drehst du dich nach links.",
+   "worlds": [
+    {
+     "map": [
+      "#########",
+      "#R..#...#",
+      "##.##.#.#",
+      "#..#..#.#",
+      "#.##.##.#",
+      "#....o.G#",
+      "#########"
+     ]
+    },
+    {
+     "map": [
+      "##########",
+      "#R.....o.#",
+      "#.####.#.#",
+      "#.#..#.#.#",
+      "#.#.##.#.#",
+      "#...#..#G#",
+      "##########"
+     ]
+    }
+   ],
+   "starterCode": "while (!robot.atGoal()) {\n    // Rechte Hand an der Wand ...\n}",
+   "solution": "static void schritt() {\n    if (robot.rightIsClear()) {\n        robot.turnRight();\n        robot.move();\n    } else if (robot.frontIsClear()) {\n        robot.move();\n    } else {\n        robot.turnLeft();\n    }\n}\n\nwhile (!robot.atGoal()) {\n    schritt();\n    if (robot.onCoin()) {\n        robot.pickCoin();\n    }\n}",
+   "hint": "Reihenfolge ist alles: Erst rechts prüfen (rightIsClear), dann geradeaus (frontIsClear), sonst links drehen. Das wiederholst du, bis robot.atGoal() true ist.",
+   "requirements": [
+    {
+     "rule": "require",
+     "pattern": "\\bwhile\\b|\\bfor\\b",
+     "message": "Nutze eine Schleife."
+    },
+    {
+     "rule": "require",
+     "pattern": "rightIsClear|leftIsClear",
+     "message": "Frag Byte, ob seitlich frei ist (rightIsClear)."
+    }
+   ],
+   "bonus": [
+    {
+     "type": "allCoins"
+    },
+    {
+     "type": "uses",
+     "pattern": "\\bstatic\\s+\\w+\\s+\\w+\\s*\\(",
+     "label": "Einen Schritt als eigene Methode"
+    }
+   ],
+   "newCommands": [
+    "rightIsClear",
+    "leftIsClear"
+   ],
+   "collectAllCoins": false,
+   "reachGoal": true
+  },
+  {
+   "id": "a07-lageplan",
+   "kind": "lesson",
+   "lessonId": "l07-arrays-strings",
+   "topicId": "arrays",
+   "difficulty": 4,
+   "title": "Der Lageplan",
+   "story": "Ein alter Lageplan verrät den Weg als Zahlenreihe: 4 Felder, dann links, 3 Felder, dann links, 2 Felder. Die Zahlen stehen schon im Array strecken – lies sie mit einer Schleife aus.",
+   "worlds": [
+    {
+     "map": [
+      "#######",
+      "#######",
+      "###G..#",
+      "#####o#",
+      "#####.#",
+      "#R.o..#",
+      "#######"
+     ]
+    }
+   ],
+   "starterCode": "int[] strecken = {4, 3, 2};\n// Für jede Strecke: so oft fahren, dann links drehen",
+   "solution": "int[] strecken = {4, 3, 2};\nfor (int strecke : strecken) {\n    for (int i = 0; i < strecke; i++) {\n        robot.move();\n        if (robot.onCoin()) {\n            robot.pickCoin();\n        }\n    }\n    robot.turnLeft();\n}",
+   "hint": "Die äußere Schleife geht durch das Array (for (int strecke : strecken)), die innere fährt strecke-mal ein Feld.",
+   "requirements": [
+    {
+     "rule": "require",
+     "pattern": "strecken\\s*\\[|:\\s*strecken",
+     "message": "Lies die Strecken aus dem Array, statt sie abzuzählen."
+    },
+    {
+     "rule": "require",
+     "pattern": "\\bfor\\b|\\bwhile\\b",
+     "message": "Nutze eine Schleife über das Array."
+    }
+   ],
+   "bonus": [
+    {
+     "type": "allCoins"
+    },
+    {
+     "type": "uses",
+     "pattern": "for\\s*\\(\\s*\\w+\\s+\\w+\\s*:",
+     "label": "Nutze eine for-each-Schleife"
+    }
+   ],
+   "newCommands": [],
+   "collectAllCoins": false,
+   "reachGoal": true
+  },
+  {
+   "id": "b3-codeknacker",
+   "kind": "boss",
+   "lessonId": "l09-inheritance",
+   "moduleId": "m3-objects",
+   "topicId": "strings",
+   "difficulty": 5,
+   "title": "Boss: Der Code-Knacker",
+   "story": "Das Tresorschloss öffnet sich nur mit dem Muster des Gangs: Für jedes Feld, auf das Byte fährt, kommt ein „x“ (Münze) oder ein „.“ (keine Münze) in einen String. Am Ziel gibt Byte das Muster aus – in jeder Welt ein anderes.",
+   "worlds": [
+    {
+     "map": [
+      "##########",
+      "#R.o.oo.G#",
+      "##########"
+     ],
+     "expectedOutput": ".x.xx.."
+    },
+    {
+     "map": [
+      "#########",
+      "#Roo..oG#",
+      "#########"
+     ],
+     "expectedOutput": "xx..x."
+    }
+   ],
+   "starterCode": "String muster = \"\";\n// Fahre bis zum Ziel und hänge für jedes Feld \"x\" oder \".\" an",
+   "solution": "String muster = \"\";\nwhile (!robot.atGoal()) {\n    robot.move();\n    if (robot.onCoin()) {\n        robot.pickCoin();\n        muster += \"x\";\n    } else {\n        muster += \".\";\n    }\n}\nSystem.out.println(muster);",
+   "hint": "Mit muster += \"x\"; hängst du ein Zeichen hinten an den String an. Prüfe nach jedem Schritt mit robot.onCoin().",
+   "requirements": [
+    {
+     "rule": "require",
+     "pattern": "\\bString\\s+\\w+",
+     "message": "Baue das Muster in einer String-Variablen auf."
+    },
+    {
+     "rule": "forbid",
+     "pattern": "\\\"[.x]{4,}\\\"",
+     "message": "Lass das Muster von deinem Programm bauen, statt es hinzuschreiben.",
+     "scope": "raw"
+    }
+   ],
+   "bonus": [
+    {
+     "type": "allCoins"
+    },
+    {
+     "type": "uses",
+     "pattern": "\\+=",
+     "label": "Hänge mit += an"
+    }
+   ],
+   "newCommands": [],
+   "collectAllCoins": false,
+   "reachGoal": true
+  }
+ ]
+}

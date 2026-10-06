@@ -17,17 +17,42 @@ struct ScoreChange: Equatable, Sendable {
 /// Views lesen abgeleitete Werte (Score, Lernpfad, Wissensanalyse), die aus den
 /// gespeicherten Modellen mit der reinen Logik aus JavaQuestKit berechnet werden.
 /// Alle Schreibzugriffe laufen über die Methoden dieser Klasse.
+/// Was sich durch eine Lektion oder Mission verändert hat – für die Belohnungsanzeige.
+struct RewardSnapshot: Equatable, Sendable {
+    let xp: Int
+    let level: Int
+    let achievements: Set<String>
+
+    func gains(since start: RewardSnapshot) -> RewardGain {
+        RewardGain(
+            xp: max(xp - start.xp, 0),
+            levelUp: level > start.level ? level : nil,
+            newAchievements: Achievement.all.filter { achievements.contains($0.id) && !start.achievements.contains($0.id) }
+        )
+    }
+}
+
+struct RewardGain: Equatable, Sendable {
+    let xp: Int
+    let levelUp: Int?
+    let newAchievements: [Achievement]
+
+    var isEmpty: Bool { xp == 0 && levelUp == nil && newAchievements.isEmpty }
+}
+
 @MainActor
 @Observable
 final class ProgressStore {
     let course: Course
+    let catalog: ArenaCatalog
     private let container: ModelContainer
     private var context: ModelContext { container.mainContext }
     private(set) var profile: LearnerProfile?
     private(set) var lastSaveError: String?
 
-    init(course: Course, container: ModelContainer) {
+    init(course: Course, catalog: ArenaCatalog, container: ModelContainer) {
         self.course = course
+        self.catalog = catalog
         self.container = container
         let profiles = (try? container.mainContext.fetch(FetchDescriptor<LearnerProfile>())) ?? []
         profile = profiles.min { $0.createdAt < $1.createdAt }
@@ -81,11 +106,16 @@ final class ProgressStore {
     }
 
     var completedLessonCount: Int { lessonResults.values.filter(\.isCompleted).count }
-    var solvedTaskCount: Int { (profile?.attempts ?? []).filter(\.solved).count }
+    var solvedTaskCount: Int { taskAttempts.filter(\.solved).count }
+
+    /// Nur Aufgaben – Arena-Missionen stehen zwar im selben Protokoll, zählen hier aber nicht.
+    var taskAttempts: [TaskAttempt] {
+        (profile?.attempts ?? []).filter { ActivityRecord.Context(rawValue: $0.contextRaw)?.isTask ?? true }
+    }
 
     /// Anteil der beim ersten Versuch gelösten Aufgaben (ohne Einstufung).
     var firstTryRate: Double? {
-        let relevant = (profile?.attempts ?? []).filter { $0.contextRaw != AttemptContext.placement.rawValue }
+        let relevant = taskAttempts.filter { $0.contextRaw != AttemptContext.placement.rawValue }
         guard !relevant.isEmpty else { return nil }
         return Double(relevant.filter { $0.solved && $0.tries == 1 }.count) / Double(relevant.count)
     }
@@ -112,7 +142,7 @@ final class ProgressStore {
     /// Wie jede Aufgabe zuletzt lief (aus dem Aufgaben-Protokoll).
     var taskHistory: [String: TaskHistory] {
         var history: [String: TaskHistory] = [:]
-        for attempt in (profile?.attempts ?? []).sorted(by: { $0.date < $1.date }) {
+        for attempt in taskAttempts.sorted(by: { $0.date < $1.date }) {
             let count = (history[attempt.taskId]?.attempts ?? 0) + 1
             history[attempt.taskId] = TaskHistory(attempts: count, lastCredit: attempt.credit, lastDate: attempt.date)
         }
@@ -122,7 +152,7 @@ final class ProgressStore {
     /// Wie jedes Lernziel über die Zeit lief – Grundlage der Wiedervorlage.
     /// Die Einstufung bleibt außen vor: Sie sagt nichts darüber, ob ein Lernziel sitzt.
     var goalHistory: [String: GoalHistory] {
-        let records = (profile?.attempts ?? [])
+        let records = taskAttempts
             .filter { $0.contextRaw != AttemptContext.placement.rawValue }
             .map { AttemptRecord(taskId: $0.taskId, credit: $0.credit, date: $0.date) }
         return SpacedRepetition.goals(from: records, course: course)
@@ -192,7 +222,7 @@ final class ProgressStore {
 
     /// Gesehene, richtige und falsche Aufgaben eines Themas – aus dem Aufgaben-Protokoll.
     func topicPractice(for topicId: String) -> TopicPractice {
-        let attempts = (profile?.attempts ?? []).filter { $0.topicId == topicId }
+        let attempts = taskAttempts.filter { $0.topicId == topicId }
         return TopicPractice(
             seen: attempts.count,
             correct: attempts.filter(\.solved).count,
@@ -200,6 +230,104 @@ final class ProgressStore {
             lastPracticed: attempts.map(\.date).max(),
             mastery: topicStats[topicId].map { $0.attempts > 0 ? $0.mastery : nil } ?? nil
         )
+    }
+
+    // MARK: - Motivation: XP, Arena, Abzeichen
+
+    var activityRecords: [ActivityRecord] {
+        (profile?.attempts ?? []).map { attempt in
+            ActivityRecord(
+                taskId: attempt.taskId,
+                topicId: attempt.topicId,
+                context: ActivityRecord.Context(rawValue: attempt.contextRaw) ?? .lesson,
+                difficulty: attempt.difficulty,
+                credit: attempt.credit,
+                solved: attempt.solved,
+                tries: attempt.tries,
+                date: attempt.date
+            )
+        }
+    }
+
+    /// Abgeleitete Motivationswerte – zwischengespeichert, weil Dashboard und Seitenleiste sie bei jedem
+    /// Neuzeichnen mehrfach lesen. Neu berechnet wird nur, wenn sich Protokoll, Lektionen oder der Tag ändern.
+    private struct Derived {
+        let key: Int
+        let facts: LearnerFacts
+        let level: LevelProgress
+        let missionStars: [String: Int]
+        let unlocked: Set<String>
+    }
+
+    @ObservationIgnored private var derivedCache: Derived?
+
+    private var derived: Derived {
+        // Die Lesezugriffe hier sorgen auch dafür, dass Observation Änderungen bemerkt.
+        let attempts = profile?.attempts ?? []
+        let results = lessonResults
+        var hasher = Hasher()
+        hasher.combine(attempts.count)
+        hasher.combine(attempts.last?.date)
+        hasher.combine(results)
+        hasher.combine(profile?.longestStreak)
+        hasher.combine(Calendar.current.startOfDay(for: .now))
+        let key = hasher.finalize()
+        if let cached = derivedCache, cached.key == key { return cached }
+        let facts = LearnerFacts(course: course, catalog: catalog, attempts: activityRecords, lessonResults: results, longestStreak: profile?.longestStreak ?? 0)
+        let value = Derived(key: key, facts: facts, level: Experience.level(for: facts.experience), missionStars: facts.missionStars, unlocked: Achievement.unlocked(facts))
+        derivedCache = value
+        return value
+    }
+
+    var facts: LearnerFacts { derived.facts }
+    var levelProgress: LevelProgress { derived.level }
+    var missionStars: [String: Int] { derived.missionStars }
+    var unlockedAchievements: Set<String> { derived.unlocked }
+
+    var availableMissions: [ArenaMission] {
+        DailyMission.availableMissions(catalog: catalog, course: course, results: lessonResults)
+    }
+
+    func isUnlocked(_ mission: ArenaMission) -> Bool {
+        DailyMission.isUnlocked(mission, course: course, results: lessonResults)
+    }
+
+    var dailyMission: ArenaMission? {
+        facts.dailyMission(on: .now, available: availableMissions)
+    }
+
+    var isDailyMissionDone: Bool { facts.isDailyDone(on: .now) }
+
+    func rewardSnapshot() -> RewardSnapshot {
+        let derived = derived
+        return RewardSnapshot(xp: derived.level.xp, level: derived.level.level, achievements: derived.unlocked)
+    }
+
+    /// Speichert eine geschaffte Mission. Gespeichert wird nur, was zählt: ein neuer
+    /// Sterne-Bestwert oder die erste Lösung der Tagesmission.
+    func recordMission(_ mission: ArenaMission, result: ArenaResult) {
+        guard let profile, result.solved else { return }
+        let isDaily = dailyMission?.id == mission.id && !isDailyMissionDone
+        let best = missionStars[mission.id] ?? 0
+        guard isDaily || result.stars > best else {
+            touchStreak()
+            save()
+            return
+        }
+        let attempt = TaskAttempt(
+            taskId: mission.id,
+            topicId: mission.topicId,
+            lessonId: mission.lessonId,
+            context: isDaily ? .daily : .mission,
+            difficulty: mission.difficulty.rawValue,
+            credit: ActivityRecord.credit(forStars: result.stars),
+            solved: true,
+            tries: 1
+        )
+        context.insert(attempt)
+        profile.attempts?.append(attempt)
+        touchStreak()
+        save()
     }
 
     // MARK: - Onboarding & Einstufung
@@ -403,6 +531,7 @@ final class ProgressStore {
     }
 
     func resetAllProgress() {
+        derivedCache = nil
         // Vorher eine Kopie ablegen – nur, wenn es etwas zu verlieren gibt (siehe ResetCopies).
         if profile != nil, ResetCopies.worthKeeping(eigenerStand()), let ordner = Self.kopienOrdner,
            let daten = try? backupData() {

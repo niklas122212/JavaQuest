@@ -49,11 +49,18 @@ private struct SessionPresenter: ViewModifier {
     private func flow(for request: SessionRequest) -> some View {
         // Neue Identität je Anfrage: „Lektion wiederholen“ und „Nächste Lektion“
         // ersetzen die laufende Sitzung, statt das alte Modell weiterzuverwenden.
-        LessonFlowContainer(request: request)
-            .id(request.id)
-            .environment(store)
-            .environment(router)
-            .tint(Theme.orange)
+        Group {
+            switch request.kind {
+            case .mission, .playground:
+                ArenaSessionContainer(request: request)
+            case .lesson, .practice, .training, .free, .weakSpots, .review:
+                LessonFlowContainer(request: request)
+            }
+        }
+        .id(request.id)
+        .environment(store)
+        .environment(router)
+        .tint(Theme.orange)
     }
 }
 
@@ -86,12 +93,16 @@ private struct CompactShell: View {
             tab(.analysis, title: "Analyse", systemImage: "brain.head.profile")
             tab(.profile, title: "Profil", systemImage: "person.crop.circle")
         }
-        .onChange(of: router.selection) { _, newValue in
-            // Modul-Auswahl aus dem Sidebar-Layout gibt es auf dem iPhone nicht.
-            if case .module = newValue { router.selection = .path }
-            // „Meine Schwächen“ ist auf dem iPhone kein Tab, sondern hängt an der Übersicht.
-            if newValue == .weakSpots { router.selection = .dashboard }
-        }
+        .onChange(of: router.selection) { _, newValue in normalize(newValue) }
+        // Auch beim Wechsel aus dem Sidebar-Layout (iPad wird schmal) – sonst bliebe kein Tab ausgewählt.
+        .onAppear { normalize(router.selection) }
+    }
+
+    private func normalize(_ selection: AppSection?) {
+        // Modul-Auswahl aus dem Sidebar-Layout gibt es auf dem iPhone nicht als Tab.
+        if case .module? = selection { router.selection = .path }
+        // „Meine Schwächen“, Arena und Abzeichen sind auf dem iPhone keine Tabs, sondern hängen an der Übersicht.
+        if selection == .weakSpots || selection == .arena || selection == .achievements { router.selection = .dashboard }
     }
 
     private func tab(_ section: AppSection, title: LocalizedStringKey, systemImage: String) -> some View {
@@ -110,6 +121,8 @@ struct SectionScreen: View {
         case .path: LearningPathView()
         case .topics: TopicCatalogView()
         case .weakSpots: WeakSpotsView()
+        case .arena: ArenaHomeView()
+        case .achievements: AchievementsView()
         case .analysis: KnowledgeAnalysisView()
         case .profile: ProfileView()
         case .module(let id): LearningPathView(focusModuleId: id)

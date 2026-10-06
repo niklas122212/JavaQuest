@@ -30,7 +30,7 @@ struct DashboardContent: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            DashboardHeader(streak: store.displayedStreak, level: store.profile?.experienceLevel)
+            DashboardHeader(streak: store.displayedStreak, level: store.levelProgress.level)
             if isWide {
                 HStack(alignment: .top, spacing: 20) {
                     VStack(spacing: 20) {
@@ -38,9 +38,11 @@ struct DashboardContent: View {
                         continueCard
                         weakSpotsCard
                         trainingCard
+                        DailyMissionCard(showsArenaLink: true)
                         statsGrid
                     }
                     VStack(spacing: 20) {
+                        levelCard
                         knowledgeCard
                         pathCard
                     }
@@ -48,8 +50,10 @@ struct DashboardContent: View {
             } else {
                 scoreCard
                 continueCard
+                DailyMissionCard(showsArenaLink: true)
                 weakSpotsCard
                 trainingCard
+                levelCard
                 knowledgeCard
                 pathCard
                 statsGrid
@@ -105,6 +109,10 @@ struct DashboardContent: View {
         )
     }
 
+    private var levelCard: some View {
+        LevelCard(progress: store.levelProgress, unlockedCount: store.unlockedAchievements.count, showsLink: true)
+    }
+
     private var pathCard: some View {
         PathPreviewCard(modules: store.moduleProgress) { router.selection = .path }
     }
@@ -121,7 +129,7 @@ struct DashboardContent: View {
 
 private struct DashboardHeader: View {
     let streak: Int
-    let level: ExperienceLevel?
+    let level: Int
 
     private var greeting: String {
         switch Calendar.current.component(.hour, from: .now) {
@@ -142,6 +150,9 @@ private struct DashboardHeader: View {
                     .foregroundStyle(.secondary)
             }
             Spacer(minLength: 12)
+            Chip(text: "Lvl \(level)", systemImage: "sparkles", tint: Theme.violet)
+                .font(.headline)
+                .accessibilityLabel(Text("Level \(level)"))
             if streak > 0 {
                 Chip(text: "\(streak)", systemImage: "flame.fill", tint: Theme.orange)
                     .font(.headline)

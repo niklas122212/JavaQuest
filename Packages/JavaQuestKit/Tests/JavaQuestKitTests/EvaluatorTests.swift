@@ -190,3 +190,100 @@ struct EvaluatorTests {
         #expect(!evaluator.evaluate(.text("a"), for: t).isCorrect)
     }
 }
+
+@Suite("Code-Aufgaben werden wirklich ausgeführt")
+struct ExecutionEvaluationTests {
+    let evaluator = AnswerEvaluator()
+    let sumTask = LearningTask(
+        id: "sum", topicId: "loops", difficulty: .medium,
+        prompt: "Summe 1 bis 100", explanation: "",
+        kind: .code(CodeTaskSpec(
+            sampleSolution: "int summe = 0;\nfor (int i = 1; i <= 100; i++) {\n    summe += i;\n}\nSystem.out.println(summe);",
+            expectedOutput: "5050",
+            rules: [CodeRule(rule: .require, pattern: #"\bfor\b|\bwhile\b"#, message: "Nutze eine Schleife.")]
+        ))
+    )
+
+    @Test("Richtige Ausgabe: gelöst, mit Konsolenausgabe im Ergebnis")
+    func correctOutput() {
+        let result = evaluator.evaluate(.text("int s = 0;\nint i = 1;\nwhile (i <= 100) { s += i; i++; }\nSystem.out.println(s);"), for: sumTask)
+        #expect(result.isCorrect)
+        #expect(result.execution?.output == "5050\n")
+        #expect(result.execution?.outputMatches == true)
+    }
+
+    @Test("Falsche Ausgabe wird erkannt, obwohl alle Regeln erfüllt sind")
+    func wrongOutput() {
+        // Klassischer Off-by-one: < statt <=
+        let result = evaluator.evaluate(.text("int summe = 0;\nfor (int i = 1; i < 100; i++) {\n    summe += i;\n}\nSystem.out.println(summe);"), for: sumTask)
+        #expect(!result.isCorrect)
+        #expect(result.execution?.outputMatches == false)
+        #expect(result.findings.contains { $0.kind == .failed && $0.message.contains("4950") })
+    }
+
+    @Test("Syntaxfehler kommen mit exakter Zeile vom Interpreter")
+    func syntaxError() {
+        let result = evaluator.evaluate(.text("int summe = 0;\nfor (int i = 1; i <= 100; i++) {\n    summe += i\n}\nSystem.out.println(summe);"), for: sumTask)
+        #expect(!result.isCorrect)
+        #expect(result.findings.first?.line == 3)
+        #expect(result.findings.first?.message.contains("Semikolon") == true)
+    }
+
+    @Test("Laufzeitfehler und Endlosschleifen machen die Lösung falsch")
+    func runtimeProblems() {
+        let endless = evaluator.evaluate(.text("int summe = 0;\nfor (int i = 1; i <= 100; i--) {\n    summe += i;\n}\nSystem.out.println(summe);"), for: sumTask)
+        #expect(!endless.isCorrect)
+        #expect(endless.findings.contains { $0.message.contains("Endlosschleife") })
+    }
+
+    @Test("Unbekannte Java-Bausteine führen nicht zu einem falschen Urteil")
+    func unsupportedFallsBackToRules() {
+        let result = evaluator.evaluate(.text("int summe = java.util.stream.IntStream.rangeClosed(1, 100).sum();\nfor (;;) { break; }\nSystem.out.println(summe);"), for: sumTask)
+        #expect(result.execution == nil)
+        #expect(result.isCorrect)
+    }
+}
+
+@Suite("Code-Puzzle und Bug-Jagd")
+struct PuzzleAndBugTests {
+    let evaluator = AnswerEvaluator()
+    let puzzle = LearningTask(
+        id: "p", topicId: "loops", difficulty: .medium, prompt: "", explanation: "",
+        kind: .ordering(OrderingSpec(puzzle: CodeSnippet(source: "int s = 0;\nfor (int i = 0; i < 3; i++) {\ns += i;\n}\nSystem.out.println(s);")))
+    )
+
+    @Test("Puzzle: richtig, teilweise richtig, unvollständig")
+    func ordering() {
+        #expect(evaluator.evaluate(.order([0, 1, 2, 3, 4]), for: puzzle).isCorrect)
+        let swapped = evaluator.evaluate(.order([0, 1, 2, 4, 3]), for: puzzle)
+        #expect(!swapped.isCorrect)
+        #expect(swapped.score == 0.6)
+        #expect(swapped.findings.contains { $0.line == 4 })
+        let partial = evaluator.evaluate(.order([0, 1]), for: puzzle)
+        #expect(partial.findings.contains { $0.message.contains("3 Zeilen") })
+    }
+
+    @Test("Puzzle: gleiche Zeilen sind austauschbar, gemischt wird stabil")
+    func duplicatesAndShuffle() throws {
+        let twoBraces = LearningTask(id: "q", topicId: "syntax", difficulty: .easy, prompt: "", explanation: "",
+                                     kind: .ordering(OrderingSpec(puzzle: CodeSnippet(source: "class A {\nvoid m() {\n}\n}"))))
+        #expect(evaluator.evaluate(.order([0, 1, 3, 2]), for: twoBraces).isCorrect)
+        guard case .ordering(let spec) = puzzle.kind else { return }
+        #expect(spec.shuffledOrder(seed: "p") == spec.shuffledOrder(seed: "p"))
+        #expect(spec.shuffledOrder(seed: "p").sorted() == [0, 1, 2, 3, 4])
+        #expect(OrderingSpec.assemble(["for (;;) {", "x();", "}"]) == "for (;;) {\n    x();\n}")
+    }
+
+    @Test("Bug-Jagd: nur die fehlerhafte Zeile zählt, die Korrektur ersetzt sie eingerückt")
+    func findBug() {
+        let code = "int[] a = {1, 2};\nfor (int i = 0; i <= a.length; i++) {\n    System.out.println(a[i]);\n}"
+        let spec = FindBugSpec(bugLine: 2, fix: CodeSnippet.Line(code: "for (int i = 0; i < a.length; i++) {", explain: "x"))
+        let task = LearningTask(id: "b", topicId: "arrays", difficulty: .medium, prompt: "", code: code, explanation: "", kind: .findBug(spec))
+        #expect(evaluator.evaluate(.line(2), for: task).isCorrect)
+        #expect(!evaluator.evaluate(.line(3), for: task).isCorrect)
+        #expect(spec.fixed(CodeSnippet(source: code)).lines[1].code == "for (int i = 0; i < a.length; i++) {")
+        // Die korrigierte Fassung läuft wirklich, die fehlerhafte stürzt ab.
+        #expect(JavaRunner.run(code).problem?.kind == .runtime)
+        #expect(JavaRunner.run(spec.fixed(CodeSnippet(source: code)).source).output == "1\n2\n")
+    }
+}

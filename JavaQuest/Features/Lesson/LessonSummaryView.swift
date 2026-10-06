@@ -34,6 +34,10 @@ struct LessonSummaryView: View {
                 isPractice: model.isPractice,
                 tasks: model.session.tasks,
                 course: model.course,
+                bestCombo: model.session.bestCombo,
+                reward: model.rewardGain,
+                levelProgress: model.store.levelProgress,
+                mission: model.missionResult.flatMap { result in model.session.missionId.flatMap(model.store.catalog.mission(id:)).map { ($0, result) } },
                 appeared: appeared
             )
             .padding(20)
@@ -79,6 +83,10 @@ struct LessonSummaryContent: View {
     let isPractice: Bool
     let tasks: [LearningTask]
     let course: Course
+    var bestCombo = 0
+    var reward: RewardGain?
+    var levelProgress: LevelProgress?
+    var mission: (ArenaMission, ArenaResult)?
     var appeared = true
 
     var body: some View {
@@ -97,6 +105,35 @@ struct LessonSummaryContent: View {
             HStack(spacing: 12) {
                 MetricTile(value: "\(Int((summary.accuracy * 100).rounded())) %", label: "Trefferquote (gewichtet)", systemImage: "target", tint: Theme.orange)
                 MetricTile(value: "\(summary.firstTryCount)/\(summary.taskCount)", label: "Beim ersten Versuch", systemImage: "bolt.fill", tint: Theme.violet)
+                MetricTile(value: "×\(bestCombo)", label: "Beste Combo", systemImage: "flame.fill", tint: Theme.ember)
+            }
+
+            if let reward, let levelProgress, !reward.isEmpty {
+                VStack(alignment: .leading, spacing: 12) {
+                    RewardBanner(gain: reward)
+                    HStack {
+                        Text("Level \(levelProgress.level)").font(.subheadline.weight(.bold))
+                        Spacer()
+                        Text("noch \(levelProgress.remaining) XP bis Level \(levelProgress.level + 1)")
+                            .font(.caption.monospacedDigit())
+                            .foregroundStyle(.secondary)
+                    }
+                    ProgressBar(value: levelProgress.fraction, height: 7)
+                }
+                .card()
+            }
+
+            if let mission {
+                HStack(spacing: 12) {
+                    IconTile(systemImage: "gamecontroller.fill", tint: Theme.indigo, size: 44)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("Abschluss-Mission").font(.caption.weight(.heavy)).foregroundStyle(Theme.indigo)
+                        Text(mission.0.title).font(.headline)
+                    }
+                    Spacer()
+                    StarsView(count: mission.1.stars, size: 18)
+                }
+                .card()
             }
 
             if let scoreChange, !isPractice {

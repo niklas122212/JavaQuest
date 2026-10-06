@@ -16,8 +16,13 @@ struct SidebarView: View {
                     .tag(AppSection.topics)
                 Label("Meine Schwächen", systemImage: "arrow.counterclockwise")
                     .tag(AppSection.weakSpots)
+                Label("Arena", systemImage: "gamecontroller.fill")
+                    .tag(AppSection.arena)
                 Label("Wissensanalyse", systemImage: "brain.head.profile")
                     .tag(AppSection.analysis)
+                Label("Abzeichen", systemImage: "rosette")
+                    .badge(store.unlockedAchievements.count)
+                    .tag(AppSection.achievements)
             }
 
             Section("Module") {

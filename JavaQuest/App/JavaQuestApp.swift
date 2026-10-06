@@ -38,6 +38,9 @@ struct LearningCommands: Commands {
             Button("Nächste Lektion starten") { app.startNextLesson() }
                 .keyboardShortcut("l", modifiers: .command)
                 .disabled(!app.canStartNextLesson)
+            Button("Tagesmission starten") { app.startDailyMission() }
+                .keyboardShortcut("t", modifiers: [.command, .shift])
+                .disabled(!app.canStartDailyMission)
             Divider()
             Button("Übersicht") { app.router.selection = .dashboard }
                 .keyboardShortcut("1", modifiers: .command)
@@ -45,6 +48,10 @@ struct LearningCommands: Commands {
                 .keyboardShortcut("2", modifiers: .command)
             Button("Wissensanalyse") { app.router.selection = .analysis }
                 .keyboardShortcut("3", modifiers: .command)
+            Button("Arena") { app.router.selection = .arena }
+                .keyboardShortcut("4", modifiers: .command)
+            Button("Abzeichen") { app.router.selection = .achievements }
+                .keyboardShortcut("5", modifiers: .command)
         }
     }
 }

@@ -22,11 +22,14 @@ struct CourseContentTests {
         #expect(issues.isEmpty, "\(issues.map(\.description).joined(separator: "\n"))")
     }
 
-    @Test("Umfang: 14 Module, 35 Lektionen, 185 Lektionsaufgaben plus Übungspool")
+    @Test("Umfang: 14 Module, 35 Lektionen, 185 Lektionsaufgaben plus 13 Bonus-Aufgaben plus Übungspool")
     func courseShape() {
         #expect(course.modules.count == 14)
         #expect(course.allLessons.count == 35)
-        #expect(course.allLessons.flatMap(\.tasks).count == 185)
+        let lessonTasks = course.allLessons.flatMap(\.tasks)
+        #expect(lessonTasks.filter { !$0.type.isBonus }.count == 185)
+        // Code-Puzzle und Bug-Jagd: nur in der Apple-App, je eine in Lektion 1–13.
+        #expect(lessonTasks.filter(\.type.isBonus).count == 13)
         // Der Übungspool speist Übung, Training und freies Lernen – er wächst unabhängig von den Lektionen.
         #expect(course.taskPool.count >= 50)
         #expect(course.practiceableTasks.count == course.allLessons.flatMap(\.tasks).count + course.taskPool.count)
@@ -75,6 +78,15 @@ struct CourseContentTests {
             case .code(let spec):
                 let starter = evaluator.evaluate(.text(spec.starterCode), for: task)
                 #expect(!starter.isCorrect, "\(task.id): Startercode gilt schon als Lösung")
+            case .ordering(let spec):
+                let shuffled = evaluator.evaluate(.order(spec.shuffledOrder(seed: task.id)), for: task)
+                #expect(!shuffled.isCorrect, "\(task.id): Die gemischte Reihenfolge ist schon richtig")
+                #expect(!evaluator.evaluate(.order([]), for: task).isCorrect, "\(task.id) leer")
+            case .findBug(let spec):
+                let lineCount = task.codeSnippet?.lines.count ?? 0
+                for line in 1...max(lineCount, 1) where line != spec.bugLine {
+                    #expect(!evaluator.evaluate(.line(line), for: task).isCorrect, "\(task.id) Zeile \(line)")
+                }
             }
         }
     }
@@ -196,7 +208,8 @@ struct CourseContentTests {
         // Zwei Varianten reichen nicht: Wer eine falsch hat, bekommt beim nächsten Mal
         // zwangsläufig die andere – und kennt sie dann schon.
         var nachZiel: [String: Int] = [:]
-        for task in course.practiceableTasks {
+        // Bonus-Aufgaben (Puzzle, Bug-Jagd) sind Einzelstücke ohne Varianten.
+        for task in course.practiceableTasks where !task.type.isBonus {
             nachZiel[task.groupKey, default: 0] += 1
         }
         let knapp = nachZiel.filter { $0.value < 3 }

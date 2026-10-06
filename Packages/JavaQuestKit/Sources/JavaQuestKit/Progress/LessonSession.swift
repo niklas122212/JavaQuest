@@ -1,7 +1,7 @@
 import Foundation
 
 /// Zustandsautomat für den Lern-Loop einer Lektion:
-/// Theorie-Happen → Aufgaben (Niveau aufsteigend) → Auswertung.
+/// Theorie-Happen → Aufgaben (Niveau aufsteigend) → Arena-Mission (falls vorhanden) → Auswertung.
 ///
 /// Wertung pro Aufgabe: beim ersten Versuch gelöst = 100 %, später gelöst = 50 %,
 /// Lösung angezeigt = 0 %.
@@ -18,6 +18,8 @@ public struct LessonSession: Sendable {
     public enum Phase: Sendable, Hashable {
         case theory(page: Int)
         case task(index: Int)
+        /// Abschluss-Mission in der Arena – zählt nicht zur Trefferquote.
+        case mission(id: String)
         case summary
     }
 
@@ -35,16 +37,19 @@ public struct LessonSession: Sendable {
     public private(set) var attempts = 0
     public private(set) var lastResult: EvaluationResult?
     public private(set) var isRevealed = false
+    /// Arena-Mission, die nach der letzten Aufgabe kommt.
+    public let missionId: String?
 
-    public init(lesson: Lesson) {
-        self.init(mode: .lesson(lessonId: lesson.id), title: lesson.title, theory: lesson.theory, tasks: lesson.tasks)
+    public init(lesson: Lesson, missionId: String? = nil) {
+        self.init(mode: .lesson(lessonId: lesson.id), title: lesson.title, theory: lesson.theory, tasks: lesson.tasks, missionId: missionId)
     }
 
-    public init(mode: Mode, title: String, theory: [TheoryCard], tasks: [LearningTask]) {
+    public init(mode: Mode, title: String, theory: [TheoryCard], tasks: [LearningTask], missionId: String? = nil) {
         self.mode = mode
         self.title = title
         self.theory = theory
         self.tasks = tasks.sorted { $0.difficulty < $1.difficulty }
+        self.missionId = missionId
         if !theory.isEmpty {
             phase = .theory(page: 0)
         } else if !self.tasks.isEmpty {
@@ -52,6 +57,22 @@ public struct LessonSession: Sendable {
         } else {
             phase = .summary
         }
+    }
+
+    /// Aufgaben in Folge, die zuletzt beim ersten Versuch saßen.
+    public var currentCombo: Int {
+        outcomes.reversed().prefix { $0.solvedOnFirstTry }.count
+    }
+
+    /// Längste Combo dieser Sitzung.
+    public var bestCombo: Int {
+        var best = 0
+        var current = 0
+        for outcome in outcomes {
+            current = outcome.solvedOnFirstTry ? current + 1 : 0
+            best = max(best, current)
+        }
+        return best
     }
 
     public var lessonId: String? {
@@ -69,13 +90,14 @@ public struct LessonSession: Sendable {
 
     public var canRetry: Bool { !isCurrentTaskFinished && lastResult != nil && attempts < Self.maxAttempts }
 
-    /// Gesamtfortschritt 0…1 über Theorie und Aufgaben.
+    /// Gesamtfortschritt 0…1 über Theorie, Aufgaben und Mission.
     public var progress: Double {
-        let steps = Double(theory.count + tasks.count)
+        let steps = Double(theory.count + tasks.count + (missionId == nil ? 0 : 1))
         guard steps > 0 else { return 1 }
         switch phase {
         case .theory(let page): return Double(page) / steps
         case .task(let index): return Double(theory.count + index + (isCurrentTaskFinished ? 1 : 0)) / steps
+        case .mission: return Double(theory.count + tasks.count) / steps
         case .summary: return 1
         }
     }
@@ -85,8 +107,15 @@ public struct LessonSession: Sendable {
         if page + 1 < theory.count {
             phase = .theory(page: page + 1)
         } else {
-            phase = tasks.isEmpty ? .summary : .task(index: 0)
+            phase = tasks.isEmpty ? afterTasks : .task(index: 0)
         }
+    }
+
+    private var afterTasks: Phase { missionId.map { .mission(id: $0) } ?? .summary }
+
+    /// Mission geschafft oder übersprungen – weiter zur Auswertung.
+    public mutating func finishMission() {
+        if case .mission = phase { phase = .summary }
     }
 
     public mutating func goBackInTheory() {
@@ -129,10 +158,12 @@ public struct LessonSession: Sendable {
         attempts = 0
         lastResult = nil
         isRevealed = false
-        phase = index + 1 < tasks.count ? .task(index: index + 1) : .summary
+        phase = index + 1 < tasks.count ? .task(index: index + 1) : afterTasks
     }
 
-    public var summary: LessonSummary { LessonSummary(outcomes: outcomes, taskCount: tasks.count) }
+    public var summary: LessonSummary {
+        LessonSummary(outcomes: outcomes, taskCount: tasks.count, bonusTaskCount: tasks.filter(\.type.isBonus).count)
+    }
 }
 
 public struct TaskOutcome: Sendable, Hashable {
@@ -142,6 +173,8 @@ public struct TaskOutcome: Sendable, Hashable {
     public let attempts: Int
     public let solved: Bool
     public let credit: Double
+    /// Bonus-Aufgabe: zählt nicht für Trefferquote und Score.
+    public let isBonus: Bool
 
     public init(task: LearningTask, attempts: Int, solved: Bool, credit: Double) {
         taskId = task.id
@@ -150,6 +183,7 @@ public struct TaskOutcome: Sendable, Hashable {
         self.attempts = attempts
         self.solved = solved
         self.credit = credit
+        isBonus = task.type.isBonus
     }
 
     public var solvedOnFirstTry: Bool { solved && attempts == 1 }
@@ -158,15 +192,25 @@ public struct TaskOutcome: Sendable, Hashable {
 public struct LessonSummary: Sendable, Hashable {
     public let outcomes: [TaskOutcome]
     public let taskCount: Int
+    /// Davon Bonus-Aufgaben – sie zählen weder für die Trefferquote noch fürs Bestehen.
+    public let bonusTaskCount: Int
 
-    /// Nach Niveau gewichtete Trefferquote 0…1.
-    public var accuracy: Double {
-        let total = outcomes.reduce(0.0) { $0 + $1.difficulty.weight }
-        guard total > 0 else { return 0 }
-        return outcomes.reduce(0.0) { $0 + $1.difficulty.weight * $1.credit } / total
+    public init(outcomes: [TaskOutcome], taskCount: Int, bonusTaskCount: Int = 0) {
+        self.outcomes = outcomes
+        self.taskCount = taskCount
+        self.bonusTaskCount = bonusTaskCount
     }
 
-    public var passed: Bool { accuracy >= LessonSession.passThreshold && outcomes.count == taskCount }
+    private var scoredOutcomes: [TaskOutcome] { outcomes.filter { !$0.isBonus } }
+
+    /// Nach Niveau gewichtete Trefferquote 0…1 (ohne Bonus-Aufgaben).
+    public var accuracy: Double {
+        let total = scoredOutcomes.reduce(0.0) { $0 + $1.difficulty.weight }
+        guard total > 0 else { return 0 }
+        return scoredOutcomes.reduce(0.0) { $0 + $1.difficulty.weight * $1.credit } / total
+    }
+
+    public var passed: Bool { accuracy >= LessonSession.passThreshold && scoredOutcomes.count == taskCount - bonusTaskCount }
     public var solvedCount: Int { outcomes.filter(\.solved).count }
     public var firstTryCount: Int { outcomes.filter(\.solvedOnFirstTry).count }
     public var stars: Int { Stars.forAccuracy(accuracy) }

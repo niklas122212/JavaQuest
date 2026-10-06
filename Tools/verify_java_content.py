@@ -12,6 +12,12 @@ Das Feld "verify" im JSON ist reine Autoren-Metadaten und wird von der App ignor
   verify.main      Anweisungen für eine Test-main (bei javaContext members/file)
   verify.output    erwartete Ausgabe, falls die Aufgabe selbst keine angibt
   verify.compiles  false, wenn der gezeigte Code absichtlich nicht kompiliert
+  verify.support   zusätzliche Klassen, die der Code braucht (z. B. eine Kuchenform)
+  verify.bugCompiles  true, wenn der Fehler einer Bug-Jagd erst beim Ausführen auffällt
+
+Mitgeprüft werden die Bonus-Aufgaben der Apple-App (apple_extra_tasks.json):
+Code-Puzzle in richtiger Reihenfolge müssen laufen; bei der Bug-Jagd darf der fehlerhafte
+Code nicht funktionieren (kompiliert nicht oder stürzt ab), die korrigierte Fassung muss es.
 
 Aufruf: python3 Tools/verify_java_content.py [pfad/zur/java_course.json]
 Benötigt javac/java im PATH (JDK 21 oder neuer).
@@ -31,6 +37,7 @@ IMPORTS = ("import java.util.*;\nimport java.util.function.*;\nimport java.util.
            "import java.net.*;\nimport java.net.http.*;\nimport com.sun.net.httpserver.*;\nimport java.sql.*;\n\n")
 DEFAULT_PATH = os.path.join(os.path.dirname(__file__), "..", "Packages", "JavaQuestKit",
                             "Sources", "JavaQuestKit", "Resources", "java_course.json")
+EXTRA_PATH = os.path.join(os.path.dirname(DEFAULT_PATH), "apple_extra_tasks.json")
 
 
 def indent(text, spaces):
@@ -69,8 +76,12 @@ def build_source(snippet, context, verify_main):
 
 
 def run_case(case):
-    name, snippet, context, verify_main, expected, must_compile = case
+    name, snippet, context, verify_main, expected, must_compile = case[:6]
+    support = case[6] if len(case) > 6 else None
+    must_fail_at_runtime = case[7] if len(case) > 7 else False
     source, run_class = build_source(snippet, context, verify_main)
+    if support:
+        source += "\n" + support + "\n"
     with tempfile.TemporaryDirectory() as tmp:
         path = os.path.join(tmp, "Main.java")
         with open(path, "w", encoding="utf-8") as f:
@@ -81,6 +92,11 @@ def run_case(case):
             if must_compile:
                 return name, False, "Kompilierfehler:\n" + compiled.stderr.strip() + "\n--- Quelltext ---\n" + source
             return name, True, "kompiliert erwartungsgemäß nicht"
+        if must_fail_at_runtime:
+            result = subprocess.run(["java", "-cp", tmp, run_class or "Main"], capture_output=True, text=True, timeout=20)
+            if result.returncode == 0:
+                return name, False, "der Bug sollte beim Ausführen auffallen, das Programm läuft aber fehlerfrei"
+            return name, True, "stürzt erwartungsgemäß ab"
         if not must_compile:
             return name, False, "sollte nicht kompilieren, tut es aber"
         if expected is None:
@@ -132,6 +148,16 @@ def cases_for(task):
         yield name + " (ausgefüllt)", fill_template(task), context, main, verify.get("output"), True
     elif kind == "singleChoice" and task.get("code"):
         yield name + " (Code)", source(task["code"]), context, main, verify.get("output"), verify.get("compiles", True)
+    elif kind == "ordering":
+        yield name + " (richtige Reihenfolge)", source(task["puzzle"]), context, main, verify.get("output"), True, verify.get("support")
+    elif kind == "findBug":
+        buggy = source(task["code"])
+        lines = buggy.split("\n")
+        line = lines[task["bugLine"] - 1]
+        lines[task["bugLine"] - 1] = line[:len(line) - len(line.lstrip())] + task["fix"]["code"].strip()
+        runtime_bug = verify.get("bugCompiles", False)
+        yield name + " (mit Bug)", buggy, context, main, None, runtime_bug, verify.get("support"), runtime_bug
+        yield name + " (korrigiert)", "\n".join(lines), context, main, verify.get("output"), True, verify.get("support")
 
 
 def main():
@@ -141,6 +167,10 @@ def main():
     tasks = [t for m in course["modules"] for l in m["lessons"] for t in l["tasks"]]
     tasks += course.get("taskPool", [])  # Übungsaufgaben außerhalb der Lektionen
     tasks += [t for pool in course["placement"]["pools"].values() for t in pool]
+    # Bonus-Aufgaben der Apple-App (nur beim Standardpfad – eine übergebene Datei steht für sich).
+    if len(sys.argv) <= 1 and os.path.exists(EXTRA_PATH):
+        with open(EXTRA_PATH, encoding="utf-8") as f:
+            tasks += [t for extra in json.load(f)["lessons"].values() for t in extra]
     # Gleichwertige Lösungen an ihre Aufgabe hängen, damit sie mitgeprüft werden.
     gleichwertig = course.get("equivalentSolutions", {})
     for t in tasks:

@@ -20,6 +20,10 @@ struct TaskStepView: View {
                         evaluation: evaluationState(for: task),
                         isWide: width >= 900
                     ) {
+                        if let testRun = model.testRunResult, !model.session.isCurrentTaskFinished {
+                            TestRunPanel(result: testRun)
+                                .transition(.opacity)
+                        }
                         if model.session.lastResult != nil || model.session.isRevealed {
                             FeedbackPanel(
                                 result: model.session.lastResult,
@@ -31,13 +35,14 @@ struct TaskStepView: View {
                                 explanation: task.explanation,
                                 countsForScore: !model.isPractice,
                                 wrongChoice: model.wrongChoice,
-                                correctAnswer: model.correctAnswer
+                                correctAnswer: model.correctAnswer,
+                                awardedXP: model.lastAwardedXP
                             )
                             .id(Self.feedbackAnchor)
                             .transition(.move(edge: .bottom).combined(with: .opacity))
                         }
-                        if model.session.isCurrentTaskFinished, case .code(let spec) = task.kind {
-                            SolutionExegesis(title: "Musterlösung Zeile für Zeile", snippet: spec.solution)
+                        if model.session.isCurrentTaskFinished, let solution = Self.solutionSnippet(for: task) {
+                            SolutionExegesis(title: solution.title, snippet: solution.snippet)
                                 .transition(.opacity)
                         }
                     }
@@ -56,6 +61,16 @@ struct TaskStepView: View {
             .safeAreaInset(edge: .bottom) { TaskActionBar(model: model) }
             .sensoryFeedback(.success, trigger: model.successCount)
             .sensoryFeedback(.error, trigger: model.failureCount)
+        }
+    }
+
+    /// Was nach dem Lösen Zeile für Zeile erklärt wird.
+    static func solutionSnippet(for task: LearningTask) -> (title: String, snippet: CodeSnippet)? {
+        switch task.kind {
+        case .code(let spec): ("Musterlösung Zeile für Zeile", spec.solution)
+        case .ordering(let spec): ("Das fertige Programm Zeile für Zeile", spec.puzzle)
+        case .findBug(let spec): task.codeSnippet.map { ("Der korrigierte Code Zeile für Zeile", spec.fixed($0)) }
+        default: nil
         }
     }
 
@@ -161,6 +176,12 @@ struct TaskQuestionView: View {
             }
 
             switch task.kind {
+            case .ordering:
+                EmptyView()
+            case .findBug:
+                if showsExplanations, !isSolved, let snippet = task.codeSnippet {
+                    StarterExegesis(snippet: snippet, title: "Was macht welche Zeile? (Erklärungen)", caption: "Code")
+                }
             case .singleChoice where !showsExplanations, .predictOutput where !showsExplanations:
                 if let code = task.code { CodeBlockView(code: code) }
             case .fillBlank(let spec) where !showsExplanations:
@@ -237,6 +258,12 @@ struct TaskAnswerView: View {
                 CodeEditorView(text: $draft.text, placeholder: "Ausgabe Zeile für Zeile eintippen …", minHeight: 120, isLocked: isLocked)
             case .code:
                 CodeEditorView(text: $draft.text, placeholder: "// Dein Java-Code", minHeight: 220, isLocked: isLocked)
+            case .ordering(let spec):
+                PuzzleBoard(spec: spec, taskId: task.id, order: $draft.order, isLocked: isLocked, evaluation: evaluation)
+            case .findBug(let spec):
+                if let snippet = task.codeSnippet {
+                    BugLinePicker(snippet: snippet, spec: spec, selection: $draft.selectedLine, isLocked: isLocked, evaluation: evaluation)
+                }
             }
         }
     }
@@ -247,6 +274,8 @@ struct TaskAnswerView: View {
         case .fillBlank: "FÜLLE DIE LÜCKEN"
         case .predictOutput: "KONSOLENAUSGABE"
         case .code: "DEIN CODE"
+        case .ordering: "DEIN PROGRAMM"
+        case .findBug: "TIPPE AUF DIE FEHLERHAFTE ZEILE"
         }
     }
 }
@@ -254,14 +283,16 @@ struct TaskAnswerView: View {
 /// Startcode einer Programmieraufgabe, auf Wunsch Zeile für Zeile erklärt.
 struct StarterExegesis: View {
     let snippet: CodeSnippet
+    var title = "Startcode Zeile für Zeile erklärt"
+    var caption = "Startcode"
     @State private var isExpanded = false
 
     var body: some View {
         DisclosureGroup(isExpanded: $isExpanded) {
-            CodeExegesisView(lines: snippet.explained(), caption: "Startcode", initialPresentation: .steps)
+            CodeExegesisView(lines: snippet.explained(), caption: caption, initialPresentation: .steps)
                 .padding(.top, 8)
         } label: {
-            Label("Startcode Zeile für Zeile erklärt", systemImage: "text.magnifyingglass")
+            Label(title, systemImage: "text.magnifyingglass")
                 .font(.subheadline.weight(.semibold))
         }
         .tint(Theme.orange)

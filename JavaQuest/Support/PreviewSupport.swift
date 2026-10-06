@@ -15,8 +15,9 @@ enum PreviewSupport {
     static func makeStore(_ scenario: Scenario = .intermediateMidway) -> ProgressStore {
         do {
             let course = try CourseLoader.loadBundled()
+            let catalog = try ArenaCatalog.loadBundled()
             let container = try PersistenceController.makeContainer(inMemory: true)
-            let store = ProgressStore(course: course, container: container)
+            let store = ProgressStore(course: course, catalog: catalog, container: container)
             seed(store, scenario)
             return store
         } catch {
@@ -30,14 +31,17 @@ enum PreviewSupport {
             break
         case .beginnerStarted:
             store.completeOnboarding(level: .beginner, placement: nil)
-            // Bestanden wird ab 90 %: Schon ein aufgedeckter Fehler in Lektion 1 (8/9 = 89 %) reicht nicht.
-            playLesson(store, index: 0, firstTry: [true, true, true, true, true])
+            // Lektion 1 fehlerfrei (alle weiteren Aufgaben werden ebenfalls richtig beantwortet).
+            playLesson(store, index: 0, firstTry: [true])
+            playMission(store, "a01-erste-schritte")
         case .intermediateMidway:
             store.completeOnboarding(level: .intermediate, placement: placementRun(store.course, wrongAt: [1]))
-            playLesson(store, index: 6, firstTry: [false, true, true, true, true])   // 14/15 = 93 % → bestanden, 1 Stern
-            playLesson(store, index: 7, firstTry: [true, true, true, true, true])    // 100 % → 3 Sterne
+            playLesson(store, index: 6, firstTry: [false])   // erste Aufgabe aufgedeckt, Rest richtig → bestanden
+            playLesson(store, index: 7, firstTry: [true])    // fehlerfrei → 3 Sterne
             playPractice(store, topicId: "loops", firstTry: [false, true, false, false])
             playPractice(store, topicId: "methods", firstTry: [true, true, true, true])
+            playMission(store, "a05-langer-gang")
+            playMission(store, "b2-labyrinth")
         }
     }
 
@@ -63,11 +67,21 @@ enum PreviewSupport {
         play(LessonFlowModel(request: SessionRequest(kind: .practice(topicId: topicId)), store: store), theoryPages: 0, firstTry: firstTry)
     }
 
+    /// Spielt eine Mission mit der Musterlösung (3 Sterne).
+    static func playMission(_ store: ProgressStore, _ missionId: String) {
+        guard let mission = store.catalog.mission(id: missionId) else { return }
+        store.recordMission(mission, result: ArenaEngine.run(mission.solution.source, mission: mission))
+    }
+
+    /// Spielt die Sitzung bis zum Ende: `firstTry` legt die ersten Antworten fest, alle weiteren sind richtig.
+    /// So bleiben die Beispielstände stimmig, auch wenn Lektionen Aufgaben dazubekommen.
     private static func play(_ model: LessonFlowModel, theoryPages: Int, firstTry: [Bool]) {
         let evaluator = AnswerEvaluator()
         for _ in 0..<theoryPages { model.advanceTheory() }
-        for correct in firstTry {
-            guard let task = model.currentTask else { break }
+        var index = 0
+        while let task = model.currentTask {
+            let correct = index < firstTry.count ? firstTry[index] : true
+            index += 1
             model.draft.apply(correct ? evaluator.referenceAnswer(for: task) : wrongAnswer(for: task))
             model.submit()
             if !correct { model.revealSolution() }
@@ -81,6 +95,8 @@ enum PreviewSupport {
         case .fillBlank(let spec): .blanks(Array(repeating: "???", count: spec.blanks.count))
         case .predictOutput: .text("keine Ahnung")
         case .code(let spec): .text(spec.starterCode + "\nSystem.out.println(\"x\")")
+        case .ordering(let spec): .order(spec.shuffledOrder(seed: task.id))
+        case .findBug(let spec): .line(spec.bugLine == 1 ? 2 : 1)
         }
     }
 }

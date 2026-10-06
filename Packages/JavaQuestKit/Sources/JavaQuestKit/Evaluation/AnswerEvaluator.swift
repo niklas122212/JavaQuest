@@ -5,7 +5,8 @@ import Foundation
 /// - Multiple Choice: Index-Vergleich.
 /// - Lückentext: Vergleich ohne Leerzeichen, optional ohne Groß-/Kleinschreibung.
 /// - Ausgabe vorhersagen: zeilenweiser Vergleich, Leerzeichen am Zeilenende egal.
-/// - Code: Struktur-Checks (Klammern, Semikolons) plus RegEx-Regeln aus dem JSON.
+/// - Code: Struktur-Checks (Klammern, Semikolons) plus RegEx-Regeln aus dem JSON. Versteht der
+///   eingebaute Interpreter den Code, wird er zusätzlich wirklich ausgeführt und die Ausgabe verglichen.
 public struct AnswerEvaluator: Sendable {
     public init() {}
 
@@ -18,7 +19,11 @@ public struct AnswerEvaluator: Sendable {
         case let (.predictOutput(spec), .text(text)):
             evaluateOutput(JavaSource.normalizingTypography(text), spec: spec)
         case let (.code(spec), .text(text)):
-            evaluateCode(JavaSource.normalizingTypography(text), spec: spec)
+            evaluateCode(JavaSource.normalizingTypography(text), spec: spec, context: task.javaContext)
+        case let (.ordering(spec), .order(order)):
+            evaluateOrder(order, spec: spec)
+        case let (.findBug(spec), .line(line)):
+            evaluateBugLine(line, spec: spec)
         default:
             EvaluationResult(isCorrect: false, score: 0, findings: [.failed("Diese Antwortform passt nicht zur Aufgabe.")])
         }
@@ -31,7 +36,48 @@ public struct AnswerEvaluator: Sendable {
         case .fillBlank(let spec): .blanks(spec.blanks.map { $0.accepted.first ?? "" })
         case .predictOutput(let spec): .text(spec.expectedOutput)
         case .code(let spec): .text(spec.sampleSolution)
+        case .ordering(let spec): .order(Array(spec.pieces.indices))
+        case .findBug(let spec): .line(spec.bugLine)
         }
+    }
+
+    // MARK: Code-Puzzle
+
+    private func evaluateOrder(_ order: [Int], spec: OrderingSpec) -> EvaluationResult {
+        let pieces = spec.pieces
+        let chosen = order.filter { pieces.indices.contains($0) }.map { pieces[$0] }
+        guard !chosen.isEmpty else {
+            return EvaluationResult(isCorrect: false, score: 0, findings: [.failed("Lege die Zeilen in die richtige Reihenfolge.")])
+        }
+        // Verglichen wird der Text: Gleiche Zeilen (z. B. zwei „}“) sind austauschbar.
+        let correct = zip(chosen, pieces).filter { $0 == $1 }.count
+        if chosen == pieces {
+            return EvaluationResult(isCorrect: true, score: 1, findings: [.passed("Alle \(pieces.count) Zeilen stehen an der richtigen Stelle.")])
+        }
+        var findings: [Finding] = []
+        if chosen.count < pieces.count {
+            let missing = pieces.count - chosen.count
+            findings.append(.failed(missing == 1 ? "Eine Zeile fehlt noch." : "Es fehlen noch \(missing) Zeilen."))
+        }
+        if let firstWrong = zip(chosen, pieces).enumerated().first(where: { $0.element.0 != $0.element.1 })?.offset {
+            findings.append(.failed(
+                firstWrong == 0
+                    ? "Schon die erste Zeile passt noch nicht – womit beginnt ein Programm?"
+                    : "Bis Zeile \(firstWrong) stimmt alles – ab Zeile \(firstWrong + 1) passt die Reihenfolge noch nicht.",
+                line: firstWrong + 1
+            ))
+        }
+        if correct > 0 { findings.insert(.passed("\(correct) von \(pieces.count) Zeilen stehen schon richtig."), at: 0) }
+        return EvaluationResult(isCorrect: false, score: Double(correct) / Double(pieces.count), findings: findings)
+    }
+
+    // MARK: Bug-Jagd
+
+    private func evaluateBugLine(_ line: Int, spec: FindBugSpec) -> EvaluationResult {
+        if line == spec.bugLine {
+            return EvaluationResult(isCorrect: true, score: 1, findings: [.passed("Erwischt! In Zeile \(line) steckt der Fehler.", line: line)])
+        }
+        return EvaluationResult(isCorrect: false, score: 0, findings: [.failed("Zeile \(line) ist in Ordnung – der Fehler steckt woanders.", line: line)])
     }
 
     // MARK: Multiple Choice
@@ -219,7 +265,7 @@ public struct AnswerEvaluator: Sendable {
 
     // MARK: Code
 
-    private func evaluateCode(_ source: String, spec: CodeTaskSpec) -> EvaluationResult {
+    private func evaluateCode(_ source: String, spec: CodeTaskSpec, context: LearningTask.JavaContext) -> EvaluationResult {
         let withoutComments = JavaSource.strippingComments(source)
         let masked = JavaSource.maskingLiterals(source)
 
@@ -227,11 +273,16 @@ public struct AnswerEvaluator: Sendable {
             return EvaluationResult(isCorrect: false, score: 0, findings: [.failed("Hier steht noch kein Code.")])
         }
 
+        let run = execute(source, spec: spec, context: context)
+
         var structureFindings: [Finding] = []
-        if spec.structure.contains(.balancedDelimiters) {
+        if let run, run.problemKind == .syntax {
+            // Der Interpreter kennt die genaue Fehlerstelle – die Heuristiken unten wären nur ungenauer.
+            structureFindings.append(.failed(run.problemDescription ?? "", line: run.report.problemLine))
+        } else if spec.structure.contains(.balancedDelimiters) {
             structureFindings += JavaSource.delimiterIssues(in: masked)
         }
-        if spec.structure.contains(.semicolons) {
+        if run?.problemKind != .syntax, spec.structure.contains(.semicolons) {
             structureFindings += JavaSource.linesMissingSemicolon(in: masked).prefix(3).map { line in
                 .failed("Zeile \(line): Am Ende fehlt vermutlich ein Semikolon (;).", line: line)
             }
@@ -265,14 +316,107 @@ public struct AnswerEvaluator: Sendable {
             }
         }
 
+        var runFindings: [Finding] = []
+        var runSucceeded = true
+        if let run {
+            total += 1
+            switch run.problemKind {
+            case .syntax?:
+                runSucceeded = false
+            case .runtime?, .stepLimit?:
+                runSucceeded = false
+                runFindings.append(.failed("Beim Ausführen: \(run.problemDescription ?? "")", line: run.report.problemLine))
+            case .unsupported?, nil:
+                break
+            }
+            if run.problemKind == nil, let matches = run.report.outputMatches {
+                if matches {
+                    earned += 1
+                    runFindings.append(.passed("Ausgeführt – die Ausgabe stimmt."))
+                } else {
+                    runSucceeded = false
+                    runFindings.append(.failed(Self.outputDifference(run.report.output, expected: spec.expectedOutput ?? "")))
+                }
+            }
+            runFindings += run.warnings.map { .hint($0.message, line: $0.line) }
+        }
+
         var score = earned / total
         if violations > 0 { score *= 0.5 }
-        let isCorrect = structureFindings.isEmpty && allRequiredMet && violations == 0
-        return EvaluationResult(isCorrect: isCorrect, score: score, findings: structureFindings + ruleFindings)
+        let isCorrect = structureFindings.isEmpty && allRequiredMet && violations == 0 && runSucceeded
+        return EvaluationResult(isCorrect: isCorrect, score: score, findings: structureFindings + runFindings + ruleFindings, execution: run?.report)
+    }
+
+    private struct CodeRun {
+        let report: ExecutionReport
+        let problemKind: JavaProblem.Kind?
+        let problemDescription: String?
+        let warnings: [JavaWarning]
+    }
+
+    /// Führt den Code aus, sofern die Aufgabe dafür geeignet ist: Es gibt eine erwartete Ausgabe,
+    /// und die Musterlösung selbst läuft im Interpreter. Sonst bleibt es bei der Regelprüfung.
+    private func execute(_ source: String, spec: CodeTaskSpec, context: LearningTask.JavaContext) -> CodeRun? {
+        guard let expected = spec.expectedOutput, context != .members, Self.isRunnable(spec) else { return nil }
+        // Kursprogramme brauchen nur ein paar hundert Schritte; ein kleines Limit hält die Oberfläche
+        // auch bei einer Endlosschleife flüssig (die Prüfung läuft auf dem Haupt-Thread).
+        let result = JavaRunner.run(source, stepLimit: Self.evaluationStepLimit)
+        if result.problem?.kind == .unsupported {
+            // Gültiges Java, das der Interpreter nicht kennt: kein Urteil über die Ausführung.
+            return nil
+        }
+        let matches = result.problem == nil ? Self.outputLines(result.output) == Self.outputLines(expected) : nil
+        let report = ExecutionReport(
+            output: result.output,
+            problem: result.problem?.message,
+            problemLine: result.problem?.line,
+            outputMatches: matches
+        )
+        return CodeRun(report: report, problemKind: result.problem?.kind, problemDescription: result.problem?.description, warnings: result.warnings)
+    }
+
+    /// Läuft die Musterlösung im Interpreter und erzeugt genau die erwartete Ausgabe?
+    static func isRunnable(_ spec: CodeTaskSpec) -> Bool {
+        guard let expected = spec.expectedOutput else { return false }
+        let key = spec.sampleSolution
+        if let cached = RunnableCache.shared.value(for: key) { return cached }
+        let result = JavaRunner.run(spec.sampleSolution)
+        let runnable = result.problem == nil && outputLines(result.output) == outputLines(expected)
+        RunnableCache.shared.store(runnable, for: key)
+        return runnable
+    }
+
+    public static let evaluationStepLimit = 40_000
+
+    /// Testlauf ohne Bewertung: führt den Code einer Aufgabe aus, wie er gerade im Editor steht.
+    public static func testRun(_ source: String) -> JavaRunResult {
+        JavaRunner.run(JavaSource.normalizingTypography(source), stepLimit: evaluationStepLimit)
+    }
+
+    static func outputDifference(_ output: String, expected: String) -> String {
+        let given = outputLines(output)
+        if given.isEmpty { return "Ausgeführt – aber dein Programm gibt nichts aus. Fehlt ein System.out.println(…)?" }
+        let shown = given.prefix(3).joined(separator: " ⏎ ") + (given.count > 3 ? " …" : "")
+        return "Ausgeführt – dein Programm gibt „\(shown)“ aus, erwartet wird „\(outputLines(expected).joined(separator: " ⏎ "))“."
     }
 
     static func matches(_ pattern: String, in text: String) -> Bool {
         guard let regex = try? NSRegularExpression(pattern: pattern) else { return false }
         return regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)) != nil
+    }
+}
+
+/// Merkt sich, welche Musterlösungen der Interpreter ausführen kann (ändert sich zur Laufzeit nie).
+final class RunnableCache: @unchecked Sendable {
+    static let shared = RunnableCache()
+    private let lock = NSLock()
+    private var values: [String: Bool] = [:]
+
+    func value(for key: String) -> Bool? {
+        lock.withLock { values[key] }
+    }
+
+    func store(_ value: Bool, for key: String) {
+        lock.withLock { values[key] = value }
     }
 }

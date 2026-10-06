@@ -49,6 +49,7 @@ struct LearningPathContent: View {
     var focusModuleId: String?
     let onSelect: (Lesson, LessonState) -> Void
     @Environment(ProgressStore.self) private var store
+    @Environment(AppRouter.self) private var router
 
     var body: some View {
         let states = store.lessonStates
@@ -58,6 +59,11 @@ struct LearningPathContent: View {
                 if focusModuleId == nil || focusModuleId == module.id {
                     ModuleHeaderCard(number: index + 1, progress: module)
                     WindingLessonPath(lessons: module.module.lessons, states: states, tint: Theme.color(for: module.module.tier), onSelect: onSelect)
+                    if let boss = store.catalog.bossMission(for: module.id) {
+                        BossStation(mission: boss, isUnlocked: store.isUnlocked(boss), stars: store.missionStars[boss.id] ?? 0) {
+                            router.startMission(boss.id)
+                        }
+                    }
                 }
             }
         }
@@ -102,6 +108,14 @@ struct WindingLessonPath: View {
     let states: [String: LessonState]
     let tint: Color
     let onSelect: (Lesson, LessonState) -> Void
+    @Environment(ProgressStore.self) private var store
+
+    /// Abschluss-Missionen je Lektion mit bisher besten Sternen.
+    private var missions: [String: (ArenaMission, Int)] {
+        Dictionary(uniqueKeysWithValues: lessons.compactMap { lesson in
+            store.catalog.lessonMission(for: lesson.id).map { (lesson.id, ($0, store.missionStars[$0.id] ?? 0)) }
+        })
+    }
 
     private let rowHeight: CGFloat = 118
     private let swing: CGFloat = 62
@@ -139,7 +153,7 @@ struct WindingLessonPath: View {
                     .id(lesson.id)
                     .accessibilityLabel(Text("\(lesson.title), \(accessibilityState(state))"))
 
-                    LessonNodeLabel(lesson: lesson, state: state, alignment: labelOnRight ? .leading : .trailing)
+                    LessonNodeLabel(lesson: lesson, state: state, alignment: labelOnRight ? .leading : .trailing, mission: missions[lesson.id])
                         .frame(width: labelWidth, alignment: labelOnRight ? .leading : .trailing)
                         .position(x: labelOnRight ? point.x + 46 + labelWidth / 2 : point.x - 46 - labelWidth / 2, y: point.y)
                         .accessibilityHidden(true)
@@ -226,6 +240,7 @@ private struct LessonNodeLabel: View {
     let lesson: Lesson
     let state: LessonState
     let alignment: HorizontalAlignment
+    var mission: (ArenaMission, Int)?
 
     var body: some View {
         VStack(alignment: alignment, spacing: 4) {
@@ -246,7 +261,48 @@ private struct LessonNodeLabel: View {
             case .locked:
                 Text("\(lesson.tasks.count) Aufgaben").font(.caption).foregroundStyle(.secondary)
             }
+            if let stars = mission?.1, state != .locked {
+                HStack(spacing: 4) {
+                    Image(systemName: "gamecontroller.fill").foregroundStyle(Theme.indigo)
+                    Text(stars > 0 ? String(repeating: "★", count: stars) + String(repeating: "☆", count: 3 - stars) : "Mission")
+                        .foregroundStyle(stars > 0 ? Color.yellow : Theme.indigo)
+                }
+                .font(.caption2.weight(.bold))
+                .accessibilityLabel(Text(stars > 0 ? "Mission mit \(stars) Sternen" : "Mission noch offen"))
+            }
         }
+    }
+}
+
+/// Boss-Level am Ende eines Moduls – frei, sobald alle Lektionen des Moduls geschafft sind.
+private struct BossStation: View {
+    let mission: ArenaMission
+    let isUnlocked: Bool
+    let stars: Int
+    let onStart: () -> Void
+
+    var body: some View {
+        Button(action: onStart) {
+            HStack(spacing: 14) {
+                IconTile(systemImage: isUnlocked ? "shield.lefthalf.filled" : "lock.fill", tint: isUnlocked ? Theme.ember : .gray, size: 48)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("BOSS-LEVEL").font(.caption.weight(.heavy)).foregroundStyle(Theme.ember)
+                    Text(mission.title.replacingOccurrences(of: "Boss: ", with: "")).font(.headline)
+                    if isUnlocked {
+                        StarsView(count: stars, size: 12)
+                    } else {
+                        Text("Schließe alle Lektionen des Moduls ab").font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+                Spacer(minLength: 8)
+                Image(systemName: "chevron.right").font(.footnote.weight(.bold)).foregroundStyle(.tertiary)
+            }
+            .card(padding: 14)
+            .opacity(isUnlocked ? 1 : 0.55)
+        }
+        .buttonStyle(.plain)
+        .disabled(!isUnlocked)
+        .accessibilityLabel(Text("Boss-Level \(mission.title), \(isUnlocked ? "\(stars) Sterne" : "gesperrt")"))
     }
 }
 
