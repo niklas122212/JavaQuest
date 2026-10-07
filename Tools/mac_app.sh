@@ -40,6 +40,21 @@ LSREGISTER=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchSe
 
 meldung() { print -r -- "$(date '+%d.%m. %H:%M')  $*"; }
 
+# Immer nur ein Durchgang: Der LaunchAgent startet alle 10 Minuten, dazu kommen Aufrufe von Hand.
+# Zwei gleichzeitige Bauten im selben Ordner scheitern (am 07.10. passiert). zsystem flock gibt die
+# Sperre mit dem Ende des Skripts von selbst frei – auch nach einem Absturz – und reicht sie nicht
+# an Kindprozesse weiter, die länger leben (etwa Xcodes Bau-Dienst).
+sperren() {
+  zmodload zsh/system
+  mkdir -p $ARBEIT
+  : >> $ARBEIT/sperre
+  zsystem flock -t 0 -f SPERRE $ARBEIT/sperre 2>/dev/null && return 0
+  # Im Hintergrund einfach beim nächsten Mal; von Hand auf den laufenden Durchgang warten.
+  [[ -t 1 ]] || exit 0
+  meldung "Es läuft gerade schon eine Aktualisierung – warte, bis sie fertig ist …"
+  zsystem flock -f SPERRE $ARBEIT/sperre
+}
+
 # Jede Mac-Fassung von JavaQuest, egal aus welchem Ordner (die im Simulator zählt nicht).
 laeuft() { pgrep -f "/JavaQuest\.app/Contents/MacOS/JavaQuest" >/dev/null; }
 
@@ -222,6 +237,7 @@ case ${1:-} in
     aufraeumen
     ;;
   --zurueck)
+    sperren
     [[ -d $VORHER ]] || { meldung "Keine vorige Fassung vorhanden"; exit 1; }
     laeuft && { meldung "Bitte JavaQuest zuerst schließen"; exit 1; }
     rm -rf $ARBEIT/tausch && mkdir -p $ARBEIT/tausch
@@ -232,6 +248,7 @@ case ${1:-} in
     meldung "Vorige Fassung wiederhergestellt"
     ;;
   "")
+    sperren
     aktualisieren
     ;;
   *)
