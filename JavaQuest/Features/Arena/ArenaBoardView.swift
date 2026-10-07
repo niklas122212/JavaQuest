@@ -2,26 +2,47 @@ import SwiftUI
 import JavaQuestKit
 
 /// Das Spielfeld der Arena: Wände, Münzen, Zielflagge und Byte, der Roboter.
-/// Bewegungen und Drehungen werden animiert, ein Unfall lässt Byte wackeln.
+/// Bewegungen und Drehungen werden animiert, ein Unfall lässt Byte wackeln. Eine Punktspur zeigt,
+/// wo er schon war; „+1“ steigt beim Aufheben auf, und bei einer gelösten Mission hüpft Byte.
 struct ArenaBoardView: View {
     let world: ArenaWorldSpec
     let state: ArenaBoardState
     var crashCount = 0
+    /// Erhöht sich, wenn eine gelöste Mission zu Ende abgespielt ist – Byte hüpft, die Flagge wippt.
+    var celebrationCount = 0
     var animationDuration: Double = 0.3
     /// Höchstens so hoch wird das Feld (auf dem iPhone wichtig, damit der Code sichtbar bleibt).
     var maxHeight: CGFloat = 360
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var availableWidth: CGFloat = 0
+
+    private var ratio: CGFloat { CGFloat(max(world.width, 1)) / CGFloat(max(world.height, 1)) }
+
+    /// Höhe aus der verfügbaren Breite: Ein flaches Feld bekommt keinen leeren Rand oben und unten.
+    private var boardHeight: CGFloat {
+        availableWidth > 0 ? min(maxHeight, availableWidth / ratio) : min(maxHeight, 200)
+    }
 
     var body: some View {
         GeometryReader { proxy in
             let cell = cellSize(in: proxy.size)
             let width = cell * CGFloat(world.width)
             let height = cell * CGFloat(world.height)
+            // Außerhalb des Animations-Closures auslesen (das läuft nicht auf dem Main Actor).
+            let hopHeight = reduceMotion ? 0 : cell
             ZStack(alignment: .topLeading) {
                 tiles(cell: cell)
+                TrailShape(points: state.trail.map { center($0, cell: cell) })
+                    .stroke(Theme.orange.opacity(0.55), style: StrokeStyle(lineWidth: max(cell * 0.11, 2.5), lineCap: .round, lineJoin: .round, dash: [0.1, cell * 0.24]))
                 if let goal = world.goal {
                     GoalFlag(size: cell)
+                        .keyframeAnimator(initialValue: 1.0, trigger: celebrationCount) { flag, scale in
+                            flag.scaleEffect(scale)
+                        } keyframes: { _ in
+                            SpringKeyframe(1.35, duration: 0.25)
+                            SpringKeyframe(1.0, duration: 0.35)
+                        }
                         .position(center(goal, cell: cell))
                 }
                 ForEach(Array(state.coins).sorted(), id: \.self) { coin in
@@ -29,16 +50,35 @@ struct ArenaBoardView: View {
                         .position(center(coin, cell: cell))
                         .transition(.scale(scale: 1.6).combined(with: .opacity))
                 }
+                if case .crash(let wall?) = state.action {
+                    ImpactMark(size: cell)
+                        .id(state.step)
+                        .position(center(wall, cell: cell))
+                }
                 RobotView(size: cell * 0.78, isCrashed: state.isCrashed)
                     .rotationEffect(.degrees(state.angle))
                     .modifier(ShakeEffect(shakes: reduceMotion ? 0 : CGFloat(crashCount)))
+                    .keyframeAnimator(initialValue: 0.0, trigger: celebrationCount) { robot, hop in
+                        robot.offset(y: hop * hopHeight)
+                    } keyframes: { _ in
+                        SpringKeyframe(-0.3, duration: 0.18)
+                        SpringKeyframe(0, duration: 0.2)
+                        SpringKeyframe(-0.18, duration: 0.15)
+                        SpringKeyframe(0, duration: 0.2)
+                    }
                     .position(center(state.robot, cell: cell))
                     .animation(reduceMotion ? nil : .easeInOut(duration: animationDuration), value: state.robot)
                     .animation(reduceMotion ? nil : .easeInOut(duration: animationDuration), value: state.angle)
                     .animation(.easeInOut(duration: 0.4), value: crashCount)
-                if case .look(let question, let answer) = state.action {
-                    QuestionBubble(question: question, answer: answer)
-                        .position(x: center(state.robot, cell: cell).x, y: max(center(state.robot, cell: cell).y - cell * 0.85, 14))
+                if case .pickCoin = state.action, !reduceMotion {
+                    PickupPop(size: cell)
+                        .id(state.step)
+                        .position(center(state.robot, cell: cell))
+                }
+                if let bubble = bubble {
+                    SpeechBubble(text: bubble.text, tint: bubble.tint)
+                        .position(x: clampedX(center(state.robot, cell: cell).x, text: bubble.text, width: width),
+                                  y: max(center(state.robot, cell: cell).y - cell * 0.85, 14))
                         .transition(.opacity)
                 }
             }
@@ -46,10 +86,30 @@ struct ArenaBoardView: View {
             .animation(.easeOut(duration: 0.25), value: state.coins)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .aspectRatio(CGFloat(world.width) / CGFloat(max(world.height, 1)), contentMode: .fit)
-        .frame(maxHeight: maxHeight)
+        .frame(height: boardHeight)
+        .frame(maxWidth: .infinity)
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { availableWidth = $0 }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(accessibilityText))
+    }
+
+    /// Sprechblase über Byte: eine Frage mit Antwort – oder ein Griff ins Leere.
+    private var bubble: (text: String, tint: Color)? {
+        switch state.action {
+        case .look(let question, let answer):
+            let label = RobotCommand.all.first { $0.name == question }?.summary ?? question
+            return ("\(label) \(answer == "true" ? "ja" : "nein")", answer == "true" ? Theme.success : Theme.indigo)
+        case .crash(wall: nil):
+            return ("Hier liegt keine Münze!", Theme.ember)
+        default:
+            return nil
+        }
+    }
+
+    /// Hält die Sprechblase innerhalb des Spielfelds – am Rand ragte sie sonst hinaus.
+    private func clampedX(_ x: CGFloat, text: String, width: CGFloat) -> CGFloat {
+        let half = min(CGFloat(text.count) * 3.4 + 12, width / 2)
+        return min(max(x, half), width - half)
     }
 
     private func cellSize(in size: CGSize) -> CGFloat {
@@ -185,15 +245,10 @@ struct GoalFlag: View {
     }
 }
 
-/// Sprechblase, wenn Byte etwas gefragt wird – z. B. „vorne frei? ja“.
-private struct QuestionBubble: View {
-    let question: String
-    let answer: String
-
-    private var text: String {
-        let label = RobotCommand.all.first { $0.name == question }?.summary ?? question
-        return "\(label) \(answer == "true" ? "ja" : "nein")"
-    }
+/// Sprechblase über Byte – z. B. „Ist vorne frei? ja“.
+private struct SpeechBubble: View {
+    let text: String
+    let tint: Color
 
     var body: some View {
         Text(text)
@@ -203,8 +258,109 @@ private struct QuestionBubble: View {
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
             .foregroundStyle(.white)
-            .background(answer == "true" ? Theme.success : Theme.indigo, in: Capsule())
+            .background(tint, in: Capsule())
             .shadow(radius: 2)
+    }
+}
+
+/// Der Weg, den Byte gefahren ist – als Linie durch die Feldmitten (gestrichelt zu Punkten).
+private struct TrailShape: Shape {
+    let points: [CGPoint]
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        guard let first = points.first, points.count > 1 else { return path }
+        path.move(to: first)
+        for point in points.dropFirst() { path.addLine(to: point) }
+        return path
+    }
+}
+
+/// „+1“ steigt auf, wenn Byte eine Münze aufhebt.
+private struct PickupPop: View {
+    let size: CGFloat
+    @State private var risen = false
+
+    var body: some View {
+        Text("+1")
+            .font(.system(size: max(size * 0.32, 11), weight: .heavy, design: .rounded))
+            .foregroundStyle(ArenaColors.coin)
+            .shadow(color: .black.opacity(0.5), radius: 1.5, y: 1)
+            .offset(y: risen ? -size * 0.75 : -size * 0.2)
+            .opacity(risen ? 0 : 1)
+            .onAppear { withAnimation(.easeOut(duration: 0.55)) { risen = true } }
+            .allowsHitTesting(false)
+    }
+}
+
+/// Aufprall an der Wand, gegen die Byte gefahren ist.
+private struct ImpactMark: View {
+    let size: CGFloat
+    @State private var shown = false
+
+    var body: some View {
+        Image(systemName: "burst.fill")
+            .font(.system(size: size * 0.62, weight: .bold))
+            .foregroundStyle(Theme.ember)
+            .shadow(color: Theme.ember.opacity(0.6), radius: size * 0.12)
+            .scaleEffect(shown ? 1 : 0.3)
+            .opacity(shown ? 1 : 0)
+            .onAppear { withAnimation(.spring(response: 0.3, dampingFraction: 0.45)) { shown = true } }
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+    }
+}
+
+/// Konfetti über dem ganzen Bildschirm, wenn eine Mission gelöst ist. Jede Erhöhung von `trigger` löst eine Ladung aus.
+struct ConfettiBurst: View {
+    let trigger: Int
+    @State private var start: Date?
+    @State private var pieces: [Piece] = []
+
+    private static let lifetime = 2.4
+    private static let colors: [Color] = [Theme.orange, ArenaColors.coin, Theme.success, Theme.indigo, Theme.violet, Theme.teal, .white]
+
+    struct Piece {
+        let x: Double, drift: Double, speed: Double, spin: Double, delay: Double
+        let width: Double, height: Double
+        let color: Color
+    }
+
+    var body: some View {
+        TimelineView(.animation(paused: start == nil)) { timeline in
+            Canvas { context, size in
+                guard let start else { return }
+                let elapsed = timeline.date.timeIntervalSince(start)
+                for piece in pieces {
+                    let t = elapsed - piece.delay
+                    guard t > 0 else { continue }
+                    let fade = max(0, 1 - t / (Self.lifetime - piece.delay))
+                    let x = (piece.x + piece.drift * t + sin(t * 4 + piece.spin) * 0.02) * size.width
+                    let y = (-0.08 + piece.speed * t + 0.22 * t * t) * size.height
+                    var layer = context
+                    layer.opacity = fade
+                    layer.translateBy(x: x, y: y)
+                    layer.rotate(by: .radians(piece.spin * t * 3))
+                    layer.fill(Path(CGRect(x: -piece.width / 2, y: -piece.height / 2, width: piece.width, height: piece.height)), with: .color(piece.color))
+                }
+            }
+        }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+        .onChange(of: trigger) { _, _ in
+            pieces = (0..<110).map { _ in
+                Piece(x: .random(in: 0.05...0.95), drift: .random(in: -0.12...0.12), speed: .random(in: 0.15...0.45),
+                      spin: .random(in: -3...3), delay: .random(in: 0...0.35),
+                      width: .random(in: 5...9), height: .random(in: 3...6), color: Self.colors.randomElement()!)
+            }
+            let begin = Date.now
+            start = begin
+            Task {
+                try? await Task.sleep(for: .seconds(Self.lifetime))
+                // Eine neuere Ladung läuft weiter.
+                if start == begin { start = nil }
+            }
+        }
     }
 }
 
@@ -227,7 +383,8 @@ struct ShakeEffect: GeometryEffect {
     let world = ArenaWorldSpec(map: ["#######", "####.G#", "###.o##", "##..###", "#.o####", "#R#####", "#######"])
     ArenaBoardView(
         world: world,
-        state: ArenaBoardState(robot: GridPoint(x: 1, y: 5), angle: 0, coins: world.coins, collected: 0, action: .look(question: "frontIsClear", answer: "false"), isCrashed: false)
+        state: ArenaBoardState(robot: GridPoint(x: 1, y: 5), angle: 0, coins: world.coins, collected: 0, action: .look(question: "frontIsClear", answer: "false"), isCrashed: false,
+                               step: 3, trail: [GridPoint(x: 1, y: 4), GridPoint(x: 2, y: 4), GridPoint(x: 2, y: 3)])
     )
     .padding()
     .background(ArenaColors.board)

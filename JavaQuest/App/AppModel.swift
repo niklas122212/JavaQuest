@@ -46,7 +46,8 @@ final class AppModel {
     #if DEBUG
     /// Nur für Screenshots und Tests (mit `-inMemoryStore`):
     /// `-seedScenario beginnerStarted|intermediateMidway`, `-openSection arena|achievements|path|analysis|profile`,
-    /// `-openMission <id>`, `-openPlayground`, `-openLesson <id>`, `-openReview`, `-autoRun` (Mission sofort ausführen).
+    /// `-openMission <id>`, `-openPlayground`, `-openLesson <id>`, `-openReview`, `-autoRun` (Mission sofort ausführen),
+    /// `-autoSolve` (Musterlösung eintragen und ausführen – zählt wie selbst gelöst).
     private func applyDebugLaunchArguments(_ store: ProgressStore) {
         let defaults = UserDefaults.standard
         guard inMemory else { return }
@@ -70,6 +71,7 @@ final class AppModel {
     }
 
     static var debugAutoRun: Bool { ProcessInfo.processInfo.arguments.contains("-autoRun") }
+    static var debugAutoSolve: Bool { ProcessInfo.processInfo.arguments.contains("-autoSolve") }
     #endif
 
     func resetStoreAndReload() {

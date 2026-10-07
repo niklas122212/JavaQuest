@@ -43,7 +43,18 @@ final class ArenaMissionModel {
     private(set) var runCount = 0
     private(set) var usedSolution = false
     private(set) var rewardGain: RewardGain?
+    /// Zählt, wie oft eine gelöste Mission zu Ende abgespielt wurde – löst Konfetti und Byte-Hüpfer aus.
+    private(set) var celebrationCount = 0
     var showsHint = false
+
+    /// Wo man im Editor gerade schreibt (UTF-16) – dort fügt die Befehlsleiste ein.
+    /// Ab iOS 18/macOS 15 meldet der Editor die Stelle, sonst gilt die Stelle hinter dem zuletzt Eingefügten.
+    var cursor: Int?
+    /// Meldet der Editor den Cursor selbst? Dann bleibt er beim Tippen gültig.
+    var editorTracksCursor = false
+    /// Zählt Einfügungen – der Editor setzt dann seinen Cursor hinter das Eingefügte.
+    private(set) var insertionCount = 0
+    private var isInserting = false
 
     /// Bausteine für den Auftrag, mit Markierung, was hier neu ist.
     let conceptUses: [ArenaConceptUse]
@@ -87,6 +98,7 @@ final class ArenaMissionModel {
     var hasNewTools: Bool { !mission.newCommands.isEmpty || conceptUses.contains(where: \.isNew) }
 
     var worlds: [ArenaWorldSpec] { mission.worlds }
+    var lineCountLabel: String { lineCount == 1 ? "1 Zeile" : "\(lineCount) Zeilen" }
     var world: ArenaWorldSpec { worlds[min(selectedWorld, worlds.count - 1)] }
     var bestStars: Int { store.missionStars[mission.id] ?? 0 }
     var isDaily: Bool { !isPlayground && store.dailyMission?.id == mission.id && !store.isDailyMissionDone }
@@ -105,14 +117,37 @@ final class ArenaMissionModel {
         if let frame = currentFrame {
             return ArenaBoardState(
                 robot: frame.robot, angle: angles[min(frameIndex, angles.count - 1)], coins: frame.coins,
-                collected: frame.collected, action: frame.action, isCrashed: frame.action == .crash
+                collected: frame.collected, action: frame.action, isCrashed: frame.action.isCrash,
+                step: frameIndex, trail: trail
             )
         }
         return ArenaBoardState(
             robot: world.start ?? GridPoint(x: 0, y: 0), angle: world.facing.degrees, coins: world.coins,
-            collected: 0, action: .start, isCrashed: false
+            collected: 0, action: .start, isCrashed: false, step: 0, trail: []
         )
     }
+
+    /// Der Weg, den Byte schon gefahren ist – bis zum Feld, das er gerade verlassen hat.
+    /// Am Ende der ganze Weg, damit man ihn in Ruhe ansehen kann.
+    private var trail: [GridPoint] {
+        let visited = frames.prefix(isAtEnd ? frames.count : frameIndex).map(\.robot)
+        return visited.reduce(into: []) { path, point in
+            if path.last != point { path.append(point) }
+        }
+    }
+
+    /// Wartezeiten der Wiedergabe: Fragen kürzer, lange Fahrten gestaucht.
+    private var delays: [Double] { ArenaPlayback.delays(for: frames, base: speed.frameDuration.seconds) }
+
+    /// So lange dauert die Bewegung zum aktuellen Bild – das Spielfeld animiert entsprechend.
+    var stepDuration: Double {
+        let delays = delays
+        let delay = frameIndex < delays.count && frameIndex > 0 ? delays[frameIndex] : speed.frameDuration.seconds
+        return min(delay * 0.85, 0.5)
+    }
+
+    /// Gelöst und zu Ende abgespielt: Zeit zu feiern.
+    var isCelebrating: Bool { result?.solved == true && !isPlayground && !usedSolution && isAtEnd }
 
     /// Fortlaufender Drehwinkel je Bild, damit eine Drehung von 270° auf 0° nicht rückwärts animiert.
     private var angles: [Double] {
@@ -173,7 +208,9 @@ final class ArenaMissionModel {
         isPlaying = true
         playTask = Task { [weak self] in
             while let self, !Task.isCancelled, !self.isAtEnd {
-                try? await Task.sleep(for: self.speed.frameDuration)
+                let delays = self.delays
+                let next = self.frameIndex + 1
+                try? await Task.sleep(for: .seconds(next < delays.count ? delays[next] : self.speed.frameDuration.seconds))
                 guard !Task.isCancelled else { return }
                 self.advance()
             }
@@ -194,7 +231,7 @@ final class ArenaMissionModel {
     func skipToEnd() {
         pause()
         frameIndex = max(frames.count - 1, 0)
-        if currentFrame?.action == .crash { crashCount += 1 }
+        reachedFrame()
     }
 
     func rewind() {
@@ -205,7 +242,12 @@ final class ArenaMissionModel {
     private func advance() {
         guard !isAtEnd else { return }
         frameIndex += 1
-        if currentFrame?.action == .crash { crashCount += 1 }
+        reachedFrame()
+    }
+
+    private func reachedFrame() {
+        if currentFrame?.action.isCrash == true { crashCount += 1 }
+        if isCelebrating { celebrationCount += 1 }
     }
 
     private func stop() {
@@ -232,19 +274,26 @@ final class ArenaMissionModel {
         result = nil
         rewardGain = nil
         frameIndex = 0
+        // Ohne Meldung vom Editor ist nach dem Tippen unklar, wo man steht.
+        if !isInserting, !editorTracksCursor { cursor = nil }
     }
 
     // MARK: Hilfen
 
+    /// Fügt einen Befehl oder eine Vorlage dort ein, wo man schreibt – als eigene, eingerückte Zeile.
     func insert(_ snippet: String) {
         codePanel = .editing
-        var text = code
-        if !text.isEmpty, !text.hasSuffix("\n") { text += "\n" }
-        code = text + snippet
+        let inserted = CodeInsertion.insert(snippet, into: code, cursor: cursor)
+        isInserting = true
+        code = inserted.code
+        isInserting = false
+        cursor = inserted.cursor
+        insertionCount += 1
     }
 
     func resetCode() {
         code = mission.starterCode
+        cursor = nil
         codePanel = .editing
     }
 
@@ -252,6 +301,7 @@ final class ArenaMissionModel {
     func revealSolution() {
         usedSolution = true
         code = mission.solution.source
+        cursor = nil
         codePanel = .editing
     }
 
@@ -269,4 +319,8 @@ struct ArenaBoardState: Equatable {
     let collected: Int
     let action: ArenaAction
     let isCrashed: Bool
+    /// Nummer des Bildes – damit „+1“ und Unfall bei jedem Bild neu aufpoppen.
+    var step = 0
+    /// Bisher gefahrener Weg.
+    var trail: [GridPoint] = []
 }

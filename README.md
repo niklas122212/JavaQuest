@@ -26,6 +26,12 @@ Java Master Score von 0 bis 1000.
   Roboter-Befehlen, die sie braucht. Gebraucht wird nur, was der Kurs bis zu dieser Lektion erklärt hat
   oder die Mission selbst als „NEU“ erklärt; Befehlsleiste und Vorlagen bieten nur Bekanntes an
   (geprüft in `ArenaTests`).
+  Beim Zuschauen zeigt eine Punktspur den gefahrenen Weg, „+1“ steigt beim Aufheben auf, eine Wand, gegen
+  die Byte fährt, blitzt auf; gelöst: Byte hüpft, Konfetti fällt, die Sterne erscheinen nacheinander und
+  nennen den Messwert („Höchstens 7 Roboter-Aktionen · du: 9“). Fragen an Byte ziehen schneller vorbei als
+  Fahrten, lange Fahrten werden gestaucht (höchstens 50 Schritte lang, `ArenaPlayback`), und eine Schleife
+  ohne `robot.move();` zeigt nur 6 Fragen statt 250. Die Befehlsleiste fügt dort ein, wo man schreibt –
+  eingerückt, im leeren Schleifen- oder Methodenrumpf statt am Ende (`CodeInsertion`).
 - **Eingebauter Java-Interpreter** (`JavaQuestKit/Interpreter`): Variablen, Kontrollfluss, statische Methoden,
   Arrays und Strings. Code-Aufgaben werden damit wirklich ausgeführt und die Ausgabe verglichen; dazu ein
   „Testlauf“, der keinen Versuch kostet. Gegen ein echtes JDK geprüft (`Tests/…/Fixtures/java_differential.json`)

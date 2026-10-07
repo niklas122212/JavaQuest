@@ -9,8 +9,14 @@ public enum ArenaAction: Sendable, Hashable {
     case pickCoin
     /// Eine Frage an den Roboter (z. B. frontIsClear) und seine Antwort.
     case look(question: String, answer: String)
-    /// Gegen eine Wand gefahren oder ins Leere gegriffen – das Programm bricht ab.
-    case crash
+    /// Gegen eine Wand gefahren (`wall` ist das Wandfeld) oder ins Leere gegriffen (`wall` ist nil) –
+    /// das Programm bricht ab.
+    case crash(wall: GridPoint?)
+
+    public var isCrash: Bool {
+        if case .crash = self { return true }
+        return false
+    }
 }
 
 /// Ein Standbild der Welt für die Wiedergabe – nach jeder Roboter-Aktion.
@@ -68,6 +74,9 @@ final class ArenaSimulation: JavaHost, @unchecked Sendable {
     static let maxFrames = 1_500
     /// So oft darf der Roboter hintereinander gefragt werden, ohne sich zu bewegen.
     static let maxQuestionsInARow = 250
+    /// So viele Fragen hintereinander zeigt die Wiedergabe als Sprechblase. Mehr braucht keine
+    /// Mission zwischen zwei Aktionen – eine Schleife ohne robot.move(); hätte sonst 250 gleiche Bilder.
+    static let shownQuestionsInARow = 6
 
     let world: ArenaWorldSpec
     /// Befehle, die Byte in dieser Mission kann – für die Liste bei einem unbekannten Befehl.
@@ -122,7 +131,7 @@ final class ArenaSimulation: JavaHost, @unchecked Sendable {
         case "move":
             let next = robot.moved(heading)
             guard !world.isWall(next) else {
-                record(.crash, context: context)
+                record(.crash(wall: next), context: context)
                 throw .runtime("Bumm! Der Roboter ist gegen eine Wand gefahren. Prüfe vorher mit robot.frontIsClear(), ob der Weg frei ist.", line: context.line)
             }
             robot = next
@@ -135,7 +144,7 @@ final class ArenaSimulation: JavaHost, @unchecked Sendable {
             record(.turnRight, context: context)
         case "pickCoin":
             guard coins.contains(robot) else {
-                record(.crash, context: context)
+                record(.crash(wall: nil), context: context)
                 throw .runtime("Hier liegt keine Münze – der Roboter greift ins Leere. Prüfe vorher mit robot.onCoin().", line: context.line)
             }
             coins.remove(robot)
@@ -155,7 +164,9 @@ final class ArenaSimulation: JavaHost, @unchecked Sendable {
             case "onCoin": coins.contains(robot)
             default: robot == world.goal
             }
-            record(.look(question: method, answer: answer ? "true" : "false"), context: context)
+            if questionsInARow <= Self.shownQuestionsInARow {
+                record(.look(question: method, answer: answer ? "true" : "false"), context: context)
+            }
             return .boolean(answer)
         }
         return .void
@@ -181,6 +192,9 @@ public struct ArenaWorldRun: Sendable {
 public struct StarCriterionResult: Sendable, Hashable, Identifiable {
     public let criterion: StarCriterion
     public let met: Bool
+    /// Was der Code tatsächlich geschafft hat („du: 9“) – damit klar ist, was zum Stern fehlt.
+    /// Nur bei gelöster Mission, sonst nil.
+    public var progress: String?
     public var id: String { criterion.title }
 }
 
@@ -232,9 +246,26 @@ public enum ArenaEngine {
             case .maxActions(let limit): runs.allSatisfy { $0.actions <= limit }
             case .uses(let pattern, _): AnswerEvaluator.matches(pattern, in: masked)
             }
-            return StarCriterionResult(criterion: criterion, met: solved && met)
+            return StarCriterionResult(criterion: criterion, met: solved && met,
+                                       progress: solved ? progress(of: criterion, met: met, runs: runs, lines: lines) : nil)
         }
         return ArenaResult(runs: runs, missingRequirements: missing, solved: solved, criteria: criteria, codeLines: lines, warnings: warnings)
+    }
+
+    private static func progress(of criterion: StarCriterion, met: Bool, runs: [ArenaWorldRun], lines: Int) -> String? {
+        switch criterion {
+        case .allCoins:
+            let left = runs.map(\.coinsLeft).reduce(0, +)
+            if met { return nil }
+            return left == 1 ? "1 Münze liegt noch" : "\(left) Münzen liegen noch"
+        case .maxLines:
+            return lines == 1 ? "du: 1 Zeile" : "du: \(lines) Zeilen"
+        case .maxActions:
+            // Bei mehreren Welten zählt die Welt mit den meisten Aktionen.
+            return "du: \(runs.map(\.actions).max() ?? 0)"
+        case .uses:
+            return nil
+        }
     }
 
     private static func evaluate(world: ArenaWorldSpec, simulation: ArenaSimulation, result: JavaRunResult, mission: ArenaMission) -> ArenaWorldRun {

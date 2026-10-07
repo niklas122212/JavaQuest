@@ -87,9 +87,12 @@ struct ArenaTests {
         let run = try #require(result.runs.first)
         #expect(run.problem?.line == 3)
         #expect(run.problem?.message.contains("Wand") == true)
-        #expect(run.frames.last?.action == .crash)
+        #expect(run.frames.last?.action == .crash(wall: GridPoint(x: 4, y: 1)), "Das Wandfeld, gegen das Byte fährt")
         #expect(run.frames.first?.action == .start)
         #expect(run.frames.map(\.robot.x) == [1, 2, 3, 3])
+
+        let grab = ArenaEngine.run("robot.pickCoin();", mission: corridor)
+        #expect(grab.runs[0].frames.last?.action == .crash(wall: nil), "Ins Leere gegriffen: keine Wand")
     }
 
     @Test("Ziel, Münzen und Ausgabe werden geprüft")
@@ -122,6 +125,74 @@ struct ArenaTests {
         let room = mission(["#####", "#R..#", "#..G#", "#####"])
         let result = ArenaEngine.run("while (true) {\n  robot.turnLeft();\n}", mission: room)
         #expect(result.runs[0].problem?.kind == .stepLimit)
+    }
+
+    @Test("Eine Schleife ohne robot.move(); zeigt nur wenige Fragen, nicht 250 gleiche Bilder")
+    func endlessQuestionsAreShortened() {
+        let corridor = mission(["######", "#R..G#", "######"])
+        let result = ArenaEngine.run("while (!robot.atGoal()) {\n}", mission: corridor)
+        let run = result.runs[0]
+        #expect(run.problem?.kind == .stepLimit)
+        #expect(run.frames.count == 1 + ArenaSimulation.shownQuestionsInARow)
+    }
+
+    @Test("Sterne nennen, was der Code geschafft hat")
+    func starProgressIsReported() throws {
+        let level = mission(["######", "#Ro.G#", "######"])
+        let result = ArenaEngine.run("robot.move();\nrobot.move();\nrobot.move();\nrobot.move();", mission: level)
+        #expect(!result.solved)
+        #expect(result.criteria.allSatisfy { $0.progress == nil }, "Ohne Lösung keine Messwerte")
+
+        let solved = ArenaEngine.run("robot.move();\nrobot.move();\nrobot.move();", mission: level)
+        let coins = try #require(solved.criteria.first { $0.criterion == .allCoins })
+        let lines = try #require(solved.criteria.first { $0.criterion == .maxLines(3) })
+        #expect(!coins.met && coins.progress == "1 Münze liegt noch")
+        #expect(lines.met && lines.progress == "du: 3 Zeilen")
+    }
+
+    @Test("Wiedergabe: Fragen sind kürzer, lange Fahrten werden gestaucht")
+    func playbackDelays() throws {
+        let catalog = catalog
+        let short = try #require(catalog.mission(id: "a01-erste-schritte"))
+        let quick = ArenaEngine.run(short.solution.source, mission: short).runs[0].frames
+        #expect(ArenaPlayback.delays(for: quick, base: 0.4) == [0] + Array(repeating: 0.4, count: quick.count - 1))
+
+        for mission in catalog.missions {
+            for run in ArenaEngine.run(mission.solution.source, mission: mission).runs {
+                let delays = ArenaPlayback.delays(for: run.frames, base: 0.38)
+                #expect(delays.reduce(0, +) <= 0.38 * ArenaPlayback.maxSteps + 0.001, "\(mission.id): zu lang")
+                for (frame, delay) in zip(run.frames, delays).dropFirst() {
+                    if case .look = frame.action { #expect(delay < 0.38) }
+                }
+            }
+        }
+    }
+
+    @Test("Befehle landen an der Stelle, an der man schreibt")
+    func commandInsertion() {
+        let loop = "while (!robot.atGoal()) {\n    // Was soll in jeder Runde passieren?\n}"
+        // Ohne Cursor: in den leeren Block, eingerückt
+        let first = CodeInsertion.insert("robot.move();", into: loop, cursor: nil)
+        #expect(first.code == "while (!robot.atGoal()) {\n    // Was soll in jeder Runde passieren?\n    robot.move();\n}")
+        // Weiter hinter dem zuletzt Eingefügten
+        let second = CodeInsertion.insert("robot.pickCoin();", into: first.code, cursor: first.cursor)
+        #expect(second.code.hasSuffix("    robot.move();\n    robot.pickCoin();\n}"))
+        // Vorlagen werden als Ganzes eingerückt
+        let template = CodeInsertion.insert("if (robot.onCoin()) {\n    robot.pickCoin();\n}", into: loop, cursor: nil)
+        #expect(template.code.contains("\n    if (robot.onCoin()) {\n        robot.pickCoin();\n    }\n}"))
+        // Cursor hinter einer Zeile mit { : eine Stufe tiefer
+        let afterBrace = CodeInsertion.insert("robot.move();", into: "while (true) {\n}", cursor: 14)
+        #expect(afterBrace.code == "while (true) {\n    robot.move();\n}")
+        // Cursor am Zeilenanfang: davor
+        let atStart = CodeInsertion.insert("robot.move();", into: "robot.turnLeft();\nrobot.pickCoin();", cursor: 18)
+        #expect(atStart.code == "robot.turnLeft();\nrobot.move();\nrobot.pickCoin();")
+        // Leere Zeile wird zur Befehlszeile
+        let blank = CodeInsertion.insert("robot.move();", into: "int a = 0;\n\nrobot.turnLeft();", cursor: 11)
+        #expect(blank.code == "int a = 0;\nrobot.move();\nrobot.turnLeft();")
+        // Kein leerer Block: ans Ende
+        let plain = CodeInsertion.insert("robot.move();", into: "// Start\nrobot.move();\n", cursor: nil)
+        #expect(plain.code == "// Start\nrobot.move();\nrobot.move();\n")
+        #expect(CodeInsertion.insert("robot.move();", into: "", cursor: nil).code == "robot.move();")
     }
 
     @Test("Codezeilen zählen nur echte Anweisungen")

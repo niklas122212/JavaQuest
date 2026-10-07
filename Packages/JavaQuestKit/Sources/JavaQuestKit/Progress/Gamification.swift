@@ -187,6 +187,9 @@ public struct Achievement: Sendable, Hashable, Identifiable {
     public func current(_ facts: LearnerFacts) -> Int { min(measure(facts), target) }
     public func isUnlocked(_ facts: LearnerFacts) -> Bool { measure(facts) >= target }
 
+    /// So viele Lektionen hat der Kurs – Ziel des Abzeichens „Java Master“.
+    static let courseLessons = 35
+
     public static let all: [Achievement] = [
         Achievement(id: "first-task", title: "Hallo, Welt!", detail: "Löse deine erste Aufgabe.", symbolName: "hand.wave.fill", target: 1) {
             Set($0.taskAttempts.filter { $0.solved && $0.context != .placement }.map(\.taskId)).count
@@ -243,8 +246,9 @@ public struct Achievement: Sendable, Hashable, Identifiable {
         Achievement(id: "level-5", title: "Aufsteiger", detail: "Erreiche Level 5.", symbolName: "arrow.up.forward.circle.fill", target: 5) {
             Experience.level(for: $0.experience).level
         },
-        Achievement(id: "course", title: "Java Master", detail: "Schließe alle Lektionen ab.", symbolName: "trophy.fill", target: 13) {
-            $0.completedLessonIds.count
+        // Alle Lektionen des Kurses – ein Test prüft, dass die Zahl zum Kurs passt.
+        Achievement(id: "course", title: "Java Master", detail: "Schließe alle Lektionen ab.", symbolName: "trophy.fill", target: courseLessons) { facts in
+            facts.course.allLessons.filter { facts.completedLessonIds.contains($0.id) }.count
         },
     ]
 

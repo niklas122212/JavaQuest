@@ -16,6 +16,7 @@ struct ArenaMissionView: View {
     let context: ArenaContext
     @State private var width: CGFloat = 400
     @State private var confirmSolution = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var isWide: Bool { width >= 880 }
 
@@ -57,7 +58,14 @@ struct ArenaMissionView: View {
             .scrollDismissesKeyboard(.interactively)
             .onChange(of: model.isAtEnd && model.result != nil) { _, finished in
                 guard finished, !isWide else { return }
-                withAnimation(.smooth) { proxy.scrollTo("result", anchor: .top) }
+                // Die Ergebnis-Karte erscheint im selben Moment – erst nach dem Einfügen findet
+                // scrollTo sie. Ohne die kurze Pause blieb das Ergebnis unter dem Bildrand.
+                // Gelöst: erst Byte jubeln lassen, dann zum Ergebnis.
+                let pause = model.isCelebrating && !reduceMotion ? 1_100 : 120
+                Task {
+                    try? await Task.sleep(for: .milliseconds(pause))
+                    withAnimation(.smooth) { proxy.scrollTo("result", anchor: .top) }
+                }
             }
             .onChange(of: model.isRunning) { _, running in
                 guard running, !isWide else { return }
@@ -66,13 +74,25 @@ struct ArenaMissionView: View {
         }
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
         .background(Theme.screenBackground)
+        .overlay {
+            if !reduceMotion {
+                ConfettiBurst(trigger: model.celebrationCount)
+                    .ignoresSafeArea()
+            }
+        }
         .safeAreaInset(edge: .bottom) { actionBar }
         .sensoryFeedback(.success, trigger: model.result?.solved == true && model.isAtEnd)
         .sensoryFeedback(.error, trigger: model.crashCount)
         .onDisappear { model.leave() }
         #if DEBUG
         .task {
-            if AppModel.debugAutoRun, model.runCount == 0 { model.run() }
+            guard model.runCount == 0 else { return }
+            if AppModel.debugAutoSolve {
+                model.code = model.mission.solution.source
+                model.run()
+            } else if AppModel.debugAutoRun {
+                model.run()
+            }
         }
         #endif
         .confirmationDialog("Lösung anzeigen?", isPresented: $confirmSolution, titleVisibility: .visible) {
@@ -91,7 +111,8 @@ struct ArenaMissionView: View {
                 world: model.world,
                 state: model.board,
                 crashCount: model.crashCount,
-                animationDuration: min(model.speed.frameDuration.seconds * 0.85, 0.5),
+                celebrationCount: model.celebrationCount,
+                animationDuration: model.stepDuration,
                 maxHeight: isWide ? 420 : 300
             )
             .padding(10)
@@ -111,7 +132,7 @@ struct ArenaMissionView: View {
                 Label("Dein Java-Code", systemImage: "chevron.left.forwardslash.chevron.right")
                     .font(.headline)
                 Spacer()
-                Text("\(model.lineCount) Zeilen")
+                Text(model.lineCountLabel)
                     .font(.caption.monospacedDigit())
                     .foregroundStyle(.secondary)
                 if model.codePanel == .watching {
@@ -123,7 +144,7 @@ struct ArenaMissionView: View {
             }
             switch model.codePanel {
             case .editing:
-                CodeEditorView(text: $model.code, placeholder: "// Befehle für Byte, z. B. robot.move();", minHeight: isWide ? 260 : 200, isLocked: false)
+                ArenaCodeEditor(model: model, minHeight: isWide ? 260 : 200)
                 CommandPalette(model: model)
             case .watching:
                 TraceCodeView(code: model.code, currentLine: model.currentLine, errorLine: model.isAtEnd ? model.currentRun?.problem?.line : nil)
@@ -157,7 +178,8 @@ struct ArenaMissionView: View {
                 .id("result")
                 .transition(.move(edge: .bottom).combined(with: .opacity))
         }
-        if model.usedSolution || model.result?.solved == true, !model.isPlayground {
+        // Die Musterlösung erst nach der Fahrt – nicht schon, während Byte noch unterwegs ist.
+        if model.usedSolution || (model.result?.solved == true && (model.isAtEnd || !model.isPlaying)), !model.isPlayground {
             SolutionExegesis(title: "Musterlösung Zeile für Zeile", snippet: model.mission.solution)
         }
     }
@@ -176,14 +198,19 @@ struct ArenaMissionView: View {
                         Button("Mission überspringen", systemImage: "forward") { onFinish(nil) }
                     }
                 } label: {
-                    Label("Hilfe", systemImage: "questionmark.circle")
+                    if showsFinish {
+                        // Daneben stehen zwei Buttons – auf dem iPhone reicht dann das Symbol.
+                        Label("Hilfe", systemImage: "questionmark.circle").labelStyle(.iconOnly)
+                    } else {
+                        Label("Hilfe", systemImage: "questionmark.circle")
+                    }
                 }
                 .menuStyle(.button)
                 .buttonStyle(.secondary)
-                .frame(maxWidth: 160)
+                .frame(maxWidth: showsFinish ? 64 : 160)
             }
 
-            if model.result?.solved == true, model.isAtEnd || !model.isPlaying {
+            if showsFinish {
                 finishButton
             } else {
                 Button(action: { withAnimation(.smooth) { model.run() } }) {
@@ -205,6 +232,8 @@ struct ArenaMissionView: View {
         .background(.bar)
     }
 
+    private var showsFinish: Bool { model.result?.solved == true && (model.isAtEnd || !model.isPlaying) }
+
     @ViewBuilder private var finishButton: some View {
         switch context {
         case .lesson(let onFinish):
@@ -215,9 +244,12 @@ struct ArenaMissionView: View {
             .keyboardShortcut(.return, modifiers: .command)
         case .standalone(let onClose, let onNext):
             if let onNext {
-                Button("Fertig", systemImage: "checkmark", action: onClose)
-                    .buttonStyle(.secondary)
-                    .frame(maxWidth: 160)
+                // Auf dem iPhone ist für drei Buttons kein Platz – Schließen geht dort über das X oben.
+                if width >= 600 {
+                    Button("Fertig", systemImage: "checkmark", action: onClose)
+                        .buttonStyle(.secondary)
+                        .frame(maxWidth: 160)
+                }
                 Button(action: onNext) {
                     Label("Nächste Mission", systemImage: "arrow.right")
                 }
@@ -727,7 +759,9 @@ struct TraceCodeView: View {
             .frame(minHeight: 160, maxHeight: 340)
             .onChange(of: currentLine) { _, line in
                 guard let line else { return }
-                withAnimation(.easeOut(duration: 0.2)) { proxy.scrollTo(line, anchor: .center) }
+                // Nur senkrecht zur Zeile – waagerecht bleibt der Zeilenanfang sichtbar
+                // (mit .center stand da „ile (!robot…“ statt „while“).
+                withAnimation(.easeOut(duration: 0.2)) { proxy.scrollTo(line, anchor: UnitPoint(x: 0, y: 0.5)) }
             }
         }
         .background(CodeTheme.background, in: RoundedRectangle(cornerRadius: Theme.innerRadius, style: .continuous))
@@ -876,9 +910,10 @@ private struct MissionResultPanel: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(result.solved ? (result.stars == 3 ? "Perfekt gelöst!" : "Mission geschafft!") : "Noch nicht ganz").font(.headline)
                 Text(subline).font(.subheadline).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: 8)
-            StarsView(count: result.stars, size: 22)
+            StarReveal(count: result.stars, size: 22)
         }
     }
 
@@ -894,23 +929,30 @@ private struct MissionResultPanel: View {
         VStack(alignment: .leading, spacing: 7) {
             criterionRow(met: result.solved, title: "Mission erfüllt")
             ForEach(result.criteria) { item in
-                criterionRow(met: item.met, title: item.criterion.title)
+                criterionRow(met: item.met, title: item.criterion.title, progress: item.progress)
             }
         }
     }
 
-    private func criterionRow(met: Bool, title: String) -> some View {
-        HStack(spacing: 8) {
+    /// Ein Stern mit Messwert – „Höchstens 7 Roboter-Aktionen · du: 9“ sagt genau, was noch fehlt.
+    private func criterionRow(met: Bool, title: String, progress: String? = nil) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
             Image(systemName: met ? "star.fill" : "star")
                 .foregroundStyle(met ? Color.yellow : Color.secondary)
             Text(title).font(.subheadline)
+            if let progress {
+                Text(progress)
+                    .font(.caption.weight(.semibold).monospacedDigit())
+                    .foregroundStyle(met ? Theme.success : Theme.ember)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 2)
+                    .background((met ? Theme.success : Theme.ember).opacity(0.12), in: Capsule())
+            }
         }
     }
 
     @ViewBuilder private var failures: some View {
-        let messages = result.missingRequirements + result.runs.enumerated().flatMap { index, run in
-            run.failures.map { model.worlds.count > 1 ? "Welt \(index + 1): \($0)" : $0 }
-        }
+        let messages = result.missingRequirements + worldFailures
         if !messages.isEmpty {
             VStack(alignment: .leading, spacing: 6) {
                 ForEach(Array(messages.prefix(5).enumerated()), id: \.offset) { _, message in
@@ -921,6 +963,26 @@ private struct MissionResultPanel: View {
                 }
             }
         }
+    }
+
+    /// Fehler je Welt – was in jeder Welt gleich schiefging, steht nur einmal da.
+    private var worldFailures: [String] {
+        let runs = result.runs
+        guard model.worlds.count > 1 else { return runs.flatMap(\.failures) }
+        var messages: [String] = []
+        for (index, run) in runs.enumerated() {
+            // Ein Syntaxfehler steht im Code, nicht in einer Welt (geprüft wird nur die erste).
+            if run.problem?.kind == .syntax || run.problem?.kind == .unsupported {
+                messages += run.failures.filter { !messages.contains($0) }
+                continue
+            }
+            for failure in run.failures {
+                let everywhere = runs.count == model.worlds.count && runs.allSatisfy { $0.failures.contains(failure) }
+                let message = everywhere ? "In allen Welten: \(failure)" : "Welt \(index + 1): \(failure)"
+                if !messages.contains(message) { messages.append(message) }
+            }
+        }
+        return messages
     }
 
     private var playgroundSummary: some View {
@@ -946,6 +1008,85 @@ private struct ColoredIconLabelStyle: LabelStyle {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             configuration.icon.foregroundStyle(tint)
             configuration.title.fixedSize(horizontal: false, vertical: true)
+        }
+    }
+}
+
+/// Sterne, die nacheinander aufploppen – mit leichtem Tippen auf dem iPhone.
+private struct StarReveal: View {
+    let count: Int
+    let size: CGFloat
+    @State private var shown = 0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        HStack(spacing: size * 0.2) {
+            ForEach(0..<3, id: \.self) { index in
+                Image(systemName: index < shown ? "star.fill" : "star")
+                    .foregroundStyle(index < shown ? Color.yellow : Color.secondary.opacity(0.5))
+                    .scaleEffect(index < shown ? 1 : 0.85)
+            }
+        }
+        .font(.system(size: size, weight: .bold))
+        .sensoryFeedback(.impact(weight: .light), trigger: shown) { _, new in new > 0 }
+        .task(id: count) {
+            guard !reduceMotion else { shown = count; return }
+            shown = 0
+            for star in stride(from: 1, through: count, by: 1) {
+                try? await Task.sleep(for: .milliseconds(star == 1 ? 200 : 300))
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.45)) { shown = star }
+            }
+        }
+        .accessibilityElement()
+        .accessibilityLabel(Text("\(count) von 3 Sternen"))
+    }
+}
+
+/// Der Code-Editor der Arena. Ab iOS 18 / macOS 15 merkt er sich, wo man schreibt – dort fügt die
+/// Befehlsleiste ein, und danach steht der Cursor hinter dem Eingefügten.
+private struct ArenaCodeEditor: View {
+    @Bindable var model: ArenaMissionModel
+    let minHeight: CGFloat
+    private let placeholder = "// Befehle für Byte, z. B. robot.move();"
+
+    var body: some View {
+        if #available(iOS 18.0, macOS 15.0, *) {
+            CursorTrackingEditor(model: model, placeholder: placeholder, minHeight: minHeight)
+        } else {
+            CodeEditorView(text: $model.code, placeholder: placeholder, minHeight: minHeight, isLocked: false)
+        }
+    }
+}
+
+@available(iOS 18.0, macOS 15.0, *)
+private struct CursorTrackingEditor: View {
+    @Bindable var model: ArenaMissionModel
+    let placeholder: String
+    let minHeight: CGFloat
+    @State private var selection: TextSelection?
+
+    var body: some View {
+        SelectableCodeEditorView(text: $model.code, selection: $selection, placeholder: placeholder, minHeight: minHeight, isLocked: false)
+            .onAppear { model.editorTracksCursor = true }
+            .onChange(of: selection) { _, selection in
+                guard let index = Self.end(of: selection) else { return }
+                model.cursor = min(index.utf16Offset(in: model.code), model.code.utf16.count)
+            }
+            .onChange(of: model.insertionCount) { _, _ in
+                // Cursor hinter das Eingefügte setzen.
+                guard let cursor = model.cursor else { return }
+                let code = model.code
+                let offset = min(cursor, code.utf16.count)
+                selection = TextSelection(insertionPoint: String.Index(utf16Offset: offset, in: code))
+            }
+    }
+
+    private static func end(of selection: TextSelection?) -> String.Index? {
+        switch selection?.indices {
+        case .selection(let range): range.upperBound
+        case .multiSelection(let ranges): ranges.ranges.last?.upperBound
+        case nil: nil
+        @unknown default: nil
         }
     }
 }

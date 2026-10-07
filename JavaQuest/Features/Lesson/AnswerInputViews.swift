@@ -161,8 +161,36 @@ struct CodeEditorView: View {
     let isLocked: Bool
 
     var body: some View {
+        TextEditor(text: $text)
+            .modifier(CodeEditorStyle(isEmpty: text.isEmpty, placeholder: placeholder, minHeight: minHeight, isLocked: isLocked))
+    }
+}
+
+/// Derselbe Editor, der zusätzlich meldet, wo der Cursor steht (ab iOS 18 / macOS 15).
+@available(iOS 18.0, macOS 15.0, *)
+struct SelectableCodeEditorView: View {
+    @Binding var text: String
+    @Binding var selection: TextSelection?
+    let placeholder: String
+    var minHeight: CGFloat = 180
+    let isLocked: Bool
+
+    var body: some View {
+        TextEditor(text: $text, selection: $selection)
+            .modifier(CodeEditorStyle(isEmpty: text.isEmpty, placeholder: placeholder, minHeight: minHeight, isLocked: isLocked))
+    }
+}
+
+/// Aussehen des Code-Editors: Monospace, dunkel, Platzhalter bei leerem Text.
+private struct CodeEditorStyle: ViewModifier {
+    let isEmpty: Bool
+    let placeholder: String
+    let minHeight: CGFloat
+    let isLocked: Bool
+
+    func body(content: Content) -> some View {
         ZStack(alignment: .topLeading) {
-            TextEditor(text: $text)
+            content
                 .font(.system(.callout, design: .monospaced))
                 .foregroundStyle(CodeTheme.plain)
                 .scrollContentBackground(.hidden)
@@ -173,7 +201,7 @@ struct CodeEditorView: View {
                 #endif
                 .disabled(isLocked)
                 .padding(10)
-            if text.isEmpty {
+            if isEmpty {
                 Text(placeholder)
                     .font(.system(.callout, design: .monospaced))
                     .foregroundStyle(CodeTheme.plain.opacity(0.35))

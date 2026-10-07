@@ -64,6 +64,17 @@ struct GamificationTests {
         #expect(Set(Achievement.all.map(\.id)).count == Achievement.all.count)
     }
 
+    @Test("„Java Master“ gibt es erst, wenn wirklich alle Lektionen geschafft sind")
+    func courseAchievementNeedsEveryLesson() {
+        #expect(Achievement.courseLessons == course.allLessons.count, "Ziel des Abzeichens an den Kurs anpassen")
+        var results: [String: LessonResult] = [:]
+        for lesson in course.allLessons.dropLast() { results[lesson.id] = LessonResult(bestAccuracy: 1, isCompleted: true) }
+        // Früher reichten 13 Lektionen
+        #expect(!Achievement.unlocked(facts([], results: results)).contains("course"))
+        results[course.allLessons.last!.id] = LessonResult(bestAccuracy: 1, isCompleted: true)
+        #expect(Achievement.unlocked(facts([], results: results)).contains("course"))
+    }
+
     @Test("Tägliche Mission: stabil pro Tag, nur freigeschaltete, Unfertiges zuerst")
     func dailyMission() throws {
         let fresh = DailyMission.availableMissions(catalog: catalog, course: course, results: [:])
