@@ -12,7 +12,7 @@
           "lines": [
             {
               "code": "public class Main {",
-              "explain": "Hier beginnt die Klasse „Main“. Stell sie dir als Kuchenform vor: Sie beschreibt, welche Eigenschaften und Fähigkeiten jedes Objekt vom Typ Main hat. Die echten Objekte sind die Kuchen, die später mit new aus dieser Form gebacken werden."
+              "explain": "Hier beginnt die Klasse „Main“. In Java muss jedes Programm in so einer Klasse stehen – hier dient sie nur als Behälter für unser Programm. Die geschweifte Klammer { öffnet den Behälter."
             },
             {
               "code": "    public static void main(String[] args) {",
@@ -233,7 +233,7 @@
           "lines": [
             {
               "code": "public class Rechner {",
-              "explain": "Hier beginnt die Klasse „Rechner“. Stell sie dir als Kuchenform vor: Sie beschreibt, welche Eigenschaften und Fähigkeiten jedes Objekt vom Typ Rechner hat. Die echten Objekte sind die Kuchen, die später mit new aus dieser Form gebacken werden."
+              "explain": "Hier beginnt die Klasse „Rechner“. In Java muss jedes Programm in so einer Klasse stehen – hier dient sie nur als Behälter für unser Programm. Die geschweifte Klammer { öffnet den Behälter."
             },
             {
               "code": "    static void verdoppeln(int zahl) {",

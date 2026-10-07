@@ -174,7 +174,7 @@ struct CoinView: View {
     }
 }
 
-private struct GoalFlag: View {
+struct GoalFlag: View {
     let size: CGFloat
 
     var body: some View {

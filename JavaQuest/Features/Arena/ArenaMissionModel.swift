@@ -45,6 +45,16 @@ final class ArenaMissionModel {
     private(set) var rewardGain: RewardGain?
     var showsHint = false
 
+    /// Bausteine für den Auftrag, mit Markierung, was hier neu ist.
+    let conceptUses: [ArenaConceptUse]
+    /// Befehle, die Byte hier kann – nur die bis zu dieser Mission eingeführten.
+    let commands: [RobotCommand]
+    /// Vorlagen für die Befehlsleiste – nur, was schon erklärt ist.
+    let templates: [ArenaTemplate]
+    /// Kennt man eigene Methoden schon? Erst dann steht der Methoden-Tipp unter dem Editor.
+    let knowsMethods: Bool
+    private let lessonNumbers: [String: Int]
+
     private let store: ProgressStore
     private var playTask: Task<Void, Never>?
 
@@ -53,7 +63,28 @@ final class ArenaMissionModel {
         self.store = store
         self.isPlayground = isPlayground
         self.code = mission.starterCode
+        let lessonOrder = store.course.allLessons.map(\.id)
+        lessonNumbers = Dictionary(lessonOrder.enumerated().map { ($1, $0 + 1) }, uniquingKeysWith: { first, _ in first })
+        if isPlayground {
+            conceptUses = []
+            commands = RobotCommand.all
+            templates = ArenaTemplate.all
+            knowsMethods = true
+        } else {
+            conceptUses = store.catalog.conceptUses(for: mission)
+            commands = RobotCommand.all.filter { mission.commandNames.contains($0.name) }
+            templates = store.catalog.templates(for: mission, lessonOrder: lessonOrder)
+            knowsMethods = store.catalog.knows("methode", in: mission, lessonOrder: lessonOrder)
+        }
     }
+
+    /// „Lektion 4“ – wo der Kurs einen Baustein erklärt.
+    func lessonLabel(for concept: ArenaConcept) -> String? {
+        concept.lessonId.flatMap { lessonNumbers[$0] }.map { "Lektion \($0)" }
+    }
+
+    /// Steckt im Werkzeugkasten etwas, das hier zum ersten Mal vorkommt?
+    var hasNewTools: Bool { !mission.newCommands.isEmpty || conceptUses.contains(where: \.isNew) }
 
     var worlds: [ArenaWorldSpec] { mission.worlds }
     var world: ArenaWorldSpec { worlds[min(selectedWorld, worlds.count - 1)] }

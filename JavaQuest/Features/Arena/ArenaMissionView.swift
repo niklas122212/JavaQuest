@@ -24,9 +24,11 @@ struct ArenaMissionView: View {
             ScrollView {
                 Group {
                     if isWide {
+                        // Links Auftrag und Spielfeld, rechts Code – der Weg in Schritten und der
+                        // Werkzeugkasten stehen unter dem Code, wo man beim Schreiben nachschaut.
                         HStack(alignment: .top, spacing: 20) {
                             VStack(spacing: 16) {
-                                MissionBriefing(model: model)
+                                MissionBriefing(model: model, showsGuide: false)
                                 boardCard
                                 ConsolePanel(model: model)
                             }
@@ -34,12 +36,13 @@ struct ArenaMissionView: View {
                             VStack(spacing: 16) {
                                 codeCard
                                 resultSection
+                                MissionGuide(model: model).card(padding: 18)
                             }
                             .frame(maxWidth: .infinity)
                         }
                     } else {
                         VStack(spacing: 16) {
-                            MissionBriefing(model: model)
+                            MissionBriefing(model: model, showsGuide: true)
                             boardCard
                             codeCard
                             ConsolePanel(model: model)
@@ -95,6 +98,7 @@ struct ArenaMissionView: View {
             .frame(maxWidth: .infinity)
             .background(ArenaColors.board, in: RoundedRectangle(cornerRadius: Theme.innerRadius, style: .continuous))
             .overlay(alignment: .topTrailing) { BoardBadges(model: model).padding(16) }
+            BoardLegend(facing: model.world.facing, hasGoal: model.world.goal != nil, hasCoins: !model.world.coins.isEmpty)
             PlaybackControls(model: model)
         }
         .card(padding: 14)
@@ -125,11 +129,13 @@ struct ArenaMissionView: View {
                 TraceCodeView(code: model.code, currentLine: model.currentLine, errorLine: model.isAtEnd ? model.currentRun?.problem?.line : nil)
                     .onTapGesture { withAnimation(.smooth) { model.edit() } }
             }
-            Text(model.isPlayground
-                 ? "Eigene Methoden (static void …) darfst du über oder unter deine Befehle schreiben."
-                 : "Tipp: Eigene Methoden (static void …) darfst du über oder unter deine Befehle schreiben.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            if model.knowsMethods {
+                Text(model.isPlayground
+                     ? "Eigene Methoden (static void …) darfst du über oder unter deine Befehle schreiben."
+                     : "Tipp: Eigene Methoden (static void …) darfst du über oder unter deine Befehle schreiben.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         }
         .card(padding: 16)
     }
@@ -230,8 +236,11 @@ struct ArenaMissionView: View {
 
 // MARK: - Auftrag
 
+/// Was zu tun ist: Titel, Geschichte und Auftrag – auf schmalen Bildschirmen auch gleich der Weg dorthin.
 private struct MissionBriefing: View {
     let model: ArenaMissionModel
+    /// Schritte, Werkzeugkasten und Sterne mit anzeigen (sonst stehen sie neben dem Code).
+    let showsGuide: Bool
 
     private var kindLabel: (String, String, Color) {
         if model.isPlayground { return ("Spielplatz", "sparkles", Theme.teal) }
@@ -243,7 +252,7 @@ private struct MissionBriefing: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 8) {
                 Chip(text: kindLabel.0, systemImage: kindLabel.1, tint: kindLabel.2)
                 if model.isDaily { Chip(text: "Tagesmission", systemImage: "sun.max.fill", tint: Theme.orange) }
@@ -257,24 +266,278 @@ private struct MissionBriefing: View {
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
+
             if !model.isPlayground {
-                GoalList(mission: model.mission)
+                BriefingSection(title: "Dein Auftrag", systemImage: "flag.checkered") {
+                    VStack(alignment: .leading, spacing: 9) {
+                        ForEach(Array(model.mission.goals.enumerated()), id: \.offset) { _, goal in
+                            GoalRow(goal: goal)
+                        }
+                    }
+                }
             }
-            if !model.mission.newCommands.isEmpty {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("NEUE BEFEHLE").font(.caption2.weight(.heavy)).foregroundStyle(Theme.orange)
-                    ForEach(model.mission.newCommands, id: \.self) { name in
-                        if let command = RobotCommand.all.first(where: { $0.name == name }) {
-                            HStack(spacing: 8) {
-                                Text(command.call).font(.system(.footnote, design: .monospaced).weight(.semibold))
-                                Text("– \(command.summary)").font(.footnote).foregroundStyle(.secondary)
+            if showsGuide {
+                MissionGuide(model: model)
+            }
+        }
+        .card(padding: 18)
+    }
+}
+
+/// Der Weg zum Ziel: Schritte in Worten, Werkzeugkasten (Bausteine und Befehle) und Sterne.
+private struct MissionGuide: View {
+    let model: ArenaMissionModel
+    @State private var showsSteps = true
+    @State private var showsToolbox: Bool
+
+    init(model: ArenaMissionModel) {
+        self.model = model
+        // Aufgeklappt, wenn etwas Neues darin steckt – Bekanntes bleibt kompakt.
+        _showsToolbox = State(initialValue: model.isPlayground || model.hasNewTools)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            if !model.isPlayground {
+                if !model.mission.steps.isEmpty {
+                    BriefingSection(title: "So gehst du vor", systemImage: "list.number", isExpanded: $showsSteps) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            ForEach(Array(model.mission.steps.enumerated()), id: \.offset) { index, step in
+                                HStack(alignment: .firstTextBaseline, spacing: 10) {
+                                    Text("\(index + 1)")
+                                        .font(.caption.weight(.heavy).monospacedDigit())
+                                        .foregroundStyle(.white)
+                                        .frame(width: 20, height: 20)
+                                        .background(Theme.indigo, in: Circle())
+                                    Text(step)
+                                        .font(.subheadline)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
                             }
                         }
                     }
                 }
             }
+
+            BriefingSection(
+                title: model.isPlayground ? "Das kann Byte" : "Dein Werkzeugkasten",
+                systemImage: "wrench.and.screwdriver.fill",
+                isExpanded: $showsToolbox,
+                collapsedSummary: toolboxSummary
+            ) {
+                VStack(alignment: .leading, spacing: 14) {
+                    if !model.conceptUses.isEmpty {
+                        VStack(alignment: .leading, spacing: 10) {
+                            SectionCaption(text: "Java-Bausteine, die du brauchst")
+                            ForEach(model.conceptUses) { use in
+                                ConceptRow(use: use, lessonLabel: model.lessonLabel(for: use.concept))
+                            }
+                        }
+                    }
+                    VStack(alignment: .leading, spacing: 8) {
+                        SectionCaption(text: model.isPlayground ? "Alle Befehle" : "Befehle, die Byte hier kann")
+                        ForEach(model.commands) { command in
+                            CommandRow(command: command, isNew: model.mission.newCommands.contains(command.name))
+                        }
+                    }
+                }
+            }
+
+            if !model.isPlayground {
+                BriefingSection(title: "Sterne", systemImage: "star.fill") {
+                    GoalList(mission: model.mission)
+                }
+            }
         }
-        .card(padding: 18)
+    }
+
+    private var toolboxSummary: String {
+        let concepts = model.conceptUses.map(\.concept.title)
+        let commands = model.commands.count == 1 ? "1 Befehl" : "\(model.commands.count) Befehle"
+        return (concepts + [commands]).joined(separator: " · ")
+    }
+}
+
+/// Überschrift eines Auftragsteils – mit Aufklappen, wenn `isExpanded` gesetzt ist.
+private struct BriefingSection<Content: View>: View {
+    let title: String
+    let systemImage: String
+    var isExpanded: Binding<Bool>?
+    var collapsedSummary: String?
+    @ViewBuilder let content: Content
+
+    init(title: String, systemImage: String, isExpanded: Binding<Bool>? = nil, collapsedSummary: String? = nil, @ViewBuilder content: () -> Content) {
+        self.title = title
+        self.systemImage = systemImage
+        self.isExpanded = isExpanded
+        self.collapsedSummary = collapsedSummary
+        self.content = content()
+    }
+
+    private var expanded: Bool { isExpanded?.wrappedValue ?? true }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            if let isExpanded {
+                Button {
+                    withAnimation(.smooth) { isExpanded.wrappedValue.toggle() }
+                } label: {
+                    HStack(spacing: 8) {
+                        header
+                        Spacer(minLength: 8)
+                        Image(systemName: "chevron.down")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(.secondary)
+                            .rotationEffect(.degrees(expanded ? 0 : -90))
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityValue(Text(expanded ? "aufgeklappt" : "zugeklappt"))
+                .accessibilityHint(Text(expanded ? "Tippen zum Zuklappen" : "Tippen zum Aufklappen"))
+            } else {
+                header
+            }
+            if expanded {
+                content
+                    .transition(.opacity)
+            } else if let collapsedSummary {
+                Text(collapsedSummary)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+            }
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Theme.fieldBackground.opacity(0.6), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    private var header: some View {
+        Label(title, systemImage: systemImage)
+            .font(.subheadline.weight(.bold))
+            .foregroundStyle(Theme.indigo)
+            .accessibilityAddTraits(.isHeader)
+    }
+}
+
+private struct SectionCaption: View {
+    let text: String
+
+    var body: some View {
+        Text(text.uppercased())
+            .font(.caption2.weight(.heavy))
+            .foregroundStyle(.secondary)
+    }
+}
+
+private struct NewBadge: View {
+    var body: some View {
+        Text("NEU")
+            .font(.caption2.weight(.heavy))
+            .foregroundStyle(.white)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(Theme.orange, in: Capsule())
+            .accessibilityLabel(Text("neu"))
+    }
+}
+
+/// Ein Punkt im Auftrag – bei der Ausgabe mit dem genauen Text, der erscheinen muss.
+private struct GoalRow: View {
+    let goal: ArenaGoal
+
+    private var symbol: (String, Color) {
+        switch goal.kind {
+        case .reachGoal: ("flag.checkered", Theme.success)
+        case .collectCoins: ("circle.circle.fill", ArenaColors.coinEdge)
+        case .output: ("text.bubble.fill", Theme.indigo)
+        case .rule: ("checkmark.seal.fill", Theme.violet)
+        case .allWorlds: ("square.stack.3d.up.fill", Theme.teal)
+        }
+    }
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 10) {
+            Image(systemName: symbol.0)
+                .foregroundStyle(symbol.1)
+                .frame(width: 20)
+            VStack(alignment: .leading, spacing: 6) {
+                Text(goal.text)
+                    .font(.subheadline)
+                    .fixedSize(horizontal: false, vertical: true)
+                ForEach(Array(goal.outputs.enumerated()), id: \.offset) { _, output in
+                    VStack(alignment: .leading, spacing: 3) {
+                        if let world = output.world {
+                            Text("Welt \(world)").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                        }
+                        Text(output.text)
+                            .font(.system(.footnote, design: .monospaced))
+                            .foregroundStyle(CodeTheme.plain)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(CodeTheme.background, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                            .accessibilityLabel(Text("Ausgabe: \(output.text)"))
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// Ein Java-Baustein mit Mini-Beispiel – „NEU“, wenn ihn hier zum ersten Mal jemand braucht.
+private struct ConceptRow: View {
+    let use: ArenaConceptUse
+    let lessonLabel: String?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            HStack(spacing: 8) {
+                Text(use.concept.title).font(.subheadline.weight(.semibold))
+                if use.isNew {
+                    NewBadge()
+                } else if let lessonLabel {
+                    Text("aus \(lessonLabel)").font(.caption).foregroundStyle(.secondary)
+                }
+            }
+            Text(CodeBlockView.highlighted(use.concept.code))
+                .font(.system(.footnote, design: .monospaced))
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(CodeTheme.background, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .environment(\.colorScheme, .dark)
+            Text(use.concept.text)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
+/// Ein Roboter-Befehl mit genauer Beschreibung.
+private struct CommandRow: View {
+    let command: RobotCommand
+    let isNew: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            HStack(spacing: 8) {
+                Text(command.call + (command.returnType == "void" ? ";" : ""))
+                    .font(.system(.footnote, design: .monospaced).weight(.semibold))
+                    .foregroundStyle(isNew ? Theme.orange : Theme.indigo)
+                if isNew { NewBadge() }
+            }
+            Text(command.detail)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -284,30 +547,50 @@ private struct GoalList: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            row("star.fill", missionGoal)
+            row("star.fill", "Auftrag erfüllt")
             ForEach(Array(mission.bonus.enumerated()), id: \.offset) { _, criterion in
                 row(criterion.symbolName, criterion.title)
             }
         }
-        .padding(12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Theme.fieldBackground.opacity(0.6), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-    }
-
-    private var missionGoal: String {
-        var parts: [String] = []
-        if mission.reachGoal { parts.append("Ziel erreichen") }
-        if mission.collectAllCoins { parts.append("alle Münzen einsammeln") }
-        if mission.worlds.contains(where: { $0.expectedOutput != nil }) { parts.append("richtige Ausgabe") }
-        let text = parts.joined(separator: ", ")
-        let worlds = mission.worlds.count > 1 ? " – in allen \(mission.worlds.count) Welten" : ""
-        return (text.prefix(1).uppercased() + text.dropFirst()) + worlds
     }
 
     private func row(_ symbol: String, _ text: String) -> some View {
         HStack(spacing: 8) {
             Image(systemName: symbol).foregroundStyle(.yellow).frame(width: 18)
             Text(text).font(.footnote)
+        }
+    }
+}
+
+/// So liest man das Spielfeld – und wohin Byte am Anfang schaut.
+private struct BoardLegend: View {
+    let facing: Heading
+    let hasGoal: Bool
+    let hasCoins: Bool
+
+    var body: some View {
+        FlowLayout(spacing: 12) {
+            item {
+                RobotView(size: 16).rotationEffect(.degrees(facing.degrees))
+            } text: { "Byte – schaut am Anfang \(facing.direction)" }
+            if hasGoal {
+                item { GoalFlag(size: 22) } text: { "Ziel" }
+            }
+            if hasCoins {
+                item { CoinView(size: 14) } text: { "Münze" }
+            }
+            item {
+                RoundedRectangle(cornerRadius: 3, style: .continuous).fill(ArenaColors.wall).frame(width: 14, height: 14)
+            } text: { "Wand" }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
+    }
+
+    private func item<Icon: View>(@ViewBuilder icon: () -> Icon, text: () -> String) -> some View {
+        HStack(spacing: 6) {
+            icon().frame(width: 22, height: 22)
+            Text(text()).font(.caption).foregroundStyle(.secondary)
         }
     }
 }
@@ -462,20 +745,14 @@ struct TraceCodeView: View {
 }
 
 /// Befehle zum Antippen – sie werden unten an den Code angehängt.
+/// Angeboten wird nur, was Byte hier kann und was schon erklärt ist.
 private struct CommandPalette: View {
     let model: ArenaMissionModel
-
-    private let templates: [(String, String)] = [
-        ("if", "if (robot.onCoin()) {\n    robot.pickCoin();\n}"),
-        ("while", "while (!robot.atGoal()) {\n    robot.move();\n}"),
-        ("for", "for (int i = 0; i < 3; i++) {\n    robot.move();\n}"),
-        ("Methode", "static void schritt() {\n    robot.move();\n}"),
-    ]
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                ForEach(RobotCommand.all) { command in
+                ForEach(model.commands) { command in
                     let isNew = model.mission.newCommands.contains(command.name)
                     Button { model.insert(command.returnType == "void" ? "\(command.call);" : command.call) } label: {
                         Text(command.call)
@@ -489,10 +766,12 @@ private struct CommandPalette: View {
                     .help(command.summary)
                     .accessibilityHint(Text(command.summary))
                 }
-                Divider().frame(height: 22)
-                ForEach(templates, id: \.0) { name, snippet in
-                    Button { model.insert(snippet) } label: {
-                        Label(name, systemImage: "plus")
+                if !model.templates.isEmpty {
+                    Divider().frame(height: 22)
+                }
+                ForEach(model.templates) { template in
+                    Button { model.insert(template.code) } label: {
+                        Label(template.name, systemImage: "plus")
                             .font(.caption.weight(.semibold))
                             .padding(.horizontal, 10)
                             .padding(.vertical, 7)

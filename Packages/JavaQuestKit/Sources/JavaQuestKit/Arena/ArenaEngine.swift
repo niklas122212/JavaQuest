@@ -32,20 +32,32 @@ public struct RobotCommand: Sendable, Hashable, Identifiable {
     public let name: String
     public let returnType: String
     public let summary: String
+    /// Was der Befehl genau tut – für die Befehlsliste im Auftrag.
+    public let detail: String
     public var id: String { name }
     public var call: String { "robot.\(name)()" }
 
     public static let all: [RobotCommand] = [
-        RobotCommand(name: "move", returnType: "void", summary: "Ein Feld vorwärts fahren"),
-        RobotCommand(name: "turnLeft", returnType: "void", summary: "Um 90° nach links drehen"),
-        RobotCommand(name: "turnRight", returnType: "void", summary: "Um 90° nach rechts drehen"),
-        RobotCommand(name: "pickCoin", returnType: "void", summary: "Münze auf dem Feld aufheben"),
-        RobotCommand(name: "frontIsClear", returnType: "boolean", summary: "Ist vorne frei?"),
-        RobotCommand(name: "leftIsClear", returnType: "boolean", summary: "Ist links frei?"),
-        RobotCommand(name: "rightIsClear", returnType: "boolean", summary: "Ist rechts frei?"),
-        RobotCommand(name: "onCoin", returnType: "boolean", summary: "Liegt hier eine Münze?"),
-        RobotCommand(name: "atGoal", returnType: "boolean", summary: "Steht er auf dem Ziel?"),
-        RobotCommand(name: "coins", returnType: "int", summary: "Wie viele Münzen hat er?"),
+        RobotCommand(name: "move", returnType: "void", summary: "Ein Feld vorwärts fahren",
+                     detail: "Fährt ein Feld in Blickrichtung. Steht dort eine Wand, gibt es einen Unfall."),
+        RobotCommand(name: "turnLeft", returnType: "void", summary: "Um 90° nach links drehen",
+                     detail: "Dreht Byte auf der Stelle um 90° nach links – er fährt dabei nicht."),
+        RobotCommand(name: "turnRight", returnType: "void", summary: "Um 90° nach rechts drehen",
+                     detail: "Dreht Byte auf der Stelle um 90° nach rechts – er fährt dabei nicht."),
+        RobotCommand(name: "pickCoin", returnType: "void", summary: "Münze auf dem Feld aufheben",
+                     detail: "Hebt die Münze auf, auf der Byte gerade steht. Liegt dort keine, gibt es einen Fehler."),
+        RobotCommand(name: "frontIsClear", returnType: "boolean", summary: "Ist vorne frei?",
+                     detail: "Antwortet true, wenn das Feld vor Byte frei ist – sonst false."),
+        RobotCommand(name: "leftIsClear", returnType: "boolean", summary: "Ist links frei?",
+                     detail: "Antwortet true, wenn das Feld links neben Byte frei ist – sonst false."),
+        RobotCommand(name: "rightIsClear", returnType: "boolean", summary: "Ist rechts frei?",
+                     detail: "Antwortet true, wenn das Feld rechts neben Byte frei ist – sonst false."),
+        RobotCommand(name: "onCoin", returnType: "boolean", summary: "Liegt hier eine Münze?",
+                     detail: "Antwortet true, wenn auf dem Feld von Byte eine Münze liegt – sonst false."),
+        RobotCommand(name: "atGoal", returnType: "boolean", summary: "Steht er auf dem Ziel?",
+                     detail: "Antwortet true, wenn Byte auf der Zielflagge steht – sonst false."),
+        RobotCommand(name: "coins", returnType: "int", summary: "Wie viele Münzen hat er?",
+                     detail: "Antwortet mit der Zahl der Münzen, die Byte schon aufgehoben hat (eine ganze Zahl)."),
     ]
 }
 
@@ -58,6 +70,8 @@ final class ArenaSimulation: JavaHost, @unchecked Sendable {
     static let maxQuestionsInARow = 250
 
     let world: ArenaWorldSpec
+    /// Befehle, die Byte in dieser Mission kann – für die Liste bei einem unbekannten Befehl.
+    let commandNames: [String]
     let objectNames: Set<String> = ["robot"]
     private(set) var robot: GridPoint
     private(set) var heading: Heading
@@ -69,8 +83,9 @@ final class ArenaSimulation: JavaHost, @unchecked Sendable {
 
     var wantsSnapshot: Bool { frames.count < Self.maxFrames }
 
-    init(world: ArenaWorldSpec) {
+    init(world: ArenaWorldSpec, commandNames: [String] = RobotCommand.all.map(\.name)) {
         self.world = world
+        self.commandNames = commandNames
         robot = world.start ?? GridPoint(x: 0, y: 0)
         heading = world.facing
         coins = world.coins
@@ -89,7 +104,7 @@ final class ArenaSimulation: JavaHost, @unchecked Sendable {
         guard let command = RobotCommand.all.first(where: { $0.name == method }) else {
             let similar = RobotCommand.all.first { $0.name.lowercased() == method.lowercased() }
             let tip = similar.map { " Meintest du robot.\($0.name)()? Achte auf Groß- und Kleinschreibung." }
-                ?? " Er kann: " + RobotCommand.all.map { "\($0.name)()" }.joined(separator: ", ") + "."
+                ?? " Er kann hier: " + commandNames.map { "\($0)()" }.joined(separator: ", ") + "."
             throw .syntax("Der Roboter kennt den Befehl \(method)() nicht.\(tip)", line: context.line)
         }
         guard args.isEmpty else {
@@ -194,7 +209,7 @@ public enum ArenaEngine {
         var runs: [ArenaWorldRun] = []
         var warnings: [JavaWarning] = []
         for world in mission.worlds {
-            let simulation = ArenaSimulation(world: world)
+            let simulation = ArenaSimulation(world: world, commandNames: mission.commandNames)
             let result = JavaRunner.run(source, stepLimit: stepLimit, host: simulation)
             for warning in result.warnings where !warnings.contains(warning) { warnings.append(warning) }
             runs.append(evaluate(world: world, simulation: simulation, result: result, mission: mission))

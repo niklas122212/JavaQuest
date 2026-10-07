@@ -1,4 +1,139 @@
 {
+ "concepts": [
+  {
+   "id": "befehl",
+   "title": "Befehl an Byte",
+   "code": "robot.move();",
+   "text": "So sprichst du Byte an: robot, ein Punkt, der Befehl mit Klammern – und am Ende ein Semikolon. Jeder Befehl steht in einer eigenen Zeile."
+  },
+  {
+   "id": "ausgabe",
+   "title": "Text ausgeben",
+   "code": "System.out.println(\"Angekommen!\");",
+   "text": "Schreibt den Text in die Konsole. Der Text steht in Anführungszeichen.",
+   "lessonId": "l01-hello"
+  },
+  {
+   "id": "variable",
+   "title": "Variable anlegen",
+   "code": "int muenzen = 0;",
+   "text": "Legt eine Box für eine ganze Zahl an und legt 0 hinein.",
+   "lessonId": "l02-variables"
+  },
+  {
+   "id": "hochzaehlen",
+   "title": "Um 1 erhöhen",
+   "code": "muenzen = muenzen + 1;",
+   "text": "Nimmt den alten Inhalt der Box, legt 1 dazu und speichert das Ergebnis wieder in derselben Box."
+  },
+  {
+   "id": "textUndZahl",
+   "title": "Text und Zahl zusammen ausgeben",
+   "code": "System.out.println(\"Münzen: \" + muenzen);",
+   "text": "Das + klebt den Text und den Inhalt der Variablen zusammen – ausgegeben wird zum Beispiel „Münzen: 3“."
+  },
+  {
+   "id": "antwort",
+   "title": "Byte antwortet",
+   "code": "int anzahl = robot.coins();",
+   "text": "Manche Befehle liefern eine Antwort. Hier antwortet Byte mit einer Zahl – du speicherst sie in einer Variablen."
+  },
+  {
+   "id": "rechnen",
+   "title": "Rechnen",
+   "code": "int wert = anzahl * 5;",
+   "text": "* heißt „mal“. Java rechnet rechts vom = und legt das Ergebnis in die Box links.",
+   "lessonId": "l03-operators"
+  },
+  {
+   "id": "if",
+   "title": "if – nur wenn",
+   "code": "if (robot.onCoin()) {\n    robot.pickCoin();\n}",
+   "text": "Der Block in { } läuft nur, wenn die Frage in den runden Klammern true ergibt.",
+   "lessonId": "l04-conditionals"
+  },
+  {
+   "id": "ifElse",
+   "title": "if – else – sonst",
+   "code": "if (robot.onCoin()) {\n    robot.pickCoin();\n} else {\n    robot.move();\n}",
+   "text": "Ist die Frage true, läuft der erste Block, sonst der Block nach else – genau einer von beiden.",
+   "lessonId": "l04-conditionals"
+  },
+  {
+   "id": "elseIf",
+   "title": "else if – noch eine Frage",
+   "code": "} else if (robot.frontIsClear()) {",
+   "text": "Ergibt die erste Frage false, prüft Java die nächste. Von oben nach unten gewinnt der erste Block, dessen Frage true ist.",
+   "lessonId": "l04-conditionals"
+  },
+  {
+   "id": "nicht",
+   "title": "! – nicht",
+   "code": "!robot.atGoal()",
+   "text": "Das ! dreht eine Antwort um: Aus true wird false und umgekehrt. !robot.atGoal() heißt also „noch nicht am Ziel“."
+  },
+  {
+   "id": "while",
+   "title": "while – solange",
+   "code": "while (!robot.atGoal()) {\n    robot.move();\n}",
+   "text": "Wiederholt den Block, solange die Frage true ergibt. Vor jeder Runde fragt Java neu.",
+   "lessonId": "l05-loops"
+  },
+  {
+   "id": "for",
+   "title": "for – feste Rundenzahl",
+   "code": "for (int i = 0; i < 4; i++) {\n    robot.move();\n}",
+   "text": "Wiederholt den Block eine feste Zahl von Runden – hier 4-mal (i ist nacheinander 0, 1, 2 und 3).",
+   "lessonId": "l05-loops"
+  },
+  {
+   "id": "forRunter",
+   "title": "for – rückwärts zählen",
+   "code": "for (int i = 5; i > 0; i--) {",
+   "text": "Startet bei 5, läuft, solange i > 0 ist, und zieht nach jeder Runde 1 ab (i--). Die Runden sind also 5, 4, 3, 2, 1."
+  },
+  {
+   "id": "methode",
+   "title": "Eigene Methode",
+   "code": "static void stufe() {\n    robot.move();\n}\n\nstufe();",
+   "text": "Bündelt Befehle unter einem eigenen Namen. Mit stufe(); rufst du sie auf – so oft du willst.",
+   "lessonId": "l06-methods"
+  },
+  {
+   "id": "methodeMitWert",
+   "title": "Methode mit Zutat",
+   "code": "static void fahre(int felder) {\n    …\n}\n\nfahre(3);",
+   "text": "Beim Aufruf fahre(3); landet die 3 in felder – die Methode arbeitet dann mit diesem Wert.",
+   "lessonId": "l06-methods"
+  },
+  {
+   "id": "array",
+   "title": "Array",
+   "code": "int[] strecken = {4, 3, 2};",
+   "text": "Ein Array ist wie ein Eierkarton mit nummerierten Fächern – hier liegen 4, 3 und 2 darin.",
+   "lessonId": "l07-arrays-strings"
+  },
+  {
+   "id": "forEach",
+   "title": "for-each – jedes Fach",
+   "code": "for (int strecke : strecken) {\n    …\n}",
+   "text": "Geht alle Fächer des Arrays der Reihe nach durch. In jeder Runde liegt der aktuelle Wert in strecke.",
+   "lessonId": "l07-arrays-strings"
+  },
+  {
+   "id": "text",
+   "title": "Text-Variable",
+   "code": "String muster = \"\";",
+   "text": "Eine Box für Text. \"\" ist ein leerer Text – noch steht nichts darin.",
+   "lessonId": "l02-variables"
+  },
+  {
+   "id": "textAnhaengen",
+   "title": "Text anhängen",
+   "code": "muster += \"x\";",
+   "text": "Hängt „x“ hinten an den Text in muster an. Kurz für muster = muster + \"x\";"
+  }
+ ],
  "playground": {
   "map": [
    "##########",
@@ -19,6 +154,16 @@
    "difficulty": 1,
    "title": "Erste Schritte",
    "story": "Das ist Byte, dein Roboter. Er versteht Java! Fahr ihn mit robot.move(); bis zur Zielflagge, heb unterwegs die Münze mit robot.pickCoin(); auf und lass ihn am Ende „Angekommen!“ ausgeben.",
+   "steps": [
+    "Byte schaut nach rechts. Jedes robot.move(); fährt ihn genau ein Feld weiter.",
+    "Steht er auf dem Feld mit der Münze, hebst du sie mit robot.pickCoin(); auf.",
+    "Fahr weiter, bis Byte auf der Flagge steht – zähl dafür die Felder.",
+    "Als letzte Zeile gibst du „Angekommen!“ aus."
+   ],
+   "concepts": [
+    "befehl",
+    "ausgabe"
+   ],
    "worlds": [
     {
      "map": [
@@ -32,6 +177,7 @@
    "starterCode": "// Jede Zeile ist ein Befehl und endet mit ;\nrobot.move();",
    "solution": "robot.move();\nrobot.move();\nrobot.pickCoin();\nrobot.move();\nrobot.move();\nSystem.out.println(\"Angekommen!\");",
    "hint": "Byte steht 4 Felder vor dem Ziel – also 4-mal robot.move();. Auf dem Münzfeld kommt robot.pickCoin(); dazwischen.",
+   "requirements": [],
    "bonus": [
     {
      "type": "allCoins"
@@ -45,7 +191,6 @@
     "move",
     "pickCoin"
    ],
-   "requirements": [],
    "collectAllCoins": false,
    "reachGoal": true
   },
@@ -57,6 +202,17 @@
    "difficulty": 2,
    "title": "Münzen zählen",
    "story": "Im Gang liegen Münzen. Sammle alle ein und zähle dabei mit einer int-Variablen mit. Am Ziel gibt Byte den Zählerstand aus: „Münzen: 3“.",
+   "steps": [
+    "Die Box für den Zähler steht schon da: int muenzen = 0;",
+    "Fahr Feld für Feld zur Flagge und heb jede Münze mit robot.pickCoin(); auf.",
+    "Direkt nach jedem Aufheben zählst du mit: muenzen = muenzen + 1;",
+    "Am Ziel gibst du Text und Zähler zusammen aus: \"Münzen: \" + muenzen"
+   ],
+   "concepts": [
+    "variable",
+    "hochzaehlen",
+    "textUndZahl"
+   ],
    "worlds": [
     {
      "map": [
@@ -104,6 +260,17 @@
    "difficulty": 2,
    "title": "Rechenmeister",
    "story": "Jede Münze ist 5 Euro wert. Sammle alle Münzen ein und berechne den Gesamtwert mit *. Tipp: robot.coins() verrät, wie viele Münzen Byte schon hat.",
+   "steps": [
+    "Fahr bis zur Flagge und heb unterwegs alle 4 Münzen auf.",
+    "Frag Byte danach mit robot.coins(), wie viele Münzen er hat.",
+    "Rechne diese Anzahl mal 5 und leg das Ergebnis in eine int-Variable.",
+    "Gib „Wert: “ zusammen mit deiner Variablen aus."
+   ],
+   "concepts": [
+    "antwort",
+    "rechnen",
+    "textUndZahl"
+   ],
    "worlds": [
     {
      "map": [
@@ -156,6 +323,17 @@
    "difficulty": 3,
    "title": "Boss: Der Tunnelschatz",
    "story": "Ein verwinkelter Tunnel! Byte muss um zwei Ecken fahren, alle drei Münzen einsammeln und dann melden: „Gefunden: 3“ und den Wert „Wert: 15“ (5 Euro pro Münze).",
+   "steps": [
+    "Fahr bis zur ersten Ecke. Mit robot.turnRight(); dreht sich Byte nach rechts – danach schaut er nach unten.",
+    "Fahr bis zur nächsten Ecke und dreh dich wieder nach rechts. Jetzt geht es nach links zur Flagge.",
+    "Heb unterwegs alle 3 Münzen auf.",
+    "Am Ziel: robot.coins() in einer Variablen speichern, den Wert mit * 5 ausrechnen und beide Zeilen ausgeben."
+   ],
+   "concepts": [
+    "antwort",
+    "rechnen",
+    "textUndZahl"
+   ],
    "worlds": [
     {
      "map": [
@@ -170,8 +348,8 @@
     }
    ],
    "starterCode": "// robot.turnRight(); dreht Byte nach rechts",
-   "solution": "robot.move();\nrobot.move();\nrobot.pickCoin();\nrobot.move();\nrobot.move();\nrobot.turnRight();\nrobot.move();\nrobot.move();\nrobot.pickCoin();\nrobot.move();\nrobot.turnRight();\nrobot.move();\nrobot.move();\nrobot.pickCoin();\nrobot.move();\nrobot.move();\nint anzahl = robot.coins();\nSystem.out.println(\"Gefunden: \" + anzahl);\nSystem.out.println(\"Wert: \" + anzahl * 5);",
-   "hint": "Zähl die Felder bis zur Ecke, dreh mit robot.turnRight(); und fahr weiter. Für den Wert: anzahl * 5.",
+   "solution": "robot.move();\nrobot.move();\nrobot.pickCoin();\nrobot.move();\nrobot.move();\nrobot.turnRight();\nrobot.move();\nrobot.move();\nrobot.pickCoin();\nrobot.move();\nrobot.turnRight();\nrobot.move();\nrobot.move();\nrobot.pickCoin();\nrobot.move();\nrobot.move();\nint anzahl = robot.coins();\nint wert = anzahl * 5;\nSystem.out.println(\"Gefunden: \" + anzahl);\nSystem.out.println(\"Wert: \" + wert);",
+   "hint": "Zähl die Felder bis zur Ecke, dreh mit robot.turnRight(); und fahr weiter. Für den Wert: int wert = anzahl * 5;",
    "requirements": [
     {
      "rule": "require",
@@ -192,7 +370,7 @@
     },
     {
      "type": "maxLines",
-     "value": 19
+     "value": 20
     }
    ],
    "newCommands": [
@@ -209,6 +387,15 @@
    "difficulty": 3,
    "title": "Mal hier, mal da",
    "story": "Derselbe Gang – aber in jeder Welt liegen die Münzen woanders! Dein Code muss in allen drei Welten funktionieren. Frag Byte mit if (robot.onCoin()), ob er gerade auf einer Münze steht.",
+   "steps": [
+    "Der Gang ist in allen drei Welten gleich lang: 4 Felder bis zur Flagge. Nur die Münzen liegen woanders.",
+    "Fahr ein Feld und frag dann mit if (robot.onCoin()), ob dort eine Münze liegt – nur dann heb sie auf.",
+    "Wiederhole das für jedes Feld bis zur Flagge.",
+    "Nach dem Ausführen siehst du über „Welt 1“, „Welt 2“ und „Welt 3“, ob dein Code überall klappt."
+   ],
+   "concepts": [
+    "if"
+   ],
    "worlds": [
     {
      "map": [
@@ -235,7 +422,6 @@
    "starterCode": "robot.move();\n// Liegt hier eine Münze? Dann aufheben!",
    "solution": "robot.move();\nif (robot.onCoin()) {\n    robot.pickCoin();\n}\nrobot.move();\nif (robot.onCoin()) {\n    robot.pickCoin();\n}\nrobot.move();\nif (robot.onCoin()) {\n    robot.pickCoin();\n}\nrobot.move();",
    "hint": "Nach jedem robot.move(); fragst du: if (robot.onCoin()) { robot.pickCoin(); } – so klappt es egal, wo die Münzen liegen.",
-   "collectAllCoins": true,
    "requirements": [
     {
      "rule": "require",
@@ -256,6 +442,7 @@
    "newCommands": [
     "onCoin"
    ],
+   "collectAllCoins": true,
    "reachGoal": true
   },
   {
@@ -266,6 +453,17 @@
    "difficulty": 3,
    "title": "Der endlose Gang",
    "story": "Diesmal ist der Gang in jeder Welt verschieden lang. Abzählen klappt nicht mehr – lass Byte fahren, solange er nicht am Ziel ist, und unterwegs jede Münze einsammeln.",
+   "steps": [
+    "Die Gänge sind verschieden lang – Abzählen klappt hier nicht.",
+    "Nimm eine while-Schleife, die läuft, solange Byte noch nicht am Ziel ist: while (!robot.atGoal())",
+    "In jeder Runde: ein Feld fahren und dann mit if prüfen, ob dort eine Münze liegt.",
+    "Die Schleife hört von selbst auf, sobald Byte auf der Flagge steht."
+   ],
+   "concepts": [
+    "while",
+    "nicht",
+    "if"
+   ],
    "worlds": [
     {
      "map": [
@@ -285,7 +483,6 @@
    "starterCode": "while (!robot.atGoal()) {\n    // Was soll in jeder Runde passieren?\n}",
    "solution": "while (!robot.atGoal()) {\n    robot.move();\n    if (robot.onCoin()) {\n        robot.pickCoin();\n    }\n}",
    "hint": "In jeder Runde: ein Feld fahren, dann prüfen, ob dort eine Münze liegt. Die while-Schleife hört von selbst auf, sobald robot.atGoal() true ist.",
-   "collectAllCoins": true,
    "requirements": [
     {
      "rule": "require",
@@ -307,6 +504,7 @@
    "newCommands": [
     "atGoal"
    ],
+   "collectAllCoins": true,
    "reachGoal": true
   },
   {
@@ -317,6 +515,17 @@
    "difficulty": 2,
    "title": "Countdown",
    "story": "Byte zählt die Felder bis zum Ziel laut herunter: „Noch 5“, „Noch 4“ … „Noch 1“ – und am Ende „Ziel!“. Unterwegs liegen zwei Münzen.",
+   "steps": [
+    "Byte steht 5 Felder vor der Flagge.",
+    "Schreib eine for-Schleife, deren Zähler i von 5 bis 1 herunterzählt.",
+    "In jeder Runde: zuerst \"Noch \" + i ausgeben, dann ein Feld fahren und eine Münze aufheben, falls dort eine liegt.",
+    "Nach der Schleife gibst du „Ziel!“ aus."
+   ],
+   "concepts": [
+    "forRunter",
+    "textUndZahl",
+    "if"
+   ],
    "worlds": [
     {
      "map": [
@@ -328,7 +537,7 @@
     }
    ],
    "starterCode": "// Eine for-Schleife, die von 5 bis 1 herunterzählt",
-   "solution": "for (int i = 5; i > 0; i--) {\n    System.out.println(\"Noch \" + i);\n    robot.move();\n    if (robot.onCoin()) robot.pickCoin();\n}\nSystem.out.println(\"Ziel!\");",
+   "solution": "for (int i = 5; i > 0; i--) {\n    System.out.println(\"Noch \" + i);\n    robot.move();\n    if (robot.onCoin()) {\n        robot.pickCoin();\n    }\n}\nSystem.out.println(\"Ziel!\");",
    "hint": "for (int i = 5; i > 0; i--) zählt 5, 4, 3, 2, 1. In jeder Runde: ausgeben, dann fahren.",
    "requirements": [
     {
@@ -349,7 +558,7 @@
     },
     {
      "type": "maxLines",
-     "value": 5
+     "value": 6
     }
    ],
    "newCommands": [],
@@ -364,6 +573,15 @@
    "difficulty": 3,
    "title": "Hin und zurück",
    "story": "Zwei Reihen voller Münzen: Byte fährt die obere Reihe bis zur Wand, wechselt nach unten und fährt zurück bis zur Flagge. Die Reihen sind in jeder Welt unterschiedlich lang.",
+   "steps": [
+    "Fahr mit while (robot.frontIsClear()) die obere Reihe entlang, bis vor Byte eine Wand ist – und heb jede Münze auf.",
+    "Dann: rechts drehen, ein Feld nach unten fahren, noch einmal rechts drehen. Jetzt schaut Byte nach links.",
+    "Mit derselben Schleife fährt Byte die untere Reihe zurück bis zur Flagge."
+   ],
+   "concepts": [
+    "while",
+    "if"
+   ],
    "worlds": [
     {
      "map": [
@@ -383,9 +601,8 @@
     }
    ],
    "starterCode": "// Fahre, solange vorne frei ist: while (robot.frontIsClear())",
-   "solution": "static void bisZurWand() {\n    while (robot.frontIsClear()) {\n        robot.move();\n        if (robot.onCoin()) {\n            robot.pickCoin();\n        }\n    }\n}\n\nbisZurWand();\nrobot.turnRight();\nrobot.move();\nrobot.turnRight();\nbisZurWand();",
-   "hint": "Die Fahrt bis zur Wand brauchst du zweimal – perfekt für eine eigene Methode. Dazwischen: rechts drehen, ein Feld runter, wieder rechts drehen.",
-   "collectAllCoins": true,
+   "solution": "while (robot.frontIsClear()) {\n    robot.move();\n    if (robot.onCoin()) {\n        robot.pickCoin();\n    }\n}\nrobot.turnRight();\nrobot.move();\nrobot.turnRight();\nwhile (robot.frontIsClear()) {\n    robot.move();\n    if (robot.onCoin()) {\n        robot.pickCoin();\n    }\n}",
+   "hint": "Die Fahrt bis zur Wand ist eine while-Schleife mit robot.frontIsClear(). Du brauchst sie zweimal – dazwischen: rechts drehen, ein Feld runter, wieder rechts drehen.",
    "requirements": [
     {
      "rule": "require",
@@ -395,18 +612,17 @@
    ],
    "bonus": [
     {
-     "type": "uses",
-     "pattern": "\\bstatic\\s+void\\s+\\w+\\s*\\(",
-     "label": "Eigene Methode für „bis zur Wand“"
+     "type": "allCoins"
     },
     {
      "type": "maxLines",
-     "value": 10
+     "value": 11
     }
    ],
    "newCommands": [
     "frontIsClear"
    ],
+   "collectAllCoins": false,
    "reachGoal": true
   },
   {
@@ -417,6 +633,16 @@
    "difficulty": 4,
    "title": "Die Treppe",
    "story": "Byte muss eine Treppe hinauf. Jede Stufe geht gleich: links drehen, hoch, rechts drehen, vor. Schreib dafür eine eigene Methode stufe() und ruf sie für jede Stufe auf.",
+   "steps": [
+    "Byte schaut nach rechts. Eine Stufe geht so: links drehen, ein Feld hoch, rechts drehen, ein Feld vor.",
+    "Schreib diese vier Befehle in die Methode stufe() – und heb danach eine Münze auf, falls Byte auf einer steht.",
+    "Die Treppe hat 4 Stufen: Ruf stufe(); viermal auf – am kürzesten mit einer for-Schleife."
+   ],
+   "concepts": [
+    "methode",
+    "for",
+    "if"
+   ],
    "worlds": [
     {
      "map": [
@@ -464,6 +690,17 @@
    "difficulty": 4,
    "title": "Hürdenlauf",
    "story": "Auf der Strecke stehen Hürden. Ist vorne frei, fährt Byte weiter – sonst springt er drüber: hoch, zwei Felder vor, wieder runter. Die Hürden stehen in jeder Welt woanders.",
+   "steps": [
+    "Schreib zuerst die Methode springe(): links drehen, vor, rechts drehen, zweimal vor, rechts drehen, vor, links drehen.",
+    "Dann eine Schleife, die läuft, solange Byte nicht am Ziel ist.",
+    "In jeder Runde: Ist vorne frei, fährt Byte ein Feld und hebt eine Münze auf, falls dort eine liegt – sonst ruft er springe(); auf."
+   ],
+   "concepts": [
+    "methode",
+    "while",
+    "nicht",
+    "ifElse"
+   ],
    "worlds": [
     {
      "map": [
@@ -483,7 +720,7 @@
     }
    ],
    "starterCode": "static void springe() {\n    // hoch, zwei Felder vor, wieder runter\n}",
-   "solution": "static void springe() {\n    robot.turnLeft();\n    robot.move();\n    robot.turnRight();\n    robot.move();\n    robot.move();\n    robot.turnRight();\n    robot.move();\n    robot.turnLeft();\n}\n\nwhile (!robot.atGoal()) {\n    if (robot.frontIsClear()) {\n        robot.move();\n        if (robot.onCoin()) robot.pickCoin();\n    } else {\n        springe();\n    }\n}",
+   "solution": "static void springe() {\n    robot.turnLeft();\n    robot.move();\n    robot.turnRight();\n    robot.move();\n    robot.move();\n    robot.turnRight();\n    robot.move();\n    robot.turnLeft();\n}\n\nwhile (!robot.atGoal()) {\n    if (robot.frontIsClear()) {\n        robot.move();\n        if (robot.onCoin()) {\n            robot.pickCoin();\n        }\n    } else {\n        springe();\n    }\n}",
    "hint": "Die Hauptschleife: solange nicht am Ziel – ist vorne frei, ein Feld fahren, sonst springe(). Der Sprung: links drehen, vor, rechts drehen, zweimal vor, rechts drehen, vor, links drehen.",
    "requirements": [
     {
@@ -522,6 +759,18 @@
    "difficulty": 5,
    "title": "Boss: Das Labyrinth",
    "story": "Zwei Labyrinthe, ein Programm! Der Trick echter Labyrinth-Profis: Halte immer die rechte Hand an der Wand. Ist rechts frei, biegst du rechts ab – sonst geradeaus – und wenn auch das nicht geht, drehst du dich nach links.",
+   "steps": [
+    "Rechte-Hand-Regel: Ist rechts frei (robot.rightIsClear()), dreh dich nach rechts und fahr ein Feld.",
+    "Sonst, wenn vorne frei ist, fahr ein Feld geradeaus.",
+    "Sonst dreh dich nach links.",
+    "Wiederhole das, bis Byte am Ziel ist – und heb unterwegs Münzen auf."
+   ],
+   "concepts": [
+    "methode",
+    "elseIf",
+    "while",
+    "nicht"
+   ],
    "worlds": [
     {
      "map": [
@@ -586,6 +835,18 @@
    "difficulty": 4,
    "title": "Der Lageplan",
    "story": "Ein alter Lageplan verrät den Weg als Zahlenreihe: 4 Felder, dann links, 3 Felder, dann links, 2 Felder. Die Zahlen stehen schon im Array strecken – lies sie mit einer Schleife aus.",
+   "steps": [
+    "Das Array strecken sagt, wie viele Felder Byte nacheinander fährt: erst 4, dann 3, dann 2.",
+    "Schreib eine Methode fahre(int felder), die mit einer for-Schleife felder-mal ein Feld fährt und dabei Münzen aufhebt.",
+    "Geh mit for (int strecke : strecken) durch das Array: In jeder Runde fahre(strecke); aufrufen und danach links drehen."
+   ],
+   "concepts": [
+    "array",
+    "forEach",
+    "methodeMitWert",
+    "for",
+    "if"
+   ],
    "worlds": [
     {
      "map": [
@@ -599,9 +860,9 @@
      ]
     }
    ],
-   "starterCode": "int[] strecken = {4, 3, 2};\n// Für jede Strecke: so oft fahren, dann links drehen",
-   "solution": "int[] strecken = {4, 3, 2};\nfor (int strecke : strecken) {\n    for (int i = 0; i < strecke; i++) {\n        robot.move();\n        if (robot.onCoin()) {\n            robot.pickCoin();\n        }\n    }\n    robot.turnLeft();\n}",
-   "hint": "Die äußere Schleife geht durch das Array (for (int strecke : strecken)), die innere fährt strecke-mal ein Feld.",
+   "starterCode": "static void fahre(int felder) {\n    // felder-mal ein Feld fahren\n}\n\nint[] strecken = {4, 3, 2};\n// Für jede Strecke: fahre(...) aufrufen, dann links drehen",
+   "solution": "static void fahre(int felder) {\n    for (int i = 0; i < felder; i++) {\n        robot.move();\n        if (robot.onCoin()) {\n            robot.pickCoin();\n        }\n    }\n}\n\nint[] strecken = {4, 3, 2};\nfor (int strecke : strecken) {\n    fahre(strecke);\n    robot.turnLeft();\n}",
+   "hint": "Die Methode fahre bekommt die Zahl der Felder als Zutat und fährt mit for (int i = 0; i < felder; i++) so oft. Die for-each-Schleife ruft sie für jede Strecke auf.",
    "requirements": [
     {
      "rule": "require",
@@ -637,6 +898,19 @@
    "difficulty": 5,
    "title": "Boss: Der Code-Knacker",
    "story": "Das Tresorschloss öffnet sich nur mit dem Muster des Gangs: Für jedes Feld, auf das Byte fährt, kommt ein „x“ (Münze) oder ein „.“ (keine Münze) in einen String. Am Ziel gibt Byte das Muster aus – in jeder Welt ein anderes.",
+   "steps": [
+    "Leg eine leere Text-Variable an: String muster = \"\";",
+    "Fahr in einer Schleife bis zur Flagge – nach jedem Schritt schaust du dir das neue Feld an.",
+    "Liegt dort eine Münze: aufheben und \"x\" anhängen. Sonst \".\" anhängen. Auch das Zielfeld bekommt ein Zeichen.",
+    "Am Ziel gibst du muster aus."
+   ],
+   "concepts": [
+    "text",
+    "textAnhaengen",
+    "while",
+    "nicht",
+    "ifElse"
+   ],
    "worlds": [
     {
      "map": [

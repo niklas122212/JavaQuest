@@ -21,6 +21,11 @@ Java Master Score von 0 bis 1000.
   3 Boss-Level, 3 Trainingsmissionen, eine tägliche Mission und ein freier Spielplatz. Der Code läuft
   animiert Zeile für Zeile, mit Variablen- und Konsolenanzeige und bis zu 3 Sternen je Mission
   (`Packages/JavaQuestKit/Sources/JavaQuestKit/Arena`, Missionen in `arena_missions.json`).
+  Jede Mission sagt genau, was zu tun ist: **Auftrag** (Ziel, Münzen, die exakte Ausgabe, Pflicht-Bausteine,
+  alle Welten), **So gehst du vor** in Schritten und ein **Werkzeugkasten** mit den Java-Bausteinen und
+  Roboter-Befehlen, die sie braucht. Gebraucht wird nur, was der Kurs bis zu dieser Lektion erklärt hat
+  oder die Mission selbst als „NEU“ erklärt; Befehlsleiste und Vorlagen bieten nur Bekanntes an
+  (geprüft in `ArenaTests`).
 - **Eingebauter Java-Interpreter** (`JavaQuestKit/Interpreter`): Variablen, Kontrollfluss, statische Methoden,
   Arrays und Strings. Code-Aufgaben werden damit wirklich ausgeführt und die Ausgabe verglichen; dazu ein
   „Testlauf“, der keinen Versuch kostet. Gegen ein echtes JDK geprüft (`Tests/…/Fixtures/java_differential.json`)
