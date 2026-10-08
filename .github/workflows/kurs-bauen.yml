@@ -42,7 +42,7 @@ jobs:
         run: zsh Tools/build_web.sh
       - name: Ergebnis zurückschreiben
         run: |
-          git add Packages/JavaQuestKit/Sources/JavaQuestKit/Resources/java_course.json Web/java_course.json Web/sw.js Web/index.html
+          git add Packages/JavaQuestKit/Sources/JavaQuestKit/Resources/java_course.json Web/java_course.json Web/arena_missions.json Web/bonus_aufgaben.json Web/sw.js Web/index.html
           if git diff --cached --quiet; then
             echo "Kursdatei war schon aktuell."
             exit 0

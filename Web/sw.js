@@ -6,11 +6,12 @@
    Die Nummer ist eine Prüfsumme über alle ausgelieferten Dateien und wird NICHT von Hand
    gepflegt: Tools/build_web.sh trägt sie ein, die CI lehnt eine unpassende ab. Von Hand
    ging es schief – eine Kursänderung ohne neue Nummer erreichte Stammnutzer nie. */
-const VERSION = "d57186e6cebb";
+const VERSION = "79e8a55b9bfc";
 const CACHE = `javaquest-v${VERSION}`;
 const DATEIEN = [
   "./", "./index.html", `./app.js?v=${VERSION}`, `./styles.css?v=${VERSION}`,
-  "./java_course.json", "./manifest.webmanifest",
+  `./java.js?v=${VERSION}`, `./arena.js?v=${VERSION}`, `./spiel.js?v=${VERSION}`,
+  "./java_course.json", "./arena_missions.json", "./bonus_aufgaben.json", "./manifest.webmanifest",
   "./icons/icon-180.png", "./icons/icon-192.png", "./icons/icon-512.png",
 ];
 

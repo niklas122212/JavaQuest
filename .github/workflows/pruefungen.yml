@@ -52,6 +52,10 @@ jobs:
           # Web-Prüfung eine andere Kursdatei als die, die ausgeliefert wird.
           diff -q Packages/JavaQuestKit/Sources/JavaQuestKit/Resources/java_course.json Web/java_course.json \
             || { echo "::error::Web/java_course.json ist veraltet – Tools/build_web.sh ausführen."; exit 1; }
+          diff -q Packages/JavaQuestKit/Sources/JavaQuestKit/Resources/arena_missions.json Web/arena_missions.json \
+            || { echo "::error::Web/arena_missions.json ist veraltet – Tools/build_web.sh ausführen."; exit 1; }
+          diff -q Packages/JavaQuestKit/Sources/JavaQuestKit/Resources/apple_extra_tasks.json Web/bonus_aufgaben.json \
+            || { echo "::error::Web/bonus_aufgaben.json ist veraltet – Tools/build_web.sh ausführen."; exit 1; }
 
   apple:
     name: Apple-Kern (swift test)

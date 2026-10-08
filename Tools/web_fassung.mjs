@@ -24,7 +24,9 @@ const AUSGENOMMEN = new Set(["sw.js", "README.md"]);
 const AUSGENOMMENE_ORDNER = new Set(["tests"]);
 
 /** In index.html stehen die Nummern selbst – für die Prüfsumme werden sie ausgeblendet. */
-const VERWEIS = /\b(app\.js|styles\.css)\?v=[^"']*/g;
+const VERWEIS = /\b([\w-]+\.(?:js|css))\?v=[^"']*/g;
+/** Ohne diese Dateien startet die App nicht – sie müssen mit Nummer geladen werden. */
+const PFLICHT = ["java.js", "arena.js", "spiel.js", "app.js", "styles.css"];
 const SW_NUMMER = /const VERSION = "([^"]*)";/;
 const TEXT = /\.(html|js|css|json|webmanifest)$/;
 
@@ -63,7 +65,7 @@ export function berechneNummer(web) {
 export function eingetrageneNummern(web) {
   const sw = readFileSync(join(web, "sw.js"), "utf8");
   const html = readFileSync(join(web, "index.html"), "utf8");
-  const verweise = [...html.matchAll(/\b(app\.js|styles\.css)\?v=([^"']*)/g)].map((t) => [t[1], t[2]]);
+  const verweise = [...html.matchAll(/\b([\w-]+\.(?:js|css))\?v=([^"']*)/g)].map((t) => [t[1], t[2]]);
   return { sw: (sw.match(SW_NUMMER) || [])[1] ?? null, verweise };
 }
 
@@ -73,7 +75,7 @@ export function abweichungen(web) {
   const ist = eingetrageneNummern(web);
   const fehler = [];
   if (ist.sw !== soll) fehler.push(`sw.js trägt „${ist.sw}“, der Inhalt verlangt „${soll}“`);
-  for (const datei of ["app.js", "styles.css"]) {
+  for (const datei of PFLICHT) {
     const treffer = ist.verweise.filter(([d]) => d === datei);
     if (treffer.length === 0) fehler.push(`index.html verweist nicht mit ?v= auf ${datei}`);
     for (const [, nummer] of treffer) {

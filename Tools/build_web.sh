@@ -6,7 +6,11 @@ ROOT=${HERE:h}
 WEB=$ROOT/Web
 DIST=$ROOT/dist
 
-cp $ROOT/Packages/JavaQuestKit/Sources/JavaQuestKit/Resources/java_course.json $WEB/java_course.json
+RES=$ROOT/Packages/JavaQuestKit/Sources/JavaQuestKit/Resources
+cp $RES/java_course.json $WEB/java_course.json
+# Arena-Missionen und Bonus-Aufgaben (Code-Puzzle, Bug-Jagd) – dieselben Dateien wie in der Apple-App.
+cp $RES/arena_missions.json $WEB/arena_missions.json
+cp $RES/apple_extra_tasks.json $WEB/bonus_aufgaben.json
 python3 -c "
 import json, sys
 kurs = json.load(open('$WEB/java_course.json'))
@@ -14,7 +18,7 @@ lektionen = [l for m in kurs['modules'] for l in m['lessons']]
 aufgaben = sum(len(l['tasks']) for l in lektionen) + len(kurs.get('taskPool', []))
 print(f\"Kurs: {len(kurs['modules'])} Module, {len(lektionen)} Lektionen, {aufgaben} übbare Aufgaben\")
 "
-for datei in index.html app.js styles.css sw.js manifest.webmanifest icons/icon-180.png icons/icon-192.png icons/icon-512.png; do
+for datei in index.html java.js arena.js spiel.js app.js styles.css sw.js manifest.webmanifest arena_missions.json bonus_aufgaben.json icons/icon-180.png icons/icon-192.png icons/icon-512.png; do
   [[ -f $WEB/$datei ]] || { echo "FEHLT: $datei"; exit 1; }
 done
 python3 -c "import json; json.load(open('$WEB/manifest.webmanifest')); print('Manifest: in Ordnung')"
