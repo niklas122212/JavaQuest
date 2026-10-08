@@ -372,6 +372,28 @@ export function pruefungen(api, kurs, beispiele) {
       faellig(web.web) === 4 && faellig(zurueck) === 4 && zurueck.protokoll.length === 7,
       `vorher ${faellig(web.web)}, nachher ${faellig(zurueck)}, Antworten ${zurueck.protokoll.length}`));
 
+    // Missionen (mission/daily), Bonus-Aufgaben und Unbekanntes aus Apple oder Windows gehen nicht
+    // verloren – sie zählen aber nicht als Kursaufgabe und verändern den Score nicht.
+    {
+      const mitMissionen = JSON.parse(JSON.stringify(beispiele.ausDerApp.stand));
+      const zusatz = [
+        { taskId: "a01-erste-schritte", topicId: "syntax", lessonId: "l01-hello", context: "mission", difficulty: 1, credit: 1, solved: true, tries: 1, date: "2026-09-21T09:00:00Z" },
+        { taskId: "t1-countdown", topicId: "loops", lessonId: "l05-loops", context: "daily", difficulty: 2, credit: 2 / 3, solved: true, tries: 1, date: "2026-09-22T09:00:00Z" },
+        { taskId: "t01-p", topicId: "syntax", lessonId: "l01-hello", context: "lesson", difficulty: 2, credit: 1, solved: true, tries: 1, date: "2026-09-21T09:05:00Z" },
+      ];
+      mitMissionen.attempts.push(...zusatz);
+      const gelesen = api.ausAppStand(mitMissionen);
+      const zurueck = api.alsAppStand(gelesen, stichtag).attempts;
+      const wieder = (id) => zurueck.find((v) => v.taskId === id);
+      const gleich = zusatz.every((v) => { const w = wieder(v.taskId); return w && w.context === v.context && w.topicId === v.topicId && w.lessonId === v.lessonId && w.difficulty === v.difficulty && Math.abs(w.credit - v.credit) < 1e-9 && w.date === v.date; });
+      ergebnisse.push(pruefe(
+        "App-Sicherung: Missionen und Bonus-Aufgaben bleiben erhalten und gehen beim Sichern wieder mit",
+        gelesen.protokoll.length === 12 && !gelesen.verlauf["a01-erste-schritte"] && gleich
+          && api.score(gelesen.lektionen) === 27,
+        `Protokoll ${gelesen.protokoll.length}, zurück: ${JSON.stringify(zusatz.map((v) => wieder(v.taskId)))}`,
+      ));
+    }
+
     ergebnisse.push(pruefe("Ältere Web-Sicherungen bleiben lesbar",
       api.standAusDatei({ app: "JavaQuest", version: 1, stand: web.web }) === web.web));
     ergebnisse.push(pruefe("Fremde Dateien werden abgelehnt",

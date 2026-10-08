@@ -1297,9 +1297,18 @@ function alsAppStand(s, jetzt) {
   });
   for (const p of s.protokoll || []) {
     const eintrag = aufgabeMitLektion(p.taskId);
-    if (!eintrag) continue;
-    mitProtokoll.add(p.taskId);
-    attempts.push(versuch(eintrag, p.credit, p.tries || 1, p.date, p.context || "training"));
+    if (eintrag && !istMissionsKontext(p.context)) {
+      mitProtokoll.add(p.taskId);
+      attempts.push(versuch(eintrag, p.credit, p.tries || 1, p.date, p.context || "training"));
+      continue;
+    }
+    // Missionen, Bonus-Aufgaben und alles, was nur die Apps kennen – unverändert zurück.
+    const angaben = fremdeAngaben(p);
+    if (!angaben) continue;
+    attempts.push({
+      taskId: p.taskId, topicId: angaben.topicId, lessonId: angaben.lessonId, context: p.context || "training",
+      difficulty: angaben.difficulty, credit: p.credit, solved: p.credit > 0, tries: p.tries || 1, date: isoZeit(p.date),
+    });
   }
   // Ältere Stände ohne Protokoll: je Aufgabe der letzte bekannte Ausgang. Eine lange Serie
   // richtig beantworteter Varianten wird dabei kürzer – das Lernziel kommt in der App also
@@ -1364,17 +1373,53 @@ function alsAppStand(s, jetzt) {
   };
 }
 
+/** Missionen stehen wie in den Apps im Protokoll, zählen aber nicht als Aufgabe. */
+const istMissionsKontext = (kontext) => kontext === "mission" || kontext === "daily";
+
+/** Thema, Niveau und Lektion eines Protokolleintrags, der keine Kursaufgabe ist:
+    mitgebracht aus einer App-Sicherung, sonst aus Missionen und Bonus-Aufgaben. */
+function fremdeAngaben(p) {
+  if (p.topicId) return { topicId: p.topicId, difficulty: p.difficulty || 1, lessonId: p.lessonId ?? null };
+  const mission = arenaKatalog() && arenaKatalog().mission(p.taskId);
+  if (mission) return { topicId: mission.topicId, difficulty: mission.difficulty, lessonId: mission.lessonId };
+  const bonus = bonusMitLektion(p.taskId);
+  if (bonus) return { topicId: bonus.aufgabe.topicId, difficulty: bonus.aufgabe.difficulty, lessonId: p.context === "lesson" ? bonus.lektionId : null };
+  return null;
+}
+
+/** Eine Bonus-Aufgabe (Code-Puzzle, Bug-Jagd) samt Lektion – oder null. */
+function bonusMitLektion(id) {
+  const bonus = typeof bonusAufgaben !== "undefined" ? bonusAufgaben : {};
+  for (const [lektionId, liste] of Object.entries(bonus)) {
+    const aufgabe = liste.find((a) => a.id === id);
+    if (aufgabe) return { aufgabe, lektionId };
+  }
+  return null;
+}
+
 /** Ein Stand aus einer App-Sicherung, umgerechnet in den Aufbau der Web-App. */
 function ausAppStand(a) {
   const s = leererStand();
   // Die Einstufung bleibt außen vor – wie in den Apps sagt sie nichts darüber, ob ein Lernziel sitzt.
+  // Was die Web-App nicht als Kursaufgabe kennt (Missionen, Bonus-Aufgaben, Neues aus späteren
+  // App-Fassungen), bleibt mit Thema, Niveau und Lektion erhalten – sonst ginge es beim nächsten
+  // Weg zurück in die App verloren.
   s.protokoll = (a.attempts || [])
-    .filter((v) => v.context !== "placement" && aufgabeMitLektion(v.taskId))
-    .map((v) => ({ taskId: v.taskId, credit: Number(v.credit) || 0, tries: v.tries || 1,
-                   date: ausIsoZeit(v.date), context: v.context || "training" }))
-    .filter((v) => Number.isFinite(v.date))
+    .filter((v) => v.context !== "placement")
+    .map((v) => {
+      const eintrag = { taskId: v.taskId, credit: Number(v.credit) || 0, tries: v.tries || 1,
+                        date: ausIsoZeit(v.date), context: v.context || "training" };
+      if (!aufgabeMitLektion(v.taskId)) Object.assign(eintrag, { topicId: v.topicId, difficulty: v.difficulty, lessonId: v.lessonId ?? null });
+      return eintrag;
+    })
+    .filter((v) => Number.isFinite(v.date) && typeof v.taskId === "string")
     .sort((x, y) => x.date - y.date);
-  for (const v of s.protokoll) bucheAntwort(s, aufgabeMitLektion(v.taskId).aufgabe, v.credit, v.date);
+  for (const v of s.protokoll) {
+    if (istMissionsKontext(v.context)) continue;
+    // Bonus-Aufgaben zählen wie in den Apps für Statistik und Wiederholung mit – nur nicht für den Score.
+    const aufgabe = (aufgabeMitLektion(v.taskId) || bonusMitLektion(v.taskId) || {}).aufgabe;
+    if (aufgabe) bucheAntwort(s, aufgabe, v.credit, v.date);
+  }
   for (const [id, r] of Object.entries(a.lessonRecords || {})) {
     if (!r.isCompleted && !r.playCount) continue;
     s.lektionen[id] = Object.assign({ quote: r.bestAccuracy || 0, bestanden: !!r.isCompleted },
