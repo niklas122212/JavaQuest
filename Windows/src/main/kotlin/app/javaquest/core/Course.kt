@@ -110,6 +110,17 @@ enum class TaskType(val title: String) {
     FILL_BLANK("Lückentext"),
     PREDICT_OUTPUT("Ausgabe vorhersagen"),
     CODE("Code schreiben"),
+    /** Code-Puzzle: Zeilen in die richtige Reihenfolge bringen. */
+    ORDERING("Code-Puzzle"),
+    /** Bug-Jagd: die fehlerhafte Zeile finden. */
+    FIND_BUG("Bug-Jagd"),
+    ;
+
+    /**
+     * Bonus-Aufgaben bringen XP und zählen für die Wissensanalyse, aber nicht für Trefferquote
+     * und Master Score – so bleibt der Score auf allen Plattformen gleich (die Web-Fassung kennt sie nicht).
+     */
+    val isBonus: Boolean get() = this == ORDERING || this == FIND_BUG
 }
 
 data class Blank(val accepted: List<String>, val caseSensitive: Boolean = true) {
@@ -195,6 +206,65 @@ sealed interface TaskKind {
     ) : TaskKind {
         override val type get() = TaskType.CODE
     }
+
+    /**
+     * Code-Puzzle: Die Zeilen von [puzzle] stehen in der richtigen Reihenfolge im JSON und werden
+     * gemischt angezeigt. Einrückung entsteht beim Zusammensetzen automatisch.
+     */
+    data class Ordering(val puzzle: CodeSnippet) : TaskKind {
+        override val type get() = TaskType.ORDERING
+
+        val pieces: List<String> get() = puzzle.lines.map { it.code.trim() }
+
+        /** Gemischte Reihenfolge (Indizes in [pieces]) – je Aufgabe immer gleich und nie schon richtig. */
+        fun shuffledOrder(seed: String): List<Int> {
+            val indices = pieces.indices.toList()
+            if (indices.size <= 1) return indices
+            // FNV-1a über die Bytes – stabil über App-Starts hinweg (anders als hashCode bei manchen Typen).
+            var hash = -0x340d631b7bdddcdbL
+            for (byte in seed.toByteArray(Charsets.UTF_8)) hash = (hash xor (byte.toLong() and 0xff)) * 0x100000001b3L
+            val random = kotlin.random.Random(hash)
+            repeat(20) {
+                val candidate = indices.shuffled(random)
+                if (candidate.map { pieces[it] } != pieces) return candidate
+            }
+            return indices.reversed()
+        }
+
+        companion object {
+            /** Setzt Zeilen in der gewählten Reihenfolge zusammen und rückt nach Klammertiefe ein. */
+            fun assemble(lines: List<String>): String {
+                var depth = 0
+                return lines.joinToString("\n") { line ->
+                    if (line.startsWith("}")) depth = maxOf(depth - 1, 0)
+                    val indented = "    ".repeat(depth) + line
+                    val opens = line.count { it == '{' }
+                    val closes = line.count { it == '}' } - if (line.startsWith("}")) 1 else 0
+                    depth = maxOf(depth + opens - closes, 0)
+                    indented
+                }
+            }
+        }
+    }
+
+    /** Bug-Jagd: Im Code der Aufgabe (`code`) ist genau eine Zeile falsch. */
+    data class FindBug(
+        /** Fehlerhafte Zeile (ab 1). */
+        val bugLine: Int,
+        /** Die korrigierte Zeile samt Erklärung. */
+        val fix: SnippetLine,
+    ) : TaskKind {
+        override val type get() = TaskType.FIND_BUG
+
+        /** Der Code mit korrigierter Zeile – für die Erklärung nach dem Lösen. */
+        fun fixed(snippet: CodeSnippet): CodeSnippet {
+            if (bugLine !in 1..snippet.lines.size) return snippet
+            val lines = snippet.lines.toMutableList()
+            val indentation = lines[bugLine - 1].code.takeWhile { it == ' ' }
+            lines[bugLine - 1] = fix.copy(code = indentation + fix.code.trim())
+            return CodeSnippet(lines)
+        }
+    }
 }
 
 data class LearningTask(
@@ -242,8 +312,8 @@ data class Lesson(
     val theory: List<TheoryCard>,
     val tasks: List<LearningTask>,
 ) {
-    /** Punktgewicht im Java Master Score (Summe der Aufgabenniveaus). */
-    val difficultyWeight: Double get() = tasks.sumOf { it.difficulty.weight }
+    /** Punktgewicht im Java Master Score (Summe der Aufgabenniveaus). Bonus-Aufgaben zählen nicht mit. */
+    val difficultyWeight: Double get() = tasks.filter { !it.type.isBonus }.sumOf { it.difficulty.weight }
 }
 
 data class CourseModule(
@@ -321,6 +391,8 @@ data class Course(
                         add("${task.id} starterCode" to kind.starter)
                         add("${task.id} sampleSolution" to kind.solution)
                     }
+                    is TaskKind.Ordering -> add("${task.id} puzzle" to kind.puzzle)
+                    is TaskKind.FindBug -> task.code?.let { add("${task.id} fixed" to kind.fixed(it)) }
                     else -> Unit
                 }
             }
@@ -331,14 +403,22 @@ data class Course(
 object CourseLoader {
     private val json = Json { ignoreUnknownKeys = true }
 
+    /**
+     * Bonus-Aufgaben (Code-Puzzle, Bug-Jagd) liegen in einer eigenen Datei neben dem Kurs. Die
+     * gemeinsame Kursdatei bleibt so unverändert, und die Web-Fassung liest sie weiter wie bisher.
+     */
+    const val EXTRA_TASKS_FILE = "apple_extra_tasks.json"
+
     fun loadBundled(): Course {
-        val stream = CourseLoader::class.java.getResourceAsStream("/java_course.json")
-            ?: error("Die Kursdatei java_course.json fehlt.")
-        return parse(stream.bufferedReader(Charsets.UTF_8).use { it.readText() })
+        fun read(name: String) = CourseLoader::class.java.getResourceAsStream("/$name")?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }
+        val text = read("java_course.json") ?: error("Die Kursdatei java_course.json fehlt.")
+        return parse(text, extraTasks = read(EXTRA_TASKS_FILE))
     }
 
-    fun parse(text: String): Course {
-        val root = json.parseToJsonElement(text).jsonObject
+    /** @param extraTasks Inhalt von [EXTRA_TASKS_FILE] – die Aufgaben darin werden in ihre Lektionen einsortiert. */
+    fun parse(text: String, extraTasks: String? = null): Course {
+        val parsed = json.parseToJsonElement(text).jsonObject
+        val root = if (extraTasks == null) parsed else mergingExtraTasks(parsed, json.parseToJsonElement(extraTasks).jsonObject)
         val placement = root.obj("placement")
         return Course(
             id = root.str("id"),
@@ -362,6 +442,30 @@ object CourseLoader {
                 v.jsonArray.map { it.jsonPrimitive.content }
             } ?: emptyMap(),
         )
+    }
+
+    /**
+     * Sortiert Zusatzaufgaben in ihre Lektionen ein – hinter die letzte Aufgabe mit gleichem oder
+     * niedrigerem Niveau, damit jede Lektion aufsteigend bleibt (wie in der Apple-App).
+     */
+    fun mergingExtraTasks(course: JsonObject, extra: JsonObject): JsonObject {
+        val byLesson = (extra["lessons"] as? JsonObject) ?: return course
+        fun level(task: JsonElement) = (task as? JsonObject)?.get("difficulty")?.jsonPrimitive?.intOrNull ?: 1
+        val modules = course.arr("modules").map { module ->
+            val m = module.jsonObject
+            val lessons = m.arr("lessons").map { lesson ->
+                val l = lesson.jsonObject
+                val additions = (byLesson[l.str("id")] as? JsonArray) ?: return@map l
+                val tasks = l.arr("tasks").toMutableList()
+                for (task in additions) {
+                    val position = tasks.indexOfLast { level(it) <= level(task) } + 1
+                    tasks.add(position, task)
+                }
+                JsonObject(l + ("tasks" to JsonArray(tasks)))
+            }
+            JsonObject(m + ("lessons" to JsonArray(lessons)))
+        }
+        return JsonObject(course + ("modules" to JsonArray(modules)))
     }
 
     private fun parseDiagram(d: JsonObject) = UmlDiagram(
@@ -468,6 +572,11 @@ object CourseLoader {
                         else -> error("Unbekannter Struktur-Check ${s.jsonPrimitive.content}")
                     }
                 } ?: StructureCheck.entries,
+            )
+            "ordering" -> TaskKind.Ordering(parseSnippet(t.getValue("puzzle")))
+            "findBug" -> TaskKind.FindBug(
+                bugLine = t.int("bugLine"),
+                fix = parseSnippet(JsonObject(mapOf("lines" to JsonArray(listOf(t.getValue("fix")))))).lines.single(),
             )
             else -> error("Unbekannter Aufgabentyp $type")
         }

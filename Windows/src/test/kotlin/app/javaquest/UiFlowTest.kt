@@ -42,6 +42,13 @@ class UiFlowTest {
 
     private fun newState() = AppState(ProgressStore(course, ProgressFile(Files.createTempDirectory("jq-ui").resolve("progress.json"))))
 
+    private val catalog = app.javaquest.core.ArenaCatalog.loadBundled()
+
+    /** Wie [newState], aber mit Arena: Lektion 1–7 enden dann mit einer Mission. */
+    private fun newArenaState() = AppState(
+        ProgressStore(course, ProgressFile(Files.createTempDirectory("jq-arena").resolve("progress.json")), catalog = catalog),
+    )
+
     private fun DesktopComposeUiTest.show(state: AppState, dark: Boolean = false) =
         setContent { JavaQuestTheme(dark = dark) { AppShell(state) } }
 
@@ -68,6 +75,9 @@ class UiFlowTest {
             }
             is TaskKind.PredictOutput -> onNodeWithTag("output-editor").performScrollTo().performTextInput(if (correct) kind.expectedOutput else "keine Ahnung")
             is TaskKind.Code -> onNodeWithTag("code-editor").performScrollTo().performTextReplacement(if (correct) kind.solution.source else "int x")
+            // Puzzle: Bausteine der Reihe nach anklicken – falsch heißt: mit dem letzten beginnen.
+            is TaskKind.Ordering -> (if (correct) kind.pieces.indices.toList() else kind.pieces.indices.reversed()).forEach { click("puzzle-piece-$it") }
+            is TaskKind.FindBug -> click("bug-line-${if (correct) kind.bugLine else (1..task.code!!.lines.size).first { it != kind.bugLine && task.code!!.lines[it - 1].code.isNotBlank() }}")
         }
         waitForIdle()
         click("submit")
@@ -104,7 +114,8 @@ class UiFlowTest {
             click("task-next")
             index++
         }
-        assertEquals(5, index)
+        // 5 Aufgaben aus dem Kurs plus das Code-Puzzle von Lektion 1.
+        assertEquals(6, index)
         onNodeWithText("Lektion gemeistert!").assertExists()
         shot("06-summary-passed")
         assertEquals(1, state.store.completedLessonCount)
@@ -169,6 +180,7 @@ class UiFlowTest {
                 }
                 is TaskKind.PredictOutput -> onNodeWithTag("output-editor").performScrollTo().performTextInput(kind.expectedOutput)
                 is TaskKind.Code -> onNodeWithTag("code-editor").performScrollTo().performTextReplacement(kind.solution.source)
+                is TaskKind.Ordering, is TaskKind.FindBug -> error("Bonus-Aufgaben kommen in der Einstufung nicht vor")
             }
             waitForIdle()
             if (index == 0) shot("11-placement-question")
@@ -261,5 +273,68 @@ class UiFlowTest {
         waitForIdle()
         assertEquals(app.javaquest.ui.Section.DASHBOARD, state.section)
         assertTrue(!state.kannZurueck)
+    }
+
+    @Test
+    fun `Lektion 1 mit Testlauf und Abschluss-Mission - Byte faehrt, Sterne und XP in der Auswertung`() = runDesktopComposeUiTest(1280, 860) {
+        val state = newArenaState()
+        state.store.completeOnboarding(app.javaquest.core.ExperienceLevel.BEGINNER, null)
+        show(state)
+        state.startLesson("l01-hello")
+        waitForIdle()
+        repeat(state.flow!!.theory.size) { click("theory-next") }
+        var testRunSeen = false
+        while (state.flow?.phase is LessonSession.Phase.Task) {
+            val task = state.flow!!.currentTask!!
+            val kind = task.kind
+            // Testlauf: einmal mit der Musterlösung ausprobieren – zählt nicht als Versuch.
+            if (!testRunSeen && kind is TaskKind.Code && state.flow!!.let { it.draft = it.draft.copy(text = kind.solution.source); it.canTestRun }) {
+                waitForIdle()
+                click("test-run")
+                onNodeWithTag("test-run-output").assertExists()
+                assertEquals(0, state.flow!!.attempts, "Testlauf darf keinen Versuch kosten")
+                testRunSeen = true
+            }
+            answerCurrentTask(state)
+            click("task-next")
+        }
+        assertTrue(testRunSeen, "Lektion 1 hat eine Code-Aufgabe mit Testlauf")
+        // Nach der letzten Aufgabe: die Abschluss-Mission „Erste Schritte“.
+        assertTrue(state.flow?.phase is LessonSession.Phase.Mission)
+        onNodeWithText("Erste Schritte").assertExists()
+        onNodeWithText("Dein Auftrag").assertExists()
+        shot("20-lesson-mission")
+        val mission = state.flow!!.missionModel!!
+        mission.updateCode(mission.mission.solution.source, null)
+        waitForIdle()
+        click("arena-run")
+        waitUntil(timeoutMillis = 10_000) { mission.result != null }
+        assertTrue(mission.result!!.solved)
+        assertEquals(3, mission.result!!.stars)
+        mission.skipToEnd()
+        waitForIdle()
+        shot("21-lesson-mission-solved")
+        click("arena-finish")
+        assertEquals(LessonSession.Phase.Summary, state.flow?.phase)
+        onNodeWithText("Lektion gemeistert!").assertExists()
+        assertTrue(onAllNodesWithText("XP", substring = true).fetchSemanticsNodes().isNotEmpty(), "XP in der Auswertung")
+        assertEquals(3, state.store.missionStars["a01-erste-schritte"])
+        shot("22-lesson-summary-rewards")
+    }
+
+    @Test
+    fun `Arena und Abzeichen in der Seitenleiste, Spielplatz oeffnet und schliesst`() = runDesktopComposeUiTest(1280, 860) {
+        val state = newArenaState()
+        state.store.completeOnboarding(app.javaquest.core.ExperienceLevel.BEGINNER, null)
+        show(state)
+        click("nav-arena")
+        onNodeWithText("Die Arena").assertExists()
+        click("open-playground")
+        assertNotNull(state.arena)
+        click("close-arena")
+        assertNull(state.arena)
+        click("nav-achievements")
+        onNodeWithText("freigeschaltet", substring = true).assertExists()
+        shot("23-achievements")
     }
 }

@@ -393,14 +393,17 @@ fun AppShell(state: AppState) {
 @Composable
 private fun Inhalt(state: AppState) {
     val flow = state.flow
-    if (flow != null) {
-        LessonFlowScreen(flow, onClose = state::closeFlow, onStartLesson = state::startLesson, onTrainAgain = state::startTraining)
-    } else {
-        when (state.section) {
+    val arena = state.arena
+    when {
+        arena != null -> ArenaSessionScreen(arena, onClose = state::closeArena)
+        flow != null -> LessonFlowScreen(flow, onClose = state::closeFlow, onStartLesson = state::startLesson, onTrainAgain = state::startTraining)
+        else -> when (state.section) {
             Section.DASHBOARD -> DashboardScreen(state)
             Section.PATH -> PathScreen(state)
             Section.TOPICS -> TopicsScreen(state)
             Section.ANALYSIS -> AnalysisScreen(state)
+            Section.ARENA -> ArenaHomeScreen(state)
+            Section.ACHIEVEMENTS -> AchievementsScreen(state)
             Section.PROFILE -> ProfileScreen(state)
         }
     }
@@ -410,7 +413,7 @@ private fun Inhalt(state: AppState) {
 @Composable
 private fun KompakterAufbau(state: AppState) {
     val surfaces = LocalSurfaces.current
-    val mitLeiste = state.flow == null
+    val mitLeiste = state.flow == null && state.arena == null
     Column(Modifier.fillMaxSize()) {
         val raender = if (mitLeiste) WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
             else WindowInsets.safeDrawing
@@ -418,7 +421,7 @@ private fun KompakterAufbau(state: AppState) {
         if (mitLeiste) {
             Box(Modifier.fillMaxWidth().height(1.dp).background(surfaces.divider))
             NavigationBar(containerColor = surfaces.card, tonalElevation = 0.dp) {
-                for (section in Section.entries) {
+                for (section in Section.entries.filter { it.inLeiste }) {
                     NavigationBarItem(
                         selected = state.section == section,
                         onClick = { state.section = section },
@@ -457,13 +460,13 @@ private fun BreiterAufbau(state: AppState, mitScore: Boolean = true) {
                 Text("JavaQuest", fontSize = 20.sp, fontWeight = FontWeight.Bold)
             }
             for (section in Section.entries) {
-                val selected = state.flow == null && state.section == section
+                val selected = state.flow == null && state.arena == null && state.section == section
                 Row(
                     Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(12.dp))
                         .background(if (selected) Palette.orange.copy(alpha = 0.14f) else Color.Transparent)
-                        .clickableHand { state.closeFlow(); state.section = section }
+                        .clickableHand { state.closeFlow(); state.closeArena(); state.section = section }
                         .padding(horizontal = 12.dp, vertical = 10.dp)
                         .testTag("nav-${section.name.lowercase()}"),
                     verticalAlignment = Alignment.CenterVertically,

@@ -64,11 +64,16 @@ dependencies {
 
 // Der Kurs ist dieselbe Datei wie in der iOS-/Mac-App – mit allen Zeilen-Erklärungen.
 val courseFile = rootProject.file("../Packages/JavaQuestKit/Sources/JavaQuestKit/Resources/java_course.json")
+// Arena-Missionen und Bonus-Aufgaben (Code-Puzzle, Bug-Jagd): dieselben Dateien wie in der iOS-/Mac-App.
+val missionsFile = rootProject.file("../Packages/JavaQuestKit/Sources/JavaQuestKit/Resources/arena_missions.json")
+val extraTasksFile = rootProject.file("../Packages/JavaQuestKit/Sources/JavaQuestKit/Resources/apple_extra_tasks.json")
 val copyCourse by tasks.registering(Copy::class) {
-    from(courseFile)
+    from(courseFile, missionsFile, extraTasksFile)
     into(layout.buildDirectory.dir("generated/course"))
 }
 sourceSets.main { resources.srcDir(copyCourse) }
+// Testfälle mit der Ausgabe eines echten JDK – dieselbe Datei wie in den Swift-Tests.
+sourceSets.test { resources.srcDir(rootProject.file("../Packages/JavaQuestKit/Tests/JavaQuestKitTests/Fixtures")) }
 
 compose.desktop {
     application {

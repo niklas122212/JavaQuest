@@ -1,5 +1,9 @@
 package app.javaquest.core
 
+import app.javaquest.core.interpreter.JavaProblem
+import app.javaquest.core.interpreter.JavaRunResult
+import app.javaquest.core.interpreter.JavaRunner
+import app.javaquest.core.interpreter.JavaWarning
 import kotlin.math.roundToInt
 
 /** Antwort der lernenden Person in einer der vier Eingabeformen. */
@@ -7,6 +11,10 @@ sealed interface TaskAnswer {
     data class Choice(val index: Int) : TaskAnswer
     data class Blanks(val values: List<String>) : TaskAnswer
     data class Text(val text: String) : TaskAnswer
+    /** Code-Puzzle: Indizes der Puzzleteile in der gewählten Reihenfolge. */
+    data class Order(val order: List<Int>) : TaskAnswer
+    /** Bug-Jagd: die angeklickte Zeile (ab 1). */
+    data class Line(val line: Int) : TaskAnswer
 }
 
 enum class FindingKind { PASSED, FAILED, HINT }
@@ -20,7 +28,18 @@ data class Finding(val kind: FindingKind, val message: String, val line: Int? = 
     }
 }
 
-class EvaluationResult(val isCorrect: Boolean, score: Double, val findings: List<Finding>) {
+/** Was beim echten Ausführen des Codes passiert ist (nur bei Code-Aufgaben, die der Interpreter versteht). */
+data class ExecutionReport(
+    /** Konsolenausgabe des Programms (bis zum Ende oder bis zum Fehler). */
+    val output: String,
+    /** Laufzeit- oder Syntaxfehler, falls das Programm nicht durchlief. */
+    val problem: String? = null,
+    val problemLine: Int? = null,
+    /** Stimmt die Ausgabe mit der erwarteten überein? `null`, wenn es nichts zu vergleichen gab. */
+    val outputMatches: Boolean?,
+)
+
+class EvaluationResult(val isCorrect: Boolean, score: Double, val findings: List<Finding>, val execution: ExecutionReport? = null) {
     /** Teilpunktzahl 0…1 – auch bei falschen Antworten aussagekräftig. */
     val score: Double = score.coerceIn(0.0, 1.0)
     val percent: Int get() = (score * 100).roundToInt()
@@ -182,10 +201,46 @@ object AnswerEvaluator {
             kind is TaskKind.PredictOutput && answer is TaskAnswer.Text ->
                 evaluateOutput(JavaSource.normalizingTypography(answer.text), kind)
             kind is TaskKind.Code && answer is TaskAnswer.Text ->
-                evaluateCode(JavaSource.normalizingTypography(answer.text), kind)
+                evaluateCode(JavaSource.normalizingTypography(answer.text), kind, task.javaContext)
+            kind is TaskKind.Ordering && answer is TaskAnswer.Order -> evaluateOrder(answer.order, kind)
+            kind is TaskKind.FindBug && answer is TaskAnswer.Line -> evaluateBugLine(answer.line, kind)
             else -> EvaluationResult(false, 0.0, listOf(Finding.failed("Diese Antwortform passt nicht zur Aufgabe.")))
         }
     }
+
+    // Code-Puzzle
+
+    private fun evaluateOrder(order: List<Int>, spec: TaskKind.Ordering): EvaluationResult {
+        val pieces = spec.pieces
+        val chosen = order.filter { it in pieces.indices }.map { pieces[it] }
+        if (chosen.isEmpty()) return EvaluationResult(false, 0.0, listOf(Finding.failed("Lege die Zeilen in die richtige Reihenfolge.")))
+        // Verglichen wird der Text: Gleiche Zeilen (z. B. zwei „}“) sind austauschbar.
+        val correct = chosen.zip(pieces).count { (a, b) -> a == b }
+        if (chosen == pieces) {
+            return EvaluationResult(true, 1.0, listOf(Finding.passed("Alle ${pieces.size} Zeilen stehen an der richtigen Stelle.")))
+        }
+        val findings = mutableListOf<Finding>()
+        if (chosen.size < pieces.size) {
+            val missing = pieces.size - chosen.size
+            findings += Finding.failed(if (missing == 1) "Eine Zeile fehlt noch." else "Es fehlen noch $missing Zeilen.")
+        }
+        val firstWrong = chosen.zip(pieces).indexOfFirst { (a, b) -> a != b }
+        if (firstWrong >= 0) {
+            findings += Finding.failed(
+                if (firstWrong == 0) "Schon die erste Zeile passt noch nicht – womit beginnt ein Programm?"
+                else "Bis Zeile $firstWrong stimmt alles – ab Zeile ${firstWrong + 1} passt die Reihenfolge noch nicht.",
+                firstWrong + 1,
+            )
+        }
+        if (correct > 0) findings.add(0, Finding.passed("$correct von ${pieces.size} Zeilen stehen schon richtig."))
+        return EvaluationResult(false, correct.toDouble() / pieces.size, findings)
+    }
+
+    // Bug-Jagd
+
+    private fun evaluateBugLine(line: Int, spec: TaskKind.FindBug): EvaluationResult =
+        if (line == spec.bugLine) EvaluationResult(true, 1.0, listOf(Finding.passed("Erwischt! In Zeile $line steckt der Fehler.", line)))
+        else EvaluationResult(false, 0.0, listOf(Finding.failed("Zeile $line ist in Ordnung – der Fehler steckt woanders.", line)))
 
     /** Musterlösung als Antwort – für „Lösung zeigen“ und die Inhaltstests. */
     fun referenceAnswer(task: LearningTask): TaskAnswer = when (val kind = task.kind) {
@@ -193,6 +248,8 @@ object AnswerEvaluator {
         is TaskKind.FillBlank -> TaskAnswer.Blanks(kind.blanks.map { it.accepted.firstOrNull() ?: "" })
         is TaskKind.PredictOutput -> TaskAnswer.Text(kind.expectedOutput)
         is TaskKind.Code -> TaskAnswer.Text(kind.solution.source)
+        is TaskKind.Ordering -> TaskAnswer.Order(kind.pieces.indices.toList())
+        is TaskKind.FindBug -> TaskAnswer.Line(kind.bugLine)
     }
 
     private fun evaluateBlanks(values: List<String>, spec: TaskKind.FillBlank): EvaluationResult {
@@ -333,14 +390,20 @@ object AnswerEvaluator {
         return lines
     }
 
-    private fun evaluateCode(source: String, spec: TaskKind.Code): EvaluationResult {
+    private fun evaluateCode(source: String, spec: TaskKind.Code, context: JavaContext): EvaluationResult {
         val withoutComments = JavaSource.strippingComments(source)
         val masked = JavaSource.maskingLiterals(source)
         if (masked.isBlank()) return EvaluationResult(false, 0.0, listOf(Finding.failed("Hier steht noch kein Code.")))
 
+        val run = execute(source, spec, context)
         val structureFindings = mutableListOf<Finding>()
-        if (StructureCheck.BALANCED_DELIMITERS in spec.structure) structureFindings += JavaSource.delimiterIssues(masked)
-        if (StructureCheck.SEMICOLONS in spec.structure) {
+        if (run?.kind == JavaProblem.Kind.SYNTAX) {
+            // Der Interpreter kennt die genaue Fehlerstelle – die Heuristiken wären nur ungenauer.
+            structureFindings += Finding.failed(run.description ?: "", run.report.problemLine)
+        } else if (StructureCheck.BALANCED_DELIMITERS in spec.structure) {
+            structureFindings += JavaSource.delimiterIssues(masked)
+        }
+        if (run?.kind != JavaProblem.Kind.SYNTAX && StructureCheck.SEMICOLONS in spec.structure) {
             structureFindings += JavaSource.linesMissingSemicolon(masked).take(3).map { line ->
                 Finding.failed("Zeile $line: Am Ende fehlt vermutlich ein Semikolon (;).", line)
             }
@@ -364,10 +427,79 @@ object AnswerEvaluator {
                 RuleKind.FORBID -> if (matches) { violations += 1; ruleFindings += Finding.failed(rule.message) }
             }
         }
+        val runFindings = mutableListOf<Finding>()
+        var runSucceeded = true
+        if (run != null) {
+            total += 1
+            when (run.kind) {
+                JavaProblem.Kind.SYNTAX -> runSucceeded = false
+                JavaProblem.Kind.RUNTIME, JavaProblem.Kind.STEP_LIMIT -> {
+                    runSucceeded = false
+                    runFindings += Finding.failed("Beim Ausführen: ${run.description}", run.report.problemLine)
+                }
+                else -> Unit
+            }
+            val outputMatches = run.report.outputMatches
+            if (run.kind == null && outputMatches != null) {
+                if (outputMatches) {
+                    earned += 1
+                    runFindings += Finding.passed("Ausgeführt – die Ausgabe stimmt.")
+                } else {
+                    runSucceeded = false
+                    runFindings += Finding.failed(outputDifference(run.report.output, spec.expectedOutput ?: ""))
+                }
+            }
+            runFindings += run.warnings.map { Finding.hint(it.message, it.line) }
+        }
+
         var score = earned / total
         if (violations > 0) score *= 0.5
-        val isCorrect = structureFindings.isEmpty() && allRequiredMet && violations == 0
-        return EvaluationResult(isCorrect, score, structureFindings + ruleFindings)
+        val isCorrect = structureFindings.isEmpty() && allRequiredMet && violations == 0 && runSucceeded
+        return EvaluationResult(isCorrect, score, structureFindings + runFindings + ruleFindings, run?.report)
+    }
+
+    private class CodeRun(val report: ExecutionReport, val kind: JavaProblem.Kind?, val description: String?, val warnings: List<JavaWarning>)
+
+    /**
+     * Führt den Code aus, sofern die Aufgabe dafür geeignet ist: Es gibt eine erwartete Ausgabe,
+     * und die Musterlösung selbst läuft im Interpreter. Sonst bleibt es bei der Regelprüfung.
+     */
+    private fun execute(source: String, spec: TaskKind.Code, context: JavaContext): CodeRun? {
+        val expected = spec.expectedOutput ?: return null
+        if (context == JavaContext.MEMBERS || !isRunnable(spec)) return null
+        // Kursprogramme brauchen nur ein paar hundert Schritte; ein kleines Limit hält die Oberfläche
+        // auch bei einer Endlosschleife flüssig.
+        val result = JavaRunner.run(source, EVALUATION_STEP_LIMIT)
+        // Gültiges Java, das der Interpreter nicht kennt: kein Urteil über die Ausführung.
+        if (result.problem?.kind == JavaProblem.Kind.UNSUPPORTED) return null
+        val matches = if (result.problem == null) outputLines(result.output) == outputLines(expected) else null
+        return CodeRun(
+            ExecutionReport(result.output, result.problem?.message, result.problem?.line, matches),
+            result.problem?.kind, result.problem?.description, result.warnings,
+        )
+    }
+
+    private val runnable = java.util.concurrent.ConcurrentHashMap<String, Boolean>()
+
+    /** Läuft die Musterlösung im Interpreter und erzeugt genau die erwartete Ausgabe? */
+    fun isRunnable(spec: TaskKind.Code): Boolean {
+        val expected = spec.expectedOutput ?: return false
+        return runnable.getOrPut(spec.solution.source) {
+            val result = JavaRunner.run(spec.solution.source)
+            result.problem == null && outputLines(result.output) == outputLines(expected)
+        }
+    }
+
+    const val EVALUATION_STEP_LIMIT = 40_000
+
+    /** Testlauf ohne Bewertung: führt den Code einer Aufgabe aus, wie er gerade im Editor steht. */
+    fun testRun(source: String): JavaRunResult = JavaRunner.run(JavaSource.normalizingTypography(source), EVALUATION_STEP_LIMIT)
+
+    fun outputDifference(output: String, expected: String): String {
+        val given = outputLines(output)
+        if (given.isEmpty()) return "Ausgeführt – aber dein Programm gibt nichts aus. Fehlt ein System.out.println(…)?"
+        val shown = given.take(3).joinToString(" ⏎ ") + if (given.size > 3) " …" else ""
+        return "Ausgeführt – dein Programm gibt „$shown“ aus, erwartet wird „${outputLines(expected).joinToString(" ⏎ ")}“."
     }
 
     fun matches(pattern: String, text: String): Boolean =

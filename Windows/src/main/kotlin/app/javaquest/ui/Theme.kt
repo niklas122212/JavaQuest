@@ -10,6 +10,7 @@ import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Calculate
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Code
+import androidx.compose.material.icons.rounded.BugReport
 import androidx.compose.material.icons.rounded.Dashboard
 import androidx.compose.material.icons.rounded.DataArray
 import androidx.compose.material.icons.rounded.DataObject
@@ -227,6 +228,8 @@ fun taskTypeIcon(type: TaskType): ImageVector = when (type) {
     TaskType.FILL_BLANK -> Icons.Rounded.EditNote
     TaskType.PREDICT_OUTPUT -> Icons.Rounded.Terminal
     TaskType.CODE -> Icons.Rounded.Code
+    TaskType.ORDERING -> Icons.Rounded.Extension
+    TaskType.FIND_BUG -> Icons.Rounded.BugReport
 }
 
 fun statusIcon(status: TopicStatus): ImageVector = when (status) {

@@ -15,9 +15,11 @@ data class TaskOutcome(
     val attempts: Int,
     val solved: Boolean,
     val credit: Double,
+    /** Bonus-Aufgabe: zählt nicht für Trefferquote und Score. */
+    val isBonus: Boolean = false,
 ) {
     constructor(task: LearningTask, attempts: Int, solved: Boolean, credit: Double) :
-        this(task.id, task.topicId, task.difficulty, attempts, solved, credit)
+        this(task.id, task.topicId, task.difficulty, attempts, solved, credit, task.type.isBonus)
 
     val solvedOnFirstTry: Boolean get() = solved && attempts == 1
 }
@@ -38,24 +40,39 @@ object Stars {
     }
 }
 
-data class LessonSummary(val outcomes: List<TaskOutcome>, val taskCount: Int) {
-    /** Nach Niveau gewichtete Trefferquote 0…1. */
+data class LessonSummary(
+    val outcomes: List<TaskOutcome>,
+    val taskCount: Int,
+    /** Davon Bonus-Aufgaben – sie zählen weder für die Trefferquote noch fürs Bestehen. */
+    val bonusTaskCount: Int = 0,
+) {
+    private val scoredOutcomes: List<TaskOutcome> get() = outcomes.filter { !it.isBonus }
+
+    /** Nach Niveau gewichtete Trefferquote 0…1 (ohne Bonus-Aufgaben). */
     val accuracy: Double
         get() {
-            val total = outcomes.sumOf { it.difficulty.weight }
-            return if (total > 0) outcomes.sumOf { it.difficulty.weight * it.credit } / total else 0.0
+            val total = scoredOutcomes.sumOf { it.difficulty.weight }
+            return if (total > 0) scoredOutcomes.sumOf { it.difficulty.weight * it.credit } / total else 0.0
         }
-    val passed: Boolean get() = accuracy >= LessonSession.PASS_THRESHOLD && outcomes.size == taskCount
+    val passed: Boolean get() = accuracy >= LessonSession.PASS_THRESHOLD && scoredOutcomes.size == taskCount - bonusTaskCount
     val solvedCount: Int get() = outcomes.count { it.solved }
     val firstTryCount: Int get() = outcomes.count { it.solvedOnFirstTry }
     val stars: Int get() = Stars.forAccuracy(accuracy)
 }
 
 /**
- * Zustandsautomat für eine Lektion: Theorie-Happen → Aufgaben (Niveau aufsteigend) → Auswertung.
+ * Zustandsautomat für eine Lektion: Theorie-Happen → Aufgaben (Niveau aufsteigend) →
+ * Arena-Mission (falls vorhanden) → Auswertung.
  * Wertung: erster Versuch 100 %, später 50 %, Lösung angezeigt 0 %.
  */
-class LessonSession(val mode: Mode, val title: String, val theory: List<TheoryCard>, tasks: List<LearningTask>) {
+class LessonSession(
+    val mode: Mode,
+    val title: String,
+    val theory: List<TheoryCard>,
+    tasks: List<LearningTask>,
+    /** Arena-Mission, die nach der letzten Aufgabe kommt – zählt nicht zur Trefferquote. */
+    val missionId: String? = null,
+) {
     sealed interface Mode {
         data class Lesson(val lessonId: String) : Mode
         data class Practice(val topicId: String) : Mode
@@ -66,6 +83,8 @@ class LessonSession(val mode: Mode, val title: String, val theory: List<TheoryCa
     sealed interface Phase {
         data class Theory(val page: Int) : Phase
         data class Task(val index: Int) : Phase
+        /** Abschluss-Mission in der Arena. */
+        data class Mission(val id: String) : Phase
         data object Summary : Phase
     }
 
@@ -84,10 +103,12 @@ class LessonSession(val mode: Mode, val title: String, val theory: List<TheoryCa
     }
 
     val tasks: List<LearningTask> = tasks.sortedBy { it.difficulty.level }
+    private val afterTasks: Phase get() = missionId?.let { Phase.Mission(it) } ?: Phase.Summary
+
     var phase: Phase = when {
         theory.isNotEmpty() -> Phase.Theory(0)
         this.tasks.isNotEmpty() -> Phase.Task(0)
-        else -> Phase.Summary
+        else -> afterTasks
     }
         private set
     val outcomes = mutableListOf<TaskOutcome>()
@@ -105,23 +126,39 @@ class LessonSession(val mode: Mode, val title: String, val theory: List<TheoryCa
     val isCurrentTaskFinished: Boolean get() = lastResult?.isCorrect == true || isRevealed
     val canRetry: Boolean get() = !isCurrentTaskFinished && lastResult != null && attempts < MAX_ATTEMPTS
 
-    /** Gesamtfortschritt 0…1 über Theorie und Aufgaben. */
+    /** Gesamtfortschritt 0…1 über Theorie, Aufgaben und Mission. */
     val progress: Double
         get() {
-            val steps = (theory.size + tasks.size).toDouble()
+            val steps = (theory.size + tasks.size + if (missionId == null) 0 else 1).toDouble()
             if (steps == 0.0) return 1.0
             return when (val p = phase) {
                 is Phase.Theory -> p.page / steps
                 is Phase.Task -> (theory.size + p.index + if (isCurrentTaskFinished) 1 else 0) / steps
+                is Phase.Mission -> (theory.size + tasks.size) / steps
                 Phase.Summary -> 1.0
             }
+        }
+
+    /** Aufgaben in Folge, die zuletzt beim ersten Versuch saßen. */
+    val currentCombo: Int get() = outcomes.asReversed().takeWhile { it.solvedOnFirstTry }.size
+
+    /** Längste Combo dieser Sitzung. */
+    val bestCombo: Int
+        get() {
+            var best = 0
+            var current = 0
+            for (outcome in outcomes) {
+                current = if (outcome.solvedOnFirstTry) current + 1 else 0
+                best = maxOf(best, current)
+            }
+            return best
         }
 
     fun advanceTheory() {
         val p = phase as? Phase.Theory ?: return
         phase = when {
             p.page + 1 < theory.size -> Phase.Theory(p.page + 1)
-            tasks.isEmpty() -> Phase.Summary
+            tasks.isEmpty() -> afterTasks
             else -> Phase.Task(0)
         }
     }
@@ -166,10 +203,15 @@ class LessonSession(val mode: Mode, val title: String, val theory: List<TheoryCa
         attempts = 0
         lastResult = null
         isRevealed = false
-        phase = if (p.index + 1 < tasks.size) Phase.Task(p.index + 1) else Phase.Summary
+        phase = if (p.index + 1 < tasks.size) Phase.Task(p.index + 1) else afterTasks
     }
 
-    val summary: LessonSummary get() = LessonSummary(outcomes.toList(), tasks.size)
+    /** Mission geschafft oder übersprungen – weiter zur Auswertung. */
+    fun finishMission() {
+        if (phase is Phase.Mission) phase = Phase.Summary
+    }
+
+    val summary: LessonSummary get() = LessonSummary(outcomes.toList(), tasks.size, tasks.count { it.type.isBonus })
 }
 
 // ---------------------------------------------------------------- Einstufung

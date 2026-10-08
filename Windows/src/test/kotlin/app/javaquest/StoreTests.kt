@@ -191,7 +191,8 @@ class StoreTest {
         assertFalse(reopened.needsOnboarding)
         assertEquals(store.masterScore, reopened.masterScore)
         assertEquals(store.lessonResults, reopened.lessonResults)
-        assertEquals(5, reopened.solvedTaskCount)
+        // 5 Aufgaben aus dem Kurs plus das Code-Puzzle von Lektion 1.
+        assertEquals(6, reopened.solvedTaskCount)
         assertEquals(1, reopened.displayedStreak)
     }
 

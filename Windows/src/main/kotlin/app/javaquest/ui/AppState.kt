@@ -2,10 +2,12 @@ package app.javaquest.ui
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Dashboard
+import androidx.compose.material.icons.rounded.EmojiEvents
 import androidx.compose.material.icons.rounded.GridView
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Psychology
 import androidx.compose.material.icons.rounded.Route
+import androidx.compose.material.icons.rounded.SportsEsports
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -13,6 +15,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.vector.ImageVector
 import app.javaquest.core.SecondHint
 import app.javaquest.core.AnswerEvaluator
+import app.javaquest.core.ArenaResult
 import app.javaquest.core.Difficulty
 import app.javaquest.core.EvaluationResult
 import app.javaquest.core.LearningTask
@@ -25,12 +28,18 @@ import app.javaquest.data.AttemptContext
 import app.javaquest.data.ProgressStore
 import app.javaquest.data.ScoreChange
 
-/** [kurz]: Beschriftung in der Leiste unten auf dem Handy, wo fünf Einträge nebeneinander passen müssen. */
-enum class Section(val title: String, val icon: ImageVector, val kurz: String = title) {
+/**
+ * [kurz]: Beschriftung in der Leiste unten auf dem Handy, wo fünf Einträge nebeneinander passen müssen.
+ * [inLeiste]: Steht der Bereich in dieser Leiste? Arena und Abzeichen erreicht man auf dem Handy über die
+ * Übersicht (wie auf dem iPhone) – in der Seitenleiste von Desktop und Tablet stehen alle Bereiche.
+ */
+enum class Section(val title: String, val icon: ImageVector, val kurz: String = title, val inLeiste: Boolean = true) {
     DASHBOARD("Übersicht", Icons.Rounded.Dashboard),
     PATH("Lernpfad", Icons.Rounded.Route),
     TOPICS("Alle Themen", Icons.Rounded.GridView, "Themen"),
     ANALYSIS("Analyse", Icons.Rounded.Psychology),
+    ARENA("Arena", Icons.Rounded.SportsEsports, inLeiste = false),
+    ACHIEVEMENTS("Abzeichen", Icons.Rounded.EmojiEvents, inLeiste = false),
     PROFILE("Profil", Icons.Rounded.Person),
 }
 
@@ -43,13 +52,43 @@ class AppState(val store: ProgressStore) {
     /** Der laufende Einstufungstest – gehört zum Onboarding, nicht zu einer Lektion. */
     var placementTest by mutableStateOf<app.javaquest.core.PlacementTest?>(null)
 
+    /** Arena-Mission oder Spielplatz außerhalb einer Lektion (aus der Arena oder als Tagesmission). */
+    var arena by mutableStateOf<ArenaMissionModel?>(null)
+        private set
+
     fun startLesson(lessonId: String) {
         val lesson = store.course.lesson(lessonId) ?: return
+        arena = null
         // Varianten je Lernziel: beim Wiederholen kommen andere Aufgaben.
+        // Hat die Lektion eine Abschluss-Mission, kommt sie nach der letzten Aufgabe.
         val session = LessonSession(
             LessonSession.Mode.Lesson(lesson.id), lesson.title, lesson.theory, store.lessonTasks(lesson),
+            missionId = store.catalog.lessonMission(lesson.id)?.id,
         )
         flow = LessonFlowModel(store, session, isPractice = false)
+    }
+
+    /** Startet eine Mission aus der Arena – gesperrte Missionen bleiben zu. */
+    fun startMission(missionId: String) {
+        val mission = store.catalog.mission(missionId) ?: return
+        if (!store.isUnlocked(mission)) return
+        flow = null
+        arena = ArenaMissionModel(mission, store)
+    }
+
+    /** Die Tagesmission – falls es eine gibt und sie heute noch offen ist. */
+    fun startDailyMission() {
+        if (store.isDailyMissionDone) return
+        store.dailyMission?.let { startMission(it.id) }
+    }
+
+    fun openPlayground() {
+        flow = null
+        arena = ArenaMissionModel(app.javaquest.core.ArenaMission.playground(store.catalog.playground), store, isPlayground = true)
+    }
+
+    fun closeArena() {
+        arena = null
     }
 
     fun startPractice(topicId: String) {
@@ -87,14 +126,15 @@ class AppState(val store: ProgressStore) {
     }
 
     /** Ob die Zurück-Taste (Android) gerade etwas zu tun hat – sonst schließt das System die App. */
-    val kannZurueck: Boolean get() = !store.needsOnboarding && (flow != null || section != Section.DASHBOARD)
+    val kannZurueck: Boolean get() = !store.needsOnboarding && (arena != null || flow != null || section != Section.DASHBOARD)
 
     /**
-     * Zurück-Taste bzw. -Geste: erst die laufende Lektion schließen, dann zur Übersicht.
+     * Zurück-Taste bzw. -Geste: erst die laufende Mission oder Lektion schließen, dann zur Übersicht.
      * Erst von der Übersicht aus verlässt „Zurück“ die App.
      */
     fun zurueck() {
         when {
+            arena != null -> closeArena()
             flow != null -> closeFlow()
             section != Section.DASHBOARD -> section = Section.DASHBOARD
         }
@@ -102,17 +142,29 @@ class AppState(val store: ProgressStore) {
 }
 
 /** Eingaben der lernenden Person für die aktuelle Aufgabe. */
-data class AnswerDraft(val choice: Int? = null, val blanks: List<String> = emptyList(), val text: String = "") {
+data class AnswerDraft(
+    val choice: Int? = null,
+    val blanks: List<String> = emptyList(),
+    val text: String = "",
+    /** Code-Puzzle: gewählte Reihenfolge der Bausteine. */
+    val order: List<Int> = emptyList(),
+    /** Bug-Jagd: angeklickte Zeile (ab 1). */
+    val line: Int? = null,
+) {
     fun answer(task: LearningTask): TaskAnswer? = when (task.kind) {
         is TaskKind.SingleChoice -> choice?.let(TaskAnswer::Choice)
         is TaskKind.FillBlank -> if (blanks.any { it.isNotBlank() }) TaskAnswer.Blanks(blanks) else null
         is TaskKind.PredictOutput, is TaskKind.Code -> if (text.isBlank()) null else TaskAnswer.Text(text)
+        is TaskKind.Ordering -> if (order.isEmpty()) null else TaskAnswer.Order(order)
+        is TaskKind.FindBug -> line?.let(TaskAnswer::Line)
     }
 
     fun applying(answer: TaskAnswer) = when (answer) {
         is TaskAnswer.Choice -> copy(choice = answer.index)
         is TaskAnswer.Blanks -> copy(blanks = answer.values)
         is TaskAnswer.Text -> copy(text = answer.text)
+        is TaskAnswer.Order -> copy(order = answer.order)
+        is TaskAnswer.Line -> copy(line = answer.line)
     }
 
     companion object {
@@ -174,8 +226,10 @@ class LessonFlowModel(val store: ProgressStore, private val session: LessonSessi
     /** Was richtig gewesen wäre – erst, wenn die Aufgabe abgeschlossen ist. */
     val correctAnswer: String? get() {
         if (!isCurrentTaskFinished) return null
-        return when (val kind = currentTask?.kind) {
+        val task = currentTask
+        return when (val kind = task?.kind) {
             is TaskKind.SingleChoice -> kind.choices.getOrNull(kind.correctIndex)
+            is TaskKind.FindBug -> task.code?.lines?.getOrNull(kind.bugLine - 1)?.let { "Zeile ${kind.bugLine}: ${it.code.trim()} → ${kind.fix.code.trim()}" }
             else -> null
         }
     }
@@ -187,6 +241,48 @@ class LessonFlowModel(val store: ProgressStore, private val session: LessonSessi
     val lessonId: String? get() = session.lessonId
     val isTraining: Boolean get() = session.mode == LessonSession.Mode.Training
     val remainingAttempts: Int get() = read { maxOf(LessonSession.MAX_ATTEMPTS - session.attempts, 0) }
+
+    /** Aufgaben in Folge beim ersten Versuch richtig – ab 2 zeigt die Lektion eine Combo. */
+    val currentCombo: Int get() = read { session.currentCombo }
+    val bestCombo: Int get() = read { session.bestCombo }
+
+    /** XP, Levelaufstieg und neue Abzeichen durch diese Lektion – für die Auswertung. */
+    var rewardGain by mutableStateOf<app.javaquest.data.RewardGain?>(null)
+        private set
+
+    /** Die Abschluss-Mission, sobald die Lektion bei ihr angekommen ist. */
+    var missionModel by mutableStateOf<ArenaMissionModel?>(null)
+        private set
+    private val rewardBefore = store.rewardSnapshot()
+
+    /** Kommt nach der letzten Aufgabe noch eine Arena-Mission? */
+    val hasMission: Boolean get() = session.missionId?.let { store.catalog.mission(it) } != null
+
+    /** Ergebnis des letzten Testlaufs – zählt nicht als Versuch. */
+    var testRunResult by mutableStateOf<app.javaquest.core.interpreter.JavaRunResult?>(null)
+        private set
+
+    /** Testlauf nur bei Code-Aufgaben, deren Musterlösung der eingebaute Interpreter ausführen kann. */
+    val canTestRun: Boolean
+        get() {
+            val task = currentTask ?: return false
+            val kind = task.kind as? TaskKind.Code ?: return false
+            return !isCurrentTaskFinished && draft.text.isNotBlank() &&
+                task.javaContext != app.javaquest.core.JavaContext.MEMBERS && AnswerEvaluator.isRunnable(kind)
+        }
+
+    fun testRun() {
+        if (!canTestRun) return
+        testRunResult = AnswerEvaluator.testRun(draft.text)
+    }
+
+    /** Mission geschafft oder übersprungen: weiter zur Auswertung. */
+    fun finishMission(@Suppress("UNUSED_PARAMETER") result: ArenaResult?) {
+        session.finishMission()
+        missionModel = null
+        revision++
+        completeIfFinished()
+    }
 
     /** Position „Aufgabe 2 von 5“. */
     val taskPosition: Pair<Int, Int>?
@@ -202,7 +298,7 @@ class LessonFlowModel(val store: ProgressStore, private val session: LessonSessi
             return draft.answer(task) != null
         }
 
-    fun advanceTheory() { session.advanceTheory(); revision++ }
+    fun advanceTheory() { session.advanceTheory(); revision++; enterMissionIfDue(); completeIfFinished() }
     fun goBackInTheory() { session.goBackInTheory(); revision++ }
 
     fun submit() {
@@ -229,10 +325,27 @@ class LessonFlowModel(val store: ProgressStore, private val session: LessonSessi
     fun next() {
         session.advanceToNextTask()
         draft = AnswerDraft.forTask(session.currentTask)
+        testRunResult = null
         revision++
+        enterMissionIfDue()
+        completeIfFinished()
+    }
+
+    /** Ist die Lektion bei ihrer Abschluss-Mission angekommen, wird sie vorbereitet (fehlt sie, geht es weiter). */
+    private fun enterMissionIfDue() {
+        val phase = session.phase as? LessonSession.Phase.Mission ?: return
+        if (missionModel != null) return
+        val mission = store.catalog.mission(phase.id)
+        if (mission == null) finishMission(null) else missionModel = ArenaMissionModel(mission, store)
+    }
+
+    private fun completeIfFinished() {
         val id = session.lessonId
-        if (session.phase == LessonSession.Phase.Summary && id != null) {
+        if (session.phase == LessonSession.Phase.Summary && id != null && scoreChange == null) {
             scoreChange = store.completeLesson(id, session.summary)
+        }
+        if (session.phase == LessonSession.Phase.Summary) {
+            rewardGain = store.rewardSnapshot().gains(rewardBefore).takeIf { !it.isEmpty }
         }
     }
 

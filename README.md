@@ -16,7 +16,9 @@ Java Master Score von 0 bis 1000.
   UML-Klassendiagramme, Endlos-Training und freies Lernen – eine gemeinsame Kursdatei für alle Plattformen
 - **Bestanden ab 69 %** (zentral in `LessonSession.passThreshold`)
 
-**Nur in der Apple-App (iPhone, iPad, Mac):**
+**Arena, Interpreter, Bonus-Aufgaben und Motivation – in der Apple-App (iPhone, iPad, Mac) und unter Windows und
+Android (dieselben Missionen und Regeln, Kotlin-Fassung unter `Windows/src/main/kotlin/app/javaquest/core`);
+die Web-App kennt sie noch nicht:**
 - **Arena:** Den Roboter „Byte“ mit echtem Java steuern – Lektion 1–7 enden mit einer Mission, dazu
   3 Boss-Level, 3 Trainingsmissionen, eine tägliche Mission und ein freier Spielplatz. Der Code läuft
   animiert Zeile für Zeile, mit Variablen- und Konsolenanzeige und bis zu 3 Sternen je Mission
@@ -32,13 +34,13 @@ Java Master Score von 0 bis 1000.
   Fahrten, lange Fahrten werden gestaucht (höchstens 50 Schritte lang, `ArenaPlayback`), und eine Schleife
   ohne `robot.move();` zeigt nur 6 Fragen statt 250. Die Befehlsleiste fügt dort ein, wo man schreibt –
   eingerückt, im leeren Schleifen- oder Methodenrumpf statt am Ende (`CodeInsertion`).
-- **Eingebauter Java-Interpreter** (`JavaQuestKit/Interpreter`): Variablen, Kontrollfluss, statische Methoden,
+- **Eingebauter Java-Interpreter** (`JavaQuestKit/Interpreter`, in Kotlin `core/interpreter`): Variablen, Kontrollfluss, statische Methoden,
   Arrays und Strings. Code-Aufgaben werden damit wirklich ausgeführt und die Ausgabe verglichen; dazu ein
   „Testlauf“, der keinen Versuch kostet. Gegen ein echtes JDK geprüft (`Tests/…/Fixtures/java_differential.json`)
   und gegen alle 149 Kursprogramme, die er versteht – Klassen, Lambdas, Collections und try/catch erkennt er
   als „nicht unterstützt“ und überlässt sie der Regelprüfung.
 - **Bonus-Aufgaben:** Code-Puzzle (Zeilen ordnen) und Bug-Jagd (Fehlerzeile finden), je eine in Lektion 1–13
-  (`apple_extra_tasks.json`, beim Laden einsortiert). Sie bringen XP, zählen aber **nicht** für Trefferquote und
+  (`apple_extra_tasks.json` – trotz des Namens auch für Windows und Android –, beim Laden einsortiert). Sie bringen XP, zählen aber **nicht** für Trefferquote und
   Master Score – so bleibt der Score auf allen Plattformen gleich. Die gemeinsame Kursdatei bleibt unverändert.
 - **Motivation:** XP und Level, Combos, 19 Abzeichen, Missionssterne und Boss-Level im Lernpfad.
   Missionsergebnisse stehen im vorhandenen Aufgaben-Protokoll (Kontext `mission`/`daily`, `credit` = Sterne ÷ 3) –
@@ -380,8 +382,10 @@ selbst nicht, sonst wäre es bei „Was wird ausgegeben?“ verraten.
 ## Windows
 
 Eigene App im Ordner `Windows/` (Kotlin + Compose Desktop), gleiche Inhalte, gleiche Regeln, gleiche Gestaltung:
-Seitenleiste (Übersicht, Lernpfad, Analyse, Profil), Onboarding mit zwei Optionen, Code-Exegese, Aufgaben,
-Auswertung, Endlos-Training, Dashboard mit Diagrammen. Der Lernstand liegt als JSON in `%APPDATA%\JavaQuest\progress.json`.
+Seitenleiste (Übersicht, Lernpfad, Themen, Analyse, Arena, Abzeichen, Profil – auf dem Handy erreicht man Arena und
+Abzeichen über die Übersicht), Onboarding mit zwei Optionen, Code-Exegese, Aufgaben samt Code-Puzzle und Bug-Jagd,
+Testlauf für Code-Aufgaben, Abschluss-Missionen in Lektion 1–7, Auswertung mit XP, Endlos-Training, Dashboard mit
+Diagrammen, Tagesmission und Level. Der Lernstand liegt als JSON in `%APPDATA%\JavaQuest\progress.json`.
 Tastatur: Tasten 1–4 wählen eine Antwort, Strg + Enter prüft und geht weiter, Esc bricht die Runde ab,
 Enter/Tab springt zur nächsten Lücke, Tab im Code-Editor setzt 4 Leerzeichen.
 

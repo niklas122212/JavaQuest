@@ -191,7 +191,9 @@ class CourseContentTest {
     @Test fun `Kurs laedt - 14 Module, 35 Lektionen, 185 Aufgaben plus Uebungspool`() {
         assertEquals(14, course.modules.size)
         assertEquals(35, course.allLessons.size)
-        assertEquals(185, course.allLessons.sumOf { it.tasks.size })
+        // 185 Kursaufgaben plus je ein Code-Puzzle bzw. eine Bug-Jagd in Lektion 1–13.
+        assertEquals(185, course.allLessons.sumOf { lesson -> lesson.tasks.count { !it.type.isBonus } })
+        assertEquals(13, course.allLessons.sumOf { lesson -> lesson.tasks.count { it.type.isBonus } })
         // Der Übungspool speist Übung, Training und freies Lernen.
         assertTrue(course.taskPool.size >= 50, "nur ${course.taskPool.size} Übungsaufgaben")
         assertEquals(course.allLessons.sumOf { it.tasks.size } + course.taskPool.size, course.practiceableTasks.size)
@@ -272,7 +274,8 @@ class CourseContentTest {
 
     @Test fun `Jedes Lernziel hat mindestens drei Varianten`() {
         // Bei nur zwei Varianten bekommt man nach einem Fehler zwangsläufig die andere.
-        val knapp = course.practiceableTasks.groupBy { it.groupKey }.filterValues { it.size < 3 }
+        // Bonus-Aufgaben stehen für sich: Sie zählen nicht für Score und Wiederholung.
+        val knapp = course.practiceableTasks.filter { !it.type.isBonus }.groupBy { it.groupKey }.filterValues { it.size < 3 }
         assertTrue(knapp.isEmpty(), "zu wenige Varianten: ${knapp.keys.sorted()}")
     }
 
@@ -361,7 +364,8 @@ class CourseContentTest {
 
     @Test fun `Jede Codezeile im Kurs hat eine Erklaerung`() {
         val snippets = course.allSnippets
-        assertEquals(799, snippets.size)
+        // 799 Ausschnitte aus der gemeinsamen Kursdatei, 20 aus den Bonus-Aufgaben (Puzzle, Bug-Jagd samt Korrektur).
+        assertEquals(819, snippets.size)
         var lines = 0
         for ((location, snippet) in snippets) {
             assertTrue(snippet.linesMissingExplanation.isEmpty(), "$location: Zeilen ${snippet.linesMissingExplanation}")
@@ -404,6 +408,13 @@ class CourseContentTest {
                 is TaskKind.PredictOutput -> {
                     assertFalse(AnswerEvaluator.evaluate(TaskAnswer.Text(""), task).isCorrect)
                     assertFalse(AnswerEvaluator.evaluate(TaskAnswer.Text(kind.expectedOutput + "\nx"), task).isCorrect)
+                }
+                is TaskKind.Ordering -> assertFalse(
+                    AnswerEvaluator.evaluate(TaskAnswer.Order(kind.pieces.indices.reversed().toList()), task).isCorrect,
+                    "${task.id}: umgekehrte Reihenfolge gilt als richtig",
+                )
+                is TaskKind.FindBug -> (1..(task.code?.lines?.size ?: 0)).filter { it != kind.bugLine }.forEach {
+                    assertFalse(AnswerEvaluator.evaluate(TaskAnswer.Line(it), task).isCorrect, "${task.id} Zeile $it")
                 }
                 is TaskKind.Code -> assertFalse(
                     AnswerEvaluator.evaluate(TaskAnswer.Text(kind.starter.source), task).isCorrect,
@@ -634,7 +645,7 @@ class ProgressTest {
     }
 
     @Test fun `Jedes Lernziel hat mindestens zwei Varianten`() {
-        val ohneVariante = VariantSelector.groups(course.practiceableTasks)
+        val ohneVariante = VariantSelector.groups(course.practiceableTasks.filter { !it.type.isBonus })
             .filter { it.second.size < 2 }
             .map { it.first }
         assertTrue(ohneVariante.isEmpty(), "Lernziele mit nur einer Aufgabe: ${ohneVariante.sorted()}")

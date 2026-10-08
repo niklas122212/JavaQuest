@@ -3,7 +3,16 @@ package app.javaquest.data
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import app.javaquest.core.Achievement
+import app.javaquest.core.ActivityRecord
+import app.javaquest.core.ArenaCatalog
+import app.javaquest.core.ArenaMission
+import app.javaquest.core.ArenaResult
 import app.javaquest.core.AttemptRecord
+import app.javaquest.core.DailyMission
+import app.javaquest.core.Experience
+import app.javaquest.core.LearnerFacts
+import app.javaquest.core.LevelProgress
 import app.javaquest.core.Course
 import app.javaquest.core.GoalHistory
 import app.javaquest.core.ExperienceLevel
@@ -104,7 +113,27 @@ data class ProgressData(
     val scoreHistory: List<ScoreSnapshot> = emptyList(),
 )
 
-enum class AttemptContext(val raw: String) { LESSON("lesson"), PRACTICE("practice"), TRAINING("training"), PLACEMENT("placement") }
+/**
+ * Wo ein Eintrag im Protokoll entstand. Arena-Missionen stehen im selben Protokoll (`mission`,
+ * `daily`) – wie in der Apple-App, damit Sicherungen zwischen den Geräten zusammenpassen.
+ */
+enum class AttemptContext(val raw: String) {
+    LESSON("lesson"), PRACTICE("practice"), TRAINING("training"), PLACEMENT("placement"),
+    MISSION(ActivityRecord.MISSION), DAILY(ActivityRecord.DAILY),
+}
+
+/** Was sich durch eine Lektion oder Mission verändert hat – für die Belohnungsanzeige. */
+data class RewardSnapshot(val xp: Int, val level: Int, val achievements: Set<String>) {
+    fun gains(since: RewardSnapshot) = RewardGain(
+        xp = maxOf(xp - since.xp, 0),
+        levelUp = level.takeIf { it > since.level },
+        newAchievements = Achievement.all.filter { it.id in achievements && it.id !in since.achievements },
+    )
+}
+
+data class RewardGain(val xp: Int, val levelUp: Int?, val newAchievements: List<Achievement>) {
+    val isEmpty: Boolean get() = xp == 0 && levelUp == null && newAchievements.isEmpty()
+}
 
 /** Ergebnis einer Score-Neuberechnung („+36 Punkte“, Rangaufstieg). */
 data class ScoreChange(val before: Int, val after: Int, val newRank: MasterRank?) {
@@ -173,6 +202,8 @@ class ProgressStore(
     val course: Course,
     private val file: ProgressFile?,
     private val clock: Clock = Clock.systemDefaultZone(),
+    /** Die Arena-Missionen – ohne Katalog (leer) gibt es keine Arena. */
+    val catalog: ArenaCatalog = ArenaCatalog.EMPTY,
 ) {
     var data: ProgressData? by mutableStateOf(file?.load())
         private set
@@ -214,12 +245,16 @@ class ProgressStore(
         }
 
     val completedLessonCount: Int get() = lessonResults.values.count { it.isCompleted }
-    val solvedTaskCount: Int get() = data?.attempts?.count { it.solved } ?: 0
+    val solvedTaskCount: Int get() = taskAttempts.count { it.solved }
+
+    /** Nur Aufgaben – Arena-Missionen stehen zwar im selben Protokoll, zählen hier aber nicht. */
+    val taskAttempts: List<TaskAttempt> get() = data?.attempts.orEmpty().filter { ActivityRecord.isTaskContext(it.context) }
 
     /** Anteil der beim ersten Versuch gelösten Aufgaben (ohne Einstufung). */
     val firstTryRate: Double?
         get() {
-            val relevant = data?.attempts?.filter { it.context != AttemptContext.PLACEMENT.raw } ?: return null
+            if (data == null) return null
+            val relevant = taskAttempts.filter { it.context != AttemptContext.PLACEMENT.raw }
             if (relevant.isEmpty()) return null
             return relevant.count { it.solved && it.tries == 1 }.toDouble() / relevant.size
         }
@@ -239,7 +274,7 @@ class ProgressStore(
     val taskHistory: Map<String, TaskHistory>
         get() {
             val history = mutableMapOf<String, TaskHistory>()
-            for (attempt in data?.attempts.orEmpty().sortedBy { it.date }) {
+            for (attempt in taskAttempts.sortedBy { it.date }) {
                 val count = (history[attempt.taskId]?.attempts ?: 0) + 1
                 history[attempt.taskId] = TaskHistory(count, attempt.credit, Instant.parse(attempt.date))
             }
@@ -252,7 +287,7 @@ class ProgressStore(
      */
     val goalHistory: Map<String, GoalHistory>
         get() = SpacedRepetition.goals(
-            data?.attempts.orEmpty()
+            taskAttempts
                 .filter { it.context != AttemptContext.PLACEMENT.raw }
                 .map { AttemptRecord(it.taskId, it.credit, Instant.parse(it.date)) },
             course,
@@ -292,7 +327,7 @@ class ProgressStore(
 
     /** Gesehene, richtige und falsche Aufgaben eines Themas – aus dem Aufgaben-Protokoll. */
     fun topicPractice(topicId: String): TopicPractice {
-        val attempts = data?.attempts.orEmpty().filter { it.topicId == topicId }
+        val attempts = taskAttempts.filter { it.topicId == topicId }
         return TopicPractice(
             seen = attempts.size,
             correct = attempts.count { it.solved },
@@ -300,6 +335,70 @@ class ProgressStore(
             lastPracticed = attempts.maxOfOrNull { it.date },
             mastery = topicStats[topicId]?.takeIf { it.attempts > 0 }?.mastery,
         )
+    }
+
+    // MARK: Motivation: XP, Arena, Abzeichen
+
+    val activityRecords: List<ActivityRecord>
+        get() = data?.attempts.orEmpty().map {
+            ActivityRecord(it.taskId, it.topicId, it.context, it.difficulty, it.credit, it.solved, it.tries, Instant.parse(it.date))
+        }
+
+    /**
+     * Abgeleitete Motivationswerte – zwischengespeichert, weil Übersicht und Seitenleiste sie bei jedem
+     * Neuzeichnen mehrfach lesen. Neu berechnet wird nur, wenn sich Lernstand oder Tag ändern.
+     */
+    private class Derived(val key: Any, val facts: LearnerFacts, val level: LevelProgress, val unlocked: Set<String>)
+
+    private var derivedCache: Derived? = null
+
+    private val derived: Derived
+        get() {
+            val key = data to today()
+            derivedCache?.takeIf { it.key == key }?.let { return it }
+            val facts = LearnerFacts(course, catalog, activityRecords, lessonResults, data?.longestStreak ?: 0, clock.zone)
+            return Derived(key, facts, Experience.level(facts.experience), Achievement.unlocked(facts)).also { derivedCache = it }
+        }
+
+    val facts: LearnerFacts get() = derived.facts
+    val levelProgress: LevelProgress get() = derived.level
+    val missionStars: Map<String, Int> get() = derived.facts.missionStars
+    val unlockedAchievements: Set<String> get() = derived.unlocked
+
+    val availableMissions: List<ArenaMission> get() = DailyMission.available(catalog, course, lessonResults)
+
+    fun isUnlocked(mission: ArenaMission): Boolean = DailyMission.isUnlocked(mission, course, lessonResults)
+
+    val dailyMission: ArenaMission? get() = facts.dailyMission(today(), availableMissions)
+    val isDailyMissionDone: Boolean get() = facts.isDailyDone(today())
+
+    fun rewardSnapshot(): RewardSnapshot = derived.let { RewardSnapshot(it.level.xp, it.level.level, it.unlocked) }
+
+    /**
+     * Speichert eine geschaffte Mission. Gespeichert wird nur, was zählt: ein neuer
+     * Sterne-Bestwert oder die erste Lösung der Tagesmission.
+     */
+    fun recordMission(mission: ArenaMission, result: ArenaResult) {
+        val d = data ?: return
+        if (!result.solved) return
+        val isDaily = dailyMission?.id == mission.id && !isDailyMissionDone
+        val best = missionStars[mission.id] ?: 0
+        if (!isDaily && result.stars <= best) {
+            commit(touchStreak(d))
+            return
+        }
+        val attempt = TaskAttempt(
+            taskId = mission.id,
+            topicId = mission.topicId,
+            lessonId = mission.lessonId,
+            context = (if (isDaily) AttemptContext.DAILY else AttemptContext.MISSION).raw,
+            difficulty = mission.difficulty.level,
+            credit = ActivityRecord.credit(result.stars),
+            solved = true,
+            tries = 1,
+            date = now(),
+        )
+        commit(touchStreak(d.copy(attempts = d.attempts + attempt)))
     }
 
     // MARK: Onboarding & Einstufung

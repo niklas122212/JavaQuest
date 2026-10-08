@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import app.javaquest.core.ArenaCatalog
 import app.javaquest.core.CourseLoader
 import app.javaquest.data.ProgressFile
 import app.javaquest.data.ProgressStore
@@ -41,9 +42,13 @@ object Sitzung {
             val appContext = context.applicationContext
             zustand = withContext(Dispatchers.IO) {
                 val start = System.nanoTime()
-                val text = appContext.assets.open("java_course.json").bufferedReader(Charsets.UTF_8).use { it.readText() }
-                val kurs = CourseLoader.parse(text)
-                val store = ProgressStore(kurs, ProgressFile(lernstandDatei(appContext).toPath()))
+                fun lies(name: String) = appContext.assets.open(name).bufferedReader(Charsets.UTF_8).use { it.readText() }
+                val text = lies("java_course.json")
+                // Bonus-Aufgaben (Code-Puzzle, Bug-Jagd) und Arena-Missionen liegen neben dem Kurs.
+                // Fehlt eine der Dateien, läuft die App ohne sie weiter.
+                val kurs = CourseLoader.parse(text, extraTasks = runCatching { lies(CourseLoader.EXTRA_TASKS_FILE) }.getOrNull())
+                val missionen = runCatching { ArenaCatalog.parse(lies("arena_missions.json")) }.getOrDefault(ArenaCatalog.EMPTY)
+                val store = ProgressStore(kurs, ProgressFile(lernstandDatei(appContext).toPath()), catalog = missionen)
                 Log.i(TAG, "Kurs geladen: ${kurs.modules.size} Module, ${kurs.allLessons.size} Lektionen " +
                     "in ${(System.nanoTime() - start) / 1_000_000} ms")
                 AppState(store)

@@ -41,6 +41,9 @@ import androidx.compose.material.icons.rounded.Bolt
 import androidx.compose.material.icons.rounded.Cancel
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.LocalFireDepartment
+import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.SportsEsports
 import androidx.compose.material.icons.rounded.EmojiEvents
 import androidx.compose.material.icons.rounded.Error
 import androidx.compose.material.icons.rounded.ExpandLess
@@ -146,6 +149,14 @@ fun LessonFlowScreen(model: LessonFlowModel, onClose: () -> Unit, onStartLesson:
             Column(Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(model.title, fontWeight = FontWeight.SemiBold, fontSize = 17.sp, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    // Combo: mehrere Aufgaben in Folge beim ersten Versuch richtig.
+                    if (model.currentCombo >= 2 && model.phase != LessonSession.Phase.Summary) {
+                        Chip(if (kompakt) "${model.currentCombo}×" else "Combo ${model.currentCombo}×", Icons.Rounded.LocalFireDepartment, Palette.orange)
+                        Spacer(Modifier.width(8.dp))
+                    }
+                    if (model.phase is LessonSession.Phase.Mission) {
+                        Text(if (kompakt) "Mission" else "Abschluss-Mission", color = secondaryText, fontSize = 14.sp)
+                    }
                     model.taskPosition?.let { (index, count) ->
                         Text(if (kompakt) "$index/$count" else "Aufgabe $index von $count", color = secondaryText, fontSize = 14.sp)
                     }
@@ -158,6 +169,9 @@ fun LessonFlowScreen(model: LessonFlowModel, onClose: () -> Unit, onStartLesson:
             when (val phase = model.phase) {
                 is LessonSession.Phase.Theory -> TheoryStep(model, phase.page)
                 is LessonSession.Phase.Task -> TaskStep(model)
+                is LessonSession.Phase.Mission -> model.missionModel?.let { mission ->
+                    ArenaMissionScreen(mission, ArenaContext.Lesson { result -> model.finishMission(result) })
+                }
                 LessonSession.Phase.Summary -> SummaryStep(model, onClose, onStartLesson, onTrainAgain)
             }
         }
@@ -168,7 +182,7 @@ private fun primaryAction(model: LessonFlowModel) {
     when (model.phase) {
         is LessonSession.Phase.Theory -> model.advanceTheory()
         is LessonSession.Phase.Task -> if (model.isCurrentTaskFinished) model.next() else model.submit()
-        LessonSession.Phase.Summary -> Unit
+        is LessonSession.Phase.Mission, LessonSession.Phase.Summary -> Unit
     }
 }
 
@@ -272,7 +286,10 @@ private fun TaskStep(model: LessonFlowModel) {
                             TaskQuestion(task, model.store.course, model.draft, evaluation, showsExplanations = true)
                         }
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                            Column(Modifier.card(22.dp)) { TaskAnswerInput(task, model.draft, { model.draft = it }, model.isCurrentTaskFinished, evaluation) }
+                            Column(Modifier.card(22.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                                TaskAnswerInput(task, model.draft, { model.draft = it }, model.isCurrentTaskFinished, evaluation)
+                                TestRunPanel(model)
+                            }
                             feedback()
                         }
                     }
@@ -281,6 +298,7 @@ private fun TaskStep(model: LessonFlowModel) {
                         Column(Modifier.card(22.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
                             TaskQuestion(task, model.store.course, model.draft, evaluation, showsExplanations = true)
                             TaskAnswerInput(task, model.draft, { model.draft = it }, model.isCurrentTaskFinished, evaluation)
+                            TestRunPanel(model)
                         }
                         feedback()
                     }
@@ -292,8 +310,8 @@ private fun TaskStep(model: LessonFlowModel) {
                 val position = model.taskPosition
                 val last = position != null && position.first == position.second
                 PrimaryButton(
-                    if (last) "Zur Auswertung" else "Weiter",
-                    if (last) Icons.Rounded.Summarize else Icons.AutoMirrored.Rounded.ArrowForward,
+                    when { !last -> "Weiter"; model.hasMission -> "Zur Abschluss-Mission"; else -> "Zur Auswertung" },
+                    when { !last -> Icons.AutoMirrored.Rounded.ArrowForward; model.hasMission -> Icons.Rounded.SportsEsports; else -> Icons.Rounded.Summarize },
                     Modifier.weight(1f).testTag("task-next"),
                     brush = Palette.successGradient,
                 ) { model.next() }
@@ -309,6 +327,34 @@ private fun TaskStep(model: LessonFlowModel) {
                         enabled = model.canSubmit,
                     ) { model.submit() }
                 }
+            }
+        }
+    }
+}
+
+/** Testlauf: Code probeweise ausführen und die Konsole sehen – zählt nicht als Versuch. */
+@Composable
+private fun TestRunPanel(model: LessonFlowModel) {
+    val task = model.currentTask ?: return
+    if (task.kind !is TaskKind.Code || model.isCurrentTaskFinished) return
+    val result = model.testRunResult
+    if (!model.canTestRun && result == null) return
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            SecondaryButton("Testlauf", Icons.Rounded.PlayArrow, Modifier.testTag("test-run"), tint = Palette.teal, enabled = model.canTestRun) { model.testRun() }
+            Spacer(Modifier.width(12.dp))
+            Text("Führt deinen Code aus – kostet keinen Versuch.", color = secondaryText, fontSize = 13.sp, modifier = Modifier.weight(1f))
+        }
+        if (result != null) {
+            val problem = result.problem
+            Column(
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(CodeColors.background).padding(12.dp).testTag("test-run-output"),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Text("KONSOLE", color = CodeColors.plain.copy(alpha = 0.5f), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                Text(result.output.ifEmpty { "(keine Ausgabe)" }, fontFamily = CodeFont, fontSize = 14.sp,
+                    color = if (result.output.isEmpty()) CodeColors.plain.copy(alpha = 0.4f) else CodeColors.plain)
+                if (problem != null) Text(problem.description, color = Palette.ember, fontSize = 14.sp)
             }
         }
     }
@@ -338,6 +384,8 @@ fun TaskQuestion(
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             DifficultyBadge(task.difficulty)
             Chip(task.type.title, taskTypeIcon(task.type), Palette.indigo)
+            // Bonus: bringt XP, zählt aber nicht für Trefferquote und Score.
+            if (task.type.isBonus) Chip("Bonus", Icons.Rounded.Bolt, Palette.violet)
             course.topic(task.topicId)?.let { Chip(it.title, Icons.Rounded.Sell) }
         }
         Text(task.prompt, fontSize = 21.sp, fontWeight = FontWeight.SemiBold, lineHeight = 28.sp)
@@ -387,6 +435,7 @@ fun TaskQuestion(
                     }
                 }
             }
+            is TaskKind.Ordering, is TaskKind.FindBug -> Unit
         }
     }
 }
@@ -427,6 +476,8 @@ fun TaskAnswerInput(task: LearningTask, draft: AnswerDraft, onChange: (AnswerDra
                 is TaskKind.FillBlank -> "FÜLLE DIE LÜCKEN"
                 is TaskKind.PredictOutput -> "KONSOLENAUSGABE"
                 is TaskKind.Code -> "DEIN CODE"
+                is TaskKind.Ordering -> "BRING DIE ZEILEN IN DIE RICHTIGE REIHENFOLGE"
+                is TaskKind.FindBug -> "KLICKE AUF DIE ZEILE MIT DEM FEHLER"
             },
             fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = secondaryText, letterSpacing = 0.5.sp,
         )
@@ -441,6 +492,10 @@ fun TaskAnswerInput(task: LearningTask, draft: AnswerDraft, onChange: (AnswerDra
             is TaskKind.FillBlank -> BlankFields(kind.blanks.size, draft.blanks, evaluation.blankStates, isLocked) { onChange(draft.copy(blanks = it)) }
             is TaskKind.PredictOutput -> CodeEditor(draft.text, "Ausgabe Zeile für Zeile eintippen …", 130.dp, isLocked, "output-editor") { onChange(draft.copy(text = it)) }
             is TaskKind.Code -> CodeEditor(draft.text, "// Dein Java-Code", 230.dp, isLocked, "code-editor") { onChange(draft.copy(text = it)) }
+            is TaskKind.Ordering -> PuzzleBoard(kind, task.id, draft.order, isLocked, evaluation) { onChange(draft.copy(order = it)) }
+            is TaskKind.FindBug -> task.code?.let { snippet ->
+                BugLinePicker(snippet, kind, draft.line, isLocked, evaluation) { onChange(draft.copy(line = it)) }
+            }
         }
     }
 }
@@ -559,16 +614,29 @@ private val CodeTastatur = KeyboardOptions(
 
 /** Mehrzeiliger Editor auf dunklem Grund; Tab rückt um vier Leerzeichen ein. */
 @Composable
-fun CodeEditor(text: String, placeholder: String, minHeight: androidx.compose.ui.unit.Dp, isLocked: Boolean, tag: String, onChange: (String) -> Unit) {
+fun CodeEditor(
+    text: String,
+    placeholder: String,
+    minHeight: androidx.compose.ui.unit.Dp,
+    isLocked: Boolean,
+    tag: String,
+    /** Cursor nach einer Änderung von außen (z. B. Einfügen aus der Befehlsleiste); sonst ans Ende. */
+    cursor: Int? = null,
+    /** Meldet, wo geschrieben wird – auch wenn nur der Cursor wandert. */
+    onCursor: ((Int) -> Unit)? = null,
+    onChange: (String) -> Unit,
+) {
     var value by remember { mutableStateOf(TextFieldValue(text, TextRange(text.length))) }
-    LaunchedEffect(text) { if (value.text != text) value = TextFieldValue(text, TextRange(text.length)) }
+    LaunchedEffect(text) {
+        if (value.text != text) value = TextFieldValue(text, TextRange((cursor ?: text.length).coerceIn(0, text.length)))
+    }
     Box(
         Modifier.fillMaxWidth().heightIn(min = minHeight).clip(RoundedCornerShape(InnerRadius)).background(CodeColors.background).padding(14.dp),
     ) {
         if (value.text.isEmpty()) Text(placeholder, fontFamily = CodeFont, fontSize = 15.sp, color = CodeColors.plain.copy(alpha = 0.35f))
         BasicTextField(
             value = value,
-            onValueChange = { value = it; onChange(it.text) },
+            onValueChange = { value = it; onCursor?.invoke(it.selection.max); onChange(it.text) },
             readOnly = isLocked,
             keyboardOptions = CodeTastatur,
             textStyle = TextStyle(fontFamily = CodeFont, fontSize = 15.sp, color = CodeColors.plain, lineHeight = 22.sp),
@@ -577,6 +645,7 @@ fun CodeEditor(text: String, placeholder: String, minHeight: androidx.compose.ui
                 if (!isLocked && event.type == KeyEventType.KeyDown && event.key == Key.Tab && !event.isShiftPressed) {
                     val inserted = value.text.replaceRange(value.selection.min, value.selection.max, "    ")
                     value = TextFieldValue(inserted, TextRange(value.selection.min + 4))
+                    onCursor?.invoke(value.selection.max)
                     onChange(inserted)
                     true
                 } else {
@@ -742,6 +811,7 @@ private fun SummaryStep(model: LessonFlowModel, onClose: () -> Unit, onStartLess
                     StatTile(Icons.Rounded.GpsFixed, Palette.orange, "${(summary.accuracy * 100).roundToInt()} %", "Trefferquote (gewichtet)", Modifier.weight(1f))
                     StatTile(Icons.Rounded.Bolt, Palette.violet, "${summary.firstTryCount}/${model.tasks.size}", "Beim ersten Versuch", Modifier.weight(1f))
                 }
+                model.rewardGain?.let { RewardBanner(it) }
                 model.scoreChange?.let { ScoreChangeCard(it.before, it.after, passed) }
                 if (model.scoreChange == null && !model.isPractice) ScoreChangeCard(model.store.masterScore, model.store.masterScore, passed)
                 TaskResultsCard(model)

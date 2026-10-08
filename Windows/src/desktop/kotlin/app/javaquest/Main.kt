@@ -12,6 +12,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
+import app.javaquest.core.ArenaCatalog
 import app.javaquest.core.CourseLoader
 import app.javaquest.data.ProgressFile
 import app.javaquest.data.ProgressStore
@@ -31,7 +32,7 @@ fun main() {
     System.getProperty("javaquest.selfcheck")?.let { selfCheck(File(it)); return }
 
     application {
-        val state = remember { AppState(ProgressStore(CourseLoader.loadBundled(), ProgressFile.defaultLocation())) }
+        val state = remember { AppState(ProgressStore(CourseLoader.loadBundled(), ProgressFile.defaultLocation(), catalog = ArenaCatalog.loadBundled())) }
         val icon = remember { BitmapPainter(ImageIO.read(AppState::class.java.getResourceAsStream("/icon.png")).toComposeImageBitmap()) }
         Window(
             onCloseRequest = ::exitApplication,
@@ -53,7 +54,9 @@ private fun selfCheck(outputDir: File) {
     val course = CourseLoader.loadBundled()
     val lines = course.allSnippets.sumOf { it.second.explained(course.glossary).size }
     println("Kurs: ${course.modules.size} Module, ${course.allLessons.size} Lektionen, $lines erklärte Codezeilen")
-    val state = AppState(ProgressStore(course, file = null))
+    val catalog = ArenaCatalog.loadBundled()
+    println("Arena: ${catalog.missions.size} Missionen")
+    val state = AppState(ProgressStore(course, file = null, catalog = catalog))
     val scene = ImageComposeScene(1280, 860, Density(1f)) { JavaQuestTheme(dark = false) { AppShell(state) } }
     var count = 0
     fun render(name: String) {
@@ -78,9 +81,22 @@ private fun selfCheck(outputDir: File) {
             render("${task.id}-geloest")
             flow.next()
         }
+        // Lektion 1–7 enden mit einer Arena-Mission: einmal offen, einmal mit der Musterlösung gelöst.
+        flow.missionModel?.let { mission ->
+            render("${lesson.id}-mission")
+            mission.updateCode(mission.mission.solution.source, null)
+            mission.startRun()
+            mission.finishRun(mission.compute())
+            mission.skipToEnd()
+            render("${lesson.id}-mission-geloest")
+            flow.finishMission(mission.result)
+        }
         render("${lesson.id}-auswertung")
         state.closeFlow()
     }
+    state.openPlayground()
+    render("spielplatz")
+    state.closeArena()
     // Eine Runde Endlos-Training über alle abgeschlossenen Lektionen.
     state.startTraining()
     state.flow?.let { flow ->

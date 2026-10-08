@@ -58,5 +58,17 @@ object SecondHint {
             val zeilen = kind.solution.source.split("\n").count { it.isNotBlank() }
             if (zeilen > 0) "Die Musterlösung kommt mit $zeilen Zeilen aus – mehr brauchst du nicht." else null
         }
+
+        // Den Anfang verraten – der Rest bleibt zu tun.
+        is TaskKind.Ordering -> kind.pieces.firstOrNull()?.let { "Das Programm beginnt mit „$it“. Überleg dann Zeile für Zeile, was davon abhängt." }
+
+        is TaskKind.FindBug -> {
+            // Den Suchbereich auf drei Zeilen eingrenzen, ohne die Zeile selbst zu nennen.
+            val count = task.code?.lines?.size ?: 0
+            if (count <= 3) null else {
+                val start = (kind.bugLine - 1).coerceIn(1, count - 2)
+                "Der Fehler steckt irgendwo in den Zeilen $start bis ${start + 2}."
+            }
+        }
     }
 }

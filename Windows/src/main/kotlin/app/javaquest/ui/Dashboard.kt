@@ -1,5 +1,7 @@
 package app.javaquest.ui
 
+import androidx.compose.material.icons.rounded.Star
+
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -70,6 +72,10 @@ fun DashboardScreen(state: AppState) {
                 )
                 Text("Ein Theorie-Happen, ein paar Aufgaben – Schritt für Schritt zum Java Master.", color = secondaryText, fontSize = 16.sp)
             }
+            if (store.catalog.missions.isNotEmpty()) {
+                Chip("Lvl ${store.levelProgress.level}", Icons.Rounded.Star, Palette.violet)
+                Spacer(Modifier.width(8.dp))
+            }
             if (store.displayedStreak > 0) {
                 Chip("${store.displayedStreak}", Icons.Rounded.LocalFireDepartment, Palette.orange)
             }
@@ -95,6 +101,16 @@ fun DashboardScreen(state: AppState) {
                 }
             }
         }
+        // Arena und Motivation: Tagesmission und Level – von hier aus erreicht man auf dem Handy Arena und Abzeichen.
+        if (store.catalog.missions.isNotEmpty()) {
+            KachelRaster(
+                listOf(
+                    { m -> DailyMissionCard(state, m, showsArenaLink = true) },
+                    { m -> LevelCard(store.levelProgress, store.unlockedAchievements.size, m) { state.section = Section.ACHIEVEMENTS } },
+                ),
+                abstand = 20.dp,
+            )
+        }
         PathSummaryCard(state)
         val kacheln: List<@Composable (Modifier) -> Unit> = listOf(
             { StatTile(Icons.Rounded.CheckCircle, Palette.success, "${store.completedLessonCount}/${store.course.allLessons.size}", "Lektionen abgeschlossen", it) },
@@ -108,12 +124,15 @@ fun DashboardScreen(state: AppState) {
 
 /** Vier Kacheln nebeneinander – auf dem Handy zwei Reihen zu je zwei. */
 @Composable
-fun KachelRaster(kacheln: List<@Composable (Modifier) -> Unit>, abstand: androidx.compose.ui.unit.Dp) {
-    val jeZeile = if (LocalKompakt.current) 2 else kacheln.size
+fun KachelRaster(kacheln: List<@Composable (Modifier) -> Unit>, abstand: androidx.compose.ui.unit.Dp, maxJeZeile: Int = Int.MAX_VALUE) {
+    if (kacheln.isEmpty()) return
+    val jeZeile = if (LocalKompakt.current) 2 else minOf(kacheln.size, maxJeZeile)
     Column(verticalArrangement = Arrangement.spacedBy(abstand)) {
         for (zeile in kacheln.chunked(jeZeile)) {
             Row(horizontalArrangement = Arrangement.spacedBy(abstand)) {
                 for (kachel in zeile) kachel(Modifier.weight(1f))
+                // Letzte Zeile auffüllen, damit alle Kacheln gleich breit bleiben.
+                repeat(jeZeile - zeile.size) { Spacer(Modifier.weight(1f)) }
             }
         }
     }
