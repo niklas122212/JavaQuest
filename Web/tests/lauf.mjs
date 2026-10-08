@@ -13,6 +13,7 @@ import { abweichungen, berechneNummer } from "../../Tools/web_fassung.mjs";
 import { ladeJava, javaPruefungen } from "./java.mjs";
 import { ladeArena, arenaPruefungen } from "./arena.mjs";
 import { ladeSpiel, spielPruefungen } from "./spiel.mjs";
+import { bonusPruefungen } from "./bonus.mjs";
 
 const hier = dirname(fileURLToPath(import.meta.url));
 const web = join(hier, "..");
@@ -39,6 +40,7 @@ const ergebnisse = pruefungen(api, kurs, beispiele);
   ergebnisse.push(...javaPruefungen(ladeJava(lies("java.js")), kurs, jdk));
   ergebnisse.push(...arenaPruefungen(ladeArena(lies("java.js"), lies("arena.js")), missionen, kurs));
   ergebnisse.push(...spielPruefungen(ladeSpiel(lies("java.js"), lies("arena.js"), lies("spiel.js")), kurs, missionen, bonus));
+  ergebnisse.push(...bonusPruefungen(api, bonus));
 }
 
 // Nur unter Node prüfbar, deshalb nicht in pruefungen.mjs: Passt die Versionsnummer zum

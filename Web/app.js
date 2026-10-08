@@ -214,7 +214,11 @@ function stufen(themaId) {
 const alleLektionen = () => kurs.modules.flatMap((m) => m.lessons);
 /** Arena-Missionen – nur wenn arena-seiten.js geladen ist und die Missionen da sind. */
 const arenaKatalog = () => (typeof katalog !== "undefined" ? katalog : null);
-const uebbareAufgaben = () => alleLektionen().flatMap((l) => l.tasks).concat(kurs.taskPool || []);
+const uebbareAufgaben = () => alleLektionen().flatMap((l) => l.tasks).concat(kurs.taskPool || [], alleBonusAufgaben());
+/** Code-Puzzle und Bug-Jagd: zählen nicht für Trefferquote und Score, sonst wie jede Aufgabe. */
+const istBonusAufgabe = (a) => a.type === "ordering" || a.type === "findBug";
+const bonusDerLektion = (id) => ((typeof bonusAufgaben !== "undefined" ? bonusAufgaben : {})[id] || []);
+const alleBonusAufgaben = () => Object.values(typeof bonusAufgaben !== "undefined" ? bonusAufgaben : {}).flat();
 const gruppe = (a) => a.variantGroup || a.id;
 const thema = (id) => kurs.topics.find((t) => t.id === id);
 
@@ -341,7 +345,14 @@ function eineProGruppe(aufgaben) {
 function lektionsAufgaben(lektion) {
   const schluessel = new Set(lektion.tasks.map(gruppe));
   const extra = (kurs.taskPool || []).filter((a) => schluessel.has(gruppe(a)));
-  return eineProGruppe(lektion.tasks.concat(extra)).sort((a, b) => a.difficulty - b.difficulty);
+  const aufgaben = eineProGruppe(lektion.tasks.concat(extra)).sort((a, b) => a.difficulty - b.difficulty);
+  // Bonus-Aufgaben hinter die letzte Aufgabe mit gleichem oder niedrigerem Niveau – wie in der Apple-App.
+  for (const bonus of bonusDerLektion(lektion.id)) {
+    let stelle = 0;
+    aufgaben.forEach((a, i) => { if (a.difficulty <= bonus.difficulty) stelle = i + 1; });
+    aufgaben.splice(stelle, 0, bonus);
+  }
+  return aufgaben;
 }
 
 /** Gewicht wie im Kern: Schwaches, Falsches und lange nicht Gesehenes kommt öfter. */
@@ -565,6 +576,18 @@ function zweiterTipp(aufgabe, gewaehlt) {
     });
     return teile.join(" · ");
   }
+  if (aufgabe.type === "ordering") {
+    // Den Anfang verraten – der Rest bleibt zu tun.
+    const erste = puzzleTeile(aufgabe)[0];
+    return erste ? `Das Programm beginnt mit „${erste}“. Überleg dann Zeile für Zeile, was davon abhängt.` : null;
+  }
+  if (aufgabe.type === "findBug") {
+    // Den Suchbereich auf drei Zeilen eingrenzen, ohne die Zeile selbst zu nennen.
+    const anzahl = (aufgabe.code && aufgabe.code.lines || []).length;
+    if (anzahl <= 3) return null;
+    const start = Math.min(Math.max(aufgabe.bugLine - 1, 1), anzahl - 2);
+    return `Der Fehler steckt irgendwo in den Zeilen ${start} bis ${start + 2}.`;
+  }
   if (aufgabe.type === "code") {
     const quelle = (aufgabe.sampleSolution && aufgabe.sampleSolution.lines)
       ? aufgabe.sampleSolution.lines.map((z) => z.code) : [];
@@ -574,8 +597,69 @@ function zweiterTipp(aufgabe, gewaehlt) {
   return null;
 }
 
+/** Die Zeilen eines Code-Puzzles in richtiger Reihenfolge, ohne Einrückung. */
+const puzzleTeile = (aufgabe) => ((aufgabe.puzzle && aufgabe.puzzle.lines) || []).map((z) => (z.code || "").trim());
+
+/** Gemischte Reihenfolge – je Aufgabe immer gleich und nie schon richtig (wie OrderingSpec.shuffledOrder). */
+function puzzleMischung(aufgabe) {
+  const teile = puzzleTeile(aufgabe);
+  const indizes = teile.map((_, i) => i);
+  if (indizes.length < 2) return indizes;
+  let zustand = 2166136261;
+  for (const c of aufgabe.id) zustand = Math.imul(zustand ^ c.charCodeAt(0), 16777619) >>> 0;
+  const zufall = () => { zustand = (Math.imul(zustand, 1664525) + 1013904223) >>> 0; return zustand / 4294967296; };
+  for (let versuch = 0; versuch < 20; versuch += 1) {
+    const kandidat = indizes.slice();
+    for (let i = kandidat.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(zufall() * (i + 1));
+      [kandidat[i], kandidat[j]] = [kandidat[j], kandidat[i]];
+    }
+    if (kandidat.some((x, i) => teile[x] !== teile[i])) return kandidat;
+  }
+  return indizes.reverse();
+}
+
+/** Setzt Zeilen in der gewählten Reihenfolge zusammen und rückt nach Klammertiefe ein. */
+function puzzleZusammensetzen(zeilen) {
+  let tiefe = 0;
+  return zeilen.map((zeile) => {
+    if (zeile.startsWith("}")) tiefe = Math.max(tiefe - 1, 0);
+    const eingerueckt = "    ".repeat(tiefe) + zeile;
+    const auf = (zeile.match(/\{/g) || []).length;
+    const zu = (zeile.match(/\}/g) || []).length - (zeile.startsWith("}") ? 1 : 0);
+    tiefe = Math.max(tiefe + auf - zu, 0);
+    return eingerueckt;
+  });
+}
+
 function auswerten(aufgabe, antwort) {
   const befunde = [];
+  if (aufgabe.type === "ordering") {
+    // Verglichen wird der Text: Gleiche Zeilen (z. B. zwei „}“) sind austauschbar.
+    const teile = puzzleTeile(aufgabe);
+    const gewaehlt = (antwort || []).filter((i) => i >= 0 && i < teile.length).map((i) => teile[i]);
+    if (!gewaehlt.length) return { richtig: false, wertung: 0, befunde: [{ art: "schlecht", text: "Lege die Zeilen in die richtige Reihenfolge." }] };
+    const stimmt = gewaehlt.filter((z, i) => z === teile[i]).length;
+    if (gewaehlt.length === teile.length && stimmt === teile.length) {
+      return { richtig: true, wertung: 1, befunde: [{ art: "gut", text: `Alle ${teile.length} Zeilen stehen an der richtigen Stelle.` }] };
+    }
+    if (stimmt) befunde.push({ art: "gut", text: `${stimmt} von ${teile.length} Zeilen stehen schon richtig.` });
+    if (gewaehlt.length < teile.length) {
+      const fehlt = teile.length - gewaehlt.length;
+      befunde.push({ art: "schlecht", text: fehlt === 1 ? "Eine Zeile fehlt noch." : `Es fehlen noch ${fehlt} Zeilen.` });
+    }
+    const erste = gewaehlt.findIndex((z, i) => z !== teile[i]);
+    if (erste >= 0) {
+      befunde.push({ art: "schlecht", text: erste === 0
+        ? "Schon die erste Zeile passt noch nicht – womit beginnt ein Programm?"
+        : `Bis Zeile ${erste} stimmt alles – ab Zeile ${erste + 1} passt die Reihenfolge noch nicht.` });
+    }
+    return { richtig: false, wertung: stimmt / teile.length, befunde };
+  }
+  if (aufgabe.type === "findBug") {
+    if (antwort === aufgabe.bugLine) return { richtig: true, wertung: 1, befunde: [{ art: "gut", text: `Erwischt! In Zeile ${antwort} steckt der Fehler.` }] };
+    return { richtig: false, wertung: 0, befunde: [{ art: "schlecht", text: `Zeile ${antwort} ist in Ordnung – der Fehler steckt woanders.` }] };
+  }
   if (aufgabe.type === "singleChoice") {
     const richtig = antwort === aufgabe.correctIndex;
     return { richtig, wertung: richtig ? 1 : 0,
@@ -650,6 +734,8 @@ function musterAntwort(aufgabe) {
     case "fillBlank": return aufgabe.blanks.map((l) => l.accepted[0]);
     case "predictOutput": return aufgabe.expectedOutput;
     case "code": return aufgabe.sampleSolution.lines.map((z) => z.code).join("\n");
+    case "ordering": return puzzleTeile(aufgabe).map((_, i) => i);
+    case "findBug": return aufgabe.bugLine;
   }
 }
 
@@ -1087,6 +1173,7 @@ function musterAntwortText(a) {
   if (a.type === "singleChoice") return a.choices[a.correctIndex];
   if (a.type === "predictOutput") return a.expectedOutput;
   if (a.type === "fillBlank") return a.blanks.map((l, i) => `Lücke ${i + 1}: ${l.accepted[0]}`).join(" · ");
+  if (a.type === "findBug") return `Zeile ${a.bugLine}: ${a.fix.code}`;
   return "siehe Musterlösung";
 }
 
@@ -1779,8 +1866,11 @@ function combo(ergebnisse, nurAktuell = true) {
 /** Ergebnis der Lektion festhalten – einmal, bevor die Mission oder die Auswertung kommt. */
 function lektionSpeichern() {
   if (sitzung.auswertung) return sitzung.auswertung;
-  const gesamt = sitzung.ergebnisse.reduce((s, r) => s + r.gewicht, 0);
-  const erreicht = sitzung.ergebnisse.reduce((s, r) => s + r.gewicht * r.wertung, 0);
+  // Bonus-Aufgaben (Code-Puzzle, Bug-Jagd) bringen XP, zählen aber nicht für die Trefferquote –
+  // sonst stünde derselbe Lernstand in der Web-App anders da als in Windows und Android.
+  const gezaehlt = sitzung.ergebnisse.filter((r) => !r.bonus);
+  const gesamt = gezaehlt.reduce((s, r) => s + r.gewicht, 0);
+  const erreicht = gezaehlt.reduce((s, r) => s + r.gewicht * r.wertung, 0);
   const quote = gesamt ? erreicht / gesamt : 0;
   const bestanden = quote >= BESTANDEN_AB;
   const vorher = score();
@@ -1844,6 +1934,10 @@ function aufgabenSeite() {
       <input type="text" data-luecke="${i}" value="${sicher((sitzung.entwurf || [])[i] || "")}" ${fertig ? "disabled" : ""}
         aria-label="Lücke ${i + 1} von ${a.blanks.length}" placeholder="Lücke ${i + 1}"
         autocapitalize="off" autocorrect="off" spellcheck="false"></div>`).join("");
+  } else if (a.type === "ordering") {
+    eingabe = puzzleEingabe(a, fertig);
+  } else if (a.type === "findBug") {
+    eingabe = bugEingabe(a, fertig);
   } else if (a.type === "predictOutput") {
     eingabe = `<textarea class="konsole" data-text="1" ${fertig ? "disabled" : ""}
       aria-label="Erwartete Ausgabe, Zeile für Zeile" placeholder="Ausgabe Zeile für Zeile eintippen …"
@@ -1890,6 +1984,8 @@ function aufgabenSeite() {
       ${erklaeren && vorlage ? exegese(vorlage, "Code Zeile für Zeile erklären", !fertig) : ""}
       ${erklaeren && a.type === "code" && !fertig ? exegese(a.starterCode, "Startcode Zeile für Zeile erklärt") : ""}
       ${fertig && a.type === "code" ? exegese(a.sampleSolution, "Musterlösung Zeile für Zeile") : ""}
+      ${fertig && a.type === "ordering" ? exegese(a.puzzle, "Das Programm Zeile für Zeile erklärt") : ""}
+      ${fertig && a.type === "findBug" ? `<div class="kasten richtig"><strong>So ist es richtig (Zeile ${a.bugLine}):</strong><pre class="code ausgabe">${sicher(a.fix.code)}</pre><p class="leise">${sicher(a.fix.explain || "")}</p></div>${exegese(a.code, "Der Code Zeile für Zeile erklärt")}` : ""}
     </div>
 
     ${rueckmeldung(a, fertig)}
@@ -1944,7 +2040,9 @@ function rueckmeldung(a, fertig) {
     if (a.type === "singleChoice") loesung = a.choices[a.correctIndex];
     else if (a.type === "predictOutput") loesung = "die Ausgabe\n" + a.expectedOutput;
     else if (a.type === "fillBlank") loesung = a.blanks.map((l, i) => `Lücke ${i + 1}: ${l.accepted[0]}`).join(" · ");
+    else if (a.type === "findBug") loesung = `Zeile ${a.bugLine}: ${a.fix.code}`;
     if (loesung) html += `<div class="kasten richtig"><strong>Richtig wäre: ${sicher(loesung)}</strong></div>`;
+    if (a.type === "ordering") html += `<div class="kasten richtig"><strong>Richtig wäre:</strong><pre class="code ausgabe">${sicher(puzzleZusammensetzen(puzzleTeile(a)).join("\n"))}</pre></div>`;
   }
 
   if (e && !sitzung.aufgedeckt) {
@@ -2006,8 +2104,41 @@ function auswertungSeite() {
 }
 
 // ---------------------------------------------------------------- Eingaben
+/** Code-Puzzle: Bausteine antippen hängt sie an, eine Zeile im Programm antippen legt sie zurück. */
+function puzzleEingabe(a, fertig) {
+  const teile = puzzleTeile(a);
+  const gewaehlt = Array.isArray(sitzung.entwurf) ? sitzung.entwurf : [];
+  const zeilen = puzzleZusammensetzen(gewaehlt.map((i) => teile[i]));
+  const bewertet = !!sitzung.ergebnis || sitzung.aufgedeckt;
+  const programm = gewaehlt.length
+    ? gewaehlt.map((i, pos) => {
+        const richtig = teile[i] === teile[pos];
+        return `<button class="puzzle-zeile ${bewertet ? (richtig ? "gut" : "schlecht") : ""}" data-puzzle-weg="${pos}" ${fertig ? "disabled" : ""}
+          aria-label="Zeile ${pos + 1}: ${sicher(teile[i])}${fertig ? "" : ". Antippen zum Zurücklegen"}">
+          <span class="nr">${pos + 1}</span><code>${sicher(zeilen[pos])}</code>${bewertet ? `<span aria-hidden="true">${richtig ? "✓" : "✗"}</span>` : ""}</button>`;
+      }).join("")
+    : `<p class="mini puzzle-leer">Tippe unten die Zeilen in der richtigen Reihenfolge an.</p>`;
+  const rest = puzzleMischung(a).filter((i) => !gewaehlt.includes(i));
+  return `<div class="puzzle-programm" role="list" aria-label="Dein Programm">${programm}</div>
+    ${!fertig && rest.length ? `<p class="beschriftung">Bausteine – antippen zum Einfügen</p>
+      <div class="puzzle-bausteine">${rest.map((i) => `<button class="puzzle-baustein" data-puzzle-teil="${i}"><code>${sicher(teile[i])}</code></button>`).join("")}</div>` : ""}
+    ${!fertig && gewaehlt.length ? `<button class="knopf still" data-puzzle-leeren="1">↩ Alle zurücklegen</button>` : ""}`;
+}
+
+/** Bug-Jagd: die fehlerhafte Zeile antippen. */
+function bugEingabe(a, fertig) {
+  const zeilen = (a.code && a.code.lines) || [];
+  return `<div class="bug-code" role="radiogroup" aria-label="Zeile mit dem Fehler wählen">${zeilen.map((z, i) => {
+    const nr = i + 1;
+    const gewaehlt = sitzung.entwurf === nr;
+    const zustand = fertig && nr === a.bugLine ? "richtig" : gewaehlt ? (sitzung.ergebnis && !sitzung.ergebnis.richtig ? "falsch" : "gewaehlt") : "";
+    return `<button class="bug-zeile ${zustand}" data-bugzeile="${nr}" role="radio" aria-checked="${gewaehlt}" ${fertig ? "disabled" : ""}
+      aria-label="Zeile ${nr}: ${sicher(z.code)}"><span class="nr">${nr}</span><code>${sicher(z.code) || " "}</code></button>`;
+  }).join("")}</div>`;
+}
+
 function entwurfLesen(a) {
-  if (a.type === "singleChoice") return sitzung.entwurf;
+  if (a.type === "singleChoice" || a.type === "ordering" || a.type === "findBug") return sitzung.entwurf;
   if (a.type === "fillBlank") return [...document.querySelectorAll("[data-luecke]")].map((i) => i.value);
   const feld = document.querySelector("[data-text]");
   return feld ? feld.value : "";
@@ -2016,7 +2147,8 @@ function entwurfLesen(a) {
 function pruefen() {
   const a = aktuelleAufgabe();
   const antwort = entwurfLesen(a);
-  if (a.type === "singleChoice" && antwort === null) return;
+  if ((a.type === "singleChoice" || a.type === "findBug") && (antwort === null || antwort === undefined)) return;
+  if (a.type === "ordering" && !(Array.isArray(antwort) && antwort.length)) return;
   if (a.type !== "singleChoice" && !String(Array.isArray(antwort) ? antwort.join("") : antwort).trim()) return;
   sitzung.entwurf = antwort;
   sitzung.versuche += 1;
@@ -2091,7 +2223,7 @@ function aufdecken() {
 
 function abschliessen(wertung) {
   const a = aktuelleAufgabe();
-  sitzung.ergebnisse.push({ id: a.id, gewicht: a.difficulty, wertung, versuche: sitzung.versuche });
+  sitzung.ergebnisse.push({ id: a.id, gewicht: a.difficulty, wertung, versuche: sitzung.versuche, bonus: istBonusAufgabe(a) });
   // Einstufungsfragen gehören nicht zum Übungsstoff – sie dürfen die Wiedervorlage nicht verfälschen.
   if (!sitzung.einstufung) {
     // Dieselben Namen wie in den Apps: lesson, practice (ein Thema), training (gemischt).
@@ -2116,6 +2248,12 @@ function bindeEreignisse() {
   klick("[data-start]", (e) => starteRunde(e.currentTarget.dataset.start, ansicht.gewaehlt));
   klick("[data-theorie]", () => { sitzung.seite += 1; zeichne(); });
   klick("[data-wahl]", (e) => { sitzung.entwurf = Number(e.currentTarget.dataset.wahl); zeichne(); });
+  // Puzzle und Bug-Jagd: viele kleine Schritte – dabei an derselben Stelle bleiben.
+  const amOrt = (tu) => () => { const y = window.scrollY; tu(); zeichne(); window.scrollTo(0, y); };
+  klick("[data-puzzle-teil]", (e) => { const i = Number(e.currentTarget.dataset.puzzleTeil); amOrt(() => { sitzung.entwurf = (Array.isArray(sitzung.entwurf) ? sitzung.entwurf : []).concat(i); })(); });
+  klick("[data-puzzle-weg]", (e) => { const pos = Number(e.currentTarget.dataset.puzzleWeg); amOrt(() => { sitzung.entwurf = sitzung.entwurf.filter((_, j) => j !== pos); })(); });
+  klick("[data-puzzle-leeren]", amOrt(() => { sitzung.entwurf = []; }));
+  klick("[data-bugzeile]", (e) => { const nr = Number(e.currentTarget.dataset.bugzeile); amOrt(() => { sitzung.entwurf = nr; })(); });
   klick("[data-pruefen]", pruefen);
   klick("[data-aufdecken]", aufdecken);
   klick("[data-weiter]", weiter);

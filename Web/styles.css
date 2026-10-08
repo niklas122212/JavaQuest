@@ -632,3 +632,19 @@ details.abschnitt[open] .zu { display: none; }
   .byte, .muenze-innen { transition: none !important; }
   .combo, .enthuellen i.an, .neues-abzeichen, .aufprall, .plus-eins { animation: none !important; }
 }
+
+/* ================================================================ Bonus-Aufgaben: Code-Puzzle und Bug-Jagd */
+.puzzle-programm, .bug-code { margin: 4px 0 10px; padding: 8px 0; border-radius: 14px; background: #16161C; color: #EDEDF2; font-family: var(--code); font-size: 14px; }
+.puzzle-leer { padding: 6px 14px; margin: 0; color: #8E8E99; }
+.puzzle-zeile, .bug-zeile { display: flex; align-items: center; gap: 10px; width: 100%; padding: 5px 14px; border: none; border-left: 3px solid transparent; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; white-space: pre; }
+.puzzle-zeile code, .bug-zeile code { flex: 1; font-family: var(--code); overflow-x: auto; }
+.puzzle-zeile .nr, .bug-zeile .nr { width: 20px; flex: none; text-align: right; color: #6B6B78; }
+.puzzle-zeile.gut > span:last-child { color: var(--gruen); }
+.puzzle-zeile.schlecht > span:last-child { color: #FF6B75; }
+.puzzle-zeile:disabled, .bug-zeile:disabled { cursor: default; }
+.puzzle-bausteine { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+.puzzle-baustein { padding: 8px 10px; border: 1px solid rgba(245, 115, 33, 0.5); border-radius: 9px; background: #232330; color: #EDEDF2; font: inherit; cursor: pointer; }
+.puzzle-baustein code { font-family: var(--code); font-size: 13px; white-space: pre; }
+.bug-zeile.gewaehlt { background: rgba(84, 79, 230, 0.28); border-left-color: var(--indigo); }
+.bug-zeile.falsch { background: rgba(232, 66, 77, 0.3); border-left-color: var(--ember); }
+.bug-zeile.richtig { background: rgba(46, 174, 97, 0.28); border-left-color: var(--gruen); }
