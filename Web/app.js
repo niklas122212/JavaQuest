@@ -212,6 +212,8 @@ function stufen(themaId) {
 
 // ---------------------------------------------------------------- Kurs
 const alleLektionen = () => kurs.modules.flatMap((m) => m.lessons);
+/** Arena-Missionen – nur wenn arena-seiten.js geladen ist und die Missionen da sind. */
+const arenaKatalog = () => (typeof katalog !== "undefined" ? katalog : null);
 const uebbareAufgaben = () => alleLektionen().flatMap((l) => l.tasks).concat(kurs.taskPool || []);
 const gruppe = (a) => a.variantGroup || a.id;
 const thema = (id) => kurs.topics.find((t) => t.id === id);
@@ -843,10 +845,11 @@ function zeichne() {
   const s = { start: startSeite, themen: themenSeite, schwaechen: schwaechenSeite,
               lektionen: lektionenSeite, sitzung: sitzungSeite, einstieg: einstiegSeite,
               einstufungErgebnis: einstufungErgebnisSeite, analyse: analyseSeite,
-              profil: profilSeite }[ansicht.name] || startSeite;
-  // Die Leiste gibt es überall außer im Einstieg und während einer laufenden Aufgabe –
-  // wie in der App, wo die Seitenleiste dort ebenfalls zurücktritt.
-  const mitLeiste = !["einstieg", "sitzung", "einstufungErgebnis"].includes(ansicht.name);
+              profil: profilSeite, arena: arenaSeite, mission: missionSeite,
+              abzeichen: abzeichenSeite }[ansicht.name] || startSeite;
+  // Die Leiste gibt es überall außer im Einstieg und während einer laufenden Aufgabe oder
+  // Mission – wie in der App, wo die Seitenleiste dort ebenfalls zurücktritt.
+  const mitLeiste = !["einstieg", "sitzung", "einstufungErgebnis", "mission"].includes(ansicht.name);
   const vorherigerFokus = document.activeElement;
   el().innerHTML = s() + (mitLeiste ? tableiste() : "");
   document.body.classList.toggle("mit-leiste", mitLeiste);
@@ -882,7 +885,7 @@ function fokusSetzen(vorher) {
 
 /** Der Knopf, den Strg/⌘ + Enter auslöst – die naheliegende nächste Handlung. */
 function hauptaktion() {
-  for (const wahl of ["[data-theorie]", "[data-weiter]", "[data-pruefen]"]) {
+  for (const wahl of ["[data-theorie]", "[data-weiter]", "[data-pruefen]", "[data-ausfuehren]", "[data-einsatz-weiter]"]) {
     const knopf = document.querySelector(wahl);
     if (knopf && !knopf.disabled) return knopf;
   }
@@ -900,7 +903,7 @@ function tastenkuerzel(e) {
     return;
   }
   if (e.key === "Escape") {
-    const abbrechen = document.querySelector("[data-abbruch]");
+    const abbrechen = document.querySelector("[data-abbruch], [data-einsatz-schliessen]");
     if (abbrechen) { e.preventDefault(); abbrechen.click(); }
     return;
   }
@@ -939,6 +942,8 @@ function startSeite() {
         ${aktuelleSerie() ? ` · 🔥 ${aktuelleSerie()} ${aktuelleSerie() === 1 ? "Tag" : "Tage"} in Folge` : ""}
       </div>
     </div>
+
+    ${arenaKatalog() ? (() => { const f = spielFakten(); return levelKarte(f) + tagesmissionKarte(f, true); })() : ""}
 
     ${naechste ? `
     <div class="karte">
@@ -1177,6 +1182,13 @@ function profilSeite() {
       ${zeile("Aktuelle Serie", aktuelleSerie() === 1 ? "1 Tag" : `${aktuelleSerie()} Tage`)}
       ${zeile("Längste Serie", serie.laengste === 1 ? "1 Tag" : `${serie.laengste} Tage`)}
       ${zeile("Lektionen", `${fertig} von ${alleLektionen().length}`)}
+      ${arenaKatalog() ? (() => {
+        const f = spielFakten();
+        return zeile("Level", `Level ${SpielKern.level(f.xp).level} · ${f.xp} XP`)
+          + zeile("Abzeichen", `${SpielKern.freigeschaltet(f).size} von ${SpielKern.ABZEICHEN.length}`)
+          + `<button class="knopf still" data-seite="abzeichen">🏅 Abzeichen ansehen</button>
+             <button class="knopf still" data-seite="arena">🎮 Zur Arena</button>`;
+      })() : ""}
     </div>
     <div class="karte"><h3>Bedienung ohne Maus</h3>
       <p class="leise">Mit der Tabulatortaste springst du von Element zu Element, der Fokus ist
@@ -1564,6 +1576,22 @@ function lektionenSeite() {
         ${st ? `<span class="sterne">${"★".repeat(st)}${"☆".repeat(3 - st)}</span>` : ""}
       </button>`;
     });
+    const arena = arenaKatalog();
+    if (arena) {
+      // Missionssterne wie im Lernpfad der App: je Lektionsmission und das Boss-Level am Modulende.
+      const f = spielFakten();
+      const missionen = m.lessons.map((l) => arena.lessonMission(l.id)).filter(Boolean);
+      const boss = arena.bossMission(m.id);
+      if (boss) missionen.push(boss);
+      if (missionen.length) {
+        html += `<div class="missionsreihe">${missionen.map((x) => {
+          const frei = missionFrei(x);
+          const sterneM = f.sterne[x.id] || 0;
+          return `<button class="chip missionschip ${x.kind === "boss" ? "boss" : ""}" data-mission="${x.id}" ${frei ? "" : "disabled"}
+            aria-label="${x.kind === "boss" ? "Boss" : "Mission"}: ${sicher(x.title)}, ${frei ? `${sterneM} von 3 Sternen` : "gesperrt"}">${x.kind === "boss" ? "🛡️" : "🎮"} ${sicher(x.title.replace(/^Boss: /, ""))} ${frei ? `<span class="sterne">${"★".repeat(sterneM)}${"☆".repeat(3 - sterneM)}</span>` : "🔒"}</button>`;
+        }).join("")}</div>`;
+      }
+    }
     html += `</div>`;
   });
   return html;
@@ -1640,7 +1668,8 @@ function starteLektion(id) {
   const lektion = alleLektionen().find((l) => l.id === id);
   sitzung = { titel: lektion.title, lektionId: id, theorie: lektion.theory || [], seite: 0,
               aufgaben: lektionsAufgaben(lektion), index: 0, versuche: 0, ergebnis: null,
-              aufgedeckt: false, entwurf: null, ergebnisse: [] };
+              aufgedeckt: false, entwurf: null, ergebnisse: [],
+              faktenVorher: arenaKatalog() ? spielFakten() : null };
   gehe("sitzung");
 }
 
@@ -1670,7 +1699,8 @@ function starteRunde(art, themen) {
   if (!topf.length) return;
   sitzung = { titel, lektionId: null, art, theorie: [], seite: 0,
               aufgaben: runde(topf, art === "themen" ? wunschAnzahl : RUNDE),
-              index: 0, versuche: 0, ergebnis: null, aufgedeckt: false, entwurf: null, ergebnisse: [] };
+              index: 0, versuche: 0, ergebnis: null, aufgedeckt: false, entwurf: null, ergebnisse: [],
+              faktenVorher: arenaKatalog() ? spielFakten() : null };
   gehe("sitzung");
 }
 
@@ -1678,8 +1708,46 @@ const aktuelleAufgabe = () => sitzung.aufgaben[sitzung.index];
 
 function sitzungSeite() {
   if (sitzung.seite < sitzung.theorie.length) return theorieSeite();
-  if (sitzung.index >= sitzung.aufgaben.length) return auswertungSeite();
+  if (sitzung.index >= sitzung.aufgaben.length) {
+    // Die Lektion zählt, sobald die letzte Aufgabe erledigt ist – auch wenn die Mission danach abgebrochen wird.
+    lektionSpeichern();
+    const mission = arenaKatalog() ? lektionsMission() : null;
+    if (mission && !sitzung.missionFertig) {
+      if (!einsatz || einsatz.kontext !== "lektion" || einsatz.mission.id !== mission.id) einsatz = neuerEinsatz(mission, "lektion");
+      return missionSeite();
+    }
+    return auswertungSeite();
+  }
   return aufgabenSeite();
+}
+
+/** Combo: so viele Aufgaben in Folge saßen zuletzt beim ersten Versuch. */
+function combo(ergebnisse, nurAktuell = true) {
+  let laufend = 0, beste = 0;
+  for (const r of ergebnisse) {
+    laufend = r.wertung >= 1 && r.versuche === 1 ? laufend + 1 : 0;
+    beste = Math.max(beste, laufend);
+  }
+  return nurAktuell ? laufend : beste;
+}
+
+/** Ergebnis der Lektion festhalten – einmal, bevor die Mission oder die Auswertung kommt. */
+function lektionSpeichern() {
+  if (sitzung.auswertung) return sitzung.auswertung;
+  const gesamt = sitzung.ergebnisse.reduce((s, r) => s + r.gewicht, 0);
+  const erreicht = sitzung.ergebnisse.reduce((s, r) => s + r.gewicht * r.wertung, 0);
+  const quote = gesamt ? erreicht / gesamt : 0;
+  const bestanden = quote >= BESTANDEN_AB;
+  const vorher = score();
+  if (sitzung.lektionId) {
+    const alt = lektionErgebnis(sitzung.lektionId);
+    if (!alt || quote > alt.quote) {
+      stand.lektionen[sitzung.lektionId] = { quote, bestanden: bestanden || (alt && alt.bestanden) || false };
+      sichern();
+    }
+  }
+  sitzung.auswertung = { quote, bestanden, zuwachs: score() - vorher };
+  return sitzung.auswertung;
 }
 
 function theorieSeite() {
@@ -1750,6 +1818,7 @@ function aufgabenSeite() {
   return h(`
     <div class="kopf"><button class="zurueck" data-abbruch="1" aria-label="Runde abbrechen, Taste Escape">✕</button>
       <span class="titel">${sicher(sitzung.titel)}</span>
+      ${!sitzung.einstufung && combo(sitzung.ergebnisse) >= 2 ? `<span class="combo" aria-label="Combo: ${combo(sitzung.ergebnisse)} Aufgaben in Folge beim ersten Versuch">🔥 Combo ×${combo(sitzung.ergebnisse)}</span>` : ""}
       <span class="mini">${sitzung.einstufung
         ? `Frage ${sitzung.einstufung.antworten.length + 1} von ${sitzung.einstufung.anzahl}`
         : `${sitzung.index + 1}/${sitzung.aufgaben.length}`}</span></div>
@@ -1853,22 +1922,18 @@ function rueckmeldung(a, fertig) {
 }
 
 function auswertungSeite() {
-  const gesamt = sitzung.ergebnisse.reduce((s, r) => s + r.gewicht, 0);
-  const erreicht = sitzung.ergebnisse.reduce((s, r) => s + r.gewicht * r.wertung, 0);
-  const quote = gesamt ? erreicht / gesamt : 0;
-  const bestanden = quote >= BESTANDEN_AB;
+  const { quote, bestanden, zuwachs } = lektionSpeichern();
   const ersterVersuch = sitzung.ergebnisse.filter((r) => r.wertung >= 1 && r.versuche === 1).length;
-
-  const vorher = score();
-  if (sitzung.lektionId) {
-    const alt = lektionErgebnis(sitzung.lektionId);
-    if (!alt || quote > alt.quote) {
-      stand.lektionen[sitzung.lektionId] = { quote, bestanden: bestanden || (alt && alt.bestanden) || false };
-      sichern();
-    }
-  }
-  const zuwachs = score() - vorher;
   const st = sitzung.lektionId && bestanden ? sterne(quote) : 0;
+  const besteCombo = combo(sitzung.ergebnisse, false);
+  // XP, Level und neue Abzeichen dieser Runde – samt Mission.
+  const gewinnHtml = arenaKatalog() && sitzung.faktenVorher ? (() => {
+    const nachher = spielFakten();
+    const l = SpielKern.level(nachher.xp);
+    return belohnungHtml(SpielKern.gewinn(sitzung.faktenVorher, nachher))
+      + `<p class="mini">Level ${l.level} · noch ${l.rest} XP bis Level ${l.level + 1}</p>`;
+  })() : "";
+  const mission = sitzung.missionErgebnis;
 
   return h(`
     <div class="kopf"><span class="titel">${sicher(sitzung.titel)}</span></div>
@@ -1882,8 +1947,11 @@ function auswertungSeite() {
       <div class="gitter" style="margin-top:14px">
         <div class="kachel"><strong>${Math.round(quote * 100)} %</strong><span class="mini">Trefferquote</span></div>
         <div class="kachel"><strong>${ersterVersuch}/${sitzung.ergebnisse.length}</strong><span class="mini">beim ersten Versuch</span></div>
+        ${besteCombo >= 2 ? `<div class="kachel"><strong>🔥 ×${besteCombo}</strong><span class="mini">Beste Combo</span></div>` : ""}
         ${zuwachs > 0 ? `<div class="kachel"><strong>+${zuwachs}</strong><span class="mini">Score</span></div>` : ""}
+        ${mission ? `<div class="kachel"><strong>🎮 ${"★".repeat(mission.stars)}${"☆".repeat(3 - mission.stars)}</strong><span class="mini">Mission</span></div>` : ""}
       </div>
+      ${gewinnHtml}
     </div>
     <div class="knopf-reihe">
       ${sitzung.lektionId ? "" : `<button class="knopf zweit" data-nochmal="1">Noch eine Runde</button>`}
@@ -2051,13 +2119,24 @@ function bindeEreignisse() {
     fortschrittZuruecksetzen();
     gehe("start");
   });
+  if (typeof bindeArenaEreignisse === "function") bindeArenaEreignisse();
 }
 
 // ---------------------------------------------------------------- Start
 async function los() {
+  // Missionen und Bonus-Aufgaben parallel zum Kurs. Fehlen sie, läuft alles andere trotzdem.
+  const zusatz = Promise.all([
+    fetch("arena_missions.json").then((a) => a.json()),
+    fetch("bonus_aufgaben.json").then((a) => a.json()).catch(() => ({ lessons: {} })),
+  ]).catch(() => null);
   try {
     const antwort = await fetch("java_course.json");
     kurs = await antwort.json();
+    const geladen = await zusatz;
+    if (geladen && typeof ArenaKern !== "undefined" && typeof katalog !== "undefined") {
+      katalog = ArenaKern.catalog(geladen[0]);
+      bonusAufgaben = geladen[1].lessons || {};
+    }
   } catch (e) {
     el().innerHTML = `<div class="karte" role="alert"><h2>Kurs konnte nicht geladen werden</h2><p class="leise">Bitte die Seite neu laden.</p></div>`;
     return;
