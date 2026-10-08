@@ -206,6 +206,8 @@ public struct ArenaMission: Decodable, Sendable, Hashable, Identifiable {
     public let steps: [String]
     /// Java-Bausteine, die die Mission braucht (IDs aus `ArenaCatalog.concepts`).
     public let conceptIds: [String]
+    /// Name der Klasse im Programm (`public class ErsteSchritte`) – und damit der Datei `ErsteSchritte.java`.
+    public let className: String
     /// Roboter-Befehle, die Byte hier kann: alle, die bis zu dieser Mission eingeführt wurden.
     /// Der Katalog setzt sie beim Laden (die Missionen stehen in Kursreihenfolge).
     public internal(set) var commandNames: [String]
@@ -213,7 +215,7 @@ public struct ArenaMission: Decodable, Sendable, Hashable, Identifiable {
     enum CodingKeys: String, CodingKey {
         case id, kind, title, story, lessonId, moduleId, topicId, difficulty, worlds
         case starterCode, solution, hint, reachGoal, collectAllCoins, requirements, bonus, newCommands
-        case steps, concepts
+        case steps, concepts, className
     }
 
     public init(from decoder: any Decoder) throws {
@@ -235,6 +237,7 @@ public struct ArenaMission: Decodable, Sendable, Hashable, Identifiable {
         requirements = try container.decodeIfPresent([CodeRule].self, forKey: .requirements) ?? []
         bonus = try container.decode([StarCriterion].self, forKey: .bonus)
         newCommands = try container.decodeIfPresent([String].self, forKey: .newCommands) ?? []
+        className = try container.decodeIfPresent(String.self, forKey: .className) ?? "Mission"
         steps = try container.decodeIfPresent([String].self, forKey: .steps) ?? []
         conceptIds = try container.decodeIfPresent([String].self, forKey: .concepts) ?? []
         commandNames = RobotCommand.all.map(\.name)
@@ -270,7 +273,8 @@ public struct ArenaMission: Decodable, Sendable, Hashable, Identifiable {
         id: String, kind: Kind, title: String, story: String, lessonId: String, moduleId: String? = nil,
         topicId: String, difficulty: Difficulty, worlds: [ArenaWorldSpec], starter: CodeSnippet, solution: CodeSnippet,
         hint: String, reachGoal: Bool = true, collectAllCoins: Bool = false, requirements: [CodeRule] = [],
-        bonus: [StarCriterion] = [], newCommands: [String] = [], steps: [String] = [], conceptIds: [String] = []
+        bonus: [StarCriterion] = [], newCommands: [String] = [], steps: [String] = [], conceptIds: [String] = [],
+        className: String = "Mission"
     ) {
         self.id = id
         self.kind = kind
@@ -291,6 +295,7 @@ public struct ArenaMission: Decodable, Sendable, Hashable, Identifiable {
         self.newCommands = newCommands
         self.steps = steps
         self.conceptIds = conceptIds
+        self.className = className
         commandNames = RobotCommand.all.map(\.name)
     }
 
@@ -300,8 +305,17 @@ public struct ArenaMission: Decodable, Sendable, Hashable, Identifiable {
             id: "playground", kind: .training, title: "Spielplatz",
             story: "Hier gibt es kein Ziel und keine Bewertung – probier einfach aus, was Byte alles kann.",
             lessonId: "", topicId: "syntax", difficulty: .veryEasy, worlds: [world],
-            starter: CodeSnippet(source: "// Probier dich aus!\nrobot.move();\nrobot.turnLeft();"),
-            solution: CodeSnippet(source: ""), hint: "Tippe unten auf einen Befehl, um ihn einzufügen.", reachGoal: false
+            starter: CodeSnippet(source: """
+            public class Spielplatz {
+                public static void main(String[] args) {
+                    // Probier dich aus!
+                    robot.move();
+                    robot.turnLeft();
+                }
+            }
+            """),
+            solution: CodeSnippet(source: ""), hint: "Tippe unten auf einen Befehl, um ihn einzufügen.", reachGoal: false,
+            className: "Spielplatz"
         )
     }
 }

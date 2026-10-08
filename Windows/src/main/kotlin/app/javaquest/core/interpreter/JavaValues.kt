@@ -190,6 +190,8 @@ sealed interface Num {
 }
 
 object JavaFormat {
+    private val LINE_SEPARATOR: String = System.lineSeparator()
+
     /** String.format/printf – mit Punkt als Dezimaltrenner (wie in den Kursbeispielen). */
     fun format(pattern: String, args: List<JValue>, line: Int): String {
         val javaArgs = args.map<JValue, Any?> { arg ->
@@ -206,7 +208,9 @@ object JavaFormat {
             }
         }.toTypedArray()
         return try {
-            String.format(Locale.US, pattern, *javaArgs)
+            // %n ist unter Windows „\r\n“ – Ausgaben sollen aber auf allen Geräten gleich sein (wie im Kurs: „\n“).
+            val text = String.format(Locale.US, pattern, *javaArgs)
+            if (LINE_SEPARATOR == "\n") text else text.replace(LINE_SEPARATOR, "\n")
         } catch (e: java.util.IllegalFormatException) {
             throw JavaProblem.runtime("${e.javaClass.simpleName}: Das Format „$pattern“ passt nicht zu den Werten.", line)
         }

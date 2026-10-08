@@ -19,12 +19,28 @@ public enum CodeInsertion {
             return (snippet, snippet.utf16.count)
         }
 
+        // Ein echtes Programm (Klasse + main): Methoden gehören in die Klasse über main,
+        // alle anderen Befehle in eine Methode – nie neben den Rahmen.
+        let frame = ProgramFrame(lines)
+        if let frame, snippet.trimmingCharacters(in: .whitespaces).hasPrefix("static ") {
+            let indent = String(lines[frame.mainLine].prefix { $0 == " " || $0 == "\t" })
+            let block = snippet.components(separatedBy: "\n").map { $0.isEmpty ? $0 : indent + $0 }
+            lines.insert(contentsOf: block + [""], at: frame.mainLine)
+            let lastInserted = frame.mainLine + block.count - 1
+            let newCursor = lines[...lastInserted].map { $0.utf16.count }.reduce(0, +) + lastInserted
+            return (lines.joined(separator: "\n"), newCursor)
+        }
+
         var index: Int
         var before = false
         if let cursor {
             (index, before) = position(of: cursor, in: lines)
         } else {
-            index = placeholderLine(in: lines) ?? lastCodeLine(in: lines)
+            index = placeholderLine(in: lines) ?? frame?.lastBodyLine ?? lastCodeLine(in: lines)
+        }
+        if let frame, !frame.isInsideMethod(line: index, before: before, lines: lines) {
+            index = frame.lastBodyLine
+            before = false
         }
 
         let line = lines[index]
@@ -74,6 +90,60 @@ public enum CodeInsertion {
     /// Die letzte Zeile mit Inhalt – Leerzeilen am Ende bleiben dahinter.
     private static func lastCodeLine(in lines: [String]) -> Int {
         lines.lastIndex { !$0.trimmingCharacters(in: .whitespaces).isEmpty } ?? lines.count - 1
+    }
+
+    /// Klasse und main eines echten Programms – wo main steht und wo ihr Rumpf endet.
+    struct ProgramFrame {
+        /// Zeile mit `public static void main(…)`.
+        let mainLine: Int
+        /// Letzte Zeile mit Inhalt im Rumpf von main – oder main selbst, wenn der Rumpf leer ist.
+        let lastBodyLine: Int
+
+        init?(_ lines: [String]) {
+            guard lines.contains(where: { $0.range(of: #"^\s*(public\s+)?(final\s+)?class\s+\w+"#, options: .regularExpression) != nil }),
+                  let main = lines.firstIndex(where: { $0.range(of: #"\bstatic\s+void\s+main\s*\("#, options: .regularExpression) != nil })
+            else { return nil }
+            var depth = 0
+            var opened = false
+            var end: Int?
+            for index in main..<lines.count {
+                depth += CodeInsertion.braceDelta(lines[index])
+                if depth > 0 { opened = true }
+                if opened, depth <= 0 { end = index; break }
+            }
+            guard let end else { return nil }
+            mainLine = main
+            lastBodyLine = (main + 1..<end).last { !lines[$0].trimmingCharacters(in: .whitespaces).isEmpty } ?? main
+        }
+
+        /// Landet ein Befehl an dieser Stelle in einer Methode (Tiefe ≥ 2: Klasse + Methode)?
+        func isInsideMethod(line index: Int, before: Bool, lines: [String]) -> Bool {
+            let isBlank = lines[index].trimmingCharacters(in: .whitespaces).isEmpty
+            let upTo = before || isBlank ? index : index + 1
+            return lines[..<upTo].reduce(0) { $0 + CodeInsertion.braceDelta($1) } >= 2
+        }
+    }
+
+    /// Geschweifte Klammern einer Zeile ({ +1, } −1) – ohne Text in Anführungszeichen und Kommentare.
+    static func braceDelta(_ line: String) -> Int {
+        var delta = 0
+        var quote: Character?
+        var previous: Character = " "
+        for character in line {
+            if let open = quote {
+                if character == open, previous != "\\" { quote = nil }
+            } else if character == "\"" || character == "'" {
+                quote = character
+            } else if character == "/", previous == "/" {
+                break
+            } else if character == "{" {
+                delta += 1
+            } else if character == "}" {
+                delta -= 1
+            }
+            previous = character
+        }
+        return delta
     }
 
     private static func opensBlock(_ line: String) -> Bool {

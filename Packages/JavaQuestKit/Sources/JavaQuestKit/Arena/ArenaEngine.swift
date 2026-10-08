@@ -298,12 +298,20 @@ public enum ArenaEngine {
         )
     }
 
-    /// Zählt „echte“ Codezeilen: ohne Leerzeilen, Kommentare und Zeilen, die nur Klammern enthalten.
+    /// Zählt „echte“ Codezeilen: ohne Leerzeilen, Kommentare, Zeilen, die nur Klammern enthalten,
+    /// und ohne den Programmrahmen (`public class …` und `public static void main(…)`) –
+    /// der gehört zu jedem Programm und soll bei „Höchstens N Zeilen“ nicht zählen.
     public static func codeLineCount(_ code: String) -> Int {
         JavaSource.strippingComments(code)
             .components(separatedBy: "\n")
             .map { $0.trimmingCharacters(in: .whitespaces) }
-            .filter { line in !line.isEmpty && !line.allSatisfy { "{}();".contains($0) } }
+            .filter { line in !line.isEmpty && !line.allSatisfy { "{}();".contains($0) } && !isFrameLine(line) }
             .count
+    }
+
+    /// Kopf der Klasse oder der main-Methode.
+    static func isFrameLine(_ line: String) -> Bool {
+        line.range(of: #"^(public\s+)?(final\s+)?class\s+\w+\s*\{?$"#, options: .regularExpression) != nil
+            || line.range(of: #"^public\s+static\s+void\s+main\s*\(\s*String\s*(\[\]\s*\w+|\.\.\.\s*\w+|\w+\s*\[\])\s*\)\s*\{?$"#, options: .regularExpression) != nil
     }
 }

@@ -198,6 +198,57 @@ struct ArenaTests {
     @Test("Codezeilen zählen nur echte Anweisungen")
     func lineCount() {
         #expect(ArenaEngine.codeLineCount("// Kommentar\nrobot.move();\n\n}\n  }\nrobot.move(); // weiter") == 2)
+        // Der Programmrahmen zählt nicht – mit und ohne Rahmen gleich viele Zeilen.
+        let framed = "public class Test {\n    public static void main(String[] args) {\n        robot.move();\n    }\n}"
+        #expect(ArenaEngine.codeLineCount(framed) == 1)
+    }
+
+    static let frame = """
+    public class Test {
+        static void schritt() {
+            robot.move();
+        }
+
+        public static void main(String[] args) {
+            robot.move();
+        }
+    }
+    """
+
+    @Test("Im echten Programm landen Befehle in main und Methoden in der Klasse")
+    func insertionRespectsTheProgramFrame() {
+        // Ohne Cursor: ans Ende von main, nicht hinter die letzte }
+        let appended = CodeInsertion.insert("robot.turnLeft();", into: Self.frame, cursor: nil)
+        #expect(appended.code.contains("        robot.move();\n        robot.turnLeft();\n    }\n}"))
+        // Cursor auf der Klassenzeile oder hinter der letzten }: trotzdem in main
+        let onClassLine = CodeInsertion.insert("robot.turnLeft();", into: Self.frame, cursor: 5)
+        #expect(onClassLine.code == appended.code)
+        let atEnd = CodeInsertion.insert("robot.turnLeft();", into: Self.frame, cursor: Self.frame.utf16.count)
+        #expect(atEnd.code == appended.code)
+        // Cursor in einer Methode: dort
+        let inMethod = CodeInsertion.insert("robot.pickCoin();", into: Self.frame, cursor: "public class Test {\n    static void schritt() {\n        robot.move();".utf16.count)
+        #expect(inMethod.code.contains("        robot.move();\n        robot.pickCoin();\n    }\n\n    public static void main"))
+        // Eine Methode kommt in die Klasse über main – egal, wo man schreibt
+        let method = CodeInsertion.insert("static void drehen() {\n    robot.turnLeft();\n}", into: Self.frame, cursor: nil)
+        #expect(method.code.contains("    static void drehen() {\n        robot.turnLeft();\n    }\n\n    public static void main"))
+        // Leeres main: eine Stufe tiefer als main
+        let empty = CodeInsertion.insert("robot.move();", into: "public class A {\n    public static void main(String[] args) {\n    }\n}", cursor: nil)
+        #expect(empty.code == "public class A {\n    public static void main(String[] args) {\n        robot.move();\n    }\n}")
+    }
+
+    @Test("Jede Mission ist ein echtes Java-Programm: Klasse mit main, Datei passt zum Namen")
+    func missionsAreRealPrograms() {
+        for mission in catalog.missions {
+            #expect(mission.className.range(of: #"^[A-Z][A-Za-z0-9]*$"#, options: .regularExpression) != nil, "\(mission.id): \(mission.className)")
+            for snippet in [mission.starterCode, mission.solution.source] {
+                #expect(snippet.hasPrefix("public class \(mission.className) {"), "\(mission.id)")
+                #expect(snippet.contains("    public static void main(String[] args) {"), "\(mission.id)")
+            }
+        }
+        #expect(Set(catalog.missions.map(\.className)).count == catalog.missions.count, "Klassennamen doppelt")
+        let playground = ArenaMission.playground(catalog.playground)
+        #expect(playground.starterCode.hasPrefix("public class Spielplatz {"))
+        #expect(ArenaEngine.run(playground.starterCode, mission: playground).runs[0].problem == nil)
     }
 
     // MARK: Nur Bekanntes – und ein klarer Auftrag

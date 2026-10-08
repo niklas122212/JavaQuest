@@ -23,6 +23,9 @@ die Web-App kennt sie noch nicht:**
   3 Boss-Level, 3 Trainingsmissionen, eine tägliche Mission und ein freier Spielplatz. Der Code läuft
   animiert Zeile für Zeile, mit Variablen- und Konsolenanzeige und bis zu 3 Sternen je Mission
   (`Packages/JavaQuestKit/Sources/JavaQuestKit/Arena`, Missionen in `arena_missions.json`).
+  Jede Mission ist ein echtes Java-Programm: `public class ErsteSchritte` mit `main`, eigene Methoden stehen in
+  der Klasse, über dem Editor steht die Datei (`ErsteSchritte.java`), die Konsole beginnt mit `> java ErsteSchritte`.
+  Der Rahmen zählt nicht bei „Höchstens N Zeilen“, die Befehlsleiste setzt Befehle in `main` und Methoden in die Klasse.
   Jede Mission sagt genau, was zu tun ist: **Auftrag** (Ziel, Münzen, die exakte Ausgabe, Pflicht-Bausteine,
   alle Welten), **So gehst du vor** in Schritten und ein **Werkzeugkasten** mit den Java-Bausteinen und
   Roboter-Befehlen, die sie braucht. Gebraucht wird nur, was der Kurs bis zu dieser Lektion erklärt hat

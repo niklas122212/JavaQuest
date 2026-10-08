@@ -129,8 +129,13 @@ struct ArenaMissionView: View {
     private var codeCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Label("Dein Java-Code", systemImage: "chevron.left.forwardslash.chevron.right")
-                    .font(.headline)
+                // Wie im echten Projekt: Die Datei heißt wie ihre Klasse.
+                Label {
+                    Text("\(model.mission.className).java").font(.system(.headline, design: .monospaced))
+                } icon: {
+                    Image(systemName: "doc.text.fill").foregroundStyle(Theme.orange)
+                }
+                .accessibilityLabel(Text("Datei \(model.mission.className).java"))
                 Spacer()
                 Text(model.lineCountLabel)
                     .font(.caption.monospacedDigit())
@@ -152,8 +157,8 @@ struct ArenaMissionView: View {
             }
             if model.knowsMethods {
                 Text(model.isPlayground
-                     ? "Eigene Methoden (static void …) darfst du über oder unter deine Befehle schreiben."
-                     : "Tipp: Eigene Methoden (static void …) darfst du über oder unter deine Befehle schreiben.")
+                     ? "Eigene Methoden (static void …) gehören in die Klasse – über oder unter main, nicht hinein."
+                     : "Tipp: Eigene Methoden (static void …) gehören in die Klasse – über oder unter main, nicht hinein.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -830,12 +835,17 @@ private struct ConsolePanel: View {
                 HStack(alignment: .top, spacing: 12) {
                     VStack(alignment: .leading, spacing: 6) {
                         Label("Konsole", systemImage: "terminal.fill").font(.caption.weight(.bold)).foregroundStyle(.secondary)
-                        Text(model.displayedOutput.isEmpty ? "(noch keine Ausgabe)" : model.displayedOutput)
-                            .font(.system(.footnote, design: .monospaced))
-                            .foregroundStyle(model.displayedOutput.isEmpty ? CodeTheme.plain.opacity(0.4) : CodeTheme.plain)
-                            .frame(maxWidth: .infinity, minHeight: 44, alignment: .topLeading)
-                            .padding(10)
-                            .background(CodeTheme.background, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        VStack(alignment: .leading, spacing: 4) {
+                            // Der Befehl, mit dem man das Programm im Terminal starten würde.
+                            Text("> java \(model.mission.className)")
+                                .foregroundStyle(CodeTheme.plain.opacity(0.45))
+                            Text(model.displayedOutput.isEmpty ? "(noch keine Ausgabe)" : model.displayedOutput)
+                                .foregroundStyle(model.displayedOutput.isEmpty ? CodeTheme.plain.opacity(0.4) : CodeTheme.plain)
+                        }
+                        .font(.system(.footnote, design: .monospaced))
+                        .frame(maxWidth: .infinity, minHeight: 44, alignment: .topLeading)
+                        .padding(10)
+                        .background(CodeTheme.background, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                     }
                     if !model.variables.isEmpty {
                         VStack(alignment: .leading, spacing: 6) {

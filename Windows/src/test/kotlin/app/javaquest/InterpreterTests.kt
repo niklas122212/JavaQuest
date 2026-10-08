@@ -31,6 +31,12 @@ class InterpreterTest {
         }
     }
 
+    @Test fun `printf mit Zeilenumbruch gibt auf jedem System dasselbe aus`() {
+        // %n wäre unter Windows „\r\n“ – die App vergleicht aber mit „\n“ wie auf Mac und iPhone.
+        assertEquals("a\nb\n", JavaRunner.run("System.out.printf(\"a%nb%n\");").output)
+        assertEquals("1.50\n", JavaRunner.run("System.out.print(String.format(\"%.2f%n\", 1.5));").output)
+    }
+
     @Test fun `Fehler mit Zeile und verstaendlicher Meldung`() {
         val semicolon = assertNotNull(problem("int x = 5\nSystem.out.println(x);"))
         assertEquals(JavaProblem.Kind.SYNTAX, semicolon.kind)

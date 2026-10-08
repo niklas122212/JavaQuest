@@ -43,6 +43,7 @@ import androidx.compose.material.icons.rounded.ChatBubble
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Code
+import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.EmojiEvents
 import androidx.compose.material.icons.rounded.ExpandLess
@@ -609,9 +610,11 @@ private fun ControlButton(icon: ImageVector, label: String, enabled: Boolean, pr
 private fun CodeCard(model: ArenaMissionModel) {
     Column(Modifier.fillMaxWidth().card(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Rounded.Code, null, modifier = Modifier.size(20.dp))
+            // Wie im echten Projekt: Die Datei heißt wie ihre Klasse.
+            Icon(Icons.Rounded.Description, null, tint = Palette.orange, modifier = Modifier.size(20.dp))
             Spacer(Modifier.width(8.dp))
-            Text("Dein Java-Code", fontWeight = FontWeight.Bold, fontSize = 17.sp, modifier = Modifier.weight(1f))
+            Text("${model.mission.className}.java", fontFamily = CodeFont, fontWeight = FontWeight.Bold, fontSize = 17.sp,
+                modifier = Modifier.weight(1f).testTag("arena-file"), maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(if (model.lineCount == 1) "1 Zeile" else "${model.lineCount} Zeilen", color = secondaryText, fontSize = 13.sp)
             if (!model.isEditing) {
                 Spacer(Modifier.width(12.dp))
@@ -651,7 +654,7 @@ private fun CodeCard(model: ArenaMissionModel) {
         }
         if (model.knowsMethods) {
             Text(
-                (if (model.isPlayground) "" else "Tipp: ") + "Eigene Methoden (static void …) darfst du über oder unter deine Befehle schreiben.",
+                (if (model.isPlayground) "" else "Tipp: ") + "Eigene Methoden (static void …) gehören in die Klasse – über oder unter main, nicht hinein.",
                 color = secondaryText, fontSize = 12.sp,
             )
         }
@@ -693,11 +696,17 @@ private fun ConsoleCard(model: ArenaMissionModel) {
                     Text("Konsole", color = secondaryText, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                 }
                 val output = model.displayedOutput
-                Text(
-                    output.ifEmpty { "(noch keine Ausgabe)" }, fontFamily = CodeFont, fontSize = 13.sp,
-                    color = if (output.isEmpty()) CodeColors.plain.copy(alpha = 0.4f) else CodeColors.plain,
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp).clip(RoundedCornerShape(10.dp)).background(CodeColors.background).padding(10.dp).testTag("arena-console"),
-                )
+                Column(
+                    Modifier.fillMaxWidth().heightIn(min = 44.dp).clip(RoundedCornerShape(10.dp)).background(CodeColors.background).padding(10.dp).testTag("arena-console"),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    // Der Befehl, mit dem man das Programm im Terminal starten würde.
+                    Text("> java ${model.mission.className}", fontFamily = CodeFont, fontSize = 13.sp, color = CodeColors.plain.copy(alpha = 0.45f))
+                    Text(
+                        output.ifEmpty { "(noch keine Ausgabe)" }, fontFamily = CodeFont, fontSize = 13.sp,
+                        color = if (output.isEmpty()) CodeColors.plain.copy(alpha = 0.4f) else CodeColors.plain,
+                    )
+                }
             }
         }
         val variables: @Composable (Modifier) -> Unit = { modifier ->

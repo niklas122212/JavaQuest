@@ -87,6 +87,8 @@ data class ArenaMission(
     val steps: List<String> = emptyList(),
     /** Java-Bausteine, die die Mission braucht (IDs aus `ArenaCatalog.concepts`). */
     val conceptIds: List<String> = emptyList(),
+    /** Name der Klasse im Programm (`public class ErsteSchritte`) – und damit der Datei `ErsteSchritte.java`. */
+    val className: String = "Mission",
     /**
      * Roboter-Befehle, die Byte hier kann: alle, die bis zu dieser Mission eingeführt wurden.
      * Der Katalog setzt sie beim Laden (die Missionen stehen in Kursreihenfolge).
@@ -124,8 +126,12 @@ data class ArenaMission(
             id = "playground", kind = MissionKind.TRAINING, title = "Spielplatz",
             story = "Hier gibt es kein Ziel und keine Bewertung – probier einfach aus, was Byte alles kann.",
             lessonId = "", moduleId = null, topicId = "syntax", difficulty = Difficulty.clamped(1), worlds = listOf(world),
-            starter = CodeSnippet.of("// Probier dich aus!\nrobot.move();\nrobot.turnLeft();"), solution = CodeSnippet.of(""),
-            hint = "Klicke unten auf einen Befehl, um ihn einzufügen.", reachGoal = false,
+            starter = CodeSnippet.of(
+                "public class Spielplatz {\n    public static void main(String[] args) {\n        // Probier dich aus!\n" +
+                    "        robot.move();\n        robot.turnLeft();\n    }\n}",
+            ),
+            solution = CodeSnippet.of(""),
+            hint = "Klicke unten auf einen Befehl, um ihn einzufügen.", reachGoal = false, className = "Spielplatz",
         )
     }
 }
@@ -287,6 +293,7 @@ class ArenaCatalog(missions: List<ArenaMission>, val playground: ArenaWorld, val
             newCommands = m.strings("newCommands"),
             steps = m.strings("steps"),
             conceptIds = m.strings("concepts"),
+            className = m.optStr("className") ?: "Mission",
         )
 
         private fun JsonObject.strings(key: String) = (this[key] as? JsonArray)?.map { it.jsonPrimitive.content } ?: emptyList()
@@ -560,6 +567,16 @@ object ArenaEngine {
     }
 
     /** Zählt „echte“ Codezeilen: ohne Leerzeilen, Kommentare und Zeilen, die nur Klammern enthalten. */
+    /**
+     * Zählt „echte“ Codezeilen: ohne Leerzeilen, Kommentare, Zeilen, die nur Klammern enthalten, und ohne den
+     * Programmrahmen (`public class …`, `public static void main(…)`) – der gehört zu jedem Programm.
+     */
     fun codeLineCount(code: String): Int = JavaSource.strippingComments(code).split("\n").map { it.trim() }
-        .count { line -> line.isNotEmpty() && !line.all { it in "{}();" } }
+        .count { line -> line.isNotEmpty() && !line.all { it in "{}();" } && !isFrameLine(line) }
+
+    private val classLine = Regex("""^(public\s+)?(final\s+)?class\s+\w+\s*\{?$""")
+    private val mainLine = Regex("""^public\s+static\s+void\s+main\s*\(\s*String\s*(\[\]\s*\w+|\.\.\.\s*\w+|\w+\s*\[\])\s*\)\s*\{?$""")
+
+    /** Kopf der Klasse oder der main-Methode. */
+    fun isFrameLine(line: String): Boolean = classLine.matches(line) || mainLine.matches(line)
 }

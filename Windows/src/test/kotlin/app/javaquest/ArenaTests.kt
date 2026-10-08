@@ -171,6 +171,54 @@ class ArenaTest {
 
     @Test fun `Codezeilen zaehlen nur echte Anweisungen`() {
         assertEquals(2, ArenaEngine.codeLineCount("// Kommentar\nrobot.move();\n\n}\n  }\nrobot.move(); // weiter"))
+        // Der Programmrahmen zählt nicht – mit und ohne Rahmen gleich viele Zeilen.
+        assertEquals(1, ArenaEngine.codeLineCount("public class Test {\n    public static void main(String[] args) {\n        robot.move();\n    }\n}"))
+    }
+
+    private val frame = """
+        public class Test {
+            static void schritt() {
+                robot.move();
+            }
+
+            public static void main(String[] args) {
+                robot.move();
+            }
+        }
+    """.trimIndent()
+
+    @Test fun `Im echten Programm landen Befehle in main und Methoden in der Klasse`() {
+        // Ohne Cursor: ans Ende von main, nicht hinter die letzte }
+        val appended = CodeInsertion.insert("robot.turnLeft();", frame, null).first
+        assertTrue("        robot.move();\n        robot.turnLeft();\n    }\n}" in appended, appended)
+        // Cursor auf der Klassenzeile oder hinter der letzten }: trotzdem in main
+        assertEquals(appended, CodeInsertion.insert("robot.turnLeft();", frame, 5).first)
+        assertEquals(appended, CodeInsertion.insert("robot.turnLeft();", frame, frame.length).first)
+        // Cursor in einer Methode: dort
+        val inMethod = CodeInsertion.insert("robot.pickCoin();", frame, "public class Test {\n    static void schritt() {\n        robot.move();".length).first
+        assertTrue("        robot.move();\n        robot.pickCoin();\n    }\n\n    public static void main" in inMethod, inMethod)
+        // Eine Methode kommt in die Klasse über main – egal, wo man schreibt
+        val method = CodeInsertion.insert("static void drehen() {\n    robot.turnLeft();\n}", frame, null).first
+        assertTrue("    static void drehen() {\n        robot.turnLeft();\n    }\n\n    public static void main" in method, method)
+        // Leeres main: eine Stufe tiefer als main
+        assertEquals(
+            "public class A {\n    public static void main(String[] args) {\n        robot.move();\n    }\n}",
+            CodeInsertion.insert("robot.move();", "public class A {\n    public static void main(String[] args) {\n    }\n}", null).first,
+        )
+    }
+
+    @Test fun `Jede Mission ist ein echtes Java-Programm`() {
+        for (mission in catalog.missions) {
+            assertTrue(Regex("^[A-Z][A-Za-z0-9]*$").matches(mission.className), "${mission.id}: ${mission.className}")
+            for (snippet in listOf(mission.starter.source, mission.solution.source)) {
+                assertTrue(snippet.startsWith("public class ${mission.className} {"), mission.id)
+                assertTrue("    public static void main(String[] args) {" in snippet, mission.id)
+            }
+        }
+        assertEquals(catalog.missions.size, catalog.missions.map { it.className }.toSet().size, "Klassennamen doppelt")
+        val playground = ArenaMission.playground(catalog.playground)
+        assertTrue(playground.starter.source.startsWith("public class Spielplatz {"))
+        assertEquals(null, ArenaEngine.run(playground.starter.source, playground).runs[0].problem)
     }
 
     // Nur Bekanntes – und ein klarer Auftrag

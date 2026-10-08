@@ -47,7 +47,22 @@ object CodeInsertion {
         if (code.isBlank()) return snippet to snippet.length
         val lines = code.split("\n").toMutableList()
 
-        val (index, before) = if (cursor != null) position(cursor, lines) else (placeholderLine(lines) ?: lastCodeLine(lines)) to false
+        // Ein echtes Programm (Klasse + main): Methoden gehören in die Klasse über main,
+        // alle anderen Befehle in eine Methode – nie neben den Rahmen.
+        val frame = ProgramFrame.of(lines)
+        if (frame != null && snippet.trimStart().startsWith("static ")) {
+            val indent = lines[frame.mainLine].takeWhile { it == ' ' || it == '\t' }
+            val block = snippet.split("\n").map { if (it.isEmpty()) it else indent + it }
+            lines.addAll(frame.mainLine, block + "")
+            val lastInserted = frame.mainLine + block.size - 1
+            return lines.joinToString("\n") to lines.take(lastInserted + 1).sumOf { it.length } + lastInserted
+        }
+
+        var (index, before) = if (cursor != null) position(cursor, lines) else (placeholderLine(lines) ?: frame?.lastBodyLine ?: lastCodeLine(lines)) to false
+        if (frame != null && !frame.isInsideMethod(index, before, lines)) {
+            index = frame.lastBodyLine
+            before = false
+        }
         val line = lines[index]
         val isBlank = line.isBlank()
         var indent = line.takeWhile { it == ' ' || it == '\t' }
@@ -90,6 +105,60 @@ object CodeInsertion {
 
     /** Die letzte Zeile mit Inhalt – Leerzeilen am Ende bleiben dahinter. */
     private fun lastCodeLine(lines: List<String>): Int = lines.indexOfLast { it.isNotBlank() }.let { if (it < 0) lines.lastIndex else it }
+
+    /** Klasse und main eines echten Programms – wo main steht und wo ihr Rumpf endet. */
+    class ProgramFrame(
+        /** Zeile mit `public static void main(…)`. */
+        val mainLine: Int,
+        /** Letzte Zeile mit Inhalt im Rumpf von main – oder main selbst, wenn der Rumpf leer ist. */
+        val lastBodyLine: Int,
+    ) {
+        /** Landet ein Befehl an dieser Stelle in einer Methode (Tiefe ≥ 2: Klasse + Methode)? */
+        fun isInsideMethod(index: Int, before: Boolean, lines: List<String>): Boolean {
+            val upTo = if (before || lines[index].isBlank()) index else index + 1
+            return lines.take(upTo).sumOf { braceDelta(it) } >= 2
+        }
+
+        companion object {
+            private val classLine = Regex("""^\s*(public\s+)?(final\s+)?class\s+\w+""")
+            private val mainSignature = Regex("""\bstatic\s+void\s+main\s*\(""")
+
+            fun of(lines: List<String>): ProgramFrame? {
+                if (lines.none { classLine.containsMatchIn(it) }) return null
+                val main = lines.indexOfFirst { mainSignature.containsMatchIn(it) }.takeIf { it >= 0 } ?: return null
+                var depth = 0
+                var opened = false
+                var end: Int? = null
+                for (index in main until lines.size) {
+                    depth += braceDelta(lines[index])
+                    if (depth > 0) opened = true
+                    if (opened && depth <= 0) { end = index; break }
+                }
+                end ?: return null
+                val last = (main + 1 until end).lastOrNull { lines[it].isNotBlank() } ?: main
+                return ProgramFrame(main, last)
+            }
+        }
+    }
+
+    /** Geschweifte Klammern einer Zeile ({ +1, } −1) – ohne Text in Anführungszeichen und Kommentare. */
+    fun braceDelta(line: String): Int {
+        var delta = 0
+        var quote: Char? = null
+        var previous = ' '
+        for (character in line) {
+            val open = quote
+            when {
+                open != null -> if (character == open && previous != '\\') quote = null
+                character == '"' || character == '\'' -> quote = character
+                character == '/' && previous == '/' -> break
+                character == '{' -> delta++
+                character == '}' -> delta--
+            }
+            previous = character
+        }
+        return delta
+    }
 
     private fun opensBlock(line: String): Boolean = line.substringBefore("//").trim().endsWith("{")
 }
