@@ -16,9 +16,9 @@ Java Master Score von 0 bis 1000.
   UML-Klassendiagramme, Endlos-Training und freies Lernen – eine gemeinsame Kursdatei für alle Plattformen
 - **Bestanden ab 69 %** (zentral in `LessonSession.passThreshold`)
 
-**Arena, Interpreter, Bonus-Aufgaben und Motivation – in der Apple-App (iPhone, iPad, Mac) und unter Windows und
-Android (dieselben Missionen und Regeln, Kotlin-Fassung unter `Windows/src/main/kotlin/app/javaquest/core`);
-die Web-App kennt sie noch nicht:**
+**Arena, Interpreter, Bonus-Aufgaben und Motivation – in der Apple-App (iPhone, iPad, Mac), unter Windows und
+Android (Kotlin-Fassung unter `Windows/src/main/kotlin/app/javaquest/core`) und in der Web-App (`Web/java.js`,
+`arena.js`, `spiel.js`, `arena-seiten.js`) – überall dieselben Missionen und Regeln:**
 - **Arena:** Den Roboter „Byte“ mit echtem Java steuern – Lektion 1–7 enden mit einer Mission, dazu
   3 Boss-Level, 3 Trainingsmissionen, eine tägliche Mission und ein freier Spielplatz. Der Code läuft
   animiert Zeile für Zeile, mit Variablen- und Konsolenanzeige und bis zu 3 Sternen je Mission
@@ -37,17 +37,19 @@ die Web-App kennt sie noch nicht:**
   Fahrten, lange Fahrten werden gestaucht (höchstens 50 Schritte lang, `ArenaPlayback`), und eine Schleife
   ohne `robot.move();` zeigt nur 6 Fragen statt 250. Die Befehlsleiste fügt dort ein, wo man schreibt –
   eingerückt, im leeren Schleifen- oder Methodenrumpf statt am Ende (`CodeInsertion`).
-- **Eingebauter Java-Interpreter** (`JavaQuestKit/Interpreter`, in Kotlin `core/interpreter`): Variablen, Kontrollfluss, statische Methoden,
+- **Eingebauter Java-Interpreter** (`JavaQuestKit/Interpreter`, in Kotlin `core/interpreter`, im Web `Web/java.js`): Variablen, Kontrollfluss, statische Methoden,
   Arrays und Strings. Code-Aufgaben werden damit wirklich ausgeführt und die Ausgabe verglichen; dazu ein
   „Testlauf“, der keinen Versuch kostet. Gegen ein echtes JDK geprüft (`Tests/…/Fixtures/java_differential.json`)
   und gegen alle 149 Kursprogramme, die er versteht – Klassen, Lambdas, Collections und try/catch erkennt er
   als „nicht unterstützt“ und überlässt sie der Regelprüfung.
-- **Ausführen und zusehen:** Theorie-Beispiele, gelöste Aufgaben und Musterlösungen laufen auf Knopfdruck
+- **Ausführen und zusehen** (Apple, Windows und Android; die Web-App hat es noch nicht): Theorie-Beispiele,
+  gelöste Aufgaben und Musterlösungen laufen auf Knopfdruck
   Schritt für Schritt – wie in einem Debugger: Die nächste Zeile ist markiert und erklärt, daneben stehen die
   Variablen mit ihren Werten und die Konsole; vor, zurück, abspielen (`JavaRunner.trace`, Ansicht `CodeRunPanel`).
   Bei Aufgaben erst nach dem Lösen, damit der Ablauf die Antwort nicht verrät.
 - **Bonus-Aufgaben:** Code-Puzzle (Zeilen ordnen) und Bug-Jagd (Fehlerzeile finden), je eine in jeder der 35 Lektionen
-  (`apple_extra_tasks.json` – trotz des Namens auch für Windows und Android –, beim Laden einsortiert). Sie bringen XP, zählen aber **nicht** für Trefferquote und
+  (`apple_extra_tasks.json` – trotz des Namens auch für Windows, Android und Web, dort als Kopie `Web/bonus_aufgaben.json` –,
+  beim Laden einsortiert). Sie bringen XP, zählen aber **nicht** für Trefferquote und
   Master Score – so bleibt der Score auf allen Plattformen gleich. Die gemeinsame Kursdatei bleibt unverändert.
 - **Motivation:** XP und Level, Combos, 19 Abzeichen, Missionssterne und Boss-Level im Lernpfad.
   Missionsergebnisse stehen im vorhandenen Aufgaben-Protokoll (Kontext `mission`/`daily`, `credit` = Sterne ÷ 3) –
