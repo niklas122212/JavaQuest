@@ -96,3 +96,44 @@ class InterpreterTest {
         assertTrue(supported >= 17, "nur $supported Aufgaben")
     }
 }
+
+class TraceTest {
+    @Test fun `Jede Anweisung und jede Schleifenrunde wird ein Schritt`() {
+        val trace = JavaRunner.trace("int summe = 0;\nfor (int i = 1; i <= 3; i++) {\n    summe += i;\n}\nSystem.out.println(summe);")
+        assertNull(trace.problem)
+        assertEquals(listOf(1, 2, 3, 2, 3, 2, 3, 2, 5, null), trace.steps.map { it.line })
+        val second = trace.steps[4]
+        assertEquals("2", second.variables.first { it.name == "i" }.value)
+        assertEquals("1", second.variables.first { it.name == "summe" }.value)
+        assertEquals("6\n", trace.steps.last().output)
+        assertTrue(trace.isUseful)
+    }
+
+    @Test fun `Methodenaufrufe springen in die Methode und zurueck`() {
+        val trace = JavaRunner.trace(
+            "public class Rechner {\n    static int doppelt(int zahl) {\n        return zahl * 2;\n    }\n\n" +
+                "    public static void main(String[] args) {\n        int x = doppelt(21);\n        System.out.println(x);\n    }\n}",
+        )
+        assertEquals(listOf(7, 3, 8, null), trace.steps.map { it.line })
+        assertEquals("doppelt", trace.steps[1].method)
+        assertEquals(listOf("zahl"), trace.steps[1].variables.map { it.name })
+        assertEquals("42\n", trace.steps.last().output)
+    }
+
+    @Test fun `Laufzeitfehler, unbekannte Bausteine und Endlosschleifen`() {
+        val error = JavaRunner.trace("int x = 0;\nSystem.out.println(5 / x);")
+        assertEquals(JavaProblem.Kind.RUNTIME, error.problem?.kind)
+        assertEquals(listOf(1, 2, 2), error.steps.map { it.line })
+        assertTrue(!JavaRunner.trace("List<String> namen = new ArrayList<>();").isUseful)
+        val endless = JavaRunner.trace("int i = 0;\nwhile (true) {\n    i++;\n}", maxSteps = 50)
+        assertTrue(endless.isTruncated)
+        assertEquals(50, endless.steps.size)
+    }
+
+    @Test fun `Gleiche Schritte wie in der Apple-App fuer die Theorie-Beispiele`() {
+        val course = CourseLoader.loadBundled()
+        val examples = course.allLessons.flatMap { lesson -> lesson.theory.mapNotNull { it.example?.source } }
+        val useful = examples.count { JavaRunner.trace(it).isUseful }
+        assertTrue(useful >= 14, "nur $useful Theorie-Beispiele lassen sich beim Ausführen beobachten")
+    }
+}

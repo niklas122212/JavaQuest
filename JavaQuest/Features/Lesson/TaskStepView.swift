@@ -189,6 +189,8 @@ struct TaskQuestionView: View {
             case .singleChoice, .predictOutput:
                 if let snippet = task.codeSnippet {
                     CodeExegesisView(lines: snippet.explained(), initialPresentation: isSolved ? .all : nil)
+                    // Erst nach dem Lösen – vorher würde der Ablauf die Antwort verraten.
+                    if isSolved { CodeRunPanel(source: snippet.source, lines: snippet.explained()) }
                 }
             case .fillBlank(let spec):
                 let template = spec.templateSnippet.lines
@@ -310,6 +312,7 @@ struct SolutionExegesis: View {
                 .font(.headline)
                 .foregroundStyle(Theme.orange)
             CodeExegesisView(lines: snippet.explained(), caption: "Musterlösung")
+            CodeRunPanel(source: snippet.source, lines: snippet.explained())
         }
         .card(padding: 18)
     }

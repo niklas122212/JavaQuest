@@ -78,6 +78,7 @@ struct TheoryCardContent: View {
             }
             if let example = card.example {
                 CodeExegesisView(lines: example.explained(), caption: "Beispiel")
+                CodeRunPanel(source: example.source, lines: example.explained())
             }
             if let callout = card.callout {
                 CalloutView(callout: callout)

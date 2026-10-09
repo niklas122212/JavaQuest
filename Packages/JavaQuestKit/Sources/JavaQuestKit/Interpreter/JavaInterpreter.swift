@@ -28,6 +28,33 @@ public struct JavaWarning: Sendable, Hashable {
     public let line: Int
 }
 
+/// Ein Schritt beim Zusehen: Diese Zeile ist als Nächstes dran – mit allem, was bis dahin passiert ist.
+public struct JavaTraceStep: Sendable, Hashable {
+    /// Zeile, die gleich ausgeführt wird; `nil` beim letzten Bild (Programm zu Ende).
+    public let line: Int?
+    /// Methode, in der das Programm gerade steckt (`nil` = Hauptprogramm).
+    public let method: String?
+    public let variables: [JavaVariable]
+    /// Konsolenausgabe bis zu diesem Moment.
+    public let output: String
+}
+
+/// Der aufgezeichnete Ablauf eines Programms – für „Ausführen und zusehen“.
+public struct JavaTrace: Sendable {
+    public let steps: [JavaTraceStep]
+    /// Laufzeitfehler, an dem das Programm stehen blieb (Teil der Lektion, z. B. Division durch 0).
+    public let problem: JavaProblem?
+    /// Mehr Schritte als aufgezeichnet – der Ablauf zeigt nur den Anfang.
+    public let isTruncated: Bool
+
+    /// Lohnt sich das Zusehen? Der Interpreter kennt alle Bausteine, und es passiert mehr als ein Schritt.
+    public var isUseful: Bool {
+        guard steps.count >= 3 else { return false }
+        if let problem, problem.kind == .syntax || problem.kind == .unsupported { return false }
+        return true
+    }
+}
+
 public struct JavaRunResult: Sendable {
     /// Alles, was das Programm bis zum Ende (oder bis zum Fehler) ausgegeben hat.
     public let output: String
@@ -80,8 +107,58 @@ public enum JavaRunner {
         return JavaRunResult(output: interpreter.output, problem: problem, steps: interpreter.steps, warnings: interpreter.warnings)
     }
 
+    /// Führt das Programm aus und zeichnet jeden Schritt auf: welche Zeile dran ist, welche Variablen es
+    /// gibt und was schon ausgegeben wurde. Höchstens `maxSteps` Bilder – längere Läufe werden abgeschnitten.
+    public static func trace(_ source: String, maxSteps: Int = 400) -> JavaTrace {
+        let box = TraceBox()
+        let done = DispatchSemaphore(value: 0)
+        let thread = Thread {
+            box.trace = traceDirectly(source, maxSteps: maxSteps)
+            done.signal()
+        }
+        thread.stackSize = 64 << 20
+        thread.start()
+        done.wait()
+        return box.trace ?? JavaTrace(steps: [], problem: .runtime("Das Programm konnte nicht gestartet werden.", line: nil), isTruncated: false)
+    }
+
+    static func traceDirectly(_ source: String, maxSteps: Int) -> JavaTrace {
+        let program: JavaProgram
+        do {
+            program = try JavaParser.parse(JavaSource.normalizingTypography(source))
+        } catch {
+            return JavaTrace(steps: [], problem: error, isTruncated: false)
+        }
+        // Zusehen soll schnell gehen: Lange Programme werden nach den ersten Schritten abgeschnitten.
+        let interpreter = JavaInterpreter(program: program, stepLimit: maxSteps * 20, host: nil)
+        let recorder = TraceRecorder(limit: maxSteps)
+        interpreter.recorder = recorder
+        let problem = interpreter.run()
+        let stoppedEarly = recorder.isFull || problem?.kind == .stepLimit
+        if !stoppedEarly {
+            recorder.steps.append(JavaTraceStep(line: problem?.line, method: nil, variables: interpreter.visibleVariables(), output: interpreter.output))
+        }
+        return JavaTrace(steps: recorder.steps, problem: problem?.kind == .stepLimit ? nil : problem, isTruncated: stoppedEarly)
+    }
+
     private final class ResultBox: @unchecked Sendable {
         var result: JavaRunResult?
+    }
+
+    private final class TraceBox: @unchecked Sendable {
+        var trace: JavaTrace?
+    }
+
+}
+
+/// Sammelt die Schritte für „Ausführen und zusehen“.
+final class TraceRecorder {
+    let limit: Int
+    var steps: [JavaTraceStep] = []
+    var isFull: Bool { steps.count >= limit }
+
+    init(limit: Int) {
+        self.limit = limit
     }
 }
 
@@ -123,6 +200,8 @@ final class JavaInterpreter {
     private var globals: [String: Slot] = [:]
     private var frames: [Frame] = [Frame(method: nil)]
     private var randomState: UInt64 = 0x9E37_79B9_7F4A_7C15
+    /// Beim Zusehen: zeichnet vor jeder Anweisung und jeder neuen Schleifenrunde ein Bild auf.
+    var recorder: TraceRecorder?
 
     init(program: JavaProgram, stepLimit: Int, host: (any JavaHost)?) {
         self.program = program
@@ -155,6 +234,14 @@ final class JavaInterpreter {
     private var frame: Frame { frames[frames.count - 1] }
 
     private func tick(_ line: Int) throws(JavaProblem) {
+        if let recorder {
+            if recorder.isFull {
+                throw JavaProblem(.stepLimit, "Aufzeichnung voll.", line: line)
+            }
+            let step = JavaTraceStep(line: line, method: frame.method?.name, variables: visibleVariables(), output: output)
+            // Ein Block und seine erste Anweisung können auf derselben Zeile stehen – das ist ein Schritt.
+            if recorder.steps.last != step { recorder.steps.append(step) }
+        }
         steps += 1
         if steps > stepLimit {
             throw JavaProblem(.stepLimit, "Dein Programm hört nach \(stepLimit.formatted(.number.locale(Locale(identifier: "de_DE")))) Schritten immer noch nicht auf – vermutlich eine Endlosschleife. Prüfe, ob sich die Bedingung der Schleife irgendwann ändert.", line: line)

@@ -730,6 +730,8 @@ struct TraceCodeView: View {
     let code: String
     let currentLine: Int?
     var errorLine: Int?
+    /// Mindesthöhe – in der Arena fest, beim Zusehen so hoch wie der Code.
+    var minHeight: CGFloat = 160
 
     var body: some View {
         let lines = code.components(separatedBy: "\n")
@@ -761,7 +763,7 @@ struct TraceCodeView: View {
                 }
                 .padding(.vertical, 8)
             }
-            .frame(minHeight: 160, maxHeight: 340)
+            .frame(minHeight: minHeight, maxHeight: 340)
             .onChange(of: currentLine) { _, line in
                 guard let line else { return }
                 // Nur senkrecht zur Zeile – waagerecht bleibt der Zeilenanfang sichtbar

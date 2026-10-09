@@ -17,6 +17,36 @@ interface JavaHost {
 
 data class JavaWarning(val message: String, val line: Int)
 
+/** Ein Schritt beim Zusehen: Diese Zeile ist als Nächstes dran – mit allem, was bis dahin passiert ist. */
+data class JavaTraceStep(
+    /** Zeile, die gleich ausgeführt wird; `null` beim letzten Bild (Programm zu Ende). */
+    val line: Int?,
+    /** Methode, in der das Programm gerade steckt (`null` = Hauptprogramm). */
+    val method: String?,
+    val variables: List<JavaVariable>,
+    /** Konsolenausgabe bis zu diesem Moment. */
+    val output: String,
+)
+
+/** Der aufgezeichnete Ablauf eines Programms – für „Ausführen und zusehen“. */
+class JavaTrace(
+    val steps: List<JavaTraceStep>,
+    /** Laufzeitfehler, an dem das Programm stehen blieb. */
+    val problem: JavaProblem?,
+    /** Mehr Schritte als aufgezeichnet – der Ablauf zeigt nur den Anfang. */
+    val isTruncated: Boolean,
+) {
+    /** Lohnt sich das Zusehen? Der Interpreter kennt alle Bausteine, und es passiert mehr als ein Schritt. */
+    val isUseful: Boolean
+        get() = steps.size >= 3 && problem?.kind != JavaProblem.Kind.SYNTAX && problem?.kind != JavaProblem.Kind.UNSUPPORTED
+}
+
+/** Sammelt die Schritte für „Ausführen und zusehen“. */
+class TraceRecorder(val limit: Int) {
+    val steps = mutableListOf<JavaTraceStep>()
+    val isFull: Boolean get() = steps.size >= limit
+}
+
 class JavaRunResult(val output: String, val problem: JavaProblem?, val steps: Int, val warnings: List<JavaWarning>) {
     val succeeded: Boolean get() = problem == null
 }
@@ -41,6 +71,36 @@ object JavaRunner {
         val interpreter = JavaInterpreter(program, stepLimit, host)
         val problem = interpreter.run()
         return JavaRunResult(interpreter.output.toString(), problem, interpreter.steps, interpreter.warnings)
+    }
+
+    /**
+     * Führt das Programm aus und zeichnet jeden Schritt auf: welche Zeile dran ist, welche Variablen es gibt
+     * und was schon ausgegeben wurde. Höchstens [maxSteps] Bilder – längere Läufe werden abgeschnitten.
+     */
+    fun trace(source: String, maxSteps: Int = 400): JavaTrace {
+        val result = AtomicReference<JavaTrace>()
+        val thread = Thread(null, { result.set(traceDirectly(source, maxSteps)) }, "java-trace", 64L shl 20)
+        thread.start()
+        thread.join()
+        return result.get() ?: JavaTrace(emptyList(), JavaProblem.runtime("Das Programm konnte nicht gestartet werden.", null), false)
+    }
+
+    private fun traceDirectly(source: String, maxSteps: Int): JavaTrace {
+        val program = try {
+            JavaParser.parse(app.javaquest.core.JavaSource.normalizingTypography(source))
+        } catch (e: JavaProblem) {
+            return JavaTrace(emptyList(), e, false)
+        }
+        // Zusehen soll schnell gehen: Lange Programme werden nach den ersten Schritten abgeschnitten.
+        val interpreter = JavaInterpreter(program, maxSteps * 20, null)
+        val recorder = TraceRecorder(maxSteps)
+        interpreter.recorder = recorder
+        val problem = interpreter.run()
+        val stoppedEarly = recorder.isFull || problem?.kind == JavaProblem.Kind.STEP_LIMIT
+        if (!stoppedEarly) {
+            recorder.steps += JavaTraceStep(problem?.line, null, interpreter.visibleVariables(), interpreter.output.toString())
+        }
+        return JavaTrace(recorder.steps.toList(), if (problem?.kind == JavaProblem.Kind.STEP_LIMIT) null else problem, stoppedEarly)
     }
 }
 
@@ -71,6 +131,8 @@ class JavaInterpreter(private val program: Program, private val stepLimit: Int, 
     private val globals = mutableMapOf<String, Slot>()
     private val frames = mutableListOf(Frame(null))
     private val random = java.util.Random(42)
+    /** Beim Zusehen: zeichnet vor jeder Anweisung und jeder neuen Schleifenrunde ein Bild auf. */
+    var recorder: TraceRecorder? = null
     private val frame: Frame get() = frames.last()
 
     fun run(): JavaProblem? = try {
@@ -96,6 +158,12 @@ class JavaInterpreter(private val program: Program, private val stepLimit: Int, 
     // MARK: Variablen
 
     private fun tick(line: Int) {
+        recorder?.let { recorder ->
+            if (recorder.isFull) throw JavaProblem(JavaProblem.Kind.STEP_LIMIT, "Aufzeichnung voll.", line)
+            val step = JavaTraceStep(line, frame.method?.name, visibleVariables(), output.toString())
+            // Ein Block und seine erste Anweisung können auf derselben Zeile stehen – das ist ein Schritt.
+            if (recorder.steps.lastOrNull() != step) recorder.steps += step
+        }
         steps++
         if (steps > stepLimit) {
             throw JavaProblem(JavaProblem.Kind.STEP_LIMIT, "Dein Programm hört nach ${"%,d".format(java.util.Locale.GERMANY, stepLimit)} Schritten immer noch nicht auf – vermutlich eine Endlosschleife. Prüfe, ob sich die Bedingung der Schleife irgendwann ändert.", line)

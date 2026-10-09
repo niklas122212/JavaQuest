@@ -241,7 +241,10 @@ fun TheoryCardContent(card: TheoryCard, page: Int, count: Int, glossary: Map<Str
         Text(card.title, fontSize = if (kompakt) 26.sp else 32.sp, fontWeight = FontWeight.Bold, lineHeight = if (kompakt) 32.sp else 38.sp)
         Text(card.body, fontSize = if (kompakt) 17.sp else 19.sp, lineHeight = if (kompakt) 25.sp else 28.sp)
         card.diagram?.let { UmlDiagramView(it) }
-        card.example?.let { CodeExegesis(it.explained(glossary), caption = "Beispiel") }
+        card.example?.let {
+            CodeExegesis(it.explained(glossary), caption = "Beispiel")
+            CodeRunPanel(it.source, it.explained(glossary))
+        }
         card.callout?.let { CalloutBox(it) }
     }
 }
@@ -277,7 +280,7 @@ private fun TaskStep(model: LessonFlowModel) {
                     }
                     val kind = task.kind
                     if (model.isCurrentTaskFinished && kind is TaskKind.Code) {
-                        SolutionExegesis("Musterlösung Zeile für Zeile", kind.solution.explained(model.store.course.glossary))
+                        SolutionExegesis("Musterlösung Zeile für Zeile", kind.solution.explained(model.store.course.glossary), kind.solution.source)
                     }
                 }
                 if (wide) {
@@ -395,6 +398,8 @@ fun TaskQuestion(
             is TaskKind.SingleChoice, is TaskKind.PredictOutput -> task.code?.let { snippet ->
                 if (showsExplanations) {
                     CodeExegesis(snippet.explained(glossary), initialPresentation = if (evaluation.isSolved) Presentation.ALL else null)
+                    // Erst nach dem Lösen – vorher würde der Ablauf die Antwort verraten.
+                    if (evaluation.isSolved) CodeRunPanel(snippet.source, snippet.explained(glossary))
                 } else {
                     CodeBlock(highlighted(snippet.source))
                 }
@@ -455,7 +460,7 @@ private fun StarterExegesis(lines: List<app.javaquest.core.ExplainedLine>) {
 }
 
 @Composable
-fun SolutionExegesis(title: String, lines: List<app.javaquest.core.ExplainedLine>) {
+fun SolutionExegesis(title: String, lines: List<app.javaquest.core.ExplainedLine>, source: String? = null) {
     Column(Modifier.fillMaxWidth().card(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.AutoMirrored.Rounded.ManageSearch, null, tint = Palette.orange)
@@ -463,6 +468,7 @@ fun SolutionExegesis(title: String, lines: List<app.javaquest.core.ExplainedLine
             Text(title, color = Palette.orange, fontWeight = FontWeight.Bold, fontSize = 17.sp)
         }
         CodeExegesis(lines, caption = "Musterlösung")
+        source?.let { CodeRunPanel(it, lines) }
     }
 }
 

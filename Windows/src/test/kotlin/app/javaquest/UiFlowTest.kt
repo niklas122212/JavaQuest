@@ -5,6 +5,7 @@ import androidx.compose.ui.test.DesktopComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.captureToImage
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -376,5 +377,25 @@ class UiFlowTest {
         }
         waitForIdle()
         shot("35-handy-bugjagd")
+    }
+
+    @Test
+    fun `Ausfuehren und zusehen - Theorie-Beispiel laeuft Schritt fuer Schritt`() = runDesktopComposeUiTest(1280, 860) {
+        val state = newState()
+        state.store.completeOnboarding(app.javaquest.core.ExperienceLevel.BEGINNER, null)
+        show(state)
+        state.startLesson("l05-loops")
+        waitForIdle()
+        // Erstes Theorie-Beispiel: for (int i = 1; i <= 3; i++) { System.out.println("Runde " + i); }
+        waitUntil(timeoutMillis = 5_000) { onAllNodesWithTag("run-open", useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty() }
+        click("run-open")
+        repeat(3) { click("run-next") }
+        onNodeWithTag("run-position", useUnmergedTree = true).assertTextEquals("Schritt 4 von 8")
+        onNodeWithTag("run-console", useUnmergedTree = true).assertTextEquals("Runde 1")
+        onNodeWithText("Als Nächstes Zeile 2", substring = true).assertExists()
+        shot("40-zusehen")
+        click("run-end")
+        onNodeWithText("Das Programm ist fertig.").assertExists()
+        onNodeWithTag("run-console", useUnmergedTree = true).assertTextEquals("Runde 1\nRunde 2\nRunde 3")
     }
 }

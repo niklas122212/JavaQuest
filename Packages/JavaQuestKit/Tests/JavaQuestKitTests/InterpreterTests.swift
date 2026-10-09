@@ -150,3 +150,75 @@ struct InterpreterCourseTests {
         #expect(supported >= 17)
     }
 }
+
+@Suite("Ausführen und zusehen")
+struct TraceTests {
+    @Test("Jede Anweisung und jede Schleifenrunde wird ein Schritt – mit Variablen und Ausgabe")
+    func loopIsTracedLineByLine() throws {
+        let trace = JavaRunner.trace("""
+        int summe = 0;
+        for (int i = 1; i <= 3; i++) {
+            summe += i;
+        }
+        System.out.println(summe);
+        """)
+        #expect(trace.problem == nil)
+        #expect(!trace.isTruncated)
+        #expect(trace.steps.map(\.line) == [1, 2, 3, 2, 3, 2, 3, 2, 5, nil])
+        // Vor Zeile 3 im zweiten Durchgang: i ist 2, summe schon 1
+        let second = trace.steps[4]
+        #expect(second.variables.first { $0.name == "i" }?.value == "2")
+        #expect(second.variables.first { $0.name == "summe" }?.value == "1")
+        let last = try #require(trace.steps.last)
+        #expect(last.output == "6\n")
+        #expect(trace.isUseful)
+    }
+
+    @Test("Methodenaufrufe springen in die Methode und zurück")
+    func methodCallsAreFollowed() {
+        let trace = JavaRunner.trace("""
+        public class Rechner {
+            static int doppelt(int zahl) {
+                return zahl * 2;
+            }
+
+            public static void main(String[] args) {
+                int x = doppelt(21);
+                System.out.println(x);
+            }
+        }
+        """)
+        #expect(trace.steps.map(\.line) == [7, 3, 8, nil])
+        #expect(trace.steps[1].method == "doppelt")
+        #expect(trace.steps[1].variables.map(\.name) == ["zahl"])
+        #expect(trace.steps.last?.output == "42\n")
+    }
+
+    @Test("Ein Laufzeitfehler bleibt an seiner Zeile stehen")
+    func runtimeErrorStopsAtItsLine() {
+        let trace = JavaRunner.trace("int x = 0;\nSystem.out.println(5 / x);")
+        #expect(trace.problem?.kind == .runtime)
+        // Letztes Bild: die Fehlerzeile – dort ist das Programm stehen geblieben.
+        #expect(trace.steps.map(\.line) == [1, 2, 2])
+        #expect(trace.isUseful)
+    }
+
+    @Test("Unbekannte Bausteine und Endlosschleifen")
+    func limits() {
+        #expect(!JavaRunner.trace("List<String> namen = new ArrayList<>();").isUseful)
+        let endless = JavaRunner.trace("int i = 0;\nwhile (true) {\n    i++;\n}", maxSteps: 50)
+        #expect(endless.isTruncated)
+        #expect(endless.steps.count == 50)
+        #expect(endless.isUseful)
+    }
+
+    @Test("Viele Theorie-Beispiele lassen sich beim Ausführen beobachten")
+    func theoryExamplesAreTraceable() throws {
+        let course = try CourseLoader.loadBundled()
+        let examples = course.allLessons.flatMap { lesson in lesson.theory.compactMap { $0.example?.source } }
+        let useful = examples.filter { JavaRunner.trace($0).isUseful }
+        print("Ausführen und zusehen: \(useful.count) von \(examples.count) Theorie-Beispielen")
+        // Lektion 1–7 fast vollständig; Klassen, Listen & Co. (ab Lektion 8) kennt der Interpreter noch nicht.
+        #expect(useful.count >= 14)
+    }
+}
