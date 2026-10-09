@@ -483,8 +483,9 @@ details.exegese > summary { color: var(--orange-text); }
 .einsatz-spalten { display: flex; flex-direction: column; }
 .einsatz-spalte { display: contents; }
 @media (min-width: 900px) {
-  .einsatz-spalten { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
-  .einsatz-spalte { display: flex; flex-direction: column; }
+  /* minmax(0, …): Sonst schieben lange Codezeilen und die Befehlsleiste die Spalte über den Rand. */
+  .einsatz-spalten { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+  .einsatz-spalte { display: flex; flex-direction: column; min-width: 0; }
   .einsatz-spalte > * { order: 0 !important; }
 }
 .auftrag h1 { font-size: 26px; }
@@ -656,3 +657,8 @@ details.abschnitt[open] .zu { display: none; }
 .testlauf-ergebnis .leer { color: #6B6B78; }
 .fehlertext { color: #FF8C8C; }
 .knopf.testlauf { color: #0F766E; }
+
+/* Wie im echten Projekt: Die Datei heißt wie ihre Klasse, die Konsole startet mit „java Klasse“. */
+.code-kopf h3.dateiname { font-family: var(--code); font-size: 15px; }
+.konsole-teil .code.konsole-start { min-height: 0; margin: 0; padding-bottom: 0; border-radius: 10px 10px 0 0; color: #6B6B78; }
+.konsole-teil .konsole-start + .code { border-radius: 0 0 10px 10px; padding-top: 4px; }

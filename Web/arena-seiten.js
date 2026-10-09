@@ -397,14 +397,14 @@ function codeKarte() {
       }).join("")}
       ${einsatz.vorlagen.map((t) => `<button class="befehlsknopf vorlage" data-einfuegen="${sicher(t.code)}" title="Vorlage einfügen">+ ${sicher(t.name)}</button>`).join("")}
     </div>`;
-  const tipp = einsatz.kenntMethoden ? `<p class="mini">${einsatz.spielplatz ? "" : "Tipp: "}Eigene Methoden (static void …) darfst du über oder unter deine Befehle schreiben.</p>` : "";
+  const tipp = einsatz.kenntMethoden ? `<p class="mini">${einsatz.spielplatz ? "" : "Tipp: "}Eigene Methoden (static void …) gehören in die Klasse – über oder unter main, nicht hinein.</p>` : "";
   const editor = einsatz.zuschauen
     ? `<div class="spur-code" id="spur-code" tabindex="0" role="button" aria-label="Code beim Ausführen – zum Bearbeiten antippen" data-bearbeiten="1">${einsatz.code.split("\n").map((z, i) =>
         `<div class="codezeile" data-zeile="${i + 1}"><span class="nr">${i + 1}</span><span>${sicher(z) || " "}</span></div>`).join("")}</div>`
     : `<textarea id="einsatz-code" class="einsatz-code" spellcheck="false" autocapitalize="off" autocorrect="off"
         aria-label="Dein Java-Code" placeholder="// Befehle für Byte, z. B. robot.move();">${sicher(einsatz.code)}</textarea>`;
   return `<div class="karte code-karte" style="order:4">
-    <div class="code-kopf"><h3>‹/› Dein Java-Code</h3><span class="mini" id="zeilenzahl">${zeilen === 1 ? "1 Zeile" : `${zeilen} Zeilen`}</span>
+    <div class="code-kopf"><h3 class="dateiname" aria-label="Datei ${sicher(einsatz.mission.className)}.java">📄 ${sicher(einsatz.mission.className)}.java</h3><span class="mini" id="zeilenzahl">${zeilen === 1 ? "1 Zeile" : `${zeilen} Zeilen`}</span>
       ${einsatz.zuschauen ? `<button class="knopf still" data-bearbeiten="1">✎ Bearbeiten</button>` : ""}</div>
     ${editor}${palette}${tipp}
     ${lauf && lauf.problem && einsatz.zuschauen ? "" : ""}
@@ -414,7 +414,7 @@ function codeKarte() {
 function konsoleKarte() {
   return `<div class="karte konsole-karte" id="konsole-karte" style="order:5" ${einsatz.ergebnis ? "" : "hidden"}>
     <div class="konsole-zeile">
-      <div class="konsole-teil"><p class="beschriftung">Konsole</p><pre class="code" id="konsole" aria-live="off"></pre></div>
+      <div class="konsole-teil"><p class="beschriftung">Konsole</p><pre class="code konsole-start" aria-hidden="true">&gt; java ${sicher(einsatz.mission.className)}</pre><pre class="code" id="konsole" aria-live="off"></pre></div>
       <div class="variablen-teil" id="variablen-teil" hidden><p class="beschriftung">Variablen</p><div id="variablen" class="variablen"></div></div>
     </div>
   </div>`;

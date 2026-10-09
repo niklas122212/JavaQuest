@@ -181,11 +181,44 @@ export function arenaPruefungen({ Java, Arena }, missionen, kurs) {
     const daneben = faelle.map(([ist, soll], i) => (gleich(ist, soll) ? null : `Fall ${i + 1}: ${JSON.stringify(ist)}`)).filter(Boolean);
     ergebnisse.push(pruefe("Arena: Befehle landen an der Stelle, an der man schreibt", daneben.length === 0, daneben.join(" | ")));
   }
-  ergebnisse.push(pruefe(
-    "Arena: Codezeilen zählen nur echte Anweisungen",
-    Arena.codeLineCount("// Kommentar\nrobot.move();\n\n}\n  }\nrobot.move(); // weiter") === 2,
-    String(Arena.codeLineCount("// Kommentar\nrobot.move();\n\n}\n  }\nrobot.move(); // weiter")),
-  ));
+  {
+    const rahmen = "public class Test {\n    public static void main(String[] args) {\n        robot.move();\n    }\n}";
+    ergebnisse.push(pruefe(
+      "Arena: Codezeilen zählen nur echte Anweisungen – der Programmrahmen zählt nicht",
+      Arena.codeLineCount("// Kommentar\nrobot.move();\n\n}\n  }\nrobot.move(); // weiter") === 2 && Arena.codeLineCount(rahmen) === 1,
+      `${Arena.codeLineCount("// Kommentar\nrobot.move();\n\n}\n  }\nrobot.move(); // weiter")} / ${Arena.codeLineCount(rahmen)}`,
+    ));
+  }
+  {
+    const programm = "public class Test {\n    static void schritt() {\n        robot.move();\n    }\n\n    public static void main(String[] args) {\n        robot.move();\n    }\n}";
+    const angehaengt = Arena.insert("robot.turnLeft();", programm, null).code;
+    const faelle = [
+      [angehaengt.includes("        robot.move();\n        robot.turnLeft();\n    }\n}"), "ans Ende von main"],
+      [Arena.insert("robot.turnLeft();", programm, 5).code === angehaengt, "Cursor auf der Klassenzeile"],
+      [Arena.insert("robot.turnLeft();", programm, programm.length).code === angehaengt, "Cursor hinter der letzten }"],
+      [Arena.insert("robot.pickCoin();", programm, "public class Test {\n    static void schritt() {\n        robot.move();".length).code
+        .includes("        robot.move();\n        robot.pickCoin();\n    }\n\n    public static void main"), "Cursor in einer Methode"],
+      [Arena.insert("static void drehen() {\n    robot.turnLeft();\n}", programm, null).code
+        .includes("    static void drehen() {\n        robot.turnLeft();\n    }\n\n    public static void main"), "Methode über main"],
+      [Arena.insert("robot.move();", "public class A {\n    public static void main(String[] args) {\n    }\n}", null).code
+        === "public class A {\n    public static void main(String[] args) {\n        robot.move();\n    }\n}", "leeres main"],
+    ];
+    const daneben = faelle.filter(([gut]) => !gut).map(([, name]) => name);
+    ergebnisse.push(pruefe("Arena: Im echten Programm landen Befehle in main und Methoden in der Klasse", daneben.length === 0, daneben.join(", ")));
+  }
+  {
+    const probleme = [];
+    for (const m of katalog.missions) {
+      if (!/^[A-Z][A-Za-z0-9]*$/.test(m.className)) probleme.push(`${m.id}: ${m.className}`);
+      for (const schnipsel of [m.starterCode, m.solution]) {
+        if (!schnipsel.startsWith(`public class ${m.className} {`) || !schnipsel.includes("    public static void main(String[] args) {")) probleme.push(`${m.id}: kein Programmrahmen`);
+      }
+    }
+    if (new Set(katalog.missions.map((m) => m.className)).size !== katalog.missions.length) probleme.push("Klassennamen doppelt");
+    const spielplatz = katalog.playground;
+    if (!spielplatz.starterCode.startsWith("public class Spielplatz {") || Arena.run(spielplatz.starterCode, spielplatz).runs[0].problem) probleme.push("Spielplatz");
+    ergebnisse.push(pruefe("Arena: Jede Mission ist ein echtes Java-Programm, die Datei passt zum Klassennamen", probleme.length === 0, probleme.join(" | ")));
+  }
 
   // ------------------------------------------------------------ nur Bekanntes, klarer Auftrag
   {

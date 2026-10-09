@@ -203,10 +203,18 @@ const ArenaKern = (() => {
 
   const matches = (pattern, text) => { try { return new RegExp(pattern).test(text); } catch { return false; } };
 
-  /** Zählt „echte“ Codezeilen: ohne Leerzeilen, Kommentare und Zeilen, die nur Klammern enthalten. */
+  /** Zählt „echte“ Codezeilen: ohne Leerzeilen, Kommentare, reine Klammerzeilen und ohne den
+      Programmrahmen (public class … und public static void main(…)) – der gehört zu jedem
+      Programm und soll bei „Höchstens N Zeilen“ nicht zählen. */
   function codeLineCount(code) {
     return Java.strippingComments(code).split("\n").map((l) => l.trim())
-      .filter((l) => l !== "" && !Array.from(l).every((c) => "{}();".includes(c))).length;
+      .filter((l) => l !== "" && !Array.from(l).every((c) => "{}();".includes(c)) && !isFrameLine(l)).length;
+  }
+
+  /** Kopf der Klasse oder der main-Methode. */
+  function isFrameLine(line) {
+    return /^(public\s+)?(final\s+)?class\s+\w+\s*\{?$/.test(line)
+      || /^public\s+static\s+void\s+main\s*\(\s*String\s*(\[\]\s*\w+|\.\.\.\s*\w+|\w+\s*\[\])\s*\)\s*\{?$/.test(line);
   }
 
   function criterionTitle(c) {
@@ -311,6 +319,8 @@ const ArenaKern = (() => {
       newCommands: raw.newCommands || [],
       steps: raw.steps || [],
       conceptIds: raw.concepts || [],
+      /** Name der Klasse im Programm – und damit der Datei (ErsteSchritte.java). */
+      className: raw.className || "Mission",
       commandNames: COMMANDS.map((c) => c.name),
     };
     m.goals = goalsOf(m);
@@ -344,9 +354,9 @@ const ArenaKern = (() => {
     return mission({
       id: "playground", kind: "training", title: "Spielplatz",
       story: "Hier gibt es kein Ziel und keine Bewertung – probier einfach aus, was Byte alles kann.",
-      lessonId: "", topicId: "syntax", difficulty: 1, worlds: [spec],
-      starterCode: "// Probier dich aus!\nrobot.move();\nrobot.turnLeft();", solution: "",
-      hint: "Tippe unten auf einen Befehl, um ihn einzufügen.", reachGoal: false,
+      lessonId: "", topicId: "syntax", difficulty: 1, worlds: [spec], className: "Spielplatz",
+      starterCode: "public class Spielplatz {\n    public static void main(String[] args) {\n        // Probier dich aus!\n        robot.move();\n        robot.turnLeft();\n    }\n}",
+      solution: "", hint: "Tippe unten auf einen Befehl, um ihn einzufügen.", reachGoal: false,
       newCommands: COMMANDS.map((c) => c.name),
     });
   }
@@ -441,13 +451,29 @@ const ArenaKern = (() => {
     const lines = code.split("\n");
     if (code.trim() === "") return { code: snippet, cursor: snippet.length };
 
+    // Ein echtes Programm (Klasse + main): Methoden gehören in die Klasse über main,
+    // alle anderen Befehle in eine Methode – nie neben den Rahmen.
+    const frame = programFrame(lines);
+    if (frame && snippet.trim().startsWith("static ")) {
+      const indent = lines[frame.mainLine].match(/^[ \t]*/)[0];
+      const block = snippet.split("\n").map((l) => (l === "" ? l : indent + l));
+      lines.splice(frame.mainLine, 0, ...block, "");
+      const lastInserted = frame.mainLine + block.length - 1;
+      const newCursor = lines.slice(0, lastInserted + 1).reduce((sum, l) => sum + l.length, 0) + lastInserted;
+      return { code: lines.join("\n"), cursor: newCursor };
+    }
+
     let index;
     let before = false;
     if (cursor != null) {
       [index, before] = position(cursor, lines);
     } else {
       index = placeholderLine(lines);
-      if (index == null) index = lastCodeLine(lines);
+      if (index == null) index = frame ? frame.lastBodyLine : lastCodeLine(lines);
+    }
+    if (frame && !insideMethod(index, before, lines)) {
+      index = frame.lastBodyLine;
+      before = false;
     }
     const line = lines[index];
     const isBlank = line.trim() === "";
@@ -496,6 +522,53 @@ const ArenaKern = (() => {
   }
 
   const opensBlock = (line) => line.split("//")[0].trim().endsWith("{");
+
+  /** Klasse und main eines echten Programms – wo main steht und wo ihr Rumpf endet. */
+  function programFrame(lines) {
+    if (!lines.some((l) => /^\s*(public\s+)?(final\s+)?class\s+\w+/.test(l))) return null;
+    const main = lines.findIndex((l) => /\bstatic\s+void\s+main\s*\(/.test(l));
+    if (main < 0) return null;
+    let depth = 0;
+    let opened = false;
+    let end = null;
+    for (let i = main; i < lines.length; i += 1) {
+      depth += braceDelta(lines[i]);
+      if (depth > 0) opened = true;
+      if (opened && depth <= 0) { end = i; break; }
+    }
+    if (end == null) return null;
+    let lastBodyLine = main;
+    for (let i = main + 1; i < end; i += 1) if (lines[i].trim() !== "") lastBodyLine = i;
+    return { mainLine: main, lastBodyLine };
+  }
+
+  /** Landet ein Befehl an dieser Stelle in einer Methode (Tiefe ≥ 2: Klasse + Methode)? */
+  function insideMethod(index, before, lines) {
+    const upTo = before || lines[index].trim() === "" ? index : index + 1;
+    return lines.slice(0, upTo).reduce((sum, l) => sum + braceDelta(l), 0) >= 2;
+  }
+
+  /** Geschweifte Klammern einer Zeile ({ +1, } −1) – ohne Text in Anführungszeichen und Kommentare. */
+  function braceDelta(line) {
+    let delta = 0;
+    let quote = null;
+    let previous = " ";
+    for (const c of line) {
+      if (quote) {
+        if (c === quote && previous !== "\\") quote = null;
+      } else if (c === "\"" || c === "'") {
+        quote = c;
+      } else if (c === "/" && previous === "/") {
+        break;
+      } else if (c === "{") {
+        delta += 1;
+      } else if (c === "}") {
+        delta -= 1;
+      }
+      previous = c;
+    }
+    return delta;
+  }
 
   return {
     COMMANDS, commandNamed, HEADINGS, TEMPLATES,
