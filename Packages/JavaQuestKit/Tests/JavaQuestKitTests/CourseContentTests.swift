@@ -22,14 +22,14 @@ struct CourseContentTests {
         #expect(issues.isEmpty, "\(issues.map(\.description).joined(separator: "\n"))")
     }
 
-    @Test("Umfang: 14 Module, 35 Lektionen, 185 Lektionsaufgaben plus 13 Bonus-Aufgaben plus Übungspool")
+    @Test("Umfang: 14 Module, 35 Lektionen, 185 Lektionsaufgaben plus 35 Bonus-Aufgaben plus Übungspool")
     func courseShape() {
         #expect(course.modules.count == 14)
         #expect(course.allLessons.count == 35)
         let lessonTasks = course.allLessons.flatMap(\.tasks)
         #expect(lessonTasks.filter { !$0.type.isBonus }.count == 185)
-        // Code-Puzzle und Bug-Jagd: nur in der Apple-App, je eine in Lektion 1–13.
-        #expect(lessonTasks.filter(\.type.isBonus).count == 13)
+        // Code-Puzzle und Bug-Jagd: je eine in jeder der 35 Lektionen.
+        #expect(lessonTasks.filter(\.type.isBonus).count == 35)
         // Der Übungspool speist Übung, Training und freies Lernen – er wächst unabhängig von den Lektionen.
         #expect(course.taskPool.count >= 50)
         #expect(course.practiceableTasks.count == course.allLessons.flatMap(\.tasks).count + course.taskPool.count)

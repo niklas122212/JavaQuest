@@ -158,7 +158,7 @@ struct BonusTaskTests {
         let url = try #require(CourseLoader.resourceBundle.url(forResource: CourseLoader.bundledResourceName, withExtension: "json"))
         let shared = try CourseLoader.load(from: Data(contentsOf: url))   // so lesen es die anderen Plattformen
         let apple = try CourseLoader.loadBundled()                          // mit Puzzle und Bug-Jagd
-        #expect(apple.allLessons.flatMap(\.tasks).count == shared.allLessons.flatMap(\.tasks).count + 13)
+        #expect(apple.allLessons.flatMap(\.tasks).count == shared.allLessons.flatMap(\.tasks).count + 35)
         for (index, lessons) in [3, 9, 20, 35].enumerated() {
             var results: [String: LessonResult] = [:]
             for (i, lesson) in shared.allLessons.prefix(lessons).enumerated() {

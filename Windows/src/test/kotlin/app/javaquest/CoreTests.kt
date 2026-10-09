@@ -193,7 +193,7 @@ class CourseContentTest {
         assertEquals(35, course.allLessons.size)
         // 185 Kursaufgaben plus je ein Code-Puzzle bzw. eine Bug-Jagd in Lektion 1–13.
         assertEquals(185, course.allLessons.sumOf { lesson -> lesson.tasks.count { !it.type.isBonus } })
-        assertEquals(13, course.allLessons.sumOf { lesson -> lesson.tasks.count { it.type.isBonus } })
+        assertEquals(35, course.allLessons.sumOf { lesson -> lesson.tasks.count { it.type.isBonus } })
         // Der Übungspool speist Übung, Training und freies Lernen.
         assertTrue(course.taskPool.size >= 50, "nur ${course.taskPool.size} Übungsaufgaben")
         assertEquals(course.allLessons.sumOf { it.tasks.size } + course.taskPool.size, course.practiceableTasks.size)
@@ -364,8 +364,8 @@ class CourseContentTest {
 
     @Test fun `Jede Codezeile im Kurs hat eine Erklaerung`() {
         val snippets = course.allSnippets
-        // 799 Ausschnitte aus der gemeinsamen Kursdatei, 20 aus den Bonus-Aufgaben (Puzzle, Bug-Jagd samt Korrektur).
-        assertEquals(819, snippets.size)
+        // 799 Ausschnitte aus der gemeinsamen Kursdatei, 53 aus den Bonus-Aufgaben (Puzzle, Bug-Jagd samt Korrektur).
+        assertEquals(852, snippets.size)
         var lines = 0
         for ((location, snippet) in snippets) {
             assertTrue(snippet.linesMissingExplanation.isEmpty(), "$location: Zeilen ${snippet.linesMissingExplanation}")

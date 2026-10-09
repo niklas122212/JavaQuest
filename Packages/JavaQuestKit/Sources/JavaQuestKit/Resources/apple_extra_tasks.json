@@ -620,6 +620,1037 @@
           "output": "5"
         }
       }
+    ],
+    "l14-enums-static": [
+      {
+        "id": "t14-p",
+        "type": "ordering",
+        "topicId": "enums",
+        "difficulty": 3,
+        "prompt": "Bring die Zeilen in die richtige Reihenfolge: Erst gibt es die Ampelfarben, dann springt die Ampel von ROT auf GRUEN – am Ende soll „GRUEN ist Nummer 2“ erscheinen.",
+        "puzzle": {
+          "lines": [
+            {
+              "code": "enum Farbe { ROT, GELB, GRUEN }",
+              "explain": "Hier legen wir die Aufzählung (enum) „Farbe“ an – eine feste Auswahl mit genau 3 erlaubten Werten: ROT, GELB und GRUEN. Andere Werte kann es nicht geben."
+            },
+            {
+              "code": "Farbe ampel = Farbe.ROT;",
+              "explain": "Hier erstellen wir eine Box namens „ampel“ und legen den festen Wert ROT aus „Farbe“ hinein. Das Etikett Farbe heißt: In diese Box passt nur einer der festen Farbe-Werte."
+            },
+            {
+              "code": "ampel = Farbe.GRUEN;",
+              "explain": "Wir nehmen den alten Inhalt aus der Box „ampel“ heraus und legen stattdessen den festen Wert GRUEN aus „Farbe“ hinein."
+            },
+            {
+              "code": "System.out.println(ampel + \" ist Nummer \" + ampel.ordinal());",
+              "explain": "Schreibt den zusammengesetzten Text aus dem Inhalt der Box „ampel“, „ ist Nummer “ und dem Ergebnis von ampel.ordinal() (das + klebt die Teile aneinander) auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste."
+            }
+          ]
+        },
+        "hint": "Bevor es eine Box vom Typ Farbe geben kann, muss feststehen, welche Farben es gibt.",
+        "explanation": "Zuerst legt enum Farbe die drei möglichen Werte fest. Dann entsteht die Box ampel mit ROT und wird danach auf GRUEN umgestellt. ordinal() zählt ab 0: ROT ist 0, GELB 1, GRUEN 2.",
+        "verify": {
+          "output": "GRUEN ist Nummer 2"
+        }
+      }
+    ],
+    "l15-object-methods": [
+      {
+        "id": "t15-b",
+        "type": "findBug",
+        "topicId": "objectmethods",
+        "difficulty": 3,
+        "prompt": "In diesem Code steckt genau ein Fehler. Tippe auf die Zeile, in der er steckt. System.out.println soll den Hund als „Hund Bello“ ausgeben.",
+        "code": {
+          "lines": [
+            {
+              "code": "class Hund {",
+              "explain": "Hier beginnt die Klasse „Hund“. Stell sie dir als Kuchenform vor: Sie beschreibt, welche Eigenschaften und Fähigkeiten jedes Objekt vom Typ Hund hat. Die echten Objekte sind die Kuchen, die später mit new aus dieser Form gebacken werden."
+            },
+            {
+              "code": "    String name;",
+              "explain": "Jedes Objekt, das aus dieser Kuchenform gebacken wird, bekommt ein eigenes Fach namens „name“. Das Etikett String heißt: In dieses Fach passen Texte."
+            },
+            {
+              "code": ""
+            },
+            {
+              "code": "    Hund(String name) {",
+              "explain": "Das ist der Konstruktor – die Backanleitung, die automatisch abläuft, sobald mit new Hund(…) ein neues Objekt gebacken wird. Als Zutaten bekommt er name (einen Text). Hier bekommt das neue Objekt seine Startwerte."
+            },
+            {
+              "code": "        this.name = name;",
+              "explain": "Legt die mitgegebene Zutat „name“ in das Fach „name“ genau dieses Objekts. this.name meint das Fach („dieser Kuchen hier“), name allein die mitgegebene Zutat."
+            },
+            {
+              "code": "    }",
+              "explain": "Hier endet der Konstruktor (die Backanleitung)."
+            },
+            {
+              "code": ""
+            },
+            {
+              "code": "    @Override",
+              "explain": "@Override ist ein Hinweiszettel: „Die folgende Methode ersetzt die gleichnamige Methode der Eltern-Form.“ Java prüft, ob es diese Methode dort wirklich gibt – so fallen Tippfehler sofort auf."
+            },
+            {
+              "code": "    public String tostring() {",
+              "explain": "Hier beginnt die Methode „tostring“ – sie liefert einen Text. Das @Override darüber sagt: Sie soll eine geerbte Methode ersetzen."
+            },
+            {
+              "code": "        return \"Hund \" + name;",
+              "explain": "Das Rezept ist fertig: Es gibt den zusammengesetzten Text aus „Hund “ und dem Inhalt der Box „name“ (das + klebt die Teile aneinander) zurück an die Stelle, die es aufgerufen hat – wie ein Automat, der sein Produkt ausgibt."
+            },
+            {
+              "code": "    }",
+              "explain": "Hier endet die Methode (das Rezept) „tostring“."
+            },
+            {
+              "code": "}",
+              "explain": "Hier endet die Klasse „Hund“ – die Kuchenform ist fertig beschrieben."
+            }
+          ]
+        },
+        "bugLine": 9,
+        "fix": {
+          "code": "    public String toString() {",
+          "explain": "Richtig: toString mit großem S ersetzt die geerbte Methode aus Object – jetzt gibt println den Hund als „Hund Bello“ aus."
+        },
+        "hint": "Java ist bei Methodennamen pingelig: Groß- und Kleinschreibung zählt.",
+        "explanation": "Die geerbte Methode heißt toString – mit großem S. tostring wäre eine ganz neue Methode; @Override merkt, dass sie nichts ersetzt, und Java meldet einen Fehler.",
+        "verify": {
+          "main": "System.out.println(new Hund(\"Bello\"));",
+          "output": "Hund Bello"
+        },
+        "javaContext": "file"
+      }
+    ],
+    "l16-text-input": [
+      {
+        "id": "t16-p",
+        "type": "ordering",
+        "topicId": "io",
+        "difficulty": 3,
+        "prompt": "Bau mit einem StringBuilder den Text „1 2 3“ zusammen und gib ihn genau einmal aus.",
+        "puzzle": {
+          "lines": [
+            {
+              "code": "StringBuilder text = new StringBuilder();",
+              "explain": "Hier erstellen wir mit new einen Notizblock für Text (StringBuilder) und legen ihn in die Box „text“. Das Etikett StringBuilder heißt: Darin liegt ein Notizblock für Text, auf dem man immer weiterschreiben kann."
+            },
+            {
+              "code": "for (int i = 1; i <= 3; i++) {",
+              "explain": "Eine Schleife: Das Programm wiederholt die Zeilen im Block mehrmals. Der Zähler „i“ startet bei 1. Vor jeder Runde fragt das Programm „i <= 3?“ – nur bei „ja“ gibt es eine weitere Runde. Nach jeder Runde wird „i“ um 1 erhöht."
+            },
+            {
+              "code": "    text.append(i).append(\" \");",
+              "explain": "Hängt nacheinander i und „ “ an den Notizblock „text“ an. Das klappt in einer Zeile, weil jedes append den Notizblock gleich wieder zurückgibt."
+            },
+            {
+              "code": "}",
+              "explain": "Hier endet eine Runde der Schleife. Das Programm springt wieder nach oben und prüft, ob noch eine Runde kommt."
+            },
+            {
+              "code": "System.out.println(text.toString().trim());",
+              "explain": "Schreibt das Ergebnis einer Kette von Schritten auf den Bildschirm: Wir starten mit „text“, dann toString() macht daraus wieder einen normalen Text, dann trim() (liefert der Text ohne Leerzeichen am Rand). Danach springt die Ausgabe in eine neue Zeile."
+            }
+          ]
+        },
+        "hint": "Der StringBuilder muss da sein, bevor die Schleife etwas anhängt. Ausgegeben wird erst, wenn alles angehängt ist.",
+        "explanation": "Erst entsteht der leere StringBuilder, dann hängt die Schleife 1, 2 und 3 mit je einem Leerzeichen an. Nach der Schleife entfernt trim() das letzte Leerzeichen, und der Text wird einmal ausgegeben.",
+        "verify": {
+          "output": "1 2 3"
+        }
+      }
+    ],
+    "l17-files-time": [
+      {
+        "id": "t17-b",
+        "type": "findBug",
+        "topicId": "datetime",
+        "difficulty": 3,
+        "prompt": "In diesem Code steckt genau ein Fehler. Tippe auf die Zeile, in der er steckt. Das Programm soll ausgeben, welcher Tag fünf Tage nach dem 30. März 2026 ist.",
+        "code": {
+          "lines": [
+            {
+              "code": "LocalDate start = LocalDate.of(2026, 13, 30);",
+              "explain": "Hier erstellen wir eine Box namens „start“ mit einem Datum: LocalDate.of(2026, 13, 30) – in den Klammern stehen Jahr, Monat und Tag."
+            },
+            {
+              "code": "LocalDate ende = start.plusDays(5);",
+              "explain": "Hier erstellen wir eine Box namens „ende“ und legen das Datum 5 Tage nach „start“ hinein. Das Etikett LocalDate heißt: Darin liegt ein Kalenderdatum (ohne Uhrzeit)."
+            },
+            {
+              "code": "System.out.println(\"Start: \" + start);",
+              "explain": "Schreibt den zusammengesetzten Text aus „Start: “ und dem Inhalt der Box „start“ (das + klebt die Teile aneinander) auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste."
+            },
+            {
+              "code": "System.out.println(\"Ende: \" + ende);",
+              "explain": "Schreibt den zusammengesetzten Text aus „Ende: “ und dem Inhalt der Box „ende“ (das + klebt die Teile aneinander) auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste."
+            }
+          ]
+        },
+        "bugLine": 1,
+        "fix": {
+          "code": "LocalDate start = LocalDate.of(2026, 3, 30);",
+          "explain": "Richtig: LocalDate.of(2026, 3, 30) ist der 30. März 2026 – Monat 3 ist der März."
+        },
+        "hint": "Ein Jahr hat nur 12 Monate.",
+        "explanation": "LocalDate.of(Jahr, Monat, Tag): Einen 13. Monat gibt es nicht – Java bricht beim Ausführen mit einer DateTimeException ab. Richtig ist Monat 3; fünf Tage nach dem 30. März ist der 4. April.",
+        "verify": {
+          "output": "Start: 2026-03-30\nEnde: 2026-04-04",
+          "bugCompiles": true
+        }
+      }
+    ],
+    "l18-recursion": [
+      {
+        "id": "t18-p",
+        "type": "ordering",
+        "topicId": "recursion",
+        "difficulty": 3,
+        "prompt": "Bau die rekursive Methode fakultaet zusammen: fakultaet(5) soll 120 liefern (5 · 4 · 3 · 2 · 1).",
+        "puzzle": {
+          "lines": [
+            {
+              "code": "static int fakultaet(int n) {",
+              "explain": "Hier beginnt die Methode „fakultaet“ – ein Rezept mit Namen. Als Zutaten bekommt sie n (eine ganze Zahl) und liefert am Ende eine ganze Zahl als Ergebnis zurück. static: Das Rezept gehört zur Kuchenform selbst – man braucht kein Objekt, um es zu benutzen."
+            },
+            {
+              "code": "    if (n <= 1) {",
+              "explain": "Hier stellt das Programm eine Frage: Stimmt „n <= 1“ – ist n also kleiner als 1 oder gleich 1? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg."
+            },
+            {
+              "code": "        return 1;",
+              "explain": "Das Rezept ist fertig: Es gibt die Zahl 1 zurück an die Stelle, die es aufgerufen hat – wie ein Automat, der sein Produkt ausgibt."
+            },
+            {
+              "code": "    }",
+              "explain": "Hier endet der Block, der nur bei „ja“ ausgeführt wird."
+            },
+            {
+              "code": "    return n * fakultaet(n - 1);",
+              "explain": "Das Rezept ist fertig: Es gibt das Ergebnis der Rechnung n * fakultaet(n - 1) zurück an die Stelle, die es aufgerufen hat – wie ein Automat, der sein Produkt ausgibt. Achtung, spannend: Hier ruft das Rezept „fakultaet“ sich selbst auf (Rekursion) – mit einer kleineren Aufgabe. Das wiederholt sich, bis der Basisfall greift."
+            },
+            {
+              "code": "}",
+              "explain": "Hier endet die Methode (das Rezept) „fakultaet“."
+            }
+          ]
+        },
+        "hint": "Jede Rekursion braucht zuerst ihren Abbruchfall – sonst ruft sie sich endlos selbst auf.",
+        "explanation": "Zuerst der Abbruchfall: Bei n <= 1 ist das Ergebnis 1. Sonst rechnet die Methode n mal das Ergebnis für n - 1 – so entsteht 5 · 4 · 3 · 2 · 1 = 120.",
+        "verify": {
+          "main": "System.out.println(fakultaet(5));",
+          "output": "120"
+        },
+        "javaContext": "members"
+      }
+    ],
+    "l19-search-sort": [
+      {
+        "id": "t19-b",
+        "type": "findBug",
+        "topicId": "algorithms",
+        "difficulty": 3,
+        "prompt": "In diesem Code steckt genau ein Fehler. Tippe auf die Zeile, in der er steckt. Bubble Sort soll das Array aufsteigend sortieren und [1, 2, 4, 5] ausgeben.",
+        "code": {
+          "lines": [
+            {
+              "code": "int[] zahlen = {5, 2, 4, 1};",
+              "explain": "Hier erstellen wir einen Eierkarton namens „zahlen“ mit 4 nummerierten Fächern und legen 5, 2, 4 und 1 hinein. Die Fächer sind ab 0 nummeriert: In Fach 0 liegt 5."
+            },
+            {
+              "code": "for (int runde = 0; runde < zahlen.length - 1; runde++) {",
+              "explain": "Eine Schleife: Das Programm wiederholt die Zeilen im Block mehrmals. Der Zähler „runde“ startet bei 0. Vor jeder Runde fragt das Programm „runde < zahlen.length - 1?“ – nur bei „ja“ gibt es eine weitere Runde. Nach jeder Runde wird „runde“ um 1 erhöht."
+            },
+            {
+              "code": "    for (int j = 0; j < zahlen.length; j++) {",
+              "explain": "Eine innere Schleife: Der Zähler j startet bei 0 und läuft, solange j < zahlen.length gilt. Nach jeder Runde wird j um 1 erhöht."
+            },
+            {
+              "code": "        if (zahlen[j] > zahlen[j + 1]) {",
+              "explain": "Hier stellt das Programm eine Frage: Stimmt „zahlen[j] > zahlen[j + 1]“? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg."
+            },
+            {
+              "code": "            int tausch = zahlen[j];",
+              "explain": "Hier erstellen wir eine Box namens „tausch“ und legen den Inhalt von Fach Nummer j im Eierkarton „zahlen“ hinein. Das Etikett int heißt: In diese Box passen nur ganze Zahlen."
+            },
+            {
+              "code": "            zahlen[j] = zahlen[j + 1];",
+              "explain": "Legt das Ergebnis der Rechnung zahlen[j + 1] in Fach Nummer j des Eierkartons „zahlen“ – gezählt wird ab 0."
+            },
+            {
+              "code": "            zahlen[j + 1] = tausch;",
+              "explain": "Legt den Inhalt der Box „tausch“ in das Fach j + 1 des Arrays „zahlen“ – damit ist der Tausch der beiden Nachbarn fertig."
+            },
+            {
+              "code": "        }",
+              "explain": "Hier endet der Block, der nur bei „ja“ ausgeführt wird."
+            },
+            {
+              "code": "    }",
+              "explain": "Hier endet eine Runde der Schleife. Das Programm springt wieder nach oben und prüft, ob noch eine Runde kommt."
+            },
+            {
+              "code": "}",
+              "explain": "Hier endet eine Runde der Schleife. Das Programm springt wieder nach oben und prüft, ob noch eine Runde kommt."
+            },
+            {
+              "code": "System.out.println(Arrays.toString(zahlen));",
+              "explain": "Schreibt den Inhalt des Eierkartons „zahlen“ als Text (in eckigen Klammern) auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste."
+            }
+          ]
+        },
+        "bugLine": 3,
+        "fix": {
+          "code": "    for (int j = 0; j < zahlen.length - 1; j++) {",
+          "explain": "Richtig: j läuft nur bis zum vorletzten Fach – so hat zahlen[j] immer einen rechten Nachbarn zahlen[j + 1]."
+        },
+        "hint": "In der inneren Schleife wird zahlen[j] mit zahlen[j + 1] verglichen. Wie groß darf j höchstens werden?",
+        "explanation": "Die innere Schleife vergleicht jedes Fach mit seinem rechten Nachbarn. Läuft j bis zum letzten Fach, gibt es für zahlen[j + 1] kein Fach mehr – ArrayIndexOutOfBoundsException. Richtig ist j < zahlen.length - 1.",
+        "verify": {
+          "output": "[1, 2, 4, 5]",
+          "bugCompiles": true
+        }
+      }
+    ],
+    "l20-sets-queues": [
+      {
+        "id": "t20-p",
+        "type": "ordering",
+        "topicId": "datastructures",
+        "difficulty": 3,
+        "prompt": "In der Warteschlange stellt sich erst Ada an, dann Linus. Es soll „Ada ist dran“ und danach „1 wartet noch“ erscheinen.",
+        "puzzle": {
+          "lines": [
+            {
+              "code": "Queue<String> schlange = new ArrayDeque<>();",
+              "explain": "Hier erstellen wir mit new eine ArrayDeque – eine Reihe, die als Stapel oder als Warteschlange dienen kann – noch leer – und legen sie in die Box „schlange“. Das Etikett Queue<String> heißt: Darin liegt eine Warteschlange – wer zuerst kommt, ist zuerst dran. Auf dem Etikett steht allgemein „Queue“, drin liegt eine ArrayDeque – so kann man später leicht eine andere Sorte nehmen."
+            },
+            {
+              "code": "schlange.offer(\"Ada\");",
+              "explain": "Stellt „Ada“ hinten an die Warteschlange „schlange“ an (offer)."
+            },
+            {
+              "code": "schlange.offer(\"Linus\");",
+              "explain": "Stellt „Linus“ hinten an die Warteschlange „schlange“ an (offer)."
+            },
+            {
+              "code": "System.out.println(schlange.poll() + \" ist dran\");",
+              "explain": "Schreibt den zusammengesetzten Text aus dem Ergebnis von schlange.poll() und „ ist dran“ (das + klebt die Teile aneinander) auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste."
+            },
+            {
+              "code": "System.out.println(schlange.size() + \" wartet noch\");",
+              "explain": "Schreibt den zusammengesetzten Text aus dem Ergebnis von schlange.size() und „ wartet noch“ (das + klebt die Teile aneinander) auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste."
+            }
+          ]
+        },
+        "hint": "Eine Warteschlange ist fair: Wer zuerst kommt, ist zuerst dran (poll holt den Ersten heraus).",
+        "explanation": "Erst entsteht die leere Warteschlange, dann stellen sich Ada und Linus an. poll() holt die Erste heraus – Ada – und danach wartet nur noch eine Person.",
+        "verify": {
+          "output": "Ada ist dran\n1 wartet noch"
+        }
+      }
+    ],
+    "l21-testing": [
+      {
+        "id": "t21-b",
+        "type": "findBug",
+        "topicId": "testing",
+        "difficulty": 3,
+        "prompt": "In diesem Code steckt genau ein Fehler. Tippe auf die Zeile, in der er steckt. Der Test pruefe(8, addiere(3, 5)) schlägt fehl – finde die Zeile, die ihn rot macht.",
+        "code": {
+          "lines": [
+            {
+              "code": "static int addiere(int a, int b) {",
+              "explain": "Hier beginnt die Methode „addiere“ – ein Rezept mit Namen. Als Zutaten bekommt sie a (eine ganze Zahl) und b (eine ganze Zahl) und liefert am Ende eine ganze Zahl als Ergebnis zurück. static: Das Rezept gehört zur Kuchenform selbst – man braucht kein Objekt, um es zu benutzen."
+            },
+            {
+              "code": "    return a - b;",
+              "explain": "Das Rezept ist fertig: Es gibt das Ergebnis der Rechnung a - b zurück an die Stelle, die es aufgerufen hat."
+            },
+            {
+              "code": "}",
+              "explain": "Hier endet die Methode (das Rezept) „addiere“."
+            },
+            {
+              "code": ""
+            },
+            {
+              "code": "static void pruefe(int erwartet, int erhalten) {",
+              "explain": "Hier beginnt die Methode „pruefe“ – ein Rezept mit Namen. Als Zutaten bekommt sie erwartet (eine ganze Zahl) und erhalten (eine ganze Zahl) und liefert kein Ergebnis zurück (void = „leer“) – sie erledigt nur eine Aufgabe. static: Das Rezept gehört zur Kuchenform selbst – man braucht kein Objekt, um es zu benutzen."
+            },
+            {
+              "code": "    if (erwartet != erhalten) {",
+              "explain": "Hier stellt das Programm eine Frage: Stimmt „erwartet != erhalten“? Nur bei „ja“ (true) werden die Zeilen im folgenden Block ausgeführt – sonst springt das Programm darüber hinweg."
+            },
+            {
+              "code": "        throw new AssertionError(\"erwartet \" + erwartet + \", erhalten \" + erhalten);",
+              "explain": "Löst absichtlich einen Alarm aus: eine AssertionError mit der Meldung \"erwartet \" + erwartet + \", erhalten \" + erhalten. Das Rezept bricht hier sofort ab, und der Alarm wandert zu dem, der es aufgerufen hat."
+            },
+            {
+              "code": "    }",
+              "explain": "Hier endet der Block, der nur bei „ja“ ausgeführt wird."
+            },
+            {
+              "code": "    System.out.println(\"Test bestanden\");",
+              "explain": "Schreibt den Text „Test bestanden“ auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste."
+            },
+            {
+              "code": "}",
+              "explain": "Hier endet die Methode (das Rezept) „pruefe“."
+            }
+          ]
+        },
+        "bugLine": 2,
+        "fix": {
+          "code": "    return a + b;",
+          "explain": "Richtig: addiere rechnet a + b – für 3 und 5 also 8, und der Test ist grün."
+        },
+        "hint": "Der Test erwartet 8 für 3 und 5. Was rechnet addiere tatsächlich?",
+        "explanation": "Der Test ist in Ordnung – er deckt einen Fehler in addiere auf: a - b ergibt für 3 und 5 nicht 8, sondern -2. pruefe schlägt Alarm (AssertionError). Genau dafür schreibt man Tests.",
+        "verify": {
+          "main": "pruefe(8, addiere(3, 5));",
+          "output": "Test bestanden",
+          "bugCompiles": true
+        },
+        "javaContext": "members"
+      }
+    ],
+    "l22-tools-debugging": [
+      {
+        "id": "t22-p",
+        "type": "ordering",
+        "topicId": "tooling",
+        "difficulty": 3,
+        "prompt": "Mit Kontroll-Ausgaben verfolgst du, wie sich zahl verändert: Es soll erst „zahl = 6“ und dann „zahl = 3“ erscheinen.",
+        "puzzle": {
+          "lines": [
+            {
+              "code": "int zahl = 6;",
+              "explain": "Hier erstellen wir eine Box namens „zahl“ und legen die Zahl 6 hinein. Das Etikett int heißt: In diese Box passen nur ganze Zahlen."
+            },
+            {
+              "code": "while (zahl != 1) {",
+              "explain": "Eine Schleife: Solange die Frage „zahl != 1?“ mit „ja“ beantwortet wird, wiederholt das Programm die Zeilen im Block. Ist die Antwort schon am Anfang „nein“, läuft der Block gar nicht."
+            },
+            {
+              "code": "    System.out.println(\"zahl = \" + zahl);",
+              "explain": "Schreibt den zusammengesetzten Text aus „zahl = “ und dem Inhalt der Box „zahl“ (das + klebt die Teile aneinander) auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste."
+            },
+            {
+              "code": "    zahl = zahl / 2;",
+              "explain": "Rechnet zahl / 2 aus und legt das Ergebnis zurück in die Box „zahl“ – der alte Inhalt wird ersetzt."
+            },
+            {
+              "code": "}",
+              "explain": "Hier endet eine Runde der Schleife. Das Programm springt wieder nach oben und prüft, ob noch eine Runde kommt."
+            }
+          ]
+        },
+        "hint": "Eine Kontroll-Ausgabe zeigt den Wert, bevor er sich ändert.",
+        "explanation": "zahl startet bei 6. In jeder Runde zeigt die Kontroll-Ausgabe den aktuellen Wert, danach wird zahl halbiert: 6, dann 3 – bei 1 endet die Schleife.",
+        "verify": {
+          "output": "zahl = 6\nzahl = 3"
+        }
+      }
+    ],
+    "l23-threads": [
+      {
+        "id": "t23-b",
+        "type": "findBug",
+        "topicId": "concurrency",
+        "difficulty": 3,
+        "prompt": "In diesem Code steckt genau ein Fehler. Tippe auf die Zeile, in der er steckt. Erst soll A arbeiten, dann B – und am Ende „Beide fertig“ erscheinen.",
+        "code": {
+          "lines": [
+            {
+              "code": "Thread a = new Thread(() -> System.out.println(\"A arbeitet\"));",
+              "explain": "Hier erstellen wir mit new einen Thread (einen eigenen Arbeitsstrang) mit der Aufgabe „System.out.println(\"A arbeitet\")“ und legen ihn in die Box „a“. Das Etikett Thread heißt: Darin liegt ein eigener Arbeitsstrang, der gleichzeitig mit dem Hauptprogramm arbeiten kann."
+            },
+            {
+              "code": "Thread b = new Thread(() -> System.out.println(\"B arbeitet\"));",
+              "explain": "Hier erstellen wir mit new einen Thread (einen eigenen Arbeitsstrang) mit der Aufgabe „System.out.println(\"B arbeitet\")“ und legen ihn in die Box „b“. Das Etikett Thread heißt: Darin liegt ein eigener Arbeitsstrang, der gleichzeitig mit dem Hauptprogramm arbeiten kann."
+            },
+            {
+              "code": "a.start();",
+              "explain": "Lässt den Thread „a“ loslaufen (start). Ab jetzt arbeitet er gleichzeitig mit dem Hauptprogramm."
+            },
+            {
+              "code": "a.join();",
+              "explain": "Wartet (join), bis der Thread „a“ fertig ist – erst dann geht es mit der nächsten Zeile weiter."
+            },
+            {
+              "code": "a.start();",
+              "explain": "Startet den Thread a: Er arbeitet ab jetzt nebenher."
+            },
+            {
+              "code": "b.join();",
+              "explain": "Wartet (join), bis der Thread „b“ fertig ist – erst dann geht es mit der nächsten Zeile weiter."
+            },
+            {
+              "code": "System.out.println(\"Beide fertig\");",
+              "explain": "Schreibt den Text „Beide fertig“ auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste."
+            }
+          ]
+        },
+        "bugLine": 5,
+        "fix": {
+          "code": "b.start();",
+          "explain": "Richtig: Jetzt startet Thread b – jeder Thread wird genau einmal gestartet."
+        },
+        "hint": "Jeder Thread lässt sich genau einmal starten. Welcher Thread wurde noch gar nicht gestartet?",
+        "explanation": "Thread b wird nie gestartet – stattdessen wird a ein zweites Mal gestartet. Das erlaubt Java nicht: IllegalThreadStateException. Richtig ist b.start();",
+        "verify": {
+          "output": "A arbeitet\nB arbeitet\nBeide fertig",
+          "bugCompiles": true
+        }
+      }
+    ],
+    "l24-executors": [
+      {
+        "id": "t24-p",
+        "type": "ordering",
+        "topicId": "concurrency",
+        "difficulty": 3,
+        "prompt": "Lass einen virtuellen Thread 6 · 7 ausrechnen und gib „Antwort: 42“ aus – das Team wird am Ende automatisch aufgeräumt.",
+        "puzzle": {
+          "lines": [
+            {
+              "code": "try (ExecutorService team = Executors.newVirtualThreadPerTaskExecutor()) {",
+              "explain": "Versuch mit Ressource (try-with-resources): Hier legen wir die Box „team“ an und legen ein Team, das jeder Aufgabe einen eigenen, leichten virtuellen Thread gibt hinein. Am Ende des Blocks wird sie automatisch geschlossen und aufgeräumt – wie eine Tür, die von selbst zufällt. Das Etikett ExecutorService heißt: Darin liegt ein Team von Threads, das eingereichte Aufgaben abarbeitet."
+            },
+            {
+              "code": "    Future<Integer> antwort = team.submit(() -> 6 * 7);",
+              "explain": "Hier erstellen wir eine Box namens „antwort“ und legen einen Abholschein (Future) für die Aufgabe „6 * 7“ (das Team „team“ erledigt sie im Hintergrund) hinein. Das Etikett Future<Integer> heißt: Darin liegt ein Abholschein für ein Ergebnis, das erst später fertig wird."
+            },
+            {
+              "code": "    System.out.println(\"Antwort: \" + antwort.get());",
+              "explain": "Schreibt den zusammengesetzten Text aus „Antwort: “ und dem Ergebnis vom Abholschein „antwort“ (das + klebt die Teile aneinander) auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste."
+            },
+            {
+              "code": "}",
+              "explain": "Hier endet der Versuch (try)."
+            }
+          ]
+        },
+        "hint": "Erst muss es das Team geben, dann kann es eine Aufgabe annehmen – und erst dann gibt es ein Ergebnis zum Abholen.",
+        "explanation": "try (…) öffnet das Team und räumt es am Ende auf. submit gibt die Rechnung ab und liefert ein Future – einen Abholschein. get() wartet, bis das Ergebnis da ist.",
+        "verify": {
+          "output": "Antwort: 42"
+        }
+      }
+    ],
+    "l25-sealed-patterns": [
+      {
+        "id": "t25-b",
+        "type": "findBug",
+        "topicId": "patterns",
+        "difficulty": 3,
+        "prompt": "In diesem Code steckt genau ein Fehler. Tippe auf die Zeile, in der er steckt. Die Methode flaeche soll für ein Quadrat mit der Seite 3 die Fläche 9.0 liefern.",
+        "code": {
+          "lines": [
+            {
+              "code": "sealed interface Form permits Kreis, Quadrat {}",
+              "explain": "Hier beginnt das Interface „Form“ – ein Vertrag: Es legt nur fest, WAS eine Klasse können muss (welche Methoden), aber nicht WIE. sealed … permits: Die Familie ist geschlossen – nur Kreis und Quadrat dürfen dazugehören. So weiß Java genau, welche Sorten es gibt. Die leeren Klammern {} heißen: Mehr braucht es nicht."
+            },
+            {
+              "code": "record Kreis(double radius) implements Form {}",
+              "explain": "Hier definieren wir den Record „Kreis“ – wie ein Formular mit festen Feldern: radius (eine Kommazahl). Den Rest erledigt Java automatisch: Konstruktor, Lesemethoden radius(), Vergleich (equals) und Textdarstellung (toString). Die leeren Klammern {} heißen: Mehr braucht es nicht. implements Form: Der Record unterschreibt einen Vertrag – er verspricht, alle Methoden anzubieten, die Form verlangt."
+            },
+            {
+              "code": "record Quadrat(double seite) implements Form {}",
+              "explain": "Hier definieren wir den Record „Quadrat“ – wie ein Formular mit festen Feldern: seite (eine Kommazahl). Den Rest erledigt Java automatisch: Konstruktor, Lesemethoden seite(), Vergleich (equals) und Textdarstellung (toString). Die leeren Klammern {} heißen: Mehr braucht es nicht. implements Form: Der Record unterschreibt einen Vertrag – er verspricht, alle Methoden anzubieten, die Form verlangt."
+            },
+            {
+              "code": ""
+            },
+            {
+              "code": "class Rechner {",
+              "explain": "Hier beginnt die Klasse „Rechner“. Stell sie dir als Kuchenform vor: Sie beschreibt, welche Eigenschaften und Fähigkeiten jedes Objekt vom Typ Rechner hat. Die echten Objekte sind die Kuchen, die später mit new aus dieser Form gebacken werden."
+            },
+            {
+              "code": "    static double flaeche(Form form) {",
+              "explain": "Hier beginnt die Methode „flaeche“ – ein Rezept mit Namen. Als Zutaten bekommt sie form (ein Objekt vom Typ Form) und liefert am Ende eine Kommazahl als Ergebnis zurück. static: Das Rezept gehört zur Kuchenform selbst – man braucht kein Objekt, um es zu benutzen."
+            },
+            {
+              "code": "        return switch (form) {",
+              "explain": "Das Rezept gibt zurück, was der folgende Weichensteller (switch) je nach „form“ auswählt."
+            },
+            {
+              "code": "            case Kreis k -> Math.PI * k.radius() * k.radius();",
+              "explain": "Ist der Wert ein Kreis (er bekommt das Namensschild „k“), liefert der Weichensteller das Ergebnis der Rechnung Math.PI * k.radius() * k.radius()."
+            },
+            {
+              "code": "            case Quadrat q -> q.radius() * q.radius();",
+              "explain": "Fall Quadrat: Ist die Form ein Quadrat, heißt sie hier q – und die Fläche wird aus q.radius() berechnet."
+            },
+            {
+              "code": "        };",
+              "explain": "Hier endet der Weichensteller (switch-Ausdruck). Das Semikolon beendet die ganze Anweisung."
+            },
+            {
+              "code": "    }",
+              "explain": "Hier endet die Methode (das Rezept) „flaeche“."
+            },
+            {
+              "code": "}",
+              "explain": "Hier endet die Klasse „Rechner“ – die Kuchenform ist fertig beschrieben."
+            }
+          ]
+        },
+        "bugLine": 9,
+        "fix": {
+          "code": "            case Quadrat q -> q.seite() * q.seite();",
+          "explain": "Richtig: Ein Quadrat hat eine seite – die Fläche ist seite · seite."
+        },
+        "hint": "Schau in den Record: Welche Werte hat ein Quadrat?",
+        "explanation": "Im Fall case Quadrat q ist q ein Quadrat – und der Record Quadrat hat nur die Komponente seite. q.radius() gibt es nicht, deshalb übersetzt Java das Programm nicht.",
+        "verify": {
+          "main": "System.out.println(Rechner.flaeche(new Quadrat(3)));",
+          "output": "9.0"
+        },
+        "javaContext": "file"
+      }
+    ],
+    "l26-streams-pro": [
+      {
+        "id": "t26-p",
+        "type": "ordering",
+        "topicId": "lambdas",
+        "difficulty": 3,
+        "prompt": "Das Fließband soll jede Zahl mit sich selbst malnehmen und alles zusammenzählen: „Summe der Quadrate: 26“ (16 + 1 + 9).",
+        "puzzle": {
+          "lines": [
+            {
+              "code": "List<Integer> zahlen = List.of(4, 1, 3);",
+              "explain": "Hier erstellen wir eine Box namens „zahlen“ und legen einen fertigen Einkaufszettel mit 4, 1 und 3 (List.of – danach unveränderlich) hinein. Das Etikett List<Integer> heißt: Darin liegt eine Liste, und auf ihr dürfen nur ganze Zahlen (Integer) stehen."
+            },
+            {
+              "code": "int summe = zahlen.stream()",
+              "explain": "Hier erstellen wir eine Box namens „summe“. Hineinkommen soll das Ergebnis eines Fließbands (Stream): zahlen.stream() legt alle Elemente von „zahlen“ aufs Band, die nächsten Zeilen sind die Stationen. Das Etikett int heißt: In diese Box passen nur ganze Zahlen."
+            },
+            {
+              "code": "    .map(n -> n * n)",
+              "explain": "Station „Umformer“ (map): Aus jedem Element n wird n * n."
+            },
+            {
+              "code": "    .reduce(0, (a, b) -> a + b);",
+              "explain": "Ende des Bandes (reduce): Alles wird zu einem Wert zusammengefasst – wie ein Trichter. Start ist 0, dann wird Schritt für Schritt a + b gerechnet (a, b: bisheriges Ergebnis und nächstes Element). Damit ist das Fließband fertig – das Ergebnis kommt in die Box „summe“."
+            },
+            {
+              "code": "System.out.println(\"Summe der Quadrate: \" + summe);",
+              "explain": "Schreibt den zusammengesetzten Text aus „Summe der Quadrate: “ und dem Inhalt der Box „summe“ (das + klebt die Teile aneinander) auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste."
+            }
+          ]
+        },
+        "hint": "reduce fasst am Ende alles zu einem einzigen Wert zusammen – danach kann keine Station mehr kommen.",
+        "explanation": "Erst kommen die Zahlen aufs Band, map macht aus jeder ihr Quadrat (16, 1, 9), und reduce zählt alles zusammen: 26. reduce ist das Ende des Bandes – es liefert eine einzige Zahl statt eines Streams.",
+        "verify": {
+          "output": "Summe der Quadrate: 26"
+        }
+      }
+    ],
+    "l27-project-grades": [
+      {
+        "id": "t27-b",
+        "type": "findBug",
+        "topicId": "projects",
+        "difficulty": 3,
+        "prompt": "In diesem Code steckt genau ein Fehler. Tippe auf die Zeile, in der er steckt. Der Notenrechner soll den Durchschnitt ausgeben: „Schnitt: 2.0“.",
+        "code": {
+          "lines": [
+            {
+              "code": "int[] noten = {2, 3, 1, 2};",
+              "explain": "Hier erstellen wir einen Eierkarton namens „noten“ mit 4 nummerierten Fächern und legen 2, 3, 1 und 2 hinein. Die Fächer sind ab 0 nummeriert: In Fach 0 liegt 2."
+            },
+            {
+              "code": "int summe = 0;",
+              "explain": "Hier erstellen wir eine Box namens „summe“ und legen die Zahl 0 hinein. Das Etikett int heißt: In diese Box passen nur ganze Zahlen."
+            },
+            {
+              "code": "for (int note : noten) {",
+              "explain": "Eine Schleife, die jedes Element aus „noten“ der Reihe nach durchgeht – wie beim Durchblättern eines Kartenstapels. In jeder Runde liegt das aktuelle Element in der Box „note“."
+            },
+            {
+              "code": "    summe += note;",
+              "explain": "Legt note zum Inhalt der Box „summe“ dazu – sie wird um note größer. (Kurzform für summe = summe + note.)"
+            },
+            {
+              "code": "}",
+              "explain": "Hier endet eine Runde der Schleife. Das Programm springt wieder nach oben und prüft, ob noch eine Runde kommt."
+            },
+            {
+              "code": "double schnitt = (double) summe / noten.length();",
+              "explain": "Hier erstellen wir eine Box namens „schnitt“ für eine Kommazahl: summe als Kommazahl geteilt durch noten.length()."
+            },
+            {
+              "code": "System.out.println(\"Schnitt: \" + schnitt);",
+              "explain": "Schreibt den zusammengesetzten Text aus „Schnitt: “ und dem Inhalt der Box „schnitt“ (das + klebt die Teile aneinander) auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste."
+            }
+          ]
+        },
+        "bugLine": 6,
+        "fix": {
+          "code": "double schnitt = (double) summe / noten.length;",
+          "explain": "Richtig: noten.length – ohne Klammern – ist die Anzahl der Noten. 8 / 4 ergibt 2.0."
+        },
+        "hint": "Bei Arrays ist length ein Feld, bei Strings eine Methode.",
+        "explanation": "Ein Array kennt seine Länge als Feld: noten.length – ohne Klammern. noten.length() gibt es nicht, deshalb übersetzt Java das Programm nicht. (Der Cast (double) sorgt dafür, dass mit Komma geteilt wird.)",
+        "verify": {
+          "output": "Schnitt: 2.0"
+        }
+      }
+    ],
+    "l28-project-todo": [
+      {
+        "id": "t28-p",
+        "type": "ordering",
+        "topicId": "projects",
+        "difficulty": 3,
+        "prompt": "Die Aufgabenliste bekommt erst „Einkaufen“, dann „Lernen“. Es soll „2 offen“ erscheinen – und nachdem die erste Aufgabe erledigt ist: „Als Nächstes: Lernen“.",
+        "puzzle": {
+          "lines": [
+            {
+              "code": "List<String> aufgaben = new ArrayList<>();",
+              "explain": "Hier erstellen wir mit new eine ArrayList – eine Liste, die wachsen kann wie ein Einkaufszettel – noch leer – und legen sie in die Box „aufgaben“. Das Etikett List<String> heißt: Darin liegt eine Liste, und auf ihr dürfen nur Texte (String) stehen. Auf dem Etikett steht allgemein „List“, drin liegt eine ArrayList – so kann man später leicht eine andere Sorte nehmen."
+            },
+            {
+              "code": "aufgaben.add(\"Einkaufen\");",
+              "explain": "Schreibt „Einkaufen“ ans Ende der Liste „aufgaben“ – wie ein neuer Eintrag auf dem Einkaufszettel."
+            },
+            {
+              "code": "aufgaben.add(\"Lernen\");",
+              "explain": "Schreibt „Lernen“ ans Ende der Liste „aufgaben“ – wie ein neuer Eintrag auf dem Einkaufszettel."
+            },
+            {
+              "code": "System.out.println(aufgaben.size() + \" offen\");",
+              "explain": "Schreibt den zusammengesetzten Text aus dem Ergebnis von aufgaben.size() und „ offen“ (das + klebt die Teile aneinander) auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste."
+            },
+            {
+              "code": "aufgaben.remove(0);",
+              "explain": "Streicht den Eintrag an Stelle 0 – also den ersten – aus der Liste „aufgaben“. Alles dahinter rückt nach vorn."
+            },
+            {
+              "code": "System.out.println(\"Als Nächstes: \" + aufgaben.get(0));",
+              "explain": "Schreibt den zusammengesetzten Text aus „Als Nächstes: “ und dem Ergebnis von aufgaben.get(0) (das + klebt die Teile aneinander) auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste."
+            }
+          ]
+        },
+        "hint": "Gezählt wird, bevor etwas erledigt ist. remove(0) streicht den ersten Eintrag.",
+        "explanation": "Erst kommen beide Aufgaben auf die Liste, dann zählt size() 2 offene. remove(0) streicht die erste – Einkaufen –, sodass Lernen nach vorn rückt.",
+        "verify": {
+          "output": "2 offen\nAls Nächstes: Lernen"
+        }
+      }
+    ],
+    "l29-project-adventure": [
+      {
+        "id": "t29-b",
+        "type": "findBug",
+        "topicId": "projects",
+        "difficulty": 3,
+        "prompt": "In diesem Code steckt genau ein Fehler. Tippe auf die Zeile, in der er steckt. Das Textabenteuer soll nach dem Befehl „norden“ ausgeben: „Du bist jetzt im Wald“.",
+        "code": {
+          "lines": [
+            {
+              "code": "String befehl = \"norden\";",
+              "explain": "Hier erstellen wir eine Box namens „befehl“ und legen den Text „norden“ hinein. Das Etikett String heißt: In diese Box passen Texte."
+            },
+            {
+              "code": "String ort = 'Wiese';",
+              "explain": "Hier erstellen wir eine Box namens „ort“ für Text. Rechts vom = steht 'Wiese' in einfachen Anführungszeichen."
+            },
+            {
+              "code": "switch (befehl) {",
+              "explain": "Ein Weichensteller (switch): Je nach Wert von „befehl“ fährt das Programm in einen der folgenden Fälle (case)."
+            },
+            {
+              "code": "    case \"norden\" -> ort = \"Wald\";",
+              "explain": "Ist der Wert „norden“, passiert Folgendes: Wir nehmen den alten Inhalt aus der Box „ort“ heraus und legen stattdessen den Text „Wald“ hinein."
+            },
+            {
+              "code": "    case \"sueden\" -> ort = \"See\";",
+              "explain": "Ist der Wert „sueden“, passiert Folgendes: Wir nehmen den alten Inhalt aus der Box „ort“ heraus und legen stattdessen den Text „See“ hinein."
+            },
+            {
+              "code": "    default -> System.out.println(\"Unbekannter Befehl\");",
+              "explain": "Bei allen anderen Werten passiert Folgendes: Schreibt den Text „Unbekannter Befehl“ auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste."
+            },
+            {
+              "code": "}",
+              "explain": "Hier endet der Weichensteller (switch)."
+            },
+            {
+              "code": "System.out.println(\"Du bist jetzt im \" + ort);",
+              "explain": "Schreibt den zusammengesetzten Text aus „Du bist jetzt im “ und dem Inhalt der Box „ort“ (das + klebt die Teile aneinander) auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste."
+            }
+          ]
+        },
+        "bugLine": 2,
+        "fix": {
+          "code": "String ort = \"Wiese\";",
+          "explain": "Richtig: Texte stehen in doppelten Anführungszeichen – \"Wiese\" ist ein String."
+        },
+        "hint": "Texte (String) und einzelne Zeichen (char) werden unterschiedlich geschrieben.",
+        "explanation": "Einfache Anführungszeichen sind für genau ein Zeichen (char), etwa 'W'. 'Wiese' sind fünf Zeichen – Java übersetzt das nicht. Texte gehören in doppelte Anführungszeichen: \"Wiese\".",
+        "verify": {
+          "output": "Du bist jetzt im Wald"
+        }
+      }
+    ],
+    "l30-uml-basics": [
+      {
+        "id": "t30-b",
+        "type": "findBug",
+        "topicId": "umlbasics",
+        "difficulty": 3,
+        "prompt": "In diesem Code steckt genau ein Fehler. Tippe auf die Zeile, in der er steckt. Laut UML-Kasten hat Konto: - stand : double, + einzahlen(betrag : double), + getStand() : double.",
+        "code": {
+          "lines": [
+            {
+              "code": "class Konto {",
+              "explain": "Hier beginnt die Klasse „Konto“. Stell sie dir als Kuchenform vor: Sie beschreibt, welche Eigenschaften und Fähigkeiten jedes Objekt vom Typ Konto hat. Die echten Objekte sind die Kuchen, die später mit new aus dieser Form gebacken werden."
+            },
+            {
+              "code": "    private double stand;",
+              "explain": "Jedes Objekt, das aus dieser Kuchenform gebacken wird, bekommt ein eigenes Fach namens „stand“. Das Etikett double heißt: In dieses Fach passen Kommazahlen (mit Punkt geschrieben, z. B. 9.99). private: Nur die Klasse selbst darf in dieses Fach schauen – von außen ist es verschlossen."
+            },
+            {
+              "code": ""
+            },
+            {
+              "code": "    public void einzahlen(double betrag) {",
+              "explain": "Hier beginnt die Methode „einzahlen“ – ein Rezept mit Namen. Als Zutaten bekommt sie betrag (eine Kommazahl) und liefert kein Ergebnis zurück (void = „leer“) – sie erledigt nur eine Aufgabe. public: Jeder darf dieses Rezept benutzen."
+            },
+            {
+              "code": "        stand = stand + betrag;",
+              "explain": "Rechnet stand + betrag aus und legt das Ergebnis zurück in die Box „stand“ – der alte Inhalt wird ersetzt."
+            },
+            {
+              "code": "    }",
+              "explain": "Hier endet die Methode (das Rezept) „einzahlen“."
+            },
+            {
+              "code": ""
+            },
+            {
+              "code": "    public int getStand() {",
+              "explain": "Hier beginnt die öffentliche Methode „getStand“ – sie liefert eine ganze Zahl (int) zurück."
+            },
+            {
+              "code": "        return stand;",
+              "explain": "Das Rezept ist fertig: Es gibt den Inhalt der Box „stand“ zurück an die Stelle, die es aufgerufen hat – wie ein Automat, der sein Produkt ausgibt."
+            },
+            {
+              "code": "    }",
+              "explain": "Hier endet die Methode (das Rezept) „getStand“."
+            },
+            {
+              "code": "}",
+              "explain": "Hier endet die Klasse „Konto“ – die Kuchenform ist fertig beschrieben."
+            }
+          ]
+        },
+        "bugLine": 8,
+        "fix": {
+          "code": "    public double getStand() {",
+          "explain": "Richtig: Wie im UML-Kasten liefert getStand() eine Kommazahl (double)."
+        },
+        "hint": "Vergleiche den Rückgabetyp hinter dem Doppelpunkt im UML-Kasten mit dem Typ vor dem Methodennamen.",
+        "explanation": "Im UML-Kasten steht + getStand() : double – der Rückgabetyp steht hinter dem Doppelpunkt. Im Code steht int: Dann müsste aus der Kommazahl stand eine ganze Zahl werden, und das macht Java nicht ohne Weiteres – das Programm übersetzt nicht.",
+        "verify": {
+          "main": "Konto k = new Konto();\nk.einzahlen(50);\nSystem.out.println(k.getStand());",
+          "output": "50.0"
+        },
+        "javaContext": "file"
+      }
+    ],
+    "l31-uml-relations": [
+      {
+        "id": "t31-p",
+        "type": "ordering",
+        "topicId": "umlrelations",
+        "difficulty": 3,
+        "prompt": "Laut UML gehört zu jedem Auto ein Motor (Komposition: Auto ◆— Motor). Bau ein rotes Auto mit einem Motor von 120 PS und gib „Rot, 120 PS“ aus.",
+        "puzzle": {
+          "lines": [
+            {
+              "code": "Motor motor = new Motor(120);",
+              "explain": "Hier backen wir mit new aus der Kuchenform „Motor“ ein neues Objekt mit den Zutaten 120 und legen es in die Box „motor“. Das Etikett Motor heißt: In diese Box passt ein Objekt vom Typ Motor."
+            },
+            {
+              "code": "Auto auto = new Auto(\"Rot\", motor);",
+              "explain": "Hier backen wir mit new aus der Kuchenform „Auto“ ein neues Objekt mit den Zutaten „Rot“ und motor und legen es in die Box „auto“. Das Etikett Auto heißt: In diese Box passt ein Objekt vom Typ Auto."
+            },
+            {
+              "code": "System.out.println(auto.beschreibung());",
+              "explain": "Schreibt das Ergebnis von auto.beschreibung() auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste."
+            }
+          ]
+        },
+        "hint": "Ein Teil muss da sein, bevor das Ganze es bekommen kann.",
+        "explanation": "Erst entsteht der Motor, dann das Auto, das ihn beim Bau mitbekommt – genau das zeigt die Raute im UML. Zum Schluss beschreibt sich das Auto selbst.",
+        "verify": {
+          "output": "Rot, 120 PS",
+          "support": "class Motor {\n    int ps;\n    Motor(int ps) { this.ps = ps; }\n}\n\nclass Auto {\n    String farbe;\n    Motor motor;\n    Auto(String farbe, Motor motor) { this.farbe = farbe; this.motor = motor; }\n    String beschreibung() { return farbe + \", \" + motor.ps + \" PS\"; }\n}"
+        }
+      }
+    ],
+    "l32-uml-java": [
+      {
+        "id": "t32-p",
+        "type": "ordering",
+        "topicId": "umlrelations",
+        "difficulty": 3,
+        "prompt": "Laut UML erbt Hund von Tier (Pfeil mit leerer Spitze). Leg einen Hund in eine Box vom Typ Tier und gib erst seinen Namen, dann seinen Laut aus: „Bello“ und „Wuff“.",
+        "puzzle": {
+          "lines": [
+            {
+              "code": "Tier tier = new Hund(\"Bello\");",
+              "explain": "Hier backen wir mit new aus der Kuchenform „Hund“ ein neues Objekt mit den Zutaten „Bello“ und legen es in die Box „tier“. Das Etikett Tier heißt: In diese Box passt ein Objekt vom Typ Tier. Achtung, spannend: Das Etikett sagt „Tier“, drin liegt aber ein Hund-Objekt. Das passt, denn jedes Hund-Objekt zählt auch als Tier-Objekt (es wurde aus einer erweiterten Tier-Form gebacken). Fragt man es später etwas, antwortet trotzdem das Hund-Objekt – das nennt man Polymorphie („Vielgestaltigkeit“)."
+            },
+            {
+              "code": "System.out.println(tier.getName());",
+              "explain": "Schreibt das Ergebnis von tier.getName() auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste."
+            },
+            {
+              "code": "System.out.println(tier.laut());",
+              "explain": "Schreibt das Ergebnis von tier.laut() auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste."
+            }
+          ]
+        },
+        "hint": "Erst muss es das Tier geben. Danach entscheidet die gewünschte Ausgabe über die Reihenfolge.",
+        "explanation": "Ein Hund ist ein Tier – deshalb passt er in eine Box vom Typ Tier. getName() kommt aus Tier, laut() beantwortet der Hund auf seine Art: „Wuff“.",
+        "verify": {
+          "output": "Bello\nWuff",
+          "support": "class Tier {\n    private final String name;\n    Tier(String name) { this.name = name; }\n    String getName() { return name; }\n    String laut() { return \"...\"; }\n}\n\nclass Hund extends Tier {\n    Hund(String name) { super(name); }\n    @Override\n    String laut() { return \"Wuff\"; }\n}"
+        }
+      }
+    ],
+    "l33-json": [
+      {
+        "id": "t33-b",
+        "type": "findBug",
+        "topicId": "json",
+        "difficulty": 3,
+        "prompt": "In diesem Code steckt genau ein Fehler. Tippe auf die Zeile, in der er steckt. Das Programm soll den Spieler als JSON ausgeben: {\"name\": \"Mia\", \"punkte\": 120}",
+        "code": {
+          "lines": [
+            {
+              "code": "String name = \"Mia\";",
+              "explain": "Hier erstellen wir eine Box namens „name“ und legen den Text „Mia“ hinein. Das Etikett String heißt: In diese Box passen Texte."
+            },
+            {
+              "code": "int punkte = 120;",
+              "explain": "Hier erstellen wir eine Box namens „punkte“ und legen die Zahl 120 hinein. Das Etikett int heißt: In diese Box passen nur ganze Zahlen."
+            },
+            {
+              "code": "String json = \"{\"name\": \"\" + name + \"\", \"punkte\": \" + punkte + \"}\";",
+              "explain": "Hier erstellen wir eine Box namens „json“ für Text: geschweifte Klammer, „name“, der Name, „punkte“ und die Punktzahl werden aneinandergeklebt."
+            },
+            {
+              "code": "System.out.println(json);",
+              "explain": "Schreibt den Inhalt der Box „json“ auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste."
+            }
+          ]
+        },
+        "bugLine": 3,
+        "fix": {
+          "code": "String json = \"{\\\"name\\\": \\\"\" + name + \"\\\", \\\"punkte\\\": \" + punkte + \"}\";",
+          "explain": "Richtig: Jedes Anführungszeichen, das im Text selbst vorkommen soll, bekommt einen Rückstrich davor: \\\"."
+        },
+        "hint": "Wo endet für Java ein Text? Beim nächsten Anführungszeichen – auch wenn es eigentlich zum JSON gehört.",
+        "explanation": "Ein Java-Text endet beim nächsten Anführungszeichen. Die Anführungszeichen von JSON müssen deshalb mit einem Rückstrich maskiert werden: \\\". Ohne ihn zerfällt die Zeile in Stücke, die Java nicht versteht.",
+        "verify": {
+          "output": "{\"name\": \"Mia\", \"punkte\": 120}"
+        }
+      }
+    ],
+    "l34-http": [
+      {
+        "id": "t34-p",
+        "type": "ordering",
+        "topicId": "http",
+        "difficulty": 3,
+        "prompt": "Schick eine Anfrage an http://localhost:8080/hallo und gib den Statuscode und den Text der Antwort aus.",
+        "puzzle": {
+          "lines": [
+            {
+              "code": "URI adresse = URI.create(\"http://localhost:8080/hallo\");",
+              "explain": "Hier erstellen wir eine Box namens „adresse“ und legen das Ergebnis von URI.create(\"http://localhost:8080/hallo\") hinein. Das Etikett URI heißt: In diese Box passt ein Objekt vom Typ URI."
+            },
+            {
+              "code": "HttpRequest anfrage = HttpRequest.newBuilder(adresse).build();",
+              "explain": "Hier erstellen wir eine Box namens „anfrage“. Hinein kommt das Ergebnis einer Kette von Schritten: Wir starten mit „HttpRequest“, dann newBuilder(adresse), dann build() (liefert das fertige Objekt). Das Etikett HttpRequest heißt: Darin liegt eine fertig gebaute Anfrage – Methode, Adresse und womöglich ein Inhalt."
+            },
+            {
+              "code": "HttpResponse<String> antwort = HttpClient.newHttpClient().send(anfrage, HttpResponse.BodyHandlers.ofString());",
+              "explain": "Hier erstellen wir eine Box namens „antwort“. Hinein kommt das Ergebnis einer Kette von Schritten: Wir starten mit „HttpClient“, dann newHttpClient(), dann send(anfrage, HttpResponse.BodyHandlers.ofString()) (liefert die Antwort des Servers). Das Etikett HttpResponse<String> heißt: Darin liegt die Antwort des Servers – Statuscode und Inhalt, der Inhalt als Text."
+            },
+            {
+              "code": "System.out.println(antwort.statusCode() + \" \" + antwort.body());",
+              "explain": "Schreibt den zusammengesetzten Text aus dem Statuscode der Antwort „antwort“, „ “ und dem Inhalt der Antwort „antwort“ (das + klebt die Teile aneinander) auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste."
+            }
+          ]
+        },
+        "hint": "Jede Zeile braucht etwas aus der Zeile davor: die Adresse für die Anfrage, die Anfrage zum Senden, die Antwort zum Ausgeben.",
+        "explanation": "Erst die Adresse (URI), dann die Anfrage an diese Adresse, dann schickt der HttpClient sie ab und wartet auf die Antwort. Zum Schluss stehen Statuscode (z. B. 200) und Text der Antwort bereit."
+      }
+    ],
+    "l35-database": [
+      {
+        "id": "t35-b",
+        "type": "findBug",
+        "topicId": "database",
+        "difficulty": 3,
+        "prompt": "In diesem Code steckt genau ein Fehler. Tippe auf die Zeile, in der er steckt. Die Abfrage soll die Namen aller Spieler mit mehr als 100 Punkten ausgeben.",
+        "code": {
+          "lines": [
+            {
+              "code": "try (Connection db = DriverManager.getConnection(\"jdbc:sqlite:spiel.db\")) {",
+              "explain": "Versuch mit Ressource (try-with-resources): Hier legen wir die Box „db“ an und legen eine Verbindung zur Datenbank „jdbc:sqlite:spiel.db“ (DriverManager.getConnection; dafür braucht es den passenden Treiber) hinein. Am Ende des Blocks wird sie automatisch geschlossen und aufgeräumt – wie eine Tür, die von selbst zufällt. Das Etikett Connection heißt: Darin liegt eine offene Verbindung zur Datenbank."
+            },
+            {
+              "code": "    PreparedStatement abfrage = db.prepareStatement(\"SELECT name FROM spieler WHERE punkte > ?\");",
+              "explain": "Hier erstellen wir eine Box namens „abfrage“ und legen eine vorbereitete Abfrage für das SQL „SELECT name FROM spieler WHERE punkte > ?“ (jedes Fragezeichen ist ein Platzhalter für einen Wert, der später dazukommt) hinein. Das Etikett PreparedStatement heißt: Darin liegt eine vorbereitete SQL-Abfrage, deren Fragezeichen später mit Werten gefüllt werden."
+            },
+            {
+              "code": "    abfrage.setInt(1, 100);",
+              "explain": "Setzt 100 für das 1. Fragezeichen ein (gezählt ab 1). Die Datenbank behandelt den Wert nur als Wert – nie als SQL."
+            },
+            {
+              "code": "    ResultSet zeilen = abfrage.executeUpdate();",
+              "explain": "Hier erstellen wir eine Box namens „zeilen“ für das Ergebnis der Abfrage – abfrage.executeUpdate() führt das SQL aus."
+            },
+            {
+              "code": "    while (zeilen.next()) {",
+              "explain": "Eine Schleife: Solange die Frage „zeilen.next()?“ – gibt es also noch eine Zeile im Ergebnis (next() rückt dabei auf sie vor) – mit „ja“ beantwortet wird, wiederholt das Programm die Zeilen im Block. Ist die Antwort schon am Anfang „nein“, läuft der Block gar nicht. next() rückt das Ergebnis eine Zeile weiter und antwortet, ob es noch eine gab."
+            },
+            {
+              "code": "        System.out.println(zeilen.getString(\"name\"));",
+              "explain": "Schreibt den Text aus der Spalte „name“ der aktuellen Zeile auf den Bildschirm (in die Konsole) und springt danach in eine neue Zeile – wie ein Druck auf die Enter-Taste."
+            },
+            {
+              "code": "    }",
+              "explain": "Hier endet eine Runde der Schleife. Das Programm springt wieder nach oben und prüft, ob noch eine Runde kommt."
+            },
+            {
+              "code": "}",
+              "explain": "Hier endet der Versuch (try)."
+            }
+          ]
+        },
+        "bugLine": 4,
+        "fix": {
+          "code": "    ResultSet zeilen = abfrage.executeQuery();",
+          "explain": "Richtig: executeQuery() führt ein SELECT aus und liefert die gefundenen Zeilen als ResultSet."
+        },
+        "hint": "Für Abfragen mit SELECT gibt es eine eigene Methode – executeUpdate ist für INSERT, UPDATE und DELETE.",
+        "explanation": "executeUpdate ist für Befehle, die etwas ändern, und liefert nur die Zahl der geänderten Zeilen (int). Ein SELECT braucht executeQuery – erst das liefert ein ResultSet zum Durchlaufen. Mit executeUpdate übersetzt Java das Programm nicht."
+      }
     ]
   }
 }

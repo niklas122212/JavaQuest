@@ -1035,7 +1035,8 @@ private enum Syntax {
     static let throwNew = rx(#"^throw\s+new\s+(\w+)\((.*)\);$"#)
     static let increment = rx(#"^([\w.\[\]]+)(\+\+|--);$"#)
     static let compound = rx(#"^([\w.\[\]]+)\s*(\+=|-=|\*=|/=|%=)\s*(.+);$"#)
-    static let assignment = rx(#"^([\w.\[\]]+)\s*=(?!=)\s*(.+);$"#)
+    /// Ziel: Box, Fach eines Objekts oder Fach eines Eierkartons – auch mit Rechnung als Nummer (`zahlen[j + 1]`).
+    static let assignment = rx(#"^(\w+\[[^\]=]+\]|[\w.\[\]]+)\s*=(?!=)\s*(.+);$"#)
     static let thisField = rx(#"^this\.(\w+)$"#)
     static let arrayElement = rx(#"^(\w+)\[(.+)\]$"#)
     static let lambda = rx(#"^\(?\s*([\w, ]*?)\s*\)?\s*->\s*(.+)$"#)
