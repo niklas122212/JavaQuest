@@ -26,7 +26,7 @@ const AUSGENOMMENE_ORDNER = new Set(["tests"]);
 /** In index.html stehen die Nummern selbst – für die Prüfsumme werden sie ausgeblendet. */
 const VERWEIS = /\b([\w-]+\.(?:js|css))\?v=[^"']*/g;
 /** Ohne diese Dateien startet die App nicht – sie müssen mit Nummer geladen werden. */
-const PFLICHT = ["java.js", "arena.js", "spiel.js", "app.js", "styles.css"];
+const PFLICHT = ["java.js", "arena.js", "spiel.js", "arena-seiten.js", "app.js", "styles.css"];
 const SW_NUMMER = /const VERSION = "([^"]*)";/;
 const TEXT = /\.(html|js|css|json|webmanifest)$/;
 

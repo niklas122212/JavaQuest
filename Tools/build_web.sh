@@ -18,7 +18,7 @@ lektionen = [l for m in kurs['modules'] for l in m['lessons']]
 aufgaben = sum(len(l['tasks']) for l in lektionen) + len(kurs.get('taskPool', []))
 print(f\"Kurs: {len(kurs['modules'])} Module, {len(lektionen)} Lektionen, {aufgaben} übbare Aufgaben\")
 "
-for datei in index.html java.js arena.js spiel.js app.js styles.css sw.js manifest.webmanifest arena_missions.json bonus_aufgaben.json icons/icon-180.png icons/icon-192.png icons/icon-512.png; do
+for datei in index.html java.js arena.js spiel.js arena-seiten.js app.js styles.css sw.js manifest.webmanifest arena_missions.json bonus_aufgaben.json icons/icon-180.png icons/icon-192.png icons/icon-512.png; do
   [[ -f $WEB/$datei ]] || { echo "FEHLT: $datei"; exit 1; }
 done
 python3 -c "import json; json.load(open('$WEB/manifest.webmanifest')); print('Manifest: in Ordnung')"
