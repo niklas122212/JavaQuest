@@ -81,8 +81,9 @@ Program – Schritt für Schritt beschrieben in [Docs/TestFlight.md](Docs/TestFl
 3. Schema **JavaQuest**, Ziel iPhone/iPad-Simulator oder „My Mac“ – ⌘R.
 
 Tastatur (Mac und iPad mit Tastatur): Tasten 1–4 wählen eine Antwort, ⌘ + Enter prüft und geht weiter,
-Esc bricht ab, ⌘ 1–3 wechselt den Bereich. Dieselben Kürzel wie unter Windows und im Browser – im Browser
-nur mit Alt statt ⌘ für die Bereiche, weil Browser ⌘ + Zahl für ihre Tabs beanspruchen.
+Esc bricht ab, ⌘ 1–5 wechselt den Bereich (Übersicht, Lernpfad, Wissensanalyse, Arena, Abzeichen), ⇧⌘T startet
+die Tagesmission. Antworten, Prüfen und Abbrechen gehen mit denselben Tasten wie unter Windows und im Browser – im
+Browser wechselt Alt statt ⌘ den Bereich, weil Browser ⌘ + Zahl für ihre Tabs beanspruchen.
 
 **Auf dem Mac benutzen – genau eine App, immer aktuell:**
 

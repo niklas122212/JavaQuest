@@ -57,10 +57,23 @@ private fun selfCheck(outputDir: File) {
     val catalog = ArenaCatalog.loadBundled()
     println("Arena: ${catalog.missions.size} Missionen")
     val state = AppState(ProgressStore(course, file = null, catalog = catalog))
-    val scene = ImageComposeScene(1280, 860, Density(1f)) { JavaQuestTheme(dark = false) { AppShell(state) } }
+    fun newScene() = ImageComposeScene(1280, 860, Density(1f)) { JavaQuestTheme(dark = false) { AppShell(state) } }
+    var scene = newScene()
     var count = 0
+    var rebuilt = 0
     fun render(name: String) {
-        val image = scene.render()
+        val image = try {
+            scene.render()
+        } catch (e: IllegalArgumentException) {
+            // Bekannter Fehler in Compose („LayoutNode … not found in RectList“), wenn eine einzige unsichtbare
+            // Szene hunderte Bildschirmwechsel zeichnet – mit der App hat er nichts zu tun. Szene neu aufbauen
+            // und denselben Zustand noch einmal zeichnen; ein zweiter Fehler bricht den Selbsttest ab.
+            if (e.message?.contains("RectList") != true) throw e
+            runCatching { scene.close() }
+            scene = newScene()
+            rebuilt++
+            scene.render()
+        }
         File(outputDir, "%02d-%s.png".format(++count, name)).writeBytes(image.encodeToData()!!.bytes)
     }
 
@@ -125,8 +138,9 @@ private fun selfCheck(outputDir: File) {
     state.closeFlow()
 
     for (section in app.javaquest.ui.Section.entries) { state.section = section; render("${section.name.lowercase()}-am-ende") }
-    scene.close()
-    println("$count Bildschirme gezeichnet → ${outputDir.absolutePath}")
+    // Auch beim Aufräumen kann derselbe Compose-Fehler auftreten – die Bilder sind dann längst geschrieben.
+    runCatching { scene.close() }
+    println("$count Bildschirme gezeichnet → ${outputDir.absolutePath}" + if (rebuilt > 0) " (Szene $rebuilt× neu aufgebaut)" else "")
     println("Score ${state.store.masterScore}, Lektionen ${state.store.completedLessonCount}/${course.allLessons.size}")
     println("Java ${System.getProperty("java.version")} · ${System.getProperty("os.name")} ${System.getProperty("os.arch")}")
 }
