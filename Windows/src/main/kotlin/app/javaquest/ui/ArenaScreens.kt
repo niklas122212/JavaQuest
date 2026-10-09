@@ -926,7 +926,7 @@ fun ArenaHomeScreen(state: AppState) {
                 SecondaryButton("Spielplatz öffnen", Icons.Rounded.PlayArrow, Modifier.fillMaxWidth().testTag("open-playground"), tint = Palette.teal) { state.openPlayground() }
             }
         }
-        KachelRaster(listOf({ m -> DailyMissionCard(state, m) }, playground), 16.dp)
+        KachelRaster(listOf({ m -> DailyMissionCard(state, m) }, playground), 16.dp, kompaktJeZeile = 1)
         for (module in store.course.modules) {
             val lessonIds = module.lessons.map { it.id }
             val missions = store.catalog.missions
@@ -934,7 +934,7 @@ fun ArenaHomeScreen(state: AppState) {
                 .sortedWith(compareBy({ if (it.kind == MissionKind.BOSS) 1 else 0 }, { lessonIds.indexOf(it.lessonId) }, { it.kind.ordinal }))
             if (missions.isEmpty()) continue
             SectionTitle(module.title, module.subtitle)
-            KachelRaster(missions.map { mission -> { m: Modifier -> MissionTile(state, mission, stars[mission.id] ?: 0, m) } }, 12.dp, maxJeZeile = 4)
+            KachelRaster(missions.map { mission -> { m: Modifier -> MissionTile(state, mission, stars[mission.id] ?: 0, m) } }, 12.dp, maxJeZeile = 4, kompaktJeZeile = 1)
         }
     }
 }

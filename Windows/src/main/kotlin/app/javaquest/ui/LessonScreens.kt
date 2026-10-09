@@ -477,7 +477,7 @@ fun TaskAnswerInput(task: LearningTask, draft: AnswerDraft, onChange: (AnswerDra
                 is TaskKind.PredictOutput -> "KONSOLENAUSGABE"
                 is TaskKind.Code -> "DEIN CODE"
                 is TaskKind.Ordering -> "BRING DIE ZEILEN IN DIE RICHTIGE REIHENFOLGE"
-                is TaskKind.FindBug -> "KLICKE AUF DIE ZEILE MIT DEM FEHLER"
+                is TaskKind.FindBug -> "WÄHLE DIE ZEILE MIT DEM FEHLER"
             },
             fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = secondaryText, letterSpacing = 0.5.sp,
         )

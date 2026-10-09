@@ -47,7 +47,7 @@ fun PuzzleBoard(spec: TaskKind.Ordering, taskId: String, order: List<Int>, isLoc
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Column(Modifier.fillMaxWidth().heightIn(min = 80.dp).clip(RoundedCornerShape(InnerRadius)).background(CodeColors.background).padding(vertical = 6.dp)) {
             if (order.isEmpty()) {
-                Text("Klicke unten die Zeilen in der richtigen Reihenfolge an.", color = CodeColors.plain.copy(alpha = 0.4f), fontFamily = CodeFont, fontSize = 13.sp, modifier = Modifier.padding(14.dp))
+                Text("Wähle unten die Zeilen in der richtigen Reihenfolge aus.", color = CodeColors.plain.copy(alpha = 0.4f), fontFamily = CodeFont, fontSize = 13.sp, modifier = Modifier.padding(14.dp))
             }
             order.forEachIndexed { position, pieceIndex ->
                 val isRight = pieces.getOrNull(position) == pieces[pieceIndex]
@@ -67,7 +67,7 @@ fun PuzzleBoard(spec: TaskKind.Ordering, taskId: String, order: List<Int>, isLoc
             }
         }
         if (remaining.isNotEmpty() && !isLocked) {
-            Text("BAUSTEINE – ANKLICKEN ZUM EINFÜGEN", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = secondaryText)
+            Text("BAUSTEINE – ANTIPPEN ODER ANKLICKEN ZUM EINFÜGEN", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = secondaryText)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 remaining.forEach { index ->
                     Text(

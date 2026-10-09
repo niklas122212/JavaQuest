@@ -337,4 +337,44 @@ class UiFlowTest {
         onNodeWithText("freigeschaltet", substring = true).assertExists()
         shot("23-achievements")
     }
+
+    @Test
+    fun `Handy - Arena, Mission und Abzeichen passen auf einen schmalen Bildschirm`() = runDesktopComposeUiTest(400, 860) {
+        val state = newArenaState()
+        state.store.completeOnboarding(app.javaquest.core.ExperienceLevel.BEGINNER, null)
+        show(state)
+        shot("30-handy-uebersicht")
+        // Arena und Abzeichen stehen nicht in der Leiste unten – erreichbar über die Übersicht.
+        assertTrue(onAllNodesWithText("Arena").fetchSemanticsNodes().isEmpty() || state.section == app.javaquest.ui.Section.DASHBOARD)
+        state.section = app.javaquest.ui.Section.ARENA
+        waitForIdle()
+        onNodeWithText("Die Arena").assertExists()
+        shot("31-handy-arena")
+        state.startMission("a01-erste-schritte")
+        waitForIdle()
+        onNodeWithTag("arena-file").assertExists()
+        shot("32-handy-mission")
+        val mission = state.arena!!
+        mission.updateCode(mission.mission.solution.source, null)
+        waitForIdle()
+        click("arena-run")
+        waitUntil(timeoutMillis = 10_000) { mission.result != null }
+        mission.skipToEnd()
+        waitForIdle()
+        shot("33-handy-mission-geloest")
+        state.closeArena()
+        state.section = app.javaquest.ui.Section.ACHIEVEMENTS
+        waitForIdle()
+        shot("34-handy-abzeichen")
+        // Bug-Jagd aus Lektion 2 auf dem Handy
+        state.startLesson("l02-variables")
+        val flow = state.flow!!
+        repeat(flow.theory.size) { flow.advanceTheory() }
+        while (flow.currentTask?.kind !is TaskKind.FindBug) {
+            flow.draft = flow.draft.applying(app.javaquest.core.AnswerEvaluator.referenceAnswer(flow.currentTask!!))
+            flow.submit(); flow.next()
+        }
+        waitForIdle()
+        shot("35-handy-bugjagd")
+    }
 }

@@ -109,6 +109,7 @@ fun DashboardScreen(state: AppState) {
                     { m -> LevelCard(store.levelProgress, store.unlockedAchievements.size, m) { state.section = Section.ACHIEVEMENTS } },
                 ),
                 abstand = 20.dp,
+                kompaktJeZeile = 1,
             )
         }
         PathSummaryCard(state)
@@ -124,9 +125,15 @@ fun DashboardScreen(state: AppState) {
 
 /** Vier Kacheln nebeneinander – auf dem Handy zwei Reihen zu je zwei. */
 @Composable
-fun KachelRaster(kacheln: List<@Composable (Modifier) -> Unit>, abstand: androidx.compose.ui.unit.Dp, maxJeZeile: Int = Int.MAX_VALUE) {
+fun KachelRaster(
+    kacheln: List<@Composable (Modifier) -> Unit>,
+    abstand: androidx.compose.ui.unit.Dp,
+    maxJeZeile: Int = Int.MAX_VALUE,
+    /** Auf dem Handy: große Karten untereinander (1), kleine Kacheln nebeneinander (2). */
+    kompaktJeZeile: Int = 2,
+) {
     if (kacheln.isEmpty()) return
-    val jeZeile = if (LocalKompakt.current) 2 else minOf(kacheln.size, maxJeZeile)
+    val jeZeile = if (LocalKompakt.current) minOf(kacheln.size, kompaktJeZeile) else minOf(kacheln.size, maxJeZeile)
     Column(verticalArrangement = Arrangement.spacedBy(abstand)) {
         for (zeile in kacheln.chunked(jeZeile)) {
             Row(horizontalArrangement = Arrangement.spacedBy(abstand)) {
