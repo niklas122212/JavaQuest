@@ -9,7 +9,7 @@
  * Bewusst ohne Fremdbibliothek: Die Prüfungen sollen überall laufen, wo es
  * JavaScript gibt – unter Node in der CI genauso wie im Browser von Hand.
  */
-export function ladeApp(quelltext, kurs) {
+export function ladeApp(quelltext, kurs, javaQuelltext = "") {
   const ohneStart = quelltext.replace(/^los\(\);\s*$/m, "");
   if (ohneStart === quelltext) {
     throw new Error("Der Startaufruf los(); wurde nicht gefunden – app.js hat sich geändert.");
@@ -26,7 +26,9 @@ export function ladeApp(quelltext, kurs) {
     };
   }
 
+  // Mit java.js davor prüft der Code-Prüfer auch durch Ausführen – wie im Browser.
   const bauen = new Function(`
+    ${javaQuelltext}
     ${ohneStart}
     return {
       setzeKurs: (k) => { kurs = k; },
@@ -34,6 +36,7 @@ export function ladeApp(quelltext, kurs) {
       holeStand: () => stand,
       auswerten, zweiterTipp, ausgabeZeilen, lueckePasst, musterAntwort,
       puzzleTeile, puzzleMischung, puzzleZusammensetzen, istBonusAufgabe,
+      klammerProbleme, fehlendeSemikolons,
       warumZeileFalsch, warumAusgabeFalsch, warumBlankFalsch,
       staendeVereinen, exegese, befehleDerZeile, geloesteVorlage, codeZeile,
       sicherungsDatei, alsAppStand, ausAppStand, standAusDatei, merkeAufgabe, isoZeit, bucheAntwort,

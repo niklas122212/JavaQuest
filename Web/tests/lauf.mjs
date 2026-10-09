@@ -13,7 +13,8 @@ import { abweichungen, berechneNummer } from "../../Tools/web_fassung.mjs";
 import { ladeJava, javaPruefungen } from "./java.mjs";
 import { ladeArena, arenaPruefungen } from "./arena.mjs";
 import { ladeSpiel, spielPruefungen } from "./spiel.mjs";
-import { bonusPruefungen } from "./bonus.mjs";
+import { bonusPruefungen, codePruefungen } from "./bonus.mjs";
+import { alleAufgaben } from "./laden.mjs";
 
 const hier = dirname(fileURLToPath(import.meta.url));
 const web = join(hier, "..");
@@ -28,7 +29,7 @@ const beispiele = {
   ausDemWeb: JSON.parse(readFileSync(join(sicherungen, "aus-dem-web.json"), "utf8")),
 };
 
-const api = ladeApp(quelltext, kurs);
+const api = ladeApp(quelltext, kurs, readFileSync(join(web, "java.js"), "utf8"));
 const ergebnisse = pruefungen(api, kurs, beispiele);
 
 // Interpreter, Arena und Spiel: dieselben Fälle wie die Swift-Testreihen.
@@ -41,6 +42,7 @@ const ergebnisse = pruefungen(api, kurs, beispiele);
   ergebnisse.push(...arenaPruefungen(ladeArena(lies("java.js"), lies("arena.js")), missionen, kurs));
   ergebnisse.push(...spielPruefungen(ladeSpiel(lies("java.js"), lies("arena.js"), lies("spiel.js")), kurs, missionen, bonus));
   ergebnisse.push(...bonusPruefungen(api, bonus));
+  ergebnisse.push(...codePruefungen(api, alleAufgaben(kurs)));
 }
 
 // Nur unter Node prüfbar, deshalb nicht in pruefungen.mjs: Passt die Versionsnummer zum

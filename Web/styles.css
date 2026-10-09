@@ -648,3 +648,11 @@ details.abschnitt[open] .zu { display: none; }
 .bug-zeile.gewaehlt { background: rgba(84, 79, 230, 0.28); border-left-color: var(--indigo); }
 .bug-zeile.falsch { background: rgba(232, 66, 77, 0.3); border-left-color: var(--ember); }
 .bug-zeile.richtig { background: rgba(46, 174, 97, 0.28); border-left-color: var(--gruen); }
+
+/* Testlauf in Code-Aufgaben – zählt nicht als Versuch. */
+.testlauf-ergebnis { margin: 12px 0 0; padding: 12px 14px; border-radius: 14px; background: rgba(20, 184, 166, 0.1); }
+.testlauf-kopf { margin-top: 0; color: #0F766E; }
+.testlauf-ergebnis .code { margin: 0; }
+.testlauf-ergebnis .leer { color: #6B6B78; }
+.fehlertext { color: #FF8C8C; }
+.knopf.testlauf { color: #0F766E; }

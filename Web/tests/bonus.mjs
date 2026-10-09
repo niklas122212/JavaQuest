@@ -70,3 +70,30 @@ export function bonusPruefungen(api, bonus) {
   }
   return ergebnisse;
 }
+
+/** Code-Aufgaben wie AnswerEvaluator.evaluateCode: Aufbau, Regeln und – mit java.js – echtes Ausführen. */
+export function codePruefungen(api, aufgaben) {
+  const ergebnisse = [];
+  const quelle = (a) => a.sampleSolution.lines.map((z) => z.code).join("\n");
+  // Eine Aufgabe mit Anweisungen, erwarteter Ausgabe und einem println in der Musterlösung.
+  const a = aufgaben.find((x) => x.type === "code" && x.expectedOutput && !x.javaContext && /System\.out\.println\("/.test(quelle(x)));
+  const richtig = api.auswerten(a, quelle(a));
+  const andereAusgabe = api.auswerten(a, quelle(a).replace(/System\.out\.println\("/, 'System.out.println("X'));
+  const ohneSemikolon = api.auswerten(a, quelle(a).replace(/;\s*$/m, ""));
+  const absturz = api.auswerten(a, "int[] z = new int[1];\nz[2] = 1;\n" + quelle(a));
+  ergebnisse.push(pruefe(
+    `Code-Prüfung: Ausgabe, Semikolon und Laufzeitfehler wie in den Apps (${a.id})`,
+    richtig.richtig && richtig.befunde.some((b) => b.text.includes("Ausgabe stimmt"))
+      && !andereAusgabe.richtig && andereAusgabe.befunde.some((b) => b.text.startsWith("Ausgeführt – dein Programm gibt"))
+      && !ohneSemikolon.richtig && ohneSemikolon.befunde.some((b) => b.text.includes("Semikolon"))
+      && !absturz.richtig && absturz.befunde.some((b) => b.text.includes("ArrayIndexOutOfBoundsException")),
+    JSON.stringify([andereAusgabe.befunde[0], ohneSemikolon.befunde[0], absturz.befunde[0]]),
+  ));
+  ergebnisse.push(pruefe(
+    "Code-Prüfung: Klammern und Semikolons werden wie im Kern gefunden",
+    api.klammerProbleme("int a = (1;\n").length === 1 && api.klammerProbleme('String s = "http://x" + (1);').length === 0
+      && JSON.stringify(api.fehlendeSemikolons("int a = 1\nint b = 2;\nif (a > 0) {\n}")) === "[1]",
+    JSON.stringify(api.fehlendeSemikolons("int a = 1\nint b = 2;\nif (a > 0) {\n}")),
+  ));
+  return ergebnisse;
+}

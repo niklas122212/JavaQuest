@@ -472,11 +472,18 @@ function lueckePasst(luecke, wert) {
 }
 
 /** Kommentare entfernen, Strings leeren – wie JavaSource im Kern. */
+/* Kommentare entfernen und Literale leeren – mit dem Scanner aus java.js, derselbe wie JavaSource
+   im Kern. Die einfachen Muster darunter hielten das „//“ in "http://…" für einen Kommentar und
+   schnitten den Rest der Zeile ab (aufgefallen an t34-5, als die Klammerprüfung dazukam). */
 function ohneKommentare(quelle) {
+  const Java = typeof JavaKern !== "undefined" ? JavaKern : null;
+  if (Java) return Java.strippingComments(quelle);
   return quelle.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " "))
                .replace(/\/\/[^\n]*/g, "");
 }
 function ohneLiterale(quelle) {
+  const Java = typeof JavaKern !== "undefined" ? JavaKern : null;
+  if (Java) return Java.maskingLiterals(quelle);
   return ohneKommentare(quelle).replace(/"(?:\\.|[^"\\])*"/g, '""');
 }
 
@@ -698,13 +705,30 @@ function auswerten(aufgabe, antwort) {
     return { richtig: false, wertung: treffer / Math.max(erwartet.length, gegeben.length), befunde };
   }
 
-  // Code: Regeln auf dem Quelltext prüfen, wie im Kern.
-  const quelle = antwort || "";
+  // Code: wie AnswerEvaluator.evaluateCode – Aufbau (Klammern, Semikolons), Regeln auf dem Quelltext
+  // und, wo der eingebaute Interpreter die Musterlösung versteht, das echte Ausführen.
+  const Java = javaKern();
+  const quelle = Java ? Java.normalizingTypography(antwort || "") : antwort || "";
   const roh = ohneKommentare(quelle);
   const maskiert = ohneLiterale(quelle);
   if (!maskiert.trim()) return { richtig: false, wertung: 0, befunde: [{ art: "schlecht", text: "Hier steht noch kein Code." }] };
 
-  let erreicht = 1, gesamt = 1, alleErfuellt = true, verstoesse = 0;
+  const lauf = codeAusfuehren(quelle, aufgabe);
+  const aufbau = [];
+  if (lauf && lauf.problem && lauf.problem.kind === "syntax") {
+    // Der Interpreter kennt die genaue Fehlerstelle – die Heuristiken unten wären nur ungenauer.
+    aufbau.push({ art: "schlecht", text: lauf.problem.description });
+  } else {
+    aufbau.push(...klammerProbleme(maskiert));
+  }
+  if (!(lauf && lauf.problem && lauf.problem.kind === "syntax")) {
+    for (const zeile of fehlendeSemikolons(maskiert).slice(0, 3)) {
+      aufbau.push({ art: "schlecht", text: `Zeile ${zeile}: Am Ende fehlt vermutlich ein Semikolon (;).` });
+    }
+  }
+
+  let erreicht = aufbau.length ? 0 : 1, gesamt = 1, alleErfuellt = true, verstoesse = 0;
+  const regelBefunde = [];
   for (const regel of aufgabe.rules || []) {
     const ziel = regel.scope === "raw" ? roh : maskiert;
     // Bei „anyOf“ genügt einer der gleichwertigen Wege.
@@ -716,16 +740,123 @@ function auswerten(aufgabe, antwort) {
     const gew = regel.weight || 1;
     if (regel.rule === "require" || regel.rule === "anyOf") {
       gesamt += gew;
-      if (treffer) { erreicht += gew; befunde.push({ art: "gut", text: regel.message }); }
-      else { alleErfuellt = false; befunde.push({ art: "schlecht", text: regel.message }); }
+      if (treffer) { erreicht += gew; regelBefunde.push({ art: "gut", text: regel.message }); }
+      else { alleErfuellt = false; regelBefunde.push({ art: "schlecht", text: regel.message }); }
     } else if (treffer) {
       verstoesse++;
-      befunde.push({ art: "schlecht", text: regel.message });
+      regelBefunde.push({ art: "schlecht", text: regel.message });
     }
   }
+
+  const laufBefunde = [];
+  let laufOk = true;
+  if (lauf) {
+    gesamt += 1;
+    const art = lauf.problem ? lauf.problem.kind : null;
+    if (art === "syntax") laufOk = false;
+    else if (art === "runtime" || art === "stepLimit") {
+      laufOk = false;
+      laufBefunde.push({ art: "schlecht", text: `Beim Ausführen: ${lauf.problem.description}` });
+    }
+    if (!lauf.problem) {
+      if (lauf.passt) { erreicht += 1; laufBefunde.push({ art: "gut", text: "Ausgeführt – die Ausgabe stimmt." }); }
+      else { laufOk = false; laufBefunde.push({ art: "schlecht", text: ausgabeUnterschied(lauf.ausgabe, aufgabe.expectedOutput || "") }); }
+    }
+    for (const w of lauf.hinweise) laufBefunde.push({ art: "tipp", text: w.message });
+  }
+
   let wertung = erreicht / gesamt;
   if (verstoesse) wertung *= 0.5;
-  return { richtig: alleErfuellt && verstoesse === 0, wertung, befunde };
+  return {
+    richtig: !aufbau.length && alleErfuellt && verstoesse === 0 && laufOk,
+    wertung,
+    befunde: [...aufbau, ...laufBefunde, ...regelBefunde],
+    ausfuehrung: lauf && lauf.problem?.kind !== "syntax" ? { ausgabe: lauf.ausgabe, problem: lauf.problem ? lauf.problem.description : null } : null,
+  };
+}
+
+/* ---------------------------------------------------------------- Code ausführen
+   Der eingebaute Interpreter (java.js) – nur, wenn er geladen ist. In den Node-Prüfungen
+   ohne java.js bleibt es bei Aufbau und Regeln. */
+const javaKern = () => (typeof JavaKern !== "undefined" ? JavaKern : null);
+/** Kursprogramme brauchen nur ein paar hundert Schritte – das Limit hält die Seite auch bei einer Endlosschleife flüssig. */
+const PRUEF_SCHRITTE = 40000;
+const ausfuehrbar = new Map();
+
+/** Läuft die Musterlösung im Interpreter und erzeugt genau die erwartete Ausgabe? */
+function laeuftMusterloesung(aufgabe) {
+  if (aufgabe.expectedOutput == null) return false;
+  if (!ausfuehrbar.has(aufgabe.id)) {
+    const lauf = javaKern().run(musterAntwort(aufgabe));
+    ausfuehrbar.set(aufgabe.id, !lauf.problem && ausgabeZeilen(lauf.output).join("\n") === ausgabeZeilen(aufgabe.expectedOutput).join("\n"));
+  }
+  return ausfuehrbar.get(aufgabe.id);
+}
+
+/** Führt den Code aus, sofern die Aufgabe dafür geeignet ist – sonst null (dann zählen nur Aufbau und Regeln). */
+function codeAusfuehren(quelle, aufgabe) {
+  if (!javaKern() || aufgabe.expectedOutput == null || aufgabe.javaContext === "members" || !laeuftMusterloesung(aufgabe)) return null;
+  const lauf = javaKern().run(quelle, { stepLimit: PRUEF_SCHRITTE });
+  // Gültiges Java, das der Interpreter nicht kennt: kein Urteil über die Ausführung.
+  if (lauf.problem && lauf.problem.kind === "unsupported") return null;
+  return {
+    ausgabe: lauf.output, problem: lauf.problem, hinweise: lauf.warnings,
+    passt: lauf.problem ? null : ausgabeZeilen(lauf.output).join("\n") === ausgabeZeilen(aufgabe.expectedOutput).join("\n"),
+  };
+}
+
+function ausgabeUnterschied(ausgabe, erwartet) {
+  const gegeben = ausgabeZeilen(ausgabe);
+  if (!gegeben.length) return "Ausgeführt – aber dein Programm gibt nichts aus. Fehlt ein System.out.println(…)?";
+  const gezeigt = gegeben.slice(0, 3).join(" ⏎ ") + (gegeben.length > 3 ? " …" : "");
+  return `Ausgeführt – dein Programm gibt „${gezeigt}“ aus, erwartet wird „${ausgabeZeilen(erwartet).join(" ⏎ ")}“.`;
+}
+
+/** Sind (), [] und {} ausgeglichen? Erwartet maskierten Code (wie JavaSource.delimiterIssues). */
+function klammerProbleme(maskiert) {
+  const schliesst = { ")": "(", "]": "[", "}": "{" };
+  const passend = { "(": ")", "[": "]", "{": "}" };
+  const stapel = [];
+  let zeile = 1;
+  for (const c of maskiert) {
+    if (c === "\n") zeile += 1;
+    else if (passend[c]) stapel.push({ zeichen: c, zeile });
+    else if (schliesst[c]) {
+      const oben = stapel[stapel.length - 1];
+      if (!oben) return [{ art: "schlecht", text: `Zeile ${zeile}: „${c}“ wird geschlossen, aber nie geöffnet.` }];
+      if (oben.zeichen !== schliesst[c]) {
+        return [{ art: "schlecht", text: `Zeile ${zeile}: „${c}“ passt nicht – erwartet wurde „${passend[oben.zeichen]}“ zu „${oben.zeichen}“ aus Zeile ${oben.zeile}.` }];
+      }
+      stapel.pop();
+    }
+  }
+  const offen = stapel[stapel.length - 1];
+  return offen ? [{ art: "schlecht", text: `„${offen.zeichen}“ aus Zeile ${offen.zeile} wird nicht mit „${passend[offen.zeichen]}“ geschlossen.` }] : [];
+}
+
+const STEUERWOERTER = new Set(["if", "else", "for", "while", "do", "switch", "try", "catch", "finally", "case", "default", "synchronized"]);
+
+/** Zeilen (ab 1), in denen vermutlich ein Semikolon fehlt – bewusst vorsichtig, wie JavaSource.linesMissingSemicolon. */
+function fehlendeSemikolons(maskiert) {
+  const zeilen = maskiert.split("\n").map((z) => z.trim());
+  const ergebnis = [];
+  zeilen.forEach((zeile, index) => {
+    const letztes = zeile[zeile.length - 1];
+    if (!letztes) return;
+    if (";{},:(".includes(letztes)) return;
+    if (zeile.startsWith("@") || zeile.endsWith('"""')) return;
+    if (zeile.endsWith("->") || zeile.endsWith("&&") || zeile.endsWith("||")) return;
+    const zaehlt = zeile.endsWith("++") || zeile.endsWith("--");
+    if ("+-*/%=&|?<>!.^~".includes(letztes) && !zaehlt) return;
+    const kopf = zeile.replace(/^[} ]*/, "");
+    const erstesWort = (kopf.match(/^\p{L}*/u) || [""])[0];
+    if (STEUERWOERTER.has(erstesWort)) return;
+    if (/\b(class|interface|enum|record)\b/.test(zeile)) return;
+    const naechste = zeilen.slice(index + 1).find((z) => z !== "");
+    if (naechste && "{.)+-*/&|?:".includes(naechste[0])) return;
+    if (/[\p{L}\p{N}]/u.test(letztes) || ")]\"'_".includes(letztes) || zaehlt) ergebnis.push(index + 1);
+  });
+  return ergebnis;
 }
 
 function musterAntwort(aufgabe) {
@@ -1980,6 +2111,7 @@ function aufgabenSeite() {
       ${a.javaContext && a.type === "code" ? `<p class="mini">${sicher({ statements: "Schreibe nur die Anweisungen – der main-Block ist schon da.", members: "Schreibe die Methoden bzw. Felder innerhalb der Klasse.", file: "Schreibe den vollständigen Code inklusive Klassen." }[a.javaContext])}</p>` : ""}
       ${a.type === "code" && a.expectedOutput ? `<p class="mini">Erwartete Ausgabe:</p><pre class="code">${sicher(a.expectedOutput)}</pre>` : ""}
       ${eingabe}
+      ${a.type === "code" && !fertig && sitzung.testlauf ? testlaufHtml(sitzung.testlauf) : ""}
       ${erklaeren && zeigeCode ? exegese(a.code, "Code Zeile für Zeile erklären") : ""}
       ${erklaeren && vorlage ? exegese(vorlage, "Code Zeile für Zeile erklären", !fertig) : ""}
       ${erklaeren && a.type === "code" && !fertig ? exegese(a.starterCode, "Startcode Zeile für Zeile erklärt") : ""}
@@ -1999,6 +2131,7 @@ function aufgabenSeite() {
         : fertig
         ? `<button class="knopf" data-weiter="1">${sitzung.index + 1 < sitzung.aufgaben.length ? "Weiter" : "Zur Auswertung"}</button>`
         : `${sitzung.ergebnis ? `<button class="knopf zweit" data-aufdecken="1">Lösung zeigen</button>` : ""}
+           ${a.type === "code" && javaKern() ? `<button class="knopf zweit testlauf" data-testlauf="1" title="Code ausführen und die Ausgabe ansehen – kostet keinen Versuch">▶ Testlauf</button>` : ""}
            <button class="knopf" data-pruefen="1">${sitzung.ergebnis ? "Erneut prüfen" : "Prüfen"}</button>`}
     </div>
   `);
@@ -2050,6 +2183,9 @@ function rueckmeldung(a, fertig) {
       const zeichen = b.art === "gut" ? "✓" : (b.art === "tipp" ? "💡" : "✗");
       html += `<div class="befund"><span>${zeichen}</span><span>${sicher(b.text)}</span></div>`;
     });
+    if (e.ausfuehrung && e.ausfuehrung.ausgabe) {
+      html += `<p class="beschriftung">Ausgabe deines Programms</p><pre class="code ausgabe">${sicher(e.ausfuehrung.ausgabe.replace(/\n+$/, ""))}</pre>`;
+    }
   }
   if (richtig || sitzung.aufgedeckt || rest === 0) {
     html += `<div style="margin-top:12px"><strong>Erklärung</strong><p class="leise">${sicher(a.explanation)}</p></div>`;
@@ -2137,6 +2273,18 @@ function bugEingabe(a, fertig) {
   }).join("")}</div>`;
 }
 
+/** Ergebnis eines Testlaufs – ohne Bewertung, beliebig oft. */
+function testlaufHtml(lauf) {
+  const kopf = `<p class="beschriftung testlauf-kopf">▶ Testlauf – zählt nicht als Versuch</p>`;
+  if (lauf.problem && lauf.problem.kind === "unsupported") {
+    return `<div class="testlauf-ergebnis" role="status">${kopf}<p class="leise">Diesen Code kann die App nicht selbst ausführen (${sicher(lauf.problem.message)}). Prüfen funktioniert trotzdem – dann mit den Regeln der Aufgabe.</p></div>`;
+  }
+  return `<div class="testlauf-ergebnis" role="status">${kopf}
+    <pre class="code ausgabe">${lauf.output ? sicher(lauf.output.replace(/\n+$/, "")) : '<span class="leer">(keine Ausgabe)</span>'}${lauf.problem ? `\n<span class="fehlertext">✗ ${sicher(lauf.problem.description)}</span>` : ""}</pre>
+    ${lauf.warnings.map((w) => `<div class="befund"><span>💡</span><span>Zeile ${w.line}: ${sicher(w.message)}</span></div>`).join("")}
+  </div>`;
+}
+
 function entwurfLesen(a) {
   if (a.type === "singleChoice" || a.type === "ordering" || a.type === "findBug") return sitzung.entwurf;
   if (a.type === "fillBlank") return [...document.querySelectorAll("[data-luecke]")].map((i) => i.value);
@@ -2152,6 +2300,7 @@ function pruefen() {
   if (a.type !== "singleChoice" && !String(Array.isArray(antwort) ? antwort.join("") : antwort).trim()) return;
   sitzung.entwurf = antwort;
   sitzung.versuche += 1;
+  sitzung.testlauf = null;
   sitzung.ergebnis = auswerten(a, antwort);
   if (sitzung.einstufung) return einstufungAntwortAbgeben(a, sitzung.ergebnis);
   if (sitzung.ergebnis.richtig) abschliessen(sitzung.versuche === 1 ? 1 : 0.5);
@@ -2233,6 +2382,7 @@ function abschliessen(wertung) {
 }
 
 function weiter() {
+  sitzung.testlauf = null;
   sitzung.index += 1;
   sitzung.versuche = 0;
   sitzung.ergebnis = null;
@@ -2255,6 +2405,15 @@ function bindeEreignisse() {
   klick("[data-puzzle-leeren]", amOrt(() => { sitzung.entwurf = []; }));
   klick("[data-bugzeile]", (e) => { const nr = Number(e.currentTarget.dataset.bugzeile); amOrt(() => { sitzung.entwurf = nr; })(); });
   klick("[data-pruefen]", pruefen);
+  klick("[data-testlauf]", () => {
+    const feld = document.querySelector("[data-text]");
+    if (!feld || !javaKern() || !feld.value.trim()) return;
+    const y = window.scrollY;
+    sitzung.entwurf = feld.value;
+    sitzung.testlauf = javaKern().run(feld.value, { stepLimit: PRUEF_SCHRITTE });
+    zeichne();
+    window.scrollTo(0, y);
+  });
   klick("[data-aufdecken]", aufdecken);
   klick("[data-weiter]", weiter);
   klick("[data-abbruch]", () => gehe("start"));
