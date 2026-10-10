@@ -174,9 +174,15 @@ final class JavaInterpreter {
     final class Frame {
         var scopes: [[String: Slot]] = [[:]]
         let method: JavaMethod?
+        /// Das Objekt, dessen Methode oder Konstruktor gerade läuft (`this`).
+        let thisObject: JavaObject?
+        /// Die Klasse, deren Code gerade läuft – für Felder, statische Methoden und private Zugriffe.
+        let currentClass: String?
 
-        init(method: JavaMethod?) {
+        init(method: JavaMethod?, thisObject: JavaObject? = nil, currentClass: String? = nil) {
             self.method = method
+            self.thisObject = thisObject
+            self.currentClass = currentClass
         }
     }
 
@@ -197,8 +203,12 @@ final class JavaInterpreter {
     private(set) var output = ""
     private(set) var steps = 0
     private(set) var warnings: [JavaWarning] = []
-    private var globals: [String: Slot] = [:]
-    private var frames: [Frame] = [Frame(method: nil)]
+    var globals: [String: Slot] = [:]
+    var frames: [Frame] = [Frame(method: nil)]
+    /// Statische Felder eigener Klassen (die Hauptklasse nutzt `globals`).
+    var statics: [String: [String: Slot]] = [:]
+    /// Enum-Konstanten je Enum, in Deklarationsreihenfolge.
+    var enumConstants: [String: [JavaObject]] = [:]
     private var randomState: UInt64 = 0x9E37_79B9_7F4A_7C15
     /// Beim Zusehen: zeichnet vor jeder Anweisung und jeder neuen Schleifenrunde ein Bild auf.
     var recorder: TraceRecorder?
@@ -211,6 +221,8 @@ final class JavaInterpreter {
 
     func run() -> JavaProblem? {
         do throws(JavaProblem) {
+            try validateClasses()
+            try initializeClasses()
             for field in program.staticFields {
                 _ = try execute(field, global: true)
             }
@@ -231,7 +243,7 @@ final class JavaInterpreter {
 
     // MARK: Variablen
 
-    private var frame: Frame { frames[frames.count - 1] }
+    var frame: Frame { frames[frames.count - 1] }
 
     private func tick(_ line: Int) throws(JavaProblem) {
         if let recorder {
@@ -248,7 +260,7 @@ final class JavaInterpreter {
         }
     }
 
-    private func declare(_ name: String, type: JavaType, value: JavaValue?, isFinal: Bool, line: Int, global: Bool = false) throws(JavaProblem) {
+    func declare(_ name: String, type: JavaType, value: JavaValue?, isFinal: Bool, line: Int, global: Bool = false) throws(JavaProblem) {
         if global {
             if globals[name] != nil { throw .syntax("Das Feld „\(name)“ gibt es schon.", line: line) }
             globals[name] = Slot(type: type, value: value, isFinal: isFinal)
@@ -260,14 +272,23 @@ final class JavaInterpreter {
         frame.scopes[frame.scopes.count - 1][name] = Slot(type: type, value: value, isFinal: isFinal)
     }
 
-    private func lookup(_ name: String) -> Slot? {
+    func lookup(_ name: String) -> Slot? {
         for scope in frame.scopes.reversed() {
             if let slot = scope[name] { return slot }
         }
+        // Felder des eigenen Objekts (this.name ohne this)
+        if let object = frame.thisObject, let type = object.fieldTypes[name] {
+            return Slot(type: type, value: object.fields[name], isFinal: false)
+        }
+        // Statische Felder der eigenen Klasse und ihrer Oberklassen
+        if let slot = staticSlot(name, from: frame.currentClass) { return slot.slot }
         return globals[name]
     }
 
-    private func read(_ name: String, line: Int) throws(JavaProblem) -> JavaValue {
+    func read(_ name: String, line: Int) throws(JavaProblem) -> JavaValue {
+        if frame.thisObject == nil, isInstanceField(name), !frame.scopes.contains(where: { $0[name] != nil }) {
+            throw .syntax("„\(name)“ ist ein Feld des Objekts – in einer static-Methode gibt es aber kein Objekt (this). Lass static weg oder nimm ein Objekt: objekt.\(name).", line: line)
+        }
         guard let slot = lookup(name) else { throw unknownName(name, line: line) }
         guard let value = slot.value else {
             throw .syntax("Die Variable „\(name)“ hat noch keinen Wert. Gib ihr zuerst einen, z. B. \(name) = 0;", line: line)
@@ -276,7 +297,7 @@ final class JavaInterpreter {
     }
 
     @discardableResult
-    private func write(_ name: String, _ value: JavaValue, line: Int) throws(JavaProblem) -> JavaValue {
+    func write(_ name: String, _ value: JavaValue, line: Int) throws(JavaProblem) -> JavaValue {
         for index in frame.scopes.indices.reversed() {
             if var slot = frame.scopes[index][name] {
                 if slot.isFinal, slot.value != nil {
@@ -288,6 +309,12 @@ final class JavaInterpreter {
                 return stored
             }
         }
+        if let object = frame.thisObject, object.fieldTypes[name] != nil {
+            return try writeField(object, name, value, line: line)
+        }
+        if let found = staticSlot(name, from: frame.currentClass) {
+            return try writeStatic(found.owner, name, value, line: line)
+        }
         if var slot = globals[name] {
             if slot.isFinal, slot.value != nil {
                 throw .syntax("„\(name)“ ist final – der Wert darf nicht mehr geändert werden.", line: line)
@@ -297,10 +324,13 @@ final class JavaInterpreter {
             globals[name] = slot
             return stored
         }
+        if frame.thisObject == nil, isInstanceField(name) {
+            throw .syntax("„\(name)“ ist ein Feld des Objekts – in einer static-Methode gibt es aber kein Objekt (this).", line: line)
+        }
         throw unknownName(name, line: line)
     }
 
-    private func unknownName(_ name: String, line: Int) -> JavaProblem {
+    func unknownName(_ name: String, line: Int) -> JavaProblem {
         if host?.objectNames.contains(name) == true {
             return .syntax("„\(name)“ ist ein Objekt – rufe eine seiner Methoden auf, z. B. \(name).move();", line: line)
         }
@@ -318,6 +348,11 @@ final class JavaInterpreter {
     func visibleVariables() -> [JavaVariable] {
         var merged: [String: Slot] = globals
         var order: [String] = globals.keys.sorted()
+        if let object = frame.thisObject {
+            // Beim Zusehen: das eigene Objekt mit seinen Feldern
+            merged["this"] = Slot(type: .object(object.className), value: .object(object), isFinal: true)
+            order.append("this")
+        }
         for scope in frame.scopes {
             for (name, slot) in scope.sorted(by: { $0.key < $1.key }) {
                 if merged[name] == nil { order.append(name) }
@@ -331,14 +366,14 @@ final class JavaInterpreter {
         }
     }
 
-    private func warn(_ message: String, line: Int) {
+    func warn(_ message: String, line: Int) {
         let warning = JavaWarning(message: message, line: line)
         if !warnings.contains(warning) { warnings.append(warning) }
     }
 
     // MARK: Anweisungen
 
-    private func executeBlock(_ statements: [JavaStmt]) throws(JavaProblem) -> Flow {
+    func executeBlock(_ statements: [JavaStmt]) throws(JavaProblem) -> Flow {
         frame.scopes.append([:])
         defer { frame.scopes.removeLast() }
         for statement in statements {
@@ -350,7 +385,7 @@ final class JavaInterpreter {
     }
 
     /// Ein einzelner Schleifen-/if-Körper ohne Klammern bekommt trotzdem einen eigenen Bereich.
-    private func executeBody(_ statement: JavaStmt) throws(JavaProblem) -> Flow {
+    func executeBody(_ statement: JavaStmt) throws(JavaProblem) -> Flow {
         if case .block(let statements, _) = statement { return try executeBlock(statements) }
         if case .varDecl(_, _, _, let line) = statement {
             throw .syntax("Eine Variablen-Deklaration braucht hier geschweifte Klammern { … } drumherum.", line: line)
@@ -358,7 +393,7 @@ final class JavaInterpreter {
         return try execute(statement)
     }
 
-    private func execute(_ statement: JavaStmt, global: Bool = false) throws(JavaProblem) -> Flow {
+    func execute(_ statement: JavaStmt, global: Bool = false) throws(JavaProblem) -> Flow {
         try tick(statement.line)
         switch statement {
         case .varDecl(let type, let declarators, let isFinal, _):
@@ -438,18 +473,29 @@ final class JavaInterpreter {
 
         case .forEach(let type, let name, let collection, let body, let line):
             let source = try evaluate(collection)
-            guard case .array(let array) = source else {
-                if case .string = source {
-                    throw .syntax("Über einen String kann for-each nicht direkt laufen – nimm text.toCharArray().", line: line)
-                }
-                if case .null = source { throw .runtime("NullPointerException: Das Array ist null.", line: line) }
-                throw .syntax("for-each braucht ein Array, bekommt aber \(source.typeName).", line: line)
+            let items: [JavaValue]
+            var itemType: JavaType = .inferred
+            switch source {
+            case .array(let array):
+                items = array.elements
+                itemType = array.elementType
+            case .object(let object) where [.list, .set, .deque].contains(object.kind):
+                // Sammlungen: in derselben Reihenfolge wie in Java (HashSet nach Hash-Fächern).
+                items = try iterationOrder(object)
+            case .object(let object) where object.kind == .map:
+                throw .syntax("Über eine Map kann for-each nicht direkt laufen – nimm map.keySet(), map.values() oder map.entrySet().", line: line)
+            case .string:
+                throw .syntax("Über einen String kann for-each nicht direkt laufen – nimm text.toCharArray().", line: line)
+            case .null:
+                throw .exception("NullPointerException", javaMessage: nil, explanation: "Das Array bzw. die Liste ist null.", line: line)
+            default:
+                throw .syntax("for-each braucht ein Array oder eine Sammlung, bekommt aber \(source.typeName).", line: line)
             }
             var index = 0
-            while index < array.elements.count {
-                let element = array.elements[index]
+            while index < items.count {
+                let element = items[index]
                 frame.scopes.append([:])
-                let declared = type == .inferred ? array.elementType : type
+                let declared = type == .inferred ? itemType : type
                 let value = try coerce(element, to: declared, line: line, what: "Die Schleifenvariable „\(name)“")
                 try declare(name, type: declared, value: value, isFinal: false, line: line)
                 let flow: Flow
@@ -498,9 +544,10 @@ final class JavaInterpreter {
 
         case .switchStmt(let subject, let cases, let line):
             let value = try evaluate(subject)
-            guard let start = try matchingCase(value, cases, line: line) else { return .normal }
+            // Muster-Variablen (case Kreis k) gelten nur im switch.
             frame.scopes.append([:])
             defer { frame.scopes.removeLast() }
+            guard let start = try matchingCase(value, cases, line: line) else { return .normal }
             if cases[start].isArrow {
                 let flow = try executeBlock(cases[start].body)
                 if case .breakLoop = flow { return .normal }
@@ -518,15 +565,18 @@ final class JavaInterpreter {
             }
             return .normal
 
-        case .throwStmt(_, let line):
-            throw .unsupported("throw kennt der eingebaute Interpreter nicht.", line: line)
+        case .throwStmt(let expr, let line):
+            throw try throwing(try evaluate(expr), line: line)
+
+        case .tryStmt(let body, let catches, let finallyBody, let line):
+            return try executeTry(body, catches, finallyBody, line: line)
 
         case .empty:
             return .normal
         }
     }
 
-    private func test(_ expr: JavaExpr, keyword: String, line: Int) throws(JavaProblem) -> Bool {
+    func test(_ expr: JavaExpr, keyword: String, line: Int) throws(JavaProblem) -> Bool {
         let value = try evaluate(expr)
         guard case .boolean(let result) = value else {
             if case .assign(op: "=", _, _, _) = expr {
@@ -537,12 +587,37 @@ final class JavaInterpreter {
         return result
     }
 
-    private func matchingCase(_ value: JavaValue, _ cases: [JavaSwitchCase], line: Int) throws(JavaProblem) -> Int? {
-        if case .null = value { throw .runtime("NullPointerException: switch über null.", line: line) }
+    func matchingCase(_ value: JavaValue, _ cases: [JavaSwitchCase], line: Int) throws(JavaProblem) -> Int? {
+        func isNullLabel(_ label: JavaExpr) -> Bool { if case .literal(.null, _) = label { true } else { false } }
+        if case .null = value {
+            // Nur mit „case null“ darf ein switch null bekommen.
+            if let index = cases.firstIndex(where: { $0.labels.contains(where: isNullLabel) }) { return index }
+            throw .exception("NullPointerException", javaMessage: nil, explanation: "switch über null – ohne „case null“ geht das nicht.", line: line)
+        }
         var defaultIndex: Int?
         for (index, switchCase) in cases.enumerated() {
             if switchCase.isDefault { defaultIndex = index }
             for label in switchCase.labels {
+                if isNullLabel(label) { continue }
+                // Typ-Muster: case Kreis k -> … (die Variable k gilt im Zweig)
+                if case .instanceOf(.name("$switch", _), let type, let binding, let patternLine) = label {
+                    guard try isInstance(value, of: type, line: patternLine) else { continue }
+                    if let binding { frame.scopes[frame.scopes.count - 1][binding] = Slot(type: type, value: value, isFinal: false) }
+                    if let guardExpr = switchCase.guardExpr, !(try test(guardExpr, keyword: "when", line: patternLine)) { continue }
+                    return index
+                }
+                if case .recordPattern(.name("$switch", _), let pattern, let patternLine) = label {
+                    guard let bindings = try match(value, pattern, line: patternLine) else { continue }
+                    for (name, slot) in bindings { frame.scopes[frame.scopes.count - 1][name] = slot }
+                    if let guardExpr = switchCase.guardExpr, !(try test(guardExpr, keyword: "when", line: patternLine)) { continue }
+                    return index
+                }
+                // Enum-Konstante ohne Klassennamen: case ROT ->
+                if case .object(let object) = value, let constantName = object.fields["$name"]?.stringValue,
+                   case .name(let name, _) = label, lookup(name) == nil {
+                    if name == constantName { return index }
+                    continue
+                }
                 let candidate = try evaluate(label)
                 if try valuesEqual(value, candidate, line: label.line) { return index }
             }
@@ -550,11 +625,12 @@ final class JavaInterpreter {
         return defaultIndex
     }
 
-    private func valuesEqual(_ lhs: JavaValue, _ rhs: JavaValue, line: Int) throws(JavaProblem) -> Bool {
+    func valuesEqual(_ lhs: JavaValue, _ rhs: JavaValue, line: Int) throws(JavaProblem) -> Bool {
         if let a = Numeric(lhs), let b = Numeric(rhs) { return Numeric.compare(a, b) == .orderedSame }
         switch (lhs, rhs) {
         case (.string(let a), .string(let b)): return a.text == b.text
         case (.boolean(let a), .boolean(let b)): return a == b
+        case (.object(let a), .object(let b)): return a === b
         default:
             throw .syntax("Der case-Wert (\(rhs.typeName)) passt nicht zum Typ im switch (\(lhs.typeName)).", line: line)
         }
@@ -585,7 +661,12 @@ final class JavaInterpreter {
             return prefix ? new : old
 
         case .binary(let op, let lhs, let rhs, let line):
-            return try binary(op, try evaluate(lhs), try evaluate(rhs), line: line)
+            let left = try evaluate(lhs)
+            let right = try evaluate(rhs)
+            if op == "==" || op == "!=", let same = try boxedIdentity(lhs, rhs, left, right, line: line) {
+                return .boolean(op == "==" ? same : !same)
+            }
+            return try binary(op, left, right, line: line)
 
         case .logical(let op, let lhs, let rhs, let line):
             let left = try evaluate(lhs)
@@ -643,7 +724,7 @@ final class JavaInterpreter {
                 guard let number = Numeric(value), case .int(let count) = number.promotedToInt else {
                     throw .syntax("Die Größe eines Arrays muss eine ganze Zahl (int) sein.", line: line)
                 }
-                if count < 0 { throw .runtime("NegativeArraySizeException: Ein Array kann nicht \(count) Plätze haben.", line: line) }
+                if count < 0 { throw .exception("NegativeArraySizeException", javaMessage: "\(count)", explanation: "Ein Array kann nicht \(count) Plätze haben.", line: line) }
                 return Int(count)
             }
             var leaf = element
@@ -664,11 +745,11 @@ final class JavaInterpreter {
 
         case .switchExpr(let subject, let cases, let line):
             let value = try evaluate(subject)
+            frame.scopes.append([:])
+            defer { frame.scopes.removeLast() }
             guard let start = try matchingCase(value, cases, line: line) else {
                 throw .syntax("Der switch-Ausdruck braucht einen default-Zweig, damit immer ein Wert herauskommt.", line: line)
             }
-            frame.scopes.append([:])
-            defer { frame.scopes.removeLast() }
             for index in start..<cases.count {
                 let switchCase = cases[index]
                 if let valueExpr = switchCase.value { return try evaluate(valueExpr, expected: expected) }
@@ -687,9 +768,18 @@ final class JavaInterpreter {
             }
             throw .syntax("Der switch-Ausdruck liefert keinen Wert (yield fehlt).", line: line)
 
+        case .this(let line):
+            guard let object = frame.thisObject else {
+                throw .syntax("this gibt es nur in Methoden eines Objekts – in einer static-Methode wie main gibt es kein this.", line: line)
+            }
+            return .object(object)
+
+        case .superRef(let line):
+            throw .syntax("super allein ist kein Wert – nach super folgt eine Methode, z. B. super.laut().", line: line)
+
         case .newObject(let className, let argExprs, let line):
             guard className == "String" else {
-                throw .unsupported("Objekte mit new \(className)(…) kennt der eingebaute Interpreter nicht.", line: line)
+                return try instantiate(className, try evaluateArgs(argExprs), line: line)
             }
             let args = try evaluateArgs(argExprs)
             switch args.count {
@@ -707,15 +797,19 @@ final class JavaInterpreter {
                 throw .unsupported("new String mit mehreren Werten kennt der eingebaute Interpreter nicht.", line: line)
             }
 
-        case .instanceOf(let value, let type, let line):
+        case .recordPattern(let value, let pattern, let line):
             let evaluated = try evaluate(value)
-            switch (evaluated, type) {
-            case (.string, .string): return .boolean(true)
-            case (.null, _): return .boolean(false)
-            case (_, .unknown(let name)) where name == "Object": return .boolean(true)
-            default:
-                throw .unsupported("instanceof mit \(type) kennt der eingebaute Interpreter nicht.", line: line)
+            guard let bindings = try match(evaluated, pattern, line: line) else { return .boolean(false) }
+            for (name, slot) in bindings { frame.scopes[frame.scopes.count - 1][name] = slot }
+            return .boolean(true)
+        case .instanceOf(let value, let type, let binding, let line):
+            let evaluated = try evaluate(value)
+            let matches = try isInstance(evaluated, of: type, line: line)
+            if matches, let binding {
+                // Muster-Variable: x instanceof Hund h – h ist ab hier ein Hund.
+                frame.scopes[frame.scopes.count - 1][binding] = Slot(type: type, value: evaluated, isFinal: false)
             }
+            return .boolean(matches)
         }
     }
 
@@ -728,7 +822,7 @@ final class JavaInterpreter {
         return .array(JavaArray(elementType: elementType, elements: elements))
     }
 
-    private func storageType(of target: JavaExpr, line: Int) throws(JavaProblem) -> JavaType? {
+    func storageType(of target: JavaExpr, line: Int) throws(JavaProblem) -> JavaType? {
         switch target {
         case .name(let name, _):
             guard let slot = lookup(name) else { throw unknownName(name, line: line) }
@@ -736,6 +830,8 @@ final class JavaInterpreter {
         case .index(let base, _, _):
             if case .array(let array) = try evaluate(base) { return array.elementType }
             return nil
+        case .field(let base, let name, _):
+            return try fieldType(base, name, line: line)
         default:
             return nil
         }
@@ -743,7 +839,7 @@ final class JavaInterpreter {
 
     /// Speichert den Wert und liefert ihn so zurück, wie er abgelegt wurde (z. B. int → double).
     @discardableResult
-    private func store(_ value: JavaValue, into target: JavaExpr, line: Int) throws(JavaProblem) -> JavaValue {
+    func store(_ value: JavaValue, into target: JavaExpr, line: Int) throws(JavaProblem) -> JavaValue {
         switch target {
         case .name(let name, _):
             return try write(name, value, line: line)
@@ -754,7 +850,8 @@ final class JavaInterpreter {
             let stored = try coerce(value, to: array.elementType, line: line, what: "Ein Platz im Array")
             array.elements[position] = stored
             return stored
-        case .field(_, let name, _):
+        case .field(let base, let name, _):
+            if let stored = try storeField(base, name, value, line: line) { return stored }
             if name == "length" {
                 throw .syntax("length eines Arrays kann man nicht ändern – die Größe steht beim Erzeugen fest.", line: line)
             }
@@ -764,7 +861,7 @@ final class JavaInterpreter {
         }
     }
 
-    private func arrayAccess(_ container: JavaValue, _ index: JavaValue, line: Int) throws(JavaProblem) -> (JavaArray, Int) {
+    func arrayAccess(_ container: JavaValue, _ index: JavaValue, line: Int) throws(JavaProblem) -> (JavaArray, Int) {
         guard case .array(let array) = container else {
             if case .string = container {
                 throw .syntax("Bei Strings holt man ein Zeichen mit charAt(i), nicht mit [i].", line: line)
@@ -777,7 +874,8 @@ final class JavaInterpreter {
         }
         guard position >= 0, Int(position) < array.elements.count else {
             let range = array.elements.isEmpty ? "das Array ist leer" : "erlaubt sind nur 0 bis \(array.elements.count - 1)"
-            throw .runtime("ArrayIndexOutOfBoundsException: Index \(position) gibt es nicht – \(range). Denk dran: Gezählt wird ab 0.", line: line)
+            throw .exception("ArrayIndexOutOfBoundsException", javaMessage: "Index \(position) out of bounds for length \(array.elements.count)",
+                             explanation: "Index \(position) gibt es nicht – \(range). Denk dran: Gezählt wird ab 0.", line: line)
         }
         return (array, Int(position))
     }
@@ -809,14 +907,36 @@ final class JavaInterpreter {
         }
     }
 
-    private func binary(_ op: String, _ lhs: JavaValue, _ rhs: JavaValue, line: Int) throws(JavaProblem) -> JavaValue {
+    /// `Integer a = 1000, b = 1000; a == b` ist in Java false: == vergleicht hier Objekte.
+    /// Java hält nur kleine Zahlen (-128 bis 127) als gemeinsame Objekte vorrätig.
+    private func boxedIdentity(_ lhs: JavaExpr, _ rhs: JavaExpr, _ left: JavaValue, _ right: JavaValue, line: Int) throws(JavaProblem) -> Bool? {
+        let boxes: Set<String> = ["Integer", "Long", "Short", "Byte", "Character", "Double", "Boolean"]
+        guard case .object(let leftType)? = try declaredType(of: lhs), case .object(let rightType)? = try declaredType(of: rhs),
+              boxes.contains(leftType), boxes.contains(rightType) else { return nil }
+        if case .null = left { return nil }
+        if case .null = right { return nil }
+        warn("\(leftType)-Werte vergleicht man mit equals(), nicht mit ==. == prüft, ob es dasselbe Objekt ist – das klappt nur bei kleinen Zahlen (-128 bis 127) zufällig.", line: line)
+        guard try valuesEqual(left, right, line: line) else { return false }
+        if case .name(let a, _) = lhs, case .name(let b, _) = rhs, a == b { return true }
+        switch left {
+        case .boolean: return true
+        case .double: return false
+        case .char(let c): return c <= 127
+        default:
+            guard let number = Numeric(left), !number.isDouble else { return false }
+            return (-128...127).contains(number.toDouble)
+        }
+    }
+
+    func binary(_ op: String, _ lhs: JavaValue, _ rhs: JavaValue, line: Int) throws(JavaProblem) -> JavaValue {
         if case .void = lhs { throw .syntax("Links von \(op) steht ein Methodenaufruf, der nichts zurückgibt (void).", line: line) }
         if case .void = rhs { throw .syntax("Rechts von \(op) steht ein Methodenaufruf, der nichts zurückgibt (void).", line: line) }
 
         if op == "+" {
             switch (lhs, rhs) {
             case (.string, _), (_, .string):
-                return .str(lhs.javaString + rhs.javaString)
+                // Objekte werden mit ihrem toString() angehängt – wie in Java.
+                return .str(try stringify(lhs, line: line) + stringify(rhs, line: line))
             default: break
             }
         }
@@ -836,8 +956,13 @@ final class JavaInterpreter {
                         warn("Strings vergleicht man mit equals(), nicht mit \(op). == prüft nur, ob beide Variablen auf dasselbe Objekt zeigen – nicht, ob der Text gleich ist.", line: line)
                     }
                 case (.null, .null): equal = true
-                case (.null, .string), (.string, .null), (.null, .array), (.array, .null): equal = false
+                case (.null, .string), (.string, .null), (.null, .array), (.array, .null), (.null, .object), (.object, .null): equal = false
                 case (.array(let a), .array(let b)): equal = a === b
+                // Objekte: == prüft, ob es dasselbe Objekt ist (gleicher Inhalt reicht nicht – dafür gibt es equals).
+                case (.object(let a), .object(let b)): equal = a === b
+                case (.null, _), (_, .null):
+                    throw .exception("NullPointerException", javaMessage: nil,
+                                     explanation: "Ein Wert ist null – null lässt sich nicht als \((lhs.isNull ? rhs : lhs).typeName) vergleichen (z. B. weil get(…) nichts gefunden hat).", line: line)
                 default:
                     throw .syntax("\(lhs.typeName) und \(rhs.typeName) kann man nicht mit \(op) vergleichen.", line: line)
                 }
@@ -857,6 +982,10 @@ final class JavaInterpreter {
 
         guard let a = Numeric(lhs), let b = Numeric(rhs) else {
             let offender = Numeric(lhs) == nil ? lhs : rhs
+            if offender.isNull {
+                throw .exception("NullPointerException", javaMessage: nil,
+                                 explanation: "Mit null kann man nicht rechnen – der Wert fehlt (z. B. weil get(…) den Schlüssel nicht gefunden hat).", line: line)
+            }
             if case .boolean = offender {
                 throw .syntax("Mit \(op) kann man nicht mit true/false rechnen.", line: line)
             }
@@ -882,7 +1011,7 @@ final class JavaInterpreter {
         case "/", "%":
             let (x, y) = Numeric.promote(a, b)
             if y.isZeroIntegral {
-                throw .runtime("ArithmeticException: / by zero – durch 0 teilen geht bei ganzen Zahlen nicht.", line: line)
+                throw .exception("ArithmeticException", javaMessage: "/ by zero", explanation: "/ by zero – durch 0 teilen geht bei ganzen Zahlen nicht.", line: line)
             }
             return Numeric.apply(op, x, y).value
         case "+", "-", "*":
@@ -919,6 +1048,10 @@ final class JavaInterpreter {
             return .syntax(message, line: line)
         }
 
+        if value.isNull, [.int, .long, .double, .boolean, .char].contains(type) {
+            throw .exception("NullPointerException", javaMessage: nil,
+                             explanation: "\(what) erwartet \(type), bekommt aber null – zum Beispiel, weil get(…) den Schlüssel nicht gefunden hat. null passt in keine Zahlen-Variable.", line: line)
+        }
         switch type {
         case .inferred:
             return value
@@ -968,11 +1101,17 @@ final class JavaInterpreter {
             throw .syntax("Eine Variable kann nicht den Typ void haben.", line: line)
         case .unknown(let name):
             throw .unsupported("Den Typ \(name) kennt der eingebaute Interpreter nicht.", line: line)
+        case .object(let name):
+            if try canAssign(value, to: name) { return value }
+            throw mismatch()
         }
     }
 
     /// Expliziter Cast `(int) x` – mit Javas Regeln für Abschneiden und Überlauf.
     func cast(_ value: JavaValue, to type: JavaType, line: Int) throws(JavaProblem) -> JavaValue {
+        if case .object(let name) = type {
+            return try castObject(value, to: name, line: line)
+        }
         if case .string = type {
             switch value {
             case .string, .null: return value
@@ -998,7 +1137,8 @@ final class JavaInterpreter {
 
     // MARK: Felder
 
-    private func field(_ base: JavaExpr, _ name: String, line: Int) throws(JavaProblem) -> JavaValue {
+    func field(_ base: JavaExpr, _ name: String, line: Int) throws(JavaProblem) -> JavaValue {
+        if let value = try objectField(base, name, line: line) { return value }
         if case .name(let className, _) = base, lookup(className) == nil {
             if className == "java" || className == "javax" {
                 throw .unsupported("Voll qualifizierte Klassen (\(className).\(name)…) kennt der eingebaute Interpreter nicht.", line: line)
@@ -1034,7 +1174,9 @@ final class JavaInterpreter {
         case (.string, "length"):
             throw .syntax("Bei Strings ist length eine Methode und braucht Klammern: length().", line: line)
         case (.null, _):
-            throw .runtime("NullPointerException: Der Wert ist null – darauf gibt es kein „\(name)“.", line: line)
+            throw .exception("NullPointerException", javaMessage: nil, explanation: "Der Wert ist null – darauf gibt es kein „\(name)“.", line: line)
+        case (.object(let object), _):
+            return try readField(object, name, line: line)
         default:
             throw .syntax("\(value.typeName) hat kein Feld „\(name)“.", line: line)
         }
@@ -1042,10 +1184,14 @@ final class JavaInterpreter {
 
     // MARK: Methodenaufrufe
 
-    private func call(_ target: JavaExpr?, _ name: String, _ argExprs: [JavaExpr], line: Int) throws(JavaProblem) -> JavaValue {
+    func call(_ target: JavaExpr?, _ name: String, _ argExprs: [JavaExpr], line: Int) throws(JavaProblem) -> JavaValue {
         guard let target else {
+            if name == "this" || name == "super" {
+                throw .syntax("\(name)(…) darf nur als erste Zeile in einem Konstruktor stehen.", line: line)
+            }
             return try callUserMethod(name, argExprs, line: line)
         }
+        if let result = try callOnClassOrObject(target, name, argExprs, line: line) { return result }
         // System.out.println(…)
         if case .field(.name("System", _), let stream, _) = target, lookup("System") == nil {
             guard stream == "out" || stream == "err" else {
@@ -1069,14 +1215,50 @@ final class JavaInterpreter {
         }
         let receiver = try evaluate(target)
         let args = try evaluateArgs(argExprs)
+        if case .object(let object) = receiver {
+            // list.remove(Integer.valueOf(7)) entfernt den Wert 7, list.remove(7) die Stelle 7.
+            if name == "remove", object.kind == .list, argExprs.count == 1, try isBoxed(argExprs[0]) {
+                return try JavaLibrary.callObject(object, "$removeValue", args, line: line, interpreter: self)
+            }
+            return try callMethod(on: object, name, args, line: line, staticType: try declaredType(of: target))
+        }
+        // Zahlen aus Sammlungen oder Integer-Variablen sind in Java Objekte: liste.get(0).equals(…)
+        if try !isPlainPrimitive(target), let result = try JavaLibrary.boxedMethod(receiver, name, args, line: line, interpreter: self) {
+            return result
+        }
         return try JavaLibrary.callInstance(receiver, name, args, line: line, interpreter: self)
     }
 
-    private func evaluateArgs(_ exprs: [JavaExpr]) throws(JavaProblem) -> [JavaValue] {
+    /// Ist der Ausdruck sicher ein einfacher Wert (int, double …)? Daran gibt es in Java keine Methoden.
+    private func isPlainPrimitive(_ expr: JavaExpr) throws(JavaProblem) -> Bool {
+        switch expr {
+        case .literal, .binary, .unary, .increment: return true
+        case .cast(let type, _, _): return type.className == nil
+        case .field(_, "length", _): return true
+        case .name(let name, _):
+            guard let type = lookup(name)?.type else { return false }
+            return [.int, .long, .double, .char, .boolean].contains(type)
+        default: return false
+        }
+    }
+
+    /// Steht hier eine Zahl als Objekt (Integer statt int)?
+    private func isBoxed(_ expr: JavaExpr) throws(JavaProblem) -> Bool {
+        let boxes: Set<String> = ["Integer", "Long", "Double", "Character", "Boolean", "Object", "Number"]
+        switch expr {
+        case .call(.name(let className, _)?, "valueOf", _, _): return boxes.contains(className)
+        case .cast(.object(let name), _, _), .newObject(let name, _, _): return boxes.contains(name)
+        default:
+            if case .object(let name)? = try declaredType(of: expr) { return boxes.contains(name) }
+            return false
+        }
+    }
+
+    func evaluateArgs(_ exprs: [JavaExpr]) throws(JavaProblem) -> [JavaValue] {
         try exprs.map { (expr) throws(JavaProblem) in try evaluate(expr) }
     }
 
-    private func printCall(_ name: String, _ args: [JavaValue], line: Int) throws(JavaProblem) -> JavaValue {
+    func printCall(_ name: String, _ args: [JavaValue], line: Int) throws(JavaProblem) -> JavaValue {
         switch name {
         case "println":
             guard args.count <= 1 else { throw .syntax("println nimmt höchstens einen Wert – verbinde mehrere mit +.", line: line) }
@@ -1089,30 +1271,40 @@ final class JavaInterpreter {
             guard let pattern = args.first?.stringValue else {
                 throw .syntax("printf braucht als Erstes einen Format-Text, z. B. printf(\"%d%n\", zahl).", line: line)
             }
-            try emit(try JavaFormat.format(pattern, Array(args.dropFirst()), line: line), line: line)
+            try emit(try JavaFormat.format(pattern, try formatArgs(Array(args.dropFirst()), line: line), line: line), line: line)
         default:
             throw .syntax("System.out.\(name) gibt es nicht. Meintest du println oder print?", line: line)
         }
         return .void
     }
 
-    private func printable(_ value: JavaValue, line: Int) throws(JavaProblem) -> String {
+    /// Objekte für `%s` vorab in Text verwandeln – mit ihrer eigenen toString-Methode.
+    func formatArgs(_ args: [JavaValue], line: Int) throws(JavaProblem) -> [JavaValue] {
+        try args.map { (arg) throws(JavaProblem) -> JavaValue in
+            if case .object = arg { return .str(try stringify(arg, line: line)) }
+            return arg
+        }
+    }
+
+    func printable(_ value: JavaValue, line: Int) throws(JavaProblem) -> String {
         switch value {
         case .void: throw .syntax("Diese Methode gibt nichts zurück (void) – es gibt nichts auszugeben.", line: line)
         case .array(let array) where array.elementType == .char:
             return array.elements.map(\.javaString).joined()
-        default: return value.javaString
+        default: return try stringify(value, line: line)
         }
     }
 
-    private func emit(_ text: String, line: Int) throws(JavaProblem) {
+    func emit(_ text: String, line: Int) throws(JavaProblem) {
         output += text
         if output.count > Self.maxOutput {
             throw JavaProblem(.stepLimit, "Dein Programm gibt sehr viel aus und wurde gestoppt – vermutlich eine Endlosschleife mit println.", line: line)
         }
     }
 
-    private func callUserMethod(_ name: String, _ argExprs: [JavaExpr], line: Int) throws(JavaProblem) -> JavaValue {
+    func callUserMethod(_ name: String, _ argExprs: [JavaExpr], line: Int) throws(JavaProblem) -> JavaValue {
+        // In einer Klasse: erst deren Methoden (Objektmethoden über this, dann statische), dann die des Hauptprogramms.
+        if let result = try callInClassContext(name, argExprs, line: line) { return result }
         guard let candidates = program.methods[name] else {
             if name == "println" || name == "print" {
                 throw .syntax("\(name) allein kennt Java nicht – es heißt System.out.\(name)(…).", line: line)
@@ -1131,7 +1323,11 @@ final class JavaInterpreter {
             let counts = candidates.map { "\($0.parameters.count)" }.joined(separator: " oder ")
             throw .syntax("\(name) erwartet \(counts) Wert(e) in den Klammern, bekommt aber \(args.count).", line: line)
         }
-        // Erst exakte Typen, dann erlaubte Verbreiterung (int → double usw.).
+        return try invoke(try selectOverload(matching, args, name: name, line: line), args, line: line)
+    }
+
+    /// Wählt die passende Variante: erst exakte Typen, dann erlaubte Verbreiterung (int → double usw.).
+    func selectOverload(_ matching: [JavaMethod], _ args: [JavaValue], name: String, line: Int) throws(JavaProblem) -> JavaMethod {
         let exact = matching.first { method in zip(method.parameters, args).allSatisfy { $0.type == $1.type || $0.type == .inferred } }
         let widening = matching.first { method in
             zip(method.parameters, args).allSatisfy { parameter, arg in
@@ -1146,14 +1342,17 @@ final class JavaInterpreter {
             }
             throw .syntax("Die Werte passen nicht zu den Parametern von \(name).", line: line)
         }
-        return try invoke(method, args, line: line)
+        return method
     }
 
-    private func invoke(_ method: JavaMethod, _ args: [JavaValue], line: Int) throws(JavaProblem) -> JavaValue {
+    func invoke(_ method: JavaMethod, _ args: [JavaValue], line: Int, this: JavaObject? = nil) throws(JavaProblem) -> JavaValue {
         guard frames.count < Self.maxCallDepth else {
             throw .runtime("StackOverflowError: \(method.name) ruft sich immer wieder selbst auf und hört nie auf. Jede Rekursion braucht einen Abbruchfall.", line: line)
         }
-        let newFrame = Frame(method: method)
+        if method.isAbstract {
+            throw .syntax("\(method.name) hat keinen Körper (abstract) – aufrufen kann man nur eine Klasse, die die Methode umsetzt.", line: line)
+        }
+        let newFrame = Frame(method: method, thisObject: method.isStatic ? nil : this, currentClass: method.owner)
         for (parameter, arg) in zip(method.parameters, args) {
             let value = try coerce(arg, to: parameter.type, line: line, what: "Der Parameter „\(parameter.name)“ von \(method.name)")
             newFrame.scopes[0][parameter.name] = Slot(type: parameter.type, value: value, isFinal: false)

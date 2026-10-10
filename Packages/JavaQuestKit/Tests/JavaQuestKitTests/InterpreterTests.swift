@@ -10,14 +10,17 @@ struct InterpreterTests {
         let expected: String
     }
 
-    static func differentialCases() throws -> [DifferentialCase] {
-        let url = try #require(Bundle.module.url(forResource: "java_differential", withExtension: "json", subdirectory: "Fixtures"))
+    static func differentialCases(_ file: String = "java_differential") throws -> [DifferentialCase] {
+        let url = try #require(Bundle.module.url(forResource: file, withExtension: "json", subdirectory: "Fixtures"))
         return try JSONDecoder().decode([DifferentialCase].self, from: Data(contentsOf: url))
     }
 
-    @Test("Gleiche Ausgabe wie ein echtes JDK")
-    func matchesRealJava() throws {
-        for testCase in try Self.differentialCases() {
+    /// Klassen, Vererbung, Interfaces, Exceptions, Sammlungen, Enums und Records – Ausgaben von JDK 25.
+    @Test("Gleiche Ausgabe wie ein echtes JDK", arguments: ["java_differential", "java_differential_oop"])
+    func matchesRealJava(file: String) throws {
+        let cases = try Self.differentialCases(file)
+        #expect(cases.count >= 5)
+        for testCase in cases {
             let result = JavaRunner.run(testCase.source)
             #expect(result.problem == nil, "\(testCase.name): \(result.problem?.description ?? "")")
             let expected = testCase.expected.components(separatedBy: "\n")
@@ -80,12 +83,12 @@ struct InterpreterTests {
     @Test("Unbekannte Java-Bausteine werden als „nicht unterstützt“ erkannt, nicht als Fehler")
     func unsupportedConstructs() {
         let samples = [
-            "List<String> l = new ArrayList<>();",
-            "class Hund { String name; Hund(String n) { name = n; } }",
-            "try { int x = 1; } catch (Exception e) { }",
             "Runnable r = () -> System.out.println(1);",
             "float f = 1.5f;",
-            "sealed interface Form permits Kreis {}\nrecord Kreis(double r) implements Form {}",
+            "List<String> l = new ArrayList<>();\nl.forEach(System.out::println);",
+            "Object o = new Object() { };",
+            "try (var s = new java.util.Scanner(System.in)) { }",
+            "LocalDate d = LocalDate.now();",
         ]
         for sample in samples {
             #expect(problem(sample)?.kind == .unsupported, "\(sample): \(problem(sample)?.description ?? "kein Problem")")
@@ -146,8 +149,8 @@ struct InterpreterCourseTests {
             #expect(AnswerEvaluator.outputLines(result.output) == AnswerEvaluator.outputLines(expected), "\(task.id): „\(result.output)“ statt „\(expected)“")
         }
         print("Interpreter versteht \(supported) Aufgaben, nicht: \(unsupported.joined(separator: ", "))")
-        // Module 1–3: Variablen, Kontrollfluss, Methoden, Arrays, Strings. Klassen, Collections und Lambdas bleiben bei der Regelprüfung.
-        #expect(supported >= 17)
+        // Alles bis auf Lambdas, Streams, Datum/Zeit, Threads, Netzwerk und Eingaben läuft wirklich.
+        #expect(supported >= 280)
     }
 }
 
@@ -218,7 +221,7 @@ struct TraceTests {
         let examples = course.allLessons.flatMap { lesson in lesson.theory.compactMap { $0.example?.source } }
         let useful = examples.filter { JavaRunner.trace($0).isUseful }
         print("Ausführen und zusehen: \(useful.count) von \(examples.count) Theorie-Beispielen")
-        // Lektion 1–7 fast vollständig; Klassen, Listen & Co. (ab Lektion 8) kennt der Interpreter noch nicht.
-        #expect(useful.count >= 14)
+        // Auch Klassen, Listen, Maps, Exceptions und Records; nicht: reine Deklarationen ohne main, Lambdas, Threads, Netzwerk.
+        #expect(useful.count >= 28)
     }
 }

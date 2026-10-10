@@ -12,12 +12,30 @@ import Foundation
 struct JavaParser {
     private var tokens: [JavaToken]
     private var position = 0
-    private var classCount = 0
     /// String-Pool: Gleiche Literale sind in Java dasselbe Objekt ("a" == "a" ist true).
     private var pool: [String: JavaString] = [:]
+    /// Namen aller Klassen, Interfaces, Enums und Records im Programm – vorab gesammelt,
+    /// damit `Hund h = …` schon vor der Klasse Hund als Deklaration erkannt wird.
+    private var declaredTypes: Set<String> = []
+    /// Typparameter wie `T` in `class Box<T>` – sie stehen für „irgendein Objekt“.
+    private var typeParameters: Set<String> = []
+    /// Klassen, die beim Lesen entstehen (auch lokale Klassen in Methoden).
+    private var classes: [String: JavaClass] = [:]
+    private var classOrder: [String] = []
+    /// Gerade gelesene Annotation (`@Override`) – gilt für die nächste Methode.
+    private var sawOverride = false
 
     init(tokens: [JavaToken]) {
         self.tokens = tokens
+        for index in tokens.indices.dropLast() where tokens[index].kind == .keyword
+            && ["class", "interface", "enum", "record"].contains(tokens[index].text) && tokens[index + 1].kind == .identifier {
+            declaredTypes.insert(tokens[index + 1].text)
+        }
+        // „record“ ist ein kontextuelles Wort – der Lexer kann es als Schlüsselwort oder Bezeichner liefern.
+        for index in tokens.indices.dropLast(2) where tokens[index].kind != .stringLiteral && tokens[index].text == "record"
+            && tokens[index + 1].kind == .identifier && tokens[index + 2].is("(") {
+            declaredTypes.insert(tokens[index + 1].text)
+        }
     }
 
     static func parse(_ source: String) throws(JavaProblem) -> JavaProgram {
@@ -73,7 +91,35 @@ struct JavaParser {
 
     // MARK: - Programm
 
-    private static let modifiers: Set<String> = ["public", "private", "protected", "static", "final", "abstract"]
+    private static let modifiers: Set<String> = ["public", "private", "protected", "static", "final", "abstract", "default", "synchronized"]
+
+    /// Liest Modifier wie public, static, sealed – und merkt sich @Override.
+    private mutating func modifiers() throws(JavaProblem) -> Set<String> {
+        var mods: Set<String> = []
+        while true {
+            if current.is("@") { try skipAnnotation(); continue }
+            if Self.modifiers.contains(current.text), current.kind == .keyword {
+                mods.insert(advance().text)
+            } else if current.kind == .identifier, current.text == "sealed", isTypeKeyword(peek()) || peek().kind == .keyword {
+                _ = advance()
+            } else if current.kind == .identifier, current.text == "non", peek().is("-"), peek(2).text == "sealed" {
+                position += 3
+            } else {
+                return mods
+            }
+        }
+    }
+
+    private func isTypeKeyword(_ token: JavaToken) -> Bool {
+        (token.kind == .keyword && ["class", "interface", "enum"].contains(token.text))
+            || (token.kind != .stringLiteral && token.text == "record" && peek(2).kind == .identifier)
+    }
+
+    /// Steht hier `class`, `interface`, `enum` oder `record Name(`?
+    private var atTypeDeclaration: Bool {
+        if current.kind == .keyword, ["class", "interface", "enum"].contains(current.text) { return true }
+        return current.kind != .stringLiteral && current.text == "record" && peek().kind == .identifier && peek(2).is("(")
+    }
 
     mutating func parseProgram() throws(JavaProblem) -> JavaProgram {
         var program = JavaProgram()
@@ -83,18 +129,14 @@ struct JavaParser {
                 try expect(";")
                 continue
             }
-            if current.is("@") { try skipAnnotation(); continue }
             let start = position
-            var mods: Set<String> = []
-            while Self.modifiers.contains(current.text), current.kind == .keyword { mods.insert(advance().text) }
-            if current.is("class") {
-                try parseClass(into: &program)
+            sawOverride = false
+            let mods = try modifiers()
+            if atTypeDeclaration {
+                try parseTypeDeclaration(modifiers: mods, outer: nil)
                 continue
             }
-            if current.is("interface") || current.is("enum") || current.is("record") {
-                throw .unsupported("\(current.text) kennt der eingebaute Interpreter nicht.", line: current.line)
-            }
-            if let method = try parseMethodIfPresent(modifiers: mods) {
+            if let method = try parseMethodIfPresent(modifiers: mods.union(["static"])) {
                 try add(method, to: &program)
                 continue
             }
@@ -106,6 +148,31 @@ struct JavaParser {
             position = start
             program.statements.append(try statement())
         }
+        // Die Klasse mit main ist das Hauptprogramm: Ihre statischen Methoden und Felder gelten überall.
+        if let mainName = classOrder.first(where: { classes[$0]?.methods["main"]?.contains { $0.isStatic && $0.returnType == .void } == true }) {
+            if program.hasMain || !program.statements.isEmpty {
+                throw .syntax("Neben einer main-Methode dürfen keine losen Anweisungen stehen – sie gehören in main.", line: program.statements.first?.line)
+            }
+            var mainClass = classes[mainName]!
+            for (name, overloads) in mainClass.methods {
+                for method in overloads where method.isStatic {
+                    if name == "main", method.returnType == .void {
+                        program.statements = method.body
+                        program.hasMain = true
+                    } else {
+                        try add(method, to: &program)
+                    }
+                }
+                mainClass.methods[name] = overloads.filter { !$0.isStatic }
+                if mainClass.methods[name]?.isEmpty == true { mainClass.methods[name] = nil }
+            }
+            for field in mainClass.fields where field.isStatic {
+                program.staticFields.append(.varDecl(field.type, [JavaVarDeclarator(name: field.name, extraDimensions: 0, initializer: field.initializer, line: field.line)], isFinal: field.isFinal, line: field.line))
+            }
+            mainClass.fields = mainClass.fields.filter { !$0.isStatic }
+            classes[mainName] = mainClass
+            program.mainClass = mainName
+        }
         // main ohne umgebende Klasse (wie in Java 21+ mit „implicit classes“).
         if !program.hasMain, let main = program.methods["main"]?.first, main.returnType == .void {
             if !program.statements.isEmpty {
@@ -115,12 +182,15 @@ struct JavaParser {
             program.hasMain = true
             program.methods["main"] = nil
         }
+        program.classes = classes
+        program.classOrder = classOrder
         return program
     }
 
     private mutating func skipAnnotation() throws(JavaProblem) {
         try expect("@")
-        _ = try identifier("die Annotation")
+        let name = try identifier("die Annotation")
+        if name == "Override" { sawOverride = true }
         if accept("(") {
             var depth = 1
             while depth > 0, current.kind != .end {
@@ -139,69 +209,192 @@ struct JavaParser {
         program.methods[method.name] = existing + [method]
     }
 
-    private mutating func parseClass(into program: inout JavaProgram) throws(JavaProblem) {
+    /// Liest `class`, `interface`, `enum` oder `record` samt Körper. Verschachtelte Typen werden
+    /// wie eigene Klassen abgelegt (mit `outer` für den Namen `Außen$Innen`).
+    private mutating func parseTypeDeclaration(modifiers mods: Set<String>, outer: String?) throws(JavaProblem) {
         let line = current.line
-        try expect("class")
-        let name = try identifier("die Klasse")
-        classCount += 1
-        if classCount > 1 {
-            throw .unsupported("Mehrere Klassen kennt der eingebaute Interpreter nicht.", line: line)
+        let keyword = advance().text
+        let name = try identifier("den Typ")
+        let kind: JavaClass.Kind = switch keyword {
+        case "interface": .interface
+        case "enum": .enumType
+        case "record": .record
+        default: .classType
         }
-        if current.is("extends") || current.is("implements") || current.is("<") {
-            throw .unsupported("Vererbung und Interfaces kennt der eingebaute Interpreter nicht.", line: current.line)
+        if classes[name] != nil { throw .syntax("Den Typ \(name) gibt es schon.", line: line) }
+        var declaration = JavaClass(name: name, kind: kind, line: line)
+        declaration.outer = outer
+        declaration.isAbstract = mods.contains("abstract") || kind == .interface
+        if current.is("<") { try typeParameterList() }
+        if kind == .record {
+            try expect("(", "Nach record \(name) folgen die Felder in runden Klammern.")
+            if !current.is(")") {
+                repeat {
+                    guard let type = try typeIfPresent(allowVoid: false) else {
+                        throw .syntax("Jedes Feld eines Records braucht einen Typ.", line: current.line)
+                    }
+                    declaration.recordComponents.append(JavaParameter(type: type, name: try identifier("das Feld")))
+                } while accept(",")
+            }
+            try expect(")")
         }
-        try expect("{", "Nach „class \(name)“ beginnt der Klassenkörper mit {.")
+        if accept("extends") {
+            if kind == .interface {
+                repeat { declaration.interfaces.append(try typeName()) } while accept(",")
+            } else {
+                declaration.superclass = try typeName()
+            }
+        }
+        if accept("implements") {
+            repeat { declaration.interfaces.append(try typeName()) } while accept(",")
+        }
+        if current.kind == .identifier, current.text == "permits" {
+            _ = advance()
+            repeat { _ = try typeName() } while accept(",")
+        }
+        try expect("{", "Nach „\(keyword) \(name)“ beginnt der Körper mit {.")
+        // Den Namen schon jetzt eintragen – Methoden dürfen sich auf den eigenen Typ beziehen.
+        classOrder.append(name)
+        if kind == .enumType { try enumConstants(into: &declaration) }
         while !current.is("}") {
-            guard current.kind != .end else { throw .syntax("Die Klasse \(name) wird nicht mit } geschlossen.", line: line) }
-            if current.is("@") { try skipAnnotation(); continue }
+            guard current.kind != .end else { throw .syntax("\(name) wird nicht mit } geschlossen.", line: line) }
             if accept(";") { continue }
-            var mods: Set<String> = []
-            while Self.modifiers.contains(current.text), current.kind == .keyword { mods.insert(advance().text) }
-            if current.is("class") || current.is("interface") || current.is("enum") || current.is("record") {
-                throw .unsupported("Verschachtelte Typen kennt der eingebaute Interpreter nicht.", line: current.line)
-            }
-            if current.kind == .identifier, current.text == name, peek().is("(") {
-                throw .unsupported("Konstruktoren und Objekte eigener Klassen kennt der eingebaute Interpreter nicht.", line: current.line)
-            }
-            if let method = try parseMethodIfPresent(modifiers: mods) {
-                if method.name == "main", method.returnType == .void, mods.contains("static") {
-                    program.statements += method.body
-                    program.hasMain = true
-                } else if !mods.contains("static") {
-                    throw .unsupported("Objektmethoden (ohne static) kennt der eingebaute Interpreter nicht.", line: method.line)
-                } else {
-                    try add(method, to: &program)
-                }
+            sawOverride = false
+            let memberMods = try modifiers()
+            if atTypeDeclaration {
+                classes[name] = declaration
+                try parseTypeDeclaration(modifiers: memberMods, outer: declaration.binaryName)
+                declaration = classes[name] ?? declaration
                 continue
             }
-            guard mods.contains("static") else {
-                throw .unsupported("Objekt-Felder (ohne static) kennt der eingebaute Interpreter nicht.", line: current.line)
+            if current.is("{") {
+                throw .unsupported("Initialisierungsblöcke kennt der eingebaute Interpreter nicht.", line: current.line)
             }
-            program.staticFields.append(try declarationStatement(isFinal: mods.contains("final")))
+            let memberLine = current.line
+            // Konstruktor: Name(…)
+            if current.kind == .identifier, current.text == name, peek().is("(") {
+                _ = advance()
+                let parameters = try parameterList(methodName: name)
+                if accept("throws") { repeat { _ = try typeName() } while accept(",") }
+                try expect("{", "Der Körper des Konstruktors beginnt mit {.")
+                let body = try blockBody(openedAt: memberLine)
+                declaration.constructors.append(JavaConstructor(parameters: parameters, body: body, isPrivate: memberMods.contains("private"), line: memberLine))
+                continue
+            }
+            if kind == .record, current.kind == .identifier, current.text == name, peek().is("{") {
+                _ = advance()
+                let open = advance().line
+                let body = try blockBody(openedAt: open)
+                declaration.constructors.append(JavaConstructor(parameters: declaration.recordComponents, body: body,
+                                                                isPrivate: memberMods.contains("private"), line: memberLine, isCompact: true))
+                continue
+            }
+            let isOverride = sawOverride
+            if var method = try parseMethodIfPresent(modifiers: memberMods, inInterface: kind == .interface) {
+                method.isStatic = memberMods.contains("static")
+                method.isPrivate = memberMods.contains("private")
+                method.isOverride = isOverride
+                method.owner = name
+                if method.isAbstract, kind != .interface, !declaration.isAbstract {
+                    throw .syntax("Die Methode \(method.name) hat keinen Körper – dann muss die Klasse \(name) abstract sein.", line: method.line)
+                }
+                let existing = declaration.methods[method.name] ?? []
+                if existing.contains(where: { $0.parameters.map(\.type) == method.parameters.map(\.type) }) {
+                    throw .syntax("Die Methode \(method.name) gibt es mit genau diesen Parametern schon.", line: method.line)
+                }
+                declaration.methods[method.name] = existing + [method]
+                continue
+            }
+            // Feld
+            guard let type = try typeIfPresent(allowVoid: false) else {
+                throw .syntax("Hier wird ein Feld, ein Konstruktor oder eine Methode erwartet.", line: current.line)
+            }
+            if case .unknown(let typeName) = type.baseType {
+                throw .unsupported("Den Typ \(typeName) kennt der eingebaute Interpreter nicht.", line: memberLine)
+            }
+            repeat {
+                let fieldLine = current.line
+                let fieldName = try identifier("das Feld")
+                var fieldType = type
+                while accept("[") { try expect("]"); fieldType = .array(fieldType) }
+                var initializer: JavaExpr?
+                if accept("=") {
+                    initializer = current.is("{") ? try arrayInitializer(element: elementType(of: fieldType, extra: 0)) : try expression()
+                }
+                // In Interfaces sind Felder immer Konstanten (static final).
+                let isStatic = memberMods.contains("static") || kind == .interface
+                declaration.fields.append(JavaField(type: fieldType, name: fieldName, initializer: initializer, isStatic: isStatic,
+                                                    isFinal: memberMods.contains("final") || kind == .interface,
+                                                    isPrivate: memberMods.contains("private"), line: fieldLine))
+            } while accept(",")
+            try expect(";")
         }
         try expect("}")
+        classes[name] = declaration
     }
 
-    /// Erkennt `Typ name(` und liest die ganze Methode – sonst bleibt die Position unverändert.
-    private mutating func parseMethodIfPresent(modifiers: Set<String>) throws(JavaProblem) -> JavaMethod? {
-        let start = position
-        if current.is("<") {
-            throw .unsupported("Generische Methoden kennt der eingebaute Interpreter nicht.", line: current.line)
+    /// Enum-Konstanten: `ROT, GELB, GRUEN;` oder `ROT("Stehen"), …;`
+    private mutating func enumConstants(into declaration: inout JavaClass) throws(JavaProblem) {
+        while current.kind == .identifier {
+            let line = current.line
+            let constant = advance().text
+            let args = current.is("(") ? try arguments() : []
+            if current.is("{") {
+                throw .unsupported("Enum-Konstanten mit eigenem Körper kennt der eingebaute Interpreter nicht.", line: current.line)
+            }
+            declaration.enumConstants.append(JavaEnumConstant(name: constant, args: args, line: line))
+            if !accept(",") { break }
         }
-        let line = current.line
-        guard let returnType = try? typeIfPresent(allowVoid: true),
-              current.kind == .identifier, peek().is("(") else {
-            position = start
-            return nil
+        _ = accept(";")
+    }
+
+    /// `<T>`, `<K, V>`, `<T extends Comparable<T>>` – die Namen gelten als „irgendein Objekt“.
+    private mutating func typeParameterList() throws(JavaProblem) {
+        try expect("<")
+        var depth = 1
+        var expectName = true
+        while depth > 0, current.kind != .end {
+            let token = advance()
+            if token.is("<") { depth += 1 } else if token.is(">") { depth -= 1 } else if token.is(">>") { depth -= 2 }
+            if depth == 1, expectName, token.kind == .identifier { typeParameters.insert(token.text); expectName = false }
+            if depth == 1, token.is(",") { expectName = true }
         }
-        let name = advance().text
+    }
+
+    /// Name eines Typs nach extends/implements/throws – Generics werden überlesen.
+    private mutating func typeName() throws(JavaProblem) -> String {
+        var name = try identifier("den Typ")
+        while current.is("."), peek().kind == .identifier {
+            _ = advance()
+            name += "." + advance().text
+        }
+        if current.is("<") { try skipGenerics() }
+        return name
+    }
+
+    private mutating func skipGenerics() throws(JavaProblem) {
+        var depth = 0
+        repeat {
+            if current.is("<") { depth += 1 }
+            if current.is(">") { depth -= 1 }
+            if current.is(">>") { depth -= 2 }
+            if current.is(">>>") { depth -= 3 }
+            _ = advance()
+        } while depth > 0 && current.kind != .end
+    }
+
+    /// Parameterliste `(int a, String b)` – auch für Konstruktoren.
+    private mutating func parameterList(methodName name: String) throws(JavaProblem) -> [JavaParameter] {
         try expect("(")
         var parameters: [JavaParameter] = []
         if !current.is(")") {
             repeat {
-                _ = accept("final")
+                _ = try modifiers()
                 guard let type = try typeIfPresent(allowVoid: false) else {
                     throw .syntax("Jeder Parameter braucht einen Typ, z. B. „int zahl“.", line: current.line)
+                }
+                if case .unknown(let typeName) = type.baseType {
+                    throw .unsupported("Den Typ \(typeName) kennt der eingebaute Interpreter nicht.", line: current.line)
                 }
                 if accept("...") {
                     throw .unsupported("Variable Parameterlisten (…) kennt der eingebaute Interpreter nicht.", line: previousLine)
@@ -213,15 +406,42 @@ struct JavaParser {
             } while accept(",")
         }
         try expect(")", "Die Parameterliste von \(name) wird mit ) geschlossen.")
-        if accept("throws") {
-            repeat { _ = try identifier("die Exception") } while accept(",")
+        return parameters
+    }
+
+    /// Erkennt `Typ name(` und liest die ganze Methode – sonst bleibt die Position unverändert.
+    private mutating func parseMethodIfPresent(modifiers: Set<String>, inInterface: Bool = false) throws(JavaProblem) -> JavaMethod? {
+        let start = position
+        if current.is("<") {
+            // Generische Methode: <T> void zeige(T wert) – T steht für „irgendein Objekt“.
+            try typeParameterList()
         }
-        if modifiers.contains("abstract") || current.is(";") {
-            throw .unsupported("Methoden ohne Körper kennt der eingebaute Interpreter nicht.", line: line)
+        let line = current.line
+        guard let returnType = try? typeIfPresent(allowVoid: true),
+              current.kind == .identifier, peek().is("(") else {
+            position = start
+            return nil
+        }
+        if case .unknown(let typeName) = returnType.baseType {
+            throw .unsupported("Den Typ \(typeName) kennt der eingebaute Interpreter nicht.", line: line)
+        }
+        let name = advance().text
+        let parameters = try parameterList(methodName: name)
+        if accept("throws") {
+            repeat { _ = try typeName() } while accept(",")
+        }
+        if accept(";") {
+            guard modifiers.contains("abstract") || (inInterface && !modifiers.contains("default") && !modifiers.contains("static")) else {
+                throw .syntax("Die Methode \(name) braucht einen Körper in { }.", line: line)
+            }
+            return JavaMethod(name: name, returnType: returnType, parameters: parameters, body: [], line: line, isStatic: false, isAbstract: true)
+        }
+        if modifiers.contains("abstract") {
+            throw .syntax("Eine abstrakte Methode hat keinen Körper – statt { … } steht dort nur ein Semikolon.", line: line)
         }
         try expect("{", "Der Körper der Methode \(name) beginnt mit {.")
         let body = try blockBody(openedAt: line)
-        return JavaMethod(name: name, returnType: returnType, parameters: parameters, body: body, line: line)
+        return JavaMethod(name: name, returnType: returnType, parameters: parameters, body: body, line: line, isStatic: modifiers.contains("static"))
     }
 
     // MARK: - Typen
@@ -269,7 +489,14 @@ struct JavaParser {
                         _ = advance()
                     } while depth > 0 && current.kind != .end
                 }
-                type = .unknown(full)
+                let base = String(full.prefix { $0 != "<" })
+                if typeParameters.contains(base) {
+                    type = .object("Object")
+                } else if declaredTypes.contains(base) || JavaBuiltins.knownTypes.contains(base) {
+                    type = .object(full)
+                } else {
+                    type = .unknown(full)
+                }
             }
         } else {
             return nil
@@ -364,11 +591,19 @@ struct JavaParser {
                 let cases = try switchBody(isExpression: false)
                 return .switchStmt(subject, cases, line: line)
             case "throw":
-                throw .unsupported("throw kennt der eingebaute Interpreter nicht.", line: line)
-            case "try", "catch", "finally":
-                throw .unsupported("try/catch kennt der eingebaute Interpreter nicht.", line: line)
-            case "class", "interface", "enum", "record":
-                throw .unsupported("Typen innerhalb von Methoden kennt der eingebaute Interpreter nicht.", line: line)
+                _ = advance()
+                let value = try expression()
+                try expect(";")
+                return .throwStmt(value, line: line)
+            case "try":
+                return try tryStatement()
+            case "catch", "finally":
+                throw .syntax("„\(token.text)“ gehört direkt hinter einen try-Block.", line: line)
+            case "class", "interface", "enum", "abstract":
+                // Lokale Klasse: wird wie jede andere Klasse abgelegt.
+                let mods = try modifiers()
+                try parseTypeDeclaration(modifiers: mods, outer: nil)
+                return .empty(line: line)
             case "else":
                 throw .syntax("Zu diesem else gibt es kein passendes if (steht vielleicht ein ; hinter der if-Bedingung?).", line: line)
             case "case", "default":
@@ -379,10 +614,11 @@ struct JavaParser {
                 break
             }
         }
-        // Kontextuelle Schlüsselwörter (sealed, non-sealed, permits): gültiges Java, das hier nicht unterstützt wird.
-        if token.kind == .identifier, ["sealed", "non", "permits"].contains(token.text)
-            || (token.kind == .identifier && ["class", "interface", "enum", "record"].contains(peek().text) && peek().kind == .keyword) {
-            throw .unsupported("„\(token.text) …“-Typen (z. B. sealed interface) kennt der eingebaute Interpreter nicht.", line: line)
+        // Lokaler Record (record ist kein echtes Schlüsselwort) oder sealed interface in einer Methode.
+        if atTypeDeclaration || (token.kind == .identifier && token.text == "sealed") {
+            let mods = try modifiers()
+            try parseTypeDeclaration(modifiers: mods, outer: nil)
+            return .empty(line: line)
         }
         if token.kind == .identifier, peek().is(":"), !peek(2).is(":") {
             throw .unsupported("Sprungmarken kennt der eingebaute Interpreter nicht.", line: line)
@@ -400,10 +636,43 @@ struct JavaParser {
     /// Java erlaubt als Anweisung nur Zuweisungen, ++/-- und Methodenaufrufe.
     private func requireStatementExpression(_ expr: JavaExpr) throws(JavaProblem) {
         switch expr {
-        case .assign, .increment, .call, .switchExpr: return
+        case .assign, .increment, .call, .switchExpr, .newObject: return
         default:
             throw .syntax("Das ist keine vollständige Anweisung – der Wert wird berechnet, aber nirgends gespeichert oder ausgegeben.", line: expr.line)
         }
+    }
+
+    /// `try { … } catch (A | B e) { … } finally { … }`
+    private mutating func tryStatement() throws(JavaProblem) -> JavaStmt {
+        let line = current.line
+        try expect("try")
+        if current.is("(") {
+            throw .unsupported("try mit Ressourcen (try (…)) kennt der eingebaute Interpreter nicht.", line: line)
+        }
+        try expect("{", "Nach try folgt ein Block in { }.")
+        let body = try blockBody(openedAt: line)
+        var catches: [JavaCatch] = []
+        while current.is("catch") {
+            let catchLine = advance().line
+            try expect("(", "Nach catch folgt in Klammern, welche Exception aufgefangen wird.")
+            _ = try modifiers()
+            var types = [try typeName()]
+            while accept("|") { types.append(try typeName()) }
+            let name = try identifier("die Exception-Variable")
+            try expect(")")
+            try expect("{", "Der catch-Block beginnt mit {.")
+            catches.append(JavaCatch(types: types, name: name, body: try blockBody(openedAt: catchLine), line: catchLine))
+        }
+        var finallyBody: [JavaStmt]?
+        if current.is("finally") {
+            let finallyLine = advance().line
+            try expect("{", "Der finally-Block beginnt mit {.")
+            finallyBody = try blockBody(openedAt: finallyLine)
+        }
+        if catches.isEmpty, finallyBody == nil {
+            throw .syntax("Zu try gehört mindestens ein catch- oder finally-Block.", line: line)
+        }
+        return .tryStmt(body: body, catches: catches, finally: finallyBody, line: line)
     }
 
     private mutating func declarationStatement(isFinal: Bool) throws(JavaProblem) -> JavaStmt {
@@ -503,6 +772,28 @@ struct JavaParser {
         return .forStmt(init: initializers, condition: condition, update: updates, body: try statement(), line: line)
     }
 
+    /// `(int x, var y, Punkt(int a, int b))` hinter einem Record-Namen.
+    private mutating func patternComponents() throws(JavaProblem) -> [JavaPattern] {
+        let open = current.line
+        try expect("(")
+        var parts: [JavaPattern] = []
+        while !current.is(")") {
+            guard current.kind != .end else { throw .syntax("Das Record-Muster wird nicht mit ) geschlossen.", line: open) }
+            if current.kind == .identifier, peek().is("("), declaredTypes.contains(current.text) {
+                let name = advance().text
+                parts.append(.record(name, try patternComponents()))
+            } else {
+                guard let type = try typeIfPresent(allowVoid: false), current.kind == .identifier else {
+                    throw .syntax("Im Record-Muster steht für jedes Feld ein Typ und ein Name, z. B. Punkt(int x, int y).", line: current.line)
+                }
+                parts.append(.binding(type, advance().text))
+            }
+            if !accept(",") { break }
+        }
+        try expect(")", "Das Record-Muster wird mit ) geschlossen.")
+        return parts
+    }
+
     private mutating func switchBody(isExpression: Bool) throws(JavaProblem) -> [JavaSwitchCase] {
         let open = current.line
         try expect("{", "Der switch-Block beginnt mit {.")
@@ -518,23 +809,55 @@ struct JavaParser {
                 try expect("case", "Im switch-Block stehen case- und default-Zweige.")
                 repeat {
                     if accept("default") { isDefault = true; continue }
+                    // Enum-Konstante: case ROT -> … (sonst sähe „ROT -> …“ wie ein Lambda aus)
+                    if current.kind == .identifier, peek().is("->") || peek().is(",") || peek().is(":") {
+                        let constant = advance()
+                        labels.append(.name(constant.text, line: constant.line))
+                        continue
+                    }
+                    // Record-Muster: case Punkt(int x, int y) -> …
+                    if current.kind == .identifier, peek().is("("), declaredTypes.contains(current.text) {
+                        let patternLine = current.line
+                        let name = advance().text
+                        labels.append(.recordPattern(.name("$switch", line: patternLine), .record(name, try patternComponents()), line: patternLine))
+                        continue
+                    }
+                    // Typ-Muster: case Kreis k -> …
+                    if current.kind == .identifier, peek().kind == .identifier || peek().is("<"), !peek().is("->") {
+                        let patternLine = current.line
+                        let save = position
+                        if let type = try typeIfPresent(allowVoid: false), current.kind == .identifier {
+                            let binding = advance().text
+                            labels.append(.instanceOf(.name("$switch", line: patternLine), type, binding: binding, line: patternLine))
+                            continue
+                        }
+                        position = save
+                    }
                     labels.append(try ternary())
                 } while accept(",")
+            }
+            var guardExpr: JavaExpr?
+            if current.kind == .identifier, current.text == "when" {
+                _ = advance()
+                guardExpr = try ternary()
             }
             if accept("->") {
                 if current.is("{") {
                     let blockLine = advance().line
-                    cases.append(JavaSwitchCase(labels: labels, isDefault: isDefault, isArrow: true, body: try blockBody(openedAt: blockLine), value: nil, line: line))
+                    cases.append(JavaSwitchCase(labels: labels, isDefault: isDefault, isArrow: true, body: try blockBody(openedAt: blockLine), value: nil, line: line, guardExpr: guardExpr))
                 } else if current.is("throw") {
-                    throw .unsupported("throw kennt der eingebaute Interpreter nicht.", line: current.line)
+                    let throwLine = advance().line
+                    let value = try expression()
+                    try expect(";")
+                    cases.append(JavaSwitchCase(labels: labels, isDefault: isDefault, isArrow: true, body: [.throwStmt(value, line: throwLine)], value: nil, line: line, guardExpr: guardExpr))
                 } else {
                     let value = try expression()
                     try expect(";")
                     if isExpression {
-                        cases.append(JavaSwitchCase(labels: labels, isDefault: isDefault, isArrow: true, body: [], value: value, line: line))
+                        cases.append(JavaSwitchCase(labels: labels, isDefault: isDefault, isArrow: true, body: [], value: value, line: line, guardExpr: guardExpr))
                     } else {
                         try requireStatementExpression(value)
-                        cases.append(JavaSwitchCase(labels: labels, isDefault: isDefault, isArrow: true, body: [.expr(value, line: value.line)], value: nil, line: line))
+                        cases.append(JavaSwitchCase(labels: labels, isDefault: isDefault, isArrow: true, body: [.expr(value, line: value.line)], value: nil, line: line, guardExpr: guardExpr))
                     }
                 }
             } else {
@@ -543,7 +866,7 @@ struct JavaParser {
                 while !current.is("case"), !current.is("default"), !current.is("}"), current.kind != .end {
                     body.append(try statement())
                 }
-                cases.append(JavaSwitchCase(labels: labels, isDefault: isDefault, isArrow: false, body: body, value: nil, line: line))
+                cases.append(JavaSwitchCase(labels: labels, isDefault: isDefault, isArrow: false, body: body, value: nil, line: line, guardExpr: guardExpr))
             }
         }
         try expect("}")
@@ -599,10 +922,13 @@ struct JavaParser {
                 guard let type = try typeIfPresent(allowVoid: false) else {
                     throw .syntax("Nach instanceof folgt ein Typ.", line: op.line)
                 }
-                if current.kind == .identifier {
-                    throw .unsupported("instanceof mit Variable (Pattern Matching) kennt der eingebaute Interpreter nicht.", line: op.line)
+                if current.is("("), let name = type.className {
+                    left = .recordPattern(left, .record(name, try patternComponents()), line: op.line)
+                    continue
                 }
-                left = .instanceOf(left, type, line: op.line)
+                var binding: String?
+                if current.kind == .identifier { binding = advance().text }
+                left = .instanceOf(left, type, binding: binding, line: op.line)
                 continue
             }
             let right = try binary(level: level + 1)
@@ -647,6 +973,15 @@ struct JavaParser {
         _ = advance() // (
         let isPrimitive = current.kind == .keyword && Self.primitive[current.text] != nil
         let isStringCast = current.kind == .identifier && current.text == "String" && peek().is(")")
+        // (Hund) tier, (List<String>) objekt: nur bei bekannten Typen und wenn danach ein Wert kommt.
+        if current.kind == .identifier, !isStringCast, declaredTypes.contains(current.text) || JavaBuiltins.knownTypes.contains(current.text) {
+            if let type = try? typeIfPresent(allowVoid: false), accept(")"),
+               current.kind == .identifier || current.kind == .stringLiteral || current.is("(") || current.is("this") || current.is("new") || current.is("!") {
+                return .cast(type, try unary(), line: line)
+            }
+            position = start
+            return nil
+        }
         if ["byte", "short", "float"].contains(current.text), current.kind == .keyword, peek().is(")") {
             throw .unsupported("Den Typ \(current.text) kennt der eingebaute Interpreter nicht.", line: line)
         }
@@ -662,6 +997,8 @@ struct JavaParser {
         while true {
             let token = current
             if accept(".") {
+                // Ausdrückliche Typangabe bei generischen Methoden: Liste.<Integer>leer()
+                if current.is("<") { try skipGenerics() }
                 let name = try identifier("das Feld oder die Methode")
                 if current.is("(") {
                     expr = .call(target: expr, name: name, args: try arguments(), line: token.line)
@@ -731,8 +1068,14 @@ struct JavaParser {
             case "switch":
                 let subject = try parenthesized("switch")
                 return .switchExpr(subject, try switchBody(isExpression: true), line: line)
-            case "this", "super":
-                throw .unsupported("„\(token.text)“ gibt es nur in Objekten – die kennt der eingebaute Interpreter nicht.", line: line)
+            case "this":
+                // this(…) im Konstruktor ruft einen anderen Konstruktor derselben Klasse auf.
+                if current.is("(") { return .call(target: nil, name: "this", args: try arguments(), line: line) }
+                return .this(line: line)
+            case "super":
+                if current.is("(") { return .call(target: nil, name: "super", args: try arguments(), line: line) }
+                guard current.is(".") else { throw .syntax("Nach super folgt ein Punkt und eine Methode, z. B. super.laut().", line: line) }
+                return .superRef(line: line)
             case "int", "long", "double", "boolean", "char":
                 if current.is("."), peek().text == "class" {
                     throw .unsupported("Klassenliterale kennt der eingebaute Interpreter nicht.", line: line)
@@ -771,7 +1114,26 @@ struct JavaParser {
                 return .newObject(className: "String", args: try arguments(), line: line)
             }
         } else if current.kind == .identifier {
-            throw .unsupported("Objekte mit new \(current.text)(…) kennt der eingebaute Interpreter nicht.", line: line)
+            let typeLine = current.line
+            guard let type = try typeIfPresent(allowVoid: false) else {
+                throw .syntax("Nach new folgt ein Typ, z. B. new int[5].", line: line)
+            }
+            if case .unknown(let name) = type {
+                // Diamant-Operator: new ArrayList<>() – die Generics stehen schon im Typ.
+                throw .unsupported("Objekte mit new \(name)(…) kennt der eingebaute Interpreter nicht.", line: typeLine)
+            }
+            if current.is("(") {
+                let args = try arguments()
+                if current.is("{") {
+                    throw .unsupported("Anonyme Klassen (new …() { … }) kennt der eingebaute Interpreter nicht.", line: current.line)
+                }
+                return .newObject(className: type.className ?? "Object", args: args, line: line)
+            }
+            // new Object[] { … }: Die leeren Klammern gehören schon zum Typ.
+            if case .array(let inner) = type, current.is("{") {
+                return try arrayInitializer(element: inner)
+            }
+            element = type
         } else {
             throw .syntax("Nach new folgt ein Typ, z. B. new int[5].", line: line)
         }

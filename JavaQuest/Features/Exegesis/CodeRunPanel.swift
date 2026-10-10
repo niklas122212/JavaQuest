@@ -112,7 +112,8 @@ struct CodeRunPanel: View {
         }()
         VStack(alignment: .leading, spacing: 6) {
             if let method = step.method, !isLast {
-                Label("in der Methode \(method)()", systemImage: "arrow.turn.down.right")
+                // Konstruktoren heißen wie ihre Klasse – und die beginnt mit einem Großbuchstaben.
+                Label(method.first?.isUppercase == true ? "im Konstruktor \(method)(…)" : "in der Methode \(method)()", systemImage: "arrow.turn.down.right")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(Theme.violet)
             }

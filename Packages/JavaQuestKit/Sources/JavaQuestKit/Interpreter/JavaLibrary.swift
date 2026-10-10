@@ -5,10 +5,11 @@ enum JavaLibrary {
     // MARK: Statische Methoden
 
     static func callStatic(_ className: String, _ name: String, _ args: [JavaValue], line: Int, interpreter: JavaInterpreter) throws(JavaProblem) -> JavaValue {
+        if let result = try collectionStatic(className, name, args, line: line, interpreter: interpreter) { return result }
         switch className {
         case "Math": return try math(name, args, line: line, interpreter: interpreter)
         case "Integer", "Long", "Double", "Boolean": return try wrapper(className, name, args, line: line)
-        case "String": return try stringStatic(name, args, line: line)
+        case "String": return try stringStatic(name, args, line: line, interpreter: interpreter)
         case "Character": return try character(name, args, line: line)
         case "Arrays": return try arrays(name, args, line: line, interpreter: interpreter)
         case "System":
@@ -21,7 +22,7 @@ enum JavaLibrary {
         }
     }
 
-    private static func arity(_ args: [JavaValue], _ count: Int, _ name: String, line: Int) throws(JavaProblem) {
+    static func arity(_ args: [JavaValue], _ count: Int, _ name: String, line: Int) throws(JavaProblem) {
         guard args.count == count else {
             throw .syntax("\(name) erwartet \(count) Wert(e) in den Klammern, bekommt aber \(args.count).", line: line)
         }
@@ -85,7 +86,7 @@ enum JavaLibrary {
             try arity(args, 2, label, line: line)
             let (a, b) = Numeric.promote(try number(args[0], label, line: line), try number(args[1], label, line: line))
             guard !a.isDouble else { throw .syntax("\(label) rechnet nur mit ganzen Zahlen.", line: line) }
-            if b.isZeroIntegral { throw .runtime("ArithmeticException: / by zero", line: line) }
+            if b.isZeroIntegral { throw .exception("ArithmeticException", javaMessage: "/ by zero", explanation: "/ by zero", line: line) }
             let x = a.toInt64, y = b.toInt64
             var quotient = x / y
             if (x % y != 0) && ((x < 0) != (y < 0)) { quotient -= 1 }
@@ -124,14 +125,14 @@ enum JavaLibrary {
                 return .int(try intArg(args[0], label, line: line))
             }
             guard let value = Int32(text.hasPrefix("+") ? String(text.dropFirst()) : text) else {
-                throw .runtime("NumberFormatException: For input string: \"\(text)\" – das ist keine ganze Zahl.", line: line)
+                throw .exception("NumberFormatException", javaMessage: "For input string: \"\(text)\"", explanation: "For input string: \"\(text)\" – das ist keine ganze Zahl.", line: line)
             }
             return .int(value)
         case ("Long", "parseLong"), ("Long", "valueOf"):
             try arity(args, 1, label, line: line)
             let text = try stringArg(args[0], label, line: line)
             guard let value = Int64(text) else {
-                throw .runtime("NumberFormatException: For input string: \"\(text)\"", line: line)
+                throw .exception("NumberFormatException", javaMessage: "For input string: \"\(text)\"", explanation: "For input string: \"\(text)\"", line: line)
             }
             return .long(value)
         case ("Double", "parseDouble"), ("Double", "valueOf"):
@@ -139,7 +140,7 @@ enum JavaLibrary {
             if let number = Numeric(args[0]) { return .double(number.toDouble) }
             let text = try stringArg(args[0], label, line: line).trimmingCharacters(in: .whitespaces)
             guard let value = Double(text) else {
-                throw .runtime("NumberFormatException: For input string: \"\(text)\" – das ist keine Zahl (Kommazahlen mit Punkt schreiben).", line: line)
+                throw .exception("NumberFormatException", javaMessage: "For input string: \"\(text)\"", explanation: "For input string: \"\(text)\" – das ist keine Zahl (Kommazahlen mit Punkt schreiben).", line: line)
             }
             return .double(value)
         case ("Boolean", "parseBoolean"):
@@ -168,25 +169,29 @@ enum JavaLibrary {
         }
     }
 
-    private static func stringStatic(_ name: String, _ args: [JavaValue], line: Int) throws(JavaProblem) -> JavaValue {
+    private static func stringStatic(_ name: String, _ args: [JavaValue], line: Int, interpreter: JavaInterpreter) throws(JavaProblem) -> JavaValue {
         switch name {
         case "valueOf":
             try arity(args, 1, "String.valueOf", line: line)
             if case .array(let array) = args[0], array.elementType == .char {
                 return .str(array.elements.map(\.javaString).joined())
             }
-            return .str(args[0].javaString)
+            return .str(try interpreter.stringify(args[0], line: line))
         case "format":
             guard let pattern = args.first?.stringValue else {
                 throw .syntax("String.format braucht als Erstes einen Format-Text.", line: line)
             }
-            return .str(try JavaFormat.format(pattern, Array(args.dropFirst()), line: line))
+            return .str(try JavaFormat.format(pattern, try interpreter.formatArgs(Array(args.dropFirst()), line: line), line: line))
         case "join":
             guard args.count >= 2 else { throw .syntax("String.join braucht ein Trennzeichen und Texte.", line: line) }
             let separator = try stringArg(args[0], "String.join", line: line)
             var parts: [String] = []
             if args.count == 2, case .array(let array) = args[1] {
                 parts = array.elements.map(\.javaString)
+            } else if args.count == 2, case .object = args[1] {
+                parts = try elements(of: args[1], "String.join", line: line, interpreter: interpreter).map { (value) throws(JavaProblem) in
+                    try interpreter.stringify(value, line: line)
+                }
             } else {
                 parts = try args.dropFirst().map { (value) throws(JavaProblem) in try stringArg(value, "String.join", line: line) }
             }
@@ -279,8 +284,11 @@ enum JavaLibrary {
             default:
                 throw .syntax("Arrays haben keine Methode \(name)(). Für Hilfsfunktionen gibt es Arrays.\(name)(…).", line: line)
             }
+        case .object(let object):
+            return try callObject(object, name, args, line: line, interpreter: interpreter)
         case .null:
-            throw .runtime("NullPointerException: Der Wert ist null – auf null kann man keine Methode \(name)() aufrufen.", line: line)
+            throw .exception("NullPointerException", javaMessage: nil,
+                             explanation: "Der Wert ist null – auf null kann man keine Methode \(name)() aufrufen.", line: line)
         case .void:
             throw .syntax("Die Methode davor gibt nichts zurück (void) – darauf kann man nicht .\(name)() aufrufen.", line: line)
         default:
@@ -317,7 +325,8 @@ enum JavaLibrary {
             try arity(args, 1, "charAt", line: line)
             let i = try index(args[0])
             guard i >= 0, i < units.count else {
-                throw .runtime("StringIndexOutOfBoundsException: Index \(i) gibt es nicht – \"\(text)\" hat nur die Positionen 0 bis \(units.count - 1).", line: line)
+                throw .exception("StringIndexOutOfBoundsException", javaMessage: "Index \(i) out of bounds for length \(units.count)",
+                                 explanation: "Index \(i) gibt es nicht – \"\(text)\" hat nur die Positionen 0 bis \(units.count - 1).", line: line)
             }
             return .char(units[i])
         case "substring":
@@ -325,7 +334,8 @@ enum JavaLibrary {
             let begin = try index(args[0])
             let end = args.count == 2 ? try index(args[1]) : units.count
             guard begin >= 0, end <= units.count, begin <= end else {
-                throw .runtime("StringIndexOutOfBoundsException: begin \(begin), end \(end), length \(units.count) – der Bereich passt nicht in den Text.", line: line)
+                throw .exception("StringIndexOutOfBoundsException", javaMessage: "Range [\(begin), \(end)) out of bounds for length \(units.count)",
+                                 explanation: "begin \(begin), end \(end), length \(units.count) – der Bereich passt nicht in den Text.", line: line)
             }
             return .str(string(units[begin..<end]))
         case "indexOf", "lastIndexOf":

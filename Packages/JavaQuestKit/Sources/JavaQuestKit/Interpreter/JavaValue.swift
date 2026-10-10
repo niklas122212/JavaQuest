@@ -12,8 +12,12 @@ public enum JavaValue: @unchecked Sendable {
     /// Strings sind wie in Java Referenzen: == vergleicht, ob es dasselbe Objekt ist.
     case string(JavaString)
     case array(JavaArray)
+    /// Objekt einer eigenen Klasse oder aus der Bibliothek (Liste, Map, StringBuilder, Exception …).
+    case object(JavaObject)
     case null
     case void
+
+    var isNull: Bool { if case .null = self { true } else { false } }
 
     var type: JavaType {
         switch self {
@@ -24,6 +28,7 @@ public enum JavaValue: @unchecked Sendable {
         case .char: .char
         case .string: .string
         case .array(let array): .array(array.elementType)
+        case .object(let object): .object(object.className)
         case .null: .unknown("null")
         case .void: .void
         }
@@ -44,6 +49,7 @@ public enum JavaValue: @unchecked Sendable {
         case .char(let value): String(utf16CodeUnits: [value], count: 1)
         case .string(let value): value.text
         case .array(let array): array.identityString
+        case .object(let object): object.debugDescription
         case .null: "null"
         case .void: ""
         }
@@ -55,6 +61,7 @@ public enum JavaValue: @unchecked Sendable {
         case .string(let value): "\"\(value.text)\""
         case .char: "'\(javaString)'"
         case .array(let array): "{" + array.elements.prefix(12).map(\.debugDisplay).joined(separator: ", ") + (array.elements.count > 12 ? ", …" : "") + "}"
+        case .object(let object): object.debugDescription
         default: javaString
         }
     }
@@ -206,7 +213,7 @@ enum JavaFormat {
                 switch arg {
                 case .int(let v): number = Int64(v)
                 case .long(let v): number = v
-                case .char, .double, .boolean, .string, .array, .null, .void:
+                case .char, .double, .boolean, .string, .array, .object, .null, .void:
                     throw .runtime("IllegalFormatConversionException: %d erwartet eine Ganzzahl, bekam \(arg.typeName).", line: line)
                 }
                 text = flags.contains(",") ? grouped(String(abs(number))) : String(abs(number))
