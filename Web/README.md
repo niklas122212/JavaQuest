@@ -18,7 +18,7 @@ Bildschirme und dieselben Rechenregeln:
 | **Sprachausgabe** | Antworten als Auswahlgruppe mit Zustand, Rückmeldung wird automatisch vorgelesen, Fortschrittsbalken und UML-Diagramme sind beschriftet |
 | **Arena** | Den Roboter Byte mit echtem Java steuern: 13 Missionen (Lektion 1–7 enden mit einer, dazu Training und 3 Boss-Level), Tagesmission, Spielplatz – Spielfeld mit Punktspur, Wiedergabe mit Tempo, Befehlsleiste, Konsole, Variablen, bis zu 3 Sterne mit Messwert |
 | **Code-Aufgaben** | Wie in den Apps: Aufbau (Klammern, Semikolons), Regeln und echtes Ausführen mit dem eingebauten Interpreter; dazu ein Testlauf, der keinen Versuch kostet |
-| **Bonus-Aufgaben** | Code-Puzzle und Bug-Jagd in Lektion 1–13 – bringen XP, zählen nicht für Trefferquote und Score |
+| **Bonus-Aufgaben** | Code-Puzzle und Bug-Jagd in allen 35 Lektionen – bringen XP, zählen nicht für Trefferquote und Score |
 | **Motivation** | XP und Level, Combos, 19 Abzeichen, Missionssterne im Lernpfad – abgeleitet aus dem Protokoll, kein neues Speicherformat |
 
 Gleich sind auch die Zahlen dahinter: Bestehensgrenze 69 %, Stufenfaktor 1,0 / 1,25 / 1,5
