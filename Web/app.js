@@ -1067,6 +1067,9 @@ function zeichne() {
   // Die Leiste gibt es überall außer im Einstieg und während einer laufenden Aufgabe oder
   // Mission – wie in der App, wo die Seitenleiste dort ebenfalls zurücktritt.
   const mitLeiste = !["einstieg", "sitzung", "einstufungErgebnis", "mission"].includes(ansicht.name);
+  // Neu gezeichnet ist auch das Panel „Ausführen und zusehen“ – es fängt wieder geschlossen an.
+  zusehenAnhalten();
+  zuschauen = null;
   const vorherigerFokus = document.activeElement;
   el().innerHTML = s() + (mitLeiste ? tableiste() : "");
   document.body.classList.toggle("mit-leiste", mitLeiste);
@@ -2028,6 +2031,7 @@ function theorieSeite() {
       ${umlDiagramm(karte.diagram)}
       ${codeBlock(karte.code)}
       ${exegese(karte.code, "Code Zeile für Zeile erklären")}
+      ${zusehenHtml(karte.code)}
       ${karte.callout ? `<div class="kasten ${karte.callout.kind === "warning" ? "falsch" : "richtig"}">${sicher(karte.callout.text)}</div>` : ""}
     </div>
     <button class="knopf" data-theorie="weiter">Weiter</button>
@@ -2113,9 +2117,10 @@ function aufgabenSeite() {
       ${eingabe}
       ${a.type === "code" && !fertig && sitzung.testlauf ? testlaufHtml(sitzung.testlauf) : ""}
       ${erklaeren && zeigeCode ? exegese(a.code, "Code Zeile für Zeile erklären") : ""}
+      ${fertig && zeigeCode && !sitzung.einstufung ? zusehenHtml(a.code) : ""}
       ${erklaeren && vorlage ? exegese(vorlage, "Code Zeile für Zeile erklären", !fertig) : ""}
       ${erklaeren && a.type === "code" && !fertig ? exegese(a.starterCode, "Startcode Zeile für Zeile erklärt") : ""}
-      ${fertig && a.type === "code" ? exegese(a.sampleSolution, "Musterlösung Zeile für Zeile") : ""}
+      ${fertig && a.type === "code" ? exegese(a.sampleSolution, "Musterlösung Zeile für Zeile") + zusehenHtml(a.sampleSolution) : ""}
       ${fertig && a.type === "ordering" ? exegese(a.puzzle, "Das Programm Zeile für Zeile erklärt") : ""}
       ${fertig && a.type === "findBug" ? `<div class="kasten richtig"><strong>So ist es richtig (Zeile ${a.bugLine}):</strong><pre class="code ausgabe">${sicher(a.fix.code)}</pre><p class="leise">${sicher(a.fix.explain || "")}</p></div>${exegese(a.code, "Der Code Zeile für Zeile erklärt")}` : ""}
     </div>
@@ -2283,6 +2288,135 @@ function testlaufHtml(lauf) {
     <pre class="code ausgabe">${lauf.output ? sicher(lauf.output.replace(/\n+$/, "")) : '<span class="leer">(keine Ausgabe)</span>'}${lauf.problem ? `\n<span class="fehlertext">✗ ${sicher(lauf.problem.description)}</span>` : ""}</pre>
     ${lauf.warnings.map((w) => `<div class="befund"><span>💡</span><span>Zeile ${w.line}: ${sicher(w.message)}</span></div>`).join("")}
   </div>`;
+}
+
+/* ---------------------------------------------------------------- Ausführen und zusehen
+   Wie CodeRunPanel in den Apps: Das Beispiel läuft wirklich – Zeile für Zeile, mit Erklärung,
+   Variablen und Konsole. Den Knopf gibt es nur, wenn der eingebaute Interpreter das Programm
+   versteht, und bei Aufgaben erst nach dem Lösen – vorher verriete der Ablauf die Antwort. */
+const ablaeufe = new Map();        // Quelltext → Aufzeichnung
+const zuschauSchnipsel = new Map(); // Kennung → Ausschnitt mit Zeilen-Erklärungen
+let zuschauen = null;              // { kennung, index, timer }
+
+const schnipselQuelle = (schnipsel) => schnipsel.lines.map((z) => z.code).join("\n");
+
+function zuschauKennung(quelle) {
+  let wert = 0;
+  for (let i = 0; i < quelle.length; i += 1) wert = (Math.imul(wert, 31) + quelle.charCodeAt(i)) | 0;
+  return "z" + (wert >>> 0).toString(36);
+}
+
+function zusehenHtml(schnipsel) {
+  const Java = javaKern();
+  if (!Java || !schnipsel || !schnipsel.lines) return "";
+  const quelle = schnipselQuelle(schnipsel);
+  if (!ablaeufe.has(quelle)) ablaeufe.set(quelle, Java.trace(quelle));
+  if (!Java.traceIsUseful(ablaeufe.get(quelle))) return "";
+  const kennung = zuschauKennung(quelle);
+  zuschauSchnipsel.set(kennung, schnipsel);
+  return `<div class="zusehen" data-zusehen="${kennung}">${zusehenInhalt(kennung)}</div>`;
+}
+
+function zusehenInhalt(kennung) {
+  const schnipsel = zuschauSchnipsel.get(kennung);
+  const ablauf = ablaeufe.get(schnipselQuelle(schnipsel));
+  if (!zuschauen || zuschauen.kennung !== kennung) {
+    return `<button class="knopf still zusehen-knopf" data-zusehen-auf="${kennung}">▶ Ausführen und zusehen</button>`;
+  }
+  const letzterIndex = ablauf.steps.length - 1;
+  const i = Math.min(zuschauen.index, letzterIndex);
+  const schritt = ablauf.steps[i];
+  const letzter = i >= letzterIndex;
+  const fehler = letzter && ablauf.problem;
+  const text = letzter
+    ? (ablauf.problem ? `Hier bleibt das Programm stehen: ${ablauf.problem.message}`
+      : ablauf.isTruncated ? "Hier endet die Aufzeichnung – das Programm liefe noch weiter." : "Das Programm ist fertig.")
+    : schritt.line ? `Als Nächstes Zeile ${schritt.line}: ${(schnipsel.lines[schritt.line - 1] || {}).explain || ""}` : "";
+  const zeilen = schnipsel.lines.map((z, n) => {
+    const nr = n + 1;
+    const klasse = fehler && nr === schritt.line ? "fehler" : !fehler && nr === schritt.line ? "aktiv" : "";
+    return `<div class="codezeile ${klasse}"><span class="nr">${nr}</span><span>${sicher(z.code) || " "}</span></div>`;
+  }).join("");
+  const knopf = (was, zeichen, name, aus) => `<button class="steuer" data-zusehen-schritt="${was}" aria-label="${name}" ${aus ? "disabled" : ""}>${zeichen}</button>`;
+  return `<div class="zusehen-kopf"><strong>▶ So läuft das Programm</strong>
+      <button class="zurueck" data-zusehen-zu="1" aria-label="Zusehen beenden">✕</button></div>
+    <div class="spur-code zusehen-code">${zeilen}</div>
+    ${schritt.method && !letzter ? `<p class="mini methode">↳ in der Methode ${sicher(schritt.method)}()</p>` : ""}
+    <p class="zusehen-text" aria-live="polite">${sicher(text)}</p>
+    <div class="konsole-zeile">
+      <div class="konsole-teil"><p class="beschriftung">Konsole</p><pre class="code ${schritt.output ? "" : "leer"}">${schritt.output ? sicher(schritt.output.replace(/\n+$/, "")) : "(noch keine Ausgabe)"}</pre></div>
+      <div class="variablen-teil"><p class="beschriftung">Variablen</p><div class="variablen">${schritt.variables.length
+        ? schritt.variables.map((v) => `<div><span class="typ">${sicher(v.type)}</span> <strong>${sicher(v.name)}</strong> = <span>${sicher(v.value)}</span></div>`).join("")
+        : '<span class="mini">keine</span>'}</div></div>
+    </div>
+    <div class="steuerung">
+      ${knopf("anfang", "⏮", "Zum Anfang", i === 0)}${knopf("zurueck", "◀", "Ein Schritt zurück", i === 0)}
+      <button class="steuer haupt" data-zusehen-schritt="spielen" aria-label="${zuschauen.timer ? "Pause" : "Abspielen"}" ${letzter ? "disabled" : ""}>${zuschauen.timer ? "⏸" : "▶"}</button>
+      ${knopf("vor", "▶|", "Ein Schritt weiter", letzter)}${knopf("ende", "⏭", "Zum Ende", letzter)}
+      <span class="mini zaehler">Schritt ${i + 1} von ${ablauf.steps.length}${ablauf.isTruncated ? "+" : ""}</span>
+    </div>`;
+}
+
+/** Nur das Panel neu zeichnen – die Seite bleibt, wo sie ist. */
+function zusehenNeu() {
+  if (!zuschauen) return;
+  const kasten = document.querySelector(`[data-zusehen="${zuschauen.kennung}"]`);
+  if (!kasten) return zusehenAnhalten();
+  kasten.innerHTML = zusehenInhalt(zuschauen.kennung);
+  const code = kasten.querySelector(".zusehen-code");
+  const zeile = kasten.querySelector(".codezeile.aktiv, .codezeile.fehler");
+  if (code && zeile) code.scrollTop = zeile.offsetTop - code.clientHeight / 2;
+}
+
+function zusehenAnhalten() {
+  if (zuschauen && zuschauen.timer) clearInterval(zuschauen.timer);
+  if (zuschauen) zuschauen.timer = null;
+}
+
+/** Klicks im Panel – einmal für die ganze Seite registriert, weil sich das Panel selbst neu zeichnet. */
+function zuschauKlick(e) {
+  const auf = e.target.closest("[data-zusehen-auf]");
+  const schritt = e.target.closest("[data-zusehen-schritt]");
+  const zu = e.target.closest("[data-zusehen-zu]");
+  if (auf) {
+    zusehenAnhalten();
+    const vorher = zuschauen && zuschauen.kennung;
+    zuschauen = { kennung: auf.dataset.zusehenAuf, index: 0, timer: null };
+    if (vorher && vorher !== zuschauen.kennung) {
+      const alt = document.querySelector(`[data-zusehen="${vorher}"]`);
+      if (alt) alt.innerHTML = zusehenInhalt(vorher);
+    }
+    zusehenNeu();
+  } else if (zu && zuschauen) {
+    zusehenAnhalten();
+    const kennung = zuschauen.kennung;
+    zuschauen = null;
+    const kasten = document.querySelector(`[data-zusehen="${kennung}"]`);
+    if (kasten) kasten.innerHTML = zusehenInhalt(kennung);
+  } else if (schritt && zuschauen) {
+    const ablauf = ablaeufe.get(schnipselQuelle(zuschauSchnipsel.get(zuschauen.kennung)));
+    const letzter = ablauf.steps.length - 1;
+    const was = schritt.dataset.zusehenSchritt;
+    if (was === "spielen") {
+      if (zuschauen.timer) zusehenAnhalten();
+      else {
+        // Abspielen: alle 0,8 Sekunden ein Schritt – bis zum Ende.
+        zuschauen.timer = setInterval(() => {
+          if (!zuschauen || zuschauen.index >= letzter) { zusehenAnhalten(); return zusehenNeu(); }
+          zuschauen.index += 1;
+          if (zuschauen.index >= letzter) zusehenAnhalten();
+          zusehenNeu();
+        }, 800);
+      }
+    } else {
+      zusehenAnhalten();
+      if (was === "anfang") zuschauen.index = 0;
+      if (was === "zurueck") zuschauen.index = Math.max(zuschauen.index - 1, 0);
+      if (was === "vor") zuschauen.index = Math.min(zuschauen.index + 1, letzter);
+      if (was === "ende") zuschauen.index = letzter;
+    }
+    zusehenNeu();
+  }
 }
 
 function entwurfLesen(a) {
@@ -2485,6 +2619,7 @@ async function los() {
   }
   // Einmal registriert, gilt für die ganze Sitzung – beim Neuzeichnen nicht erneut.
   document.addEventListener("keydown", tastenkuerzel);
+  document.addEventListener("click", zuschauKlick);
   zeichne();
 
   // Hinweis auf „Zum Home-Bildschirm“ – nur in Safari und nur, solange die App

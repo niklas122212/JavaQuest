@@ -110,6 +110,38 @@ export function javaPruefungen(Java, kurs, jdkFaelle) {
     ));
   }
 
+  // ------------------------------------------------------------ Ausführen und zusehen (wie TraceTests.swift)
+  {
+    const schleife = Java.trace("int summe = 0;\nfor (int i = 1; i <= 3; i++) {\n    summe += i;\n}\nSystem.out.println(summe);");
+    const zweiter = schleife.steps[4] || { variables: [] };
+    const wert = (schritt, name) => (schritt.variables.find((v) => v.name === name) || {}).value;
+    ergebnisse.push(pruefe(
+      "Zusehen: Jede Anweisung und jede Schleifenrunde wird ein Schritt – mit Variablen und Ausgabe",
+      !schleife.problem && !schleife.isTruncated && JSON.stringify(schleife.steps.map((x) => x.line)) === "[1,2,3,2,3,2,3,2,5,null]"
+        && wert(zweiter, "i") === "2" && wert(zweiter, "summe") === "1" && schleife.steps.at(-1).output === "6\n" && Java.traceIsUseful(schleife),
+      JSON.stringify(schleife.steps.map((x) => x.line)),
+    ));
+    const methode = Java.trace("public class Rechner {\n    static int doppelt(int zahl) {\n        return zahl * 2;\n    }\n\n    public static void main(String[] args) {\n        int x = doppelt(21);\n        System.out.println(x);\n    }\n}");
+    ergebnisse.push(pruefe(
+      "Zusehen: Methodenaufrufe springen in die Methode und zurück",
+      JSON.stringify(methode.steps.map((x) => x.line)) === "[7,3,8,null]" && methode.steps[1].method === "doppelt"
+        && JSON.stringify(methode.steps[1].variables.map((v) => v.name)) === '["zahl"]' && methode.steps.at(-1).output === "42\n",
+      JSON.stringify(methode.steps.map((x) => [x.line, x.method])),
+    ));
+    const fehler = Java.trace("int x = 0;\nSystem.out.println(5 / x);");
+    const fremd = Java.trace("List<String> namen = new ArrayList<>();");
+    const endlos = Java.trace("int i = 0;\nwhile (true) {\n    i++;\n}", 50);
+    ergebnisse.push(pruefe(
+      "Zusehen: Laufzeitfehler bleiben an ihrer Zeile stehen, Unbekanntes und Endlosschleifen sind begrenzt",
+      fehler.problem?.kind === "runtime" && JSON.stringify(fehler.steps.map((x) => x.line)) === "[1,2,2]" && Java.traceIsUseful(fehler)
+        && !Java.traceIsUseful(fremd) && endlos.isTruncated && endlos.steps.length === 50 && Java.traceIsUseful(endlos),
+      `Fehler ${JSON.stringify(fehler.steps.map((x) => x.line))}, endlos ${endlos.steps.length}`,
+    ));
+    const beispiele = kurs.modules.flatMap((m) => m.lessons).flatMap((l) => (l.theory || []).map((k) => k.code).filter(Boolean)).map(quelle);
+    const sehenswert = beispiele.filter((b) => Java.traceIsUseful(Java.trace(b))).length;
+    ergebnisse.push(pruefe(`Zusehen: ${sehenswert} von ${beispiele.length} Theorie-Beispielen lassen sich beobachten (mindestens 14)`, sehenswert >= 14, String(sehenswert)));
+  }
+
   // ------------------------------------------------------------ Kursinhalt
   {
     let verstanden = 0;

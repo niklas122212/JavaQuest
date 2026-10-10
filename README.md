@@ -42,10 +42,11 @@ Android (Kotlin-Fassung unter `Windows/src/main/kotlin/app/javaquest/core`) und 
   „Testlauf“, der keinen Versuch kostet. Gegen ein echtes JDK geprüft (`Tests/…/Fixtures/java_differential.json`)
   und gegen alle 149 Kursprogramme, die er versteht – Klassen, Lambdas, Collections und try/catch erkennt er
   als „nicht unterstützt“ und überlässt sie der Regelprüfung.
-- **Ausführen und zusehen** (Apple, Windows und Android; die Web-App hat es noch nicht): Theorie-Beispiele,
+- **Ausführen und zusehen:** Theorie-Beispiele,
   gelöste Aufgaben und Musterlösungen laufen auf Knopfdruck
   Schritt für Schritt – wie in einem Debugger: Die nächste Zeile ist markiert und erklärt, daneben stehen die
-  Variablen mit ihren Werten und die Konsole; vor, zurück, abspielen (`JavaRunner.trace`, Ansicht `CodeRunPanel`).
+  Variablen mit ihren Werten und die Konsole; vor, zurück, abspielen (`JavaRunner.trace`, Ansicht `CodeRunPanel`;
+  im Web `JavaKern.trace` und das Panel in `app.js`).
   Bei Aufgaben erst nach dem Lösen, damit der Ablauf die Antwort nicht verrät.
 - **Bonus-Aufgaben:** Code-Puzzle (Zeilen ordnen) und Bug-Jagd (Fehlerzeile finden), je eine in jeder der 35 Lektionen
   (`apple_extra_tasks.json` – trotz des Namens auch für Windows, Android und Web, dort als Kopie `Web/bonus_aufgaben.json` –,

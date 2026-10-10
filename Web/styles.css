@@ -664,3 +664,20 @@ details.abschnitt[open] .zu { display: none; }
 .code-kopf h3.dateiname { font-family: var(--code); font-size: 15px; }
 .konsole-teil .code.konsole-start { min-height: 0; margin: 0; padding-bottom: 0; border-radius: 10px 10px 0 0; color: #6B6B78; }
 .konsole-teil .konsole-start + .code { border-radius: 0 0 10px 10px; padding-top: 4px; }
+
+/* ================================================================ Ausführen und zusehen */
+.zusehen { margin-top: 8px; }
+.zusehen-knopf { color: #0F766E; padding-left: 0; }
+.zusehen:has(.zusehen-kopf) { padding: 14px; border-radius: 14px; background: rgba(20, 184, 166, 0.08); }
+.zusehen-kopf { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; color: #0F766E; }
+.zusehen-code { max-height: 260px; min-height: 0; }
+.zusehen-text { margin: 10px 0; font-size: 15px; }
+.zusehen .methode { color: #7C3AED; font-weight: 600; margin: 8px 0 0; }
+/* Untereinander: Nebeneinander wurde die Konsole im schmalen Kasten zu einem Streifen gequetscht. */
+.zusehen .konsole-zeile { flex-direction: column; gap: 4px; align-items: stretch; }
+.zusehen .konsole-teil, .zusehen .variablen-teil { flex: none; width: 100%; }
+.zusehen .konsole-teil .code { white-space: pre-wrap; }
+.zusehen .variablen .typ { color: var(--secondary); }
+.zusehen .steuer { background: rgba(20, 184, 166, 0.16); color: #0F766E; }
+.zusehen .steuer.haupt { background: #0F8F7E; color: #fff; }
+.zusehen .steuerung { flex-wrap: wrap; }

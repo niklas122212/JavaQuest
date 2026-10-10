@@ -1406,6 +1406,8 @@ const JavaKern = (() => {
       this.globals = new Map();
       this.frames = [{ scopes: [new Map()], method: null }];
       this.randomState = 0x9E3779B97F4A7C15n;
+      /** Beim Zusehen: zeichnet vor jeder Anweisung und jeder neuen Schleifenrunde ein Bild auf. */
+      this.recorder = null;
     }
 
     run() {
@@ -1435,6 +1437,14 @@ const JavaKern = (() => {
     get frame() { return this.frames[this.frames.length - 1]; }
 
     tick(line) {
+      const recorder = this.recorder;
+      if (recorder) {
+        if (recorder.steps.length >= recorder.limit) throw new JavaProblem("stepLimit", "Aufzeichnung voll.", line);
+        const step = { line, method: this.frame.method ? this.frame.method.name : null, variables: this.visibleVariables(), output: this.output };
+        // Ein Block und seine erste Anweisung können auf derselben Zeile stehen – das ist ein Schritt.
+        const last = recorder.steps[recorder.steps.length - 1];
+        if (!last || JSON.stringify(last) !== JSON.stringify(step)) recorder.steps.push(step);
+      }
       this.steps += 1;
       this.lastLine = line;
       if (this.steps > this.stepLimit) {
@@ -2768,8 +2778,39 @@ const JavaKern = (() => {
     return { output: interpreter.output, problem, steps: interpreter.steps, warnings: interpreter.warnings };
   }
 
+  /**
+   * „Ausführen und zusehen“: führt das Programm aus und zeichnet jeden Schritt auf – welche Zeile dran
+   * ist, welche Variablen es gibt und was schon ausgegeben wurde (wie JavaRunner.trace in Swift).
+   * Höchstens `maxSteps` Bilder; längere Läufe werden abgeschnitten.
+   */
+  function trace(source, maxSteps = 400) {
+    let program;
+    try {
+      program = parse(normalizingTypography(source));
+    } catch (error) {
+      if (error instanceof JavaProblem) return { steps: [], problem: error, isTruncated: false };
+      throw error;
+    }
+    // Zusehen soll schnell gehen: Lange Programme werden nach den ersten Schritten abgeschnitten.
+    const interpreter = new Interpreter(program, maxSteps * 20, null);
+    interpreter.recorder = { limit: maxSteps, steps: [] };
+    const problem = interpreter.run();
+    const steps = interpreter.recorder.steps;
+    const stoppedEarly = steps.length >= maxSteps || (problem && problem.kind === "stepLimit");
+    if (!stoppedEarly) {
+      steps.push({ line: problem ? problem.line : null, method: null, variables: interpreter.visibleVariables(), output: interpreter.output });
+    }
+    return { steps, problem: problem && problem.kind === "stepLimit" ? null : problem, isTruncated: !!stoppedEarly };
+  }
+
+  /** Lohnt sich das Zusehen? Der Interpreter kennt alle Bausteine, und es passiert mehr als ein Schritt. */
+  function traceIsUseful(t) {
+    if (!t || t.steps.length < 3) return false;
+    return !(t.problem && (t.problem.kind === "syntax" || t.problem.kind === "unsupported"));
+  }
+
   return {
-    run, check, JavaProblem,
+    run, check, trace, traceIsUseful, JavaProblem,
     V, NULL, VOID, TRUE, FALSE, javaString,
     formatDouble, format, normalizingTypography, strippingComments, maskingLiterals,
     DEFAULT_STEP_LIMIT,

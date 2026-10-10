@@ -6,7 +6,7 @@
    Die Nummer ist eine Prüfsumme über alle ausgelieferten Dateien und wird NICHT von Hand
    gepflegt: Tools/build_web.sh trägt sie ein, die CI lehnt eine unpassende ab. Von Hand
    ging es schief – eine Kursänderung ohne neue Nummer erreichte Stammnutzer nie. */
-const VERSION = "0f4fb8d4cc37";
+const VERSION = "3a6627cbd7f4";
 const CACHE = `javaquest-v${VERSION}`;
 const DATEIEN = [
   "./", "./index.html", `./app.js?v=${VERSION}`, `./styles.css?v=${VERSION}`,
