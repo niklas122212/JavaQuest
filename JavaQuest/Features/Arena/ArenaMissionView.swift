@@ -237,7 +237,8 @@ struct ArenaMissionView: View {
         .background(.bar)
     }
 
-    private var showsFinish: Bool { model.result?.solved == true && (model.isAtEnd || !model.isPlaying) }
+    /// Auf dem Spielplatz gibt es nichts abzuschließen – dort bleibt „Erneut ausführen“ (Schließen über das X oben).
+    private var showsFinish: Bool { !model.isPlayground && model.result?.solved == true && (model.isAtEnd || !model.isPlaying) }
 
     @ViewBuilder private var finishButton: some View {
         switch context {
