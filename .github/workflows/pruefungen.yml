@@ -43,6 +43,14 @@ jobs:
       - name: Jede Codezeile mit echtem Java übersetzen und ausführen
         run: python3 Tools/verify_java_content.py
 
+      - name: Code-Quests mit echtem Java prüfen
+        run: |
+          # Die JSON-Datei entsteht aus Tools/quests/code_quests.py – beide müssen zusammenpassen.
+          python3 Tools/quests/code_quests.py
+          git diff --exit-code Packages/JavaQuestKit/Sources/JavaQuestKit/Resources/code_quests.json \
+            || { echo "::error::code_quests.json ist veraltet – Tools/quests/code_quests.py ausführen."; exit 1; }
+          python3 Tools/verify_quests.py
+
       - name: Web-App prüfen
         run: node Web/tests/lauf.mjs
 

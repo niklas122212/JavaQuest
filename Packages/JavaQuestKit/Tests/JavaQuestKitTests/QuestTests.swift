@@ -295,4 +295,121 @@ struct QuestTests {
         #expect(thrown.problem?.exceptionClass == "IllegalStateException")
         #expect(thrown.problem?.line == 3)
     }
+
+    // MARK: Fortschritt, Inventar, Baupläne, Werkstatt
+
+    @Test("Quests öffnen sich der Reihe nach und erst ab ihrer Lektion")
+    func unlockOrder() throws {
+        let allLessons = Set(course.allLessons.map(\.id))
+        let fresh = QuestProgress(book: book, course: course, stars: [:], unlockedLessonIds: ["l01-hello"])
+        #expect(fresh.state(of: book.quests[0]) == .open)
+        #expect(fresh.state(of: book.quests[1]) == .locked("Erst „\(book.quests[0].title)“ lösen"))
+        #expect(fresh.nextQuest?.id == book.quests[0].id)
+        #expect(!fresh.isWorkshopUnlocked)
+
+        let afterFirst = QuestProgress(book: book, course: course, stars: [book.quests[0].id: 2], unlockedLessonIds: ["l01-hello"])
+        guard case .locked(let reason) = afterFirst.state(of: book.quests[1]) else {
+            Issue.record("Quest 2 braucht Lektion 2")
+            return
+        }
+        #expect(reason.hasPrefix("Ab Lektion 2"))
+        #expect(afterFirst.inventory.map(\.item) == [book.quests[0].reward.item])
+        // Bauplan nur mit 3 Sternen
+        #expect(afterFirst.blueprints.isEmpty)
+
+        let chapterOne = book.quests(in: book.chapters[0])
+        let stars = Dictionary(uniqueKeysWithValues: chapterOne.map { ($0.id, 3) })
+        let workshop = QuestProgress(book: book, course: course, stars: stars.merging(["a01-erste-schritte": 3]) { a, _ in a }, unlockedLessonIds: allLessons)
+        #expect(workshop.isWorkshopUnlocked)
+        #expect(workshop.blueprints.count == chapterOne.count)
+        #expect(workshop.solvedCount == chapterOne.count, "Arena-Missionen zählen nicht als Quest")
+        #expect(workshop.nextQuest?.id == book.quests[chapterOne.count].id)
+        #expect(workshop.solvedCount(in: book.chapters[0]) == chapterOne.count)
+    }
+
+    @Test("Quest-Sterne bringen XP und eigene Abzeichen, Arena-Abzeichen bleiben Arena")
+    func questGamification() throws {
+        #expect(Achievement.questCount == book.quests.count, "Ziel des Abzeichens an das Questbuch anpassen")
+        let date = Date(timeIntervalSince1970: 1_800_000_000)
+        let records = book.quests.prefix(5).map {
+            ActivityRecord(taskId: $0.id, topicId: $0.topicId, context: .mission, difficulty: $0.difficulty,
+                           credit: ActivityRecord.credit(forStars: 3), solved: true, tries: 1, date: date)
+        }
+        let catalog = try ArenaCatalog.loadBundled()
+        let facts = LearnerFacts(course: course, catalog: catalog, attempts: Array(records), lessonResults: [:], longestStreak: 0)
+        let unlocked = Achievement.unlocked(facts)
+        #expect(unlocked.contains("first-quest"))
+        #expect(unlocked.contains("clean-code"))
+        #expect(!unlocked.contains("javahall"))
+        #expect(!unlocked.contains("first-mission"), "Quests sind keine Arena-Missionen")
+        #expect(facts.questStars.count == 5)
+        #expect(facts.arenaStars.isEmpty)
+        #expect(facts.experience == 5 * 3 * Experience.pointsPerMissionStar)
+    }
+
+    // MARK: Editor
+
+    func type(_ input: String, into text: String, at cursor: Int) -> (String, Int)? {
+        guard let edit = CodeEditing.edit(for: input, in: text, selection: NSRange(location: cursor, length: 0)) else { return nil }
+        let result = (text as NSString).replacingCharacters(in: edit.range, with: edit.replacement)
+        return (result, edit.cursor)
+    }
+
+    @Test("Editor: Enter rückt ein und schließt Blöcke")
+    func editorNewline() throws {
+        // Nach { eine Ebene tiefer – und die fehlende } kommt dazu.
+        let open = "public class A {"
+        let (text, cursor) = try #require(type("\n", into: open, at: open.utf16.count))
+        #expect(text == "public class A {\n    \n}")
+        #expect(cursor == open.utf16.count + 5)
+
+        // Fehlt eine }, schließt der Editor den neuen Block auf seiner Ebene.
+        let nested = "class A {\n    void f() {\n}"
+        let (text2, _) = try #require(type("\n", into: nested, at: "class A {\n    void f() {".utf16.count))
+        #expect(text2 == "class A {\n    void f() {\n        \n    }\n}")
+        // Sind alle Klammern zu, kommt keine weitere dazu.
+        let balanced = "class A {\n    void f() {\n    }\n}"
+        let (text5, _) = try #require(type("\n", into: balanced, at: "class A {\n    void f() {".utf16.count))
+        #expect(text5 == "class A {\n    void f() {\n        \n    }\n}")
+
+        // {|} wird aufgeklappt.
+        let braces = "if (x) {}"
+        let (text3, cursor3) = try #require(type("\n", into: braces, at: 8))
+        #expect(text3 == "if (x) {\n    \n}")
+        #expect(cursor3 == 13)
+
+        // Sonst wie die Zeile davor
+        let plain = "    int x = 1;"
+        let (text4, _) = try #require(type("\n", into: plain, at: plain.utf16.count))
+        #expect(text4 == "    int x = 1;\n    ")
+    }
+
+    @Test("Editor: } springt zurück, Tab sind vier Leerzeichen, Klammern paarweise")
+    func editorBracesAndTab() throws {
+        let code = "class A {\n    void f() {\n        int x = 1;\n        "
+        let (text, _) = try #require(type("}", into: code, at: code.utf16.count))
+        #expect(text.hasSuffix("int x = 1;\n    }"))
+
+        let (tab, tabCursor) = try #require(type("\t", into: "ab", at: 2))
+        #expect(tab == "ab  " && tabCursor == 4)
+
+        let (paren, parenCursor) = try #require(type("(", into: "f", at: 1))
+        #expect(paren == "f()" && parenCursor == 2)
+        // Über die schließende Klammer hinweg
+        let (over, overCursor) = try #require(type(")", into: "f()", at: 2))
+        #expect(over == "f()" && overCursor == 3)
+        // In einem Wort kein Paar
+        #expect(type("(", into: "fx", at: 1) == nil)
+
+        let (quote, quoteCursor) = try #require(type("\"", into: "s = ;", at: 4))
+        #expect(quote == "s = \"\";" && quoteCursor == 5)
+        let (closeQuote, closeCursor) = try #require(type("\"", into: "s = \"ab\";", at: 7))
+        #expect(closeQuote == "s = \"ab\";" && closeCursor == 8)
+        // In einem String keine Klammerpaare
+        #expect(type("(", into: "s = \" \";", at: 6) == nil)
+        // Kommentare und Strings zählen bei der Klammersuche nicht
+        let tricky = "class A {\n    String s = \"{\";\n    "
+        let (trickyText, _) = try #require(type("}", into: tricky, at: tricky.utf16.count))
+        #expect(trickyText.hasSuffix("\n}"))
+    }
 }

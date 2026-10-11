@@ -78,6 +78,12 @@ public struct LearnerFacts: Sendable {
         return best
     }
 
+    /// Sterne der Arena-Missionen – ohne Code-Quests, die im selben Protokoll liegen.
+    public var arenaStars: [String: Int] { missionStars.filter { catalog.mission(id: $0.key) != nil } }
+
+    /// Beste Sterne je Code-Quest (IDs mit `quest-`).
+    public var questStars: [String: Int] { missionStars.filter { $0.key.hasPrefix(QuestBook.idPrefix) } }
+
     public var completedLessonIds: Set<String> { Set(lessonResults.filter(\.value.isCompleted).map(\.key)) }
 
     /// Lektionen, die man selbst bestanden hat (nicht nur per Einstufung angerechnet).
@@ -190,6 +196,9 @@ public struct Achievement: Sendable, Hashable, Identifiable {
     /// So viele Lektionen hat der Kurs – Ziel des Abzeichens „Java Master“.
     static let courseLessons = 35
 
+    /// So viele Quests hat das Abenteuer „Die Burg Javahall“.
+    static let questCount = 16
+
     public static let all: [Achievement] = [
         Achievement(id: "first-task", title: "Hallo, Welt!", detail: "Löse deine erste Aufgabe.", symbolName: "hand.wave.fill", target: 1) {
             Set($0.taskAttempts.filter { $0.solved && $0.context != .placement }.map(\.taskId)).count
@@ -222,10 +231,20 @@ public struct Achievement: Sendable, Hashable, Identifiable {
             $0.solvedCount(of: .ordering)
         },
         Achievement(id: "first-mission", title: "Roboter-Pilot", detail: "Schaffe deine erste Arena-Mission.", symbolName: "gamecontroller.fill", target: 1) {
-            $0.missionStars.count
+            $0.arenaStars.count
         },
         Achievement(id: "star-collector", title: "Sternensammler", detail: "Sammle 15 Sterne in der Arena.", symbolName: "sparkles", target: 15) {
-            $0.missionStars.values.reduce(0, +)
+            $0.arenaStars.values.reduce(0, +)
+        },
+        Achievement(id: "first-quest", title: "Abenteurer", detail: "Löse deine erste Code-Quest.", symbolName: "map.fill", target: 1) {
+            $0.questStars.count
+        },
+        Achievement(id: "clean-code", title: "Sauberer Code", detail: "Hol in 5 Code-Quests alle 3 Sterne.", symbolName: "wand.and.stars", target: 5) {
+            $0.questStars.values.filter { $0 == 3 }.count
+        },
+        // Alle Quests des Abenteuers – ein Test prüft, dass die Zahl zum Questbuch passt.
+        Achievement(id: "javahall", title: "Retter von Javahall", detail: "Löse alle Code-Quests der Burg.", symbolName: "building.columns.fill", target: questCount) {
+            $0.questStars.count
         },
         Achievement(id: "boss", title: "Bossbezwinger", detail: "Besiege ein Boss-Level.", symbolName: "shield.lefthalf.filled", target: 1) { facts in
             facts.missionStars.keys.filter { facts.catalog.mission(id: $0)?.kind == .boss }.count
