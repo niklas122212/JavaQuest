@@ -39,9 +39,11 @@ Android (Kotlin-Fassung unter `Windows/src/main/kotlin/app/javaquest/core`) und 
   eingerückt, im leeren Schleifen- oder Methodenrumpf statt am Ende (`CodeInsertion`).
 - **Eingebauter Java-Interpreter** (`JavaQuestKit/Interpreter`, in Kotlin `core/interpreter`, im Web `Web/java.js`): Variablen, Kontrollfluss, statische Methoden,
   Arrays und Strings. Code-Aufgaben werden damit wirklich ausgeführt und die Ausgabe verglichen; dazu ein
-  „Testlauf“, der keinen Versuch kostet. Gegen ein echtes JDK geprüft (`Tests/…/Fixtures/java_differential.json`)
-  und gegen alle 149 Kursprogramme, die er versteht – Klassen, Lambdas, Collections und try/catch erkennt er
-  als „nicht unterstützt“ und überlässt sie der Regelprüfung.
+  „Testlauf“, der keinen Versuch kostet. Gegen ein echtes JDK geprüft (`Tests/…/Fixtures/java_differential.json`).
+  In der Apple-App versteht er außerdem Klassen, Objekte, Vererbung, Interfaces, Exceptions mit try/catch,
+  Listen, Maps, Enums und Records (`java_differential_oop.json`) – damit laufen über 280 Kursprogramme;
+  Lambdas und was er sonst nicht kennt, meldet er als „nicht unterstützt“ und überlässt es der Regelprüfung.
+  Windows, Android und Web bleiben vorerst bei der Teilmenge ohne Klassen.
 - **Ausführen und zusehen:** Theorie-Beispiele,
   gelöste Aufgaben und Musterlösungen laufen auf Knopfdruck
   Schritt für Schritt – wie in einem Debugger: Die nächste Zeile ist markiert und erklärt, daneben stehen die
@@ -52,9 +54,24 @@ Android (Kotlin-Fassung unter `Windows/src/main/kotlin/app/javaquest/core`) und 
   (`apple_extra_tasks.json` – trotz des Namens auch für Windows, Android und Web, dort als Kopie `Web/bonus_aufgaben.json` –,
   beim Laden einsortiert). Sie bringen XP, zählen aber **nicht** für Trefferquote und
   Master Score – so bleibt der Score auf allen Plattformen gleich. Die gemeinsame Kursdatei bleibt unverändert.
-- **Motivation:** XP und Level, Combos, 19 Abzeichen, Missionssterne und Boss-Level im Lernpfad.
+- **Motivation:** XP und Level, Combos, 19 Abzeichen (in der Apple-App 22, mit den Quest-Abzeichen), Missionssterne und Boss-Level im Lernpfad.
   Missionsergebnisse stehen im vorhandenen Aufgaben-Protokoll (Kontext `mission`/`daily`, `credit` = Sterne ÷ 3) –
   kein neues Speicherschema, alte Lernstände bleiben unverändert lesbar, Sicherungen nehmen sie mit.
+
+**Code-Quests – in der Apple-App** ([Konzept und Architektur](Docs/Code-Quests.md)):
+- **Abenteuer „Die Burg Javahall“:** 16 Quests in 5 Kapiteln, von `println` bis `Map`. Jede Quest erzählt eine
+  Szene („Die Tür ist verschlossen. Schreibe `public static boolean unlock(int key)` …“), führt genau ein
+  Konzept ein und prüft den Code mit versteckten Tests wie JUnit – die ersten sind als `assertEquals(…)`
+  sichtbar, die übrigen prüfen Sonderfälle (`Tools/quests/code_quests.py` → `code_quests.json`, jede
+  Musterlösung mit echtem JDK geprüft: `Tools/verify_quests.py`).
+- **Mentor statt „Falsch“:** fehlendes Semikolon, falsch geschriebene Klasse, fehlende Methode, Endlosschleife,
+  Absturz oder falscher Wert – jeweils mit Zeile und einem Hinweis, der den Denkfehler nennt, nicht die Lösung.
+- **Echter Code-Editor** (auch in Code-Aufgaben und in der Arena): Zeilennummern, Syntaxfarben beim Tippen,
+  automatische Einrückung, Klammerpaare, Tab als vier Leerzeichen, ein Compiler, der mitliest (Fehlerzeile rot,
+  Namenshinweise gelb), und auf iPhone/iPad eine Symbolleiste über der Tastatur.
+- **Sauberer Code zahlt sich aus:** ★ Tests · ★ Namenskonventionen · ★ Einrückung; XP, ein Gegenstand je Quest,
+  Baupläne (Code-Bausteine) nur mit 3 Sternen, drei neue Abzeichen. Nach Kapitel 1 öffnet die **Werkstatt**:
+  freies Bauen mit eigenen Programmen, Konsole, „Ausführen und zusehen“ und den Bauplänen.
 
 **Sofort ausprobieren – ohne Installation:** <https://niklas122212.github.io/JavaQuest/>
 Im Browser öffnen; auf dem iPhone in Safari über *Teilen → Zum Home-Bildschirm* als App ablegen.
@@ -88,8 +105,8 @@ Program – Schritt für Schritt beschrieben in [Docs/TestFlight.md](Docs/TestFl
 3. Schema **JavaQuest**, Ziel iPhone/iPad-Simulator oder „My Mac“ – ⌘R.
 
 Tastatur (Mac und iPad mit Tastatur): Tasten 1–4 wählen eine Antwort, ⌘ + Enter prüft und geht weiter,
-Esc bricht ab, ⌘ 1–5 wechselt den Bereich (Übersicht, Lernpfad, Wissensanalyse, Arena, Abzeichen), ⇧⌘T startet
-die Tagesmission. Antworten, Prüfen und Abbrechen gehen mit denselben Tasten wie unter Windows und im Browser – im
+Esc bricht ab, ⌘ 1–6 wechselt den Bereich (Übersicht, Lernpfad, Wissensanalyse, Arena, Abzeichen, Code-Quests),
+⇧⌘T startet die Tagesmission, ⌘↩ führt in Quests und in der Werkstatt die Tests bzw. das Programm aus. Antworten, Prüfen und Abbrechen gehen mit denselben Tasten wie unter Windows und im Browser – im
 Browser wechselt Alt statt ⌘ den Bereich, weil Browser ⌘ + Zahl für ihre Tabs beanspruchen.
 
 **Auf dem Mac benutzen – genau eine App, immer aktuell:**
@@ -129,7 +146,8 @@ JavaQuest.xcodeproj
 ├── JavaQuest/                     App-Target (synchronisierter Ordner)
 │   ├── App/                       Einstieg, AppModel (Start/Fehlerfall), AppRouter
 │   ├── Persistence/               SwiftData-Modelle, Schema V1 + Migrationsplan, ProgressStore
-│   ├── DesignSystem/              Theme, Karten, Buttons, DifficultyBadge, ProgressRing, CodeBlockView
+│   ├── DesignSystem/              Theme, Karten, Buttons, DifficultyBadge, ProgressRing, CodeBlockView,
+│   │                              JavaCodeEditor (Editor mit Zeilennummern, Farben, Einrückung, Compiler)
 │   ├── Features/
 │   │   ├── Shell/                 iPhone: TabView · iPad/Mac: NavigationSplitView mit Sidebar
 │   │   ├── Onboarding/            Zwei Start-Optionen → adaptive Einstufung → Ergebnis mit erklärter Lösung
@@ -138,6 +156,7 @@ JavaQuest.xcodeproj
 │   │   ├── Analysis/              Stärken / Lücken / im Aufbau / unbekannt, Diagramm je Thema
 │   │   ├── Lesson/                Lern-Loop: Theorie → Aufgaben → Auswertung
 │   │   ├── Exegesis/              Code-Exegese: anklickbare Zeilen + Erklärungen + Befehlslexikon
+│   │   ├── Quests/                Code-Quests: Karte, Quest mit Tests und Mentor, Werkstatt
 │   │   └── Profile/               Profil, Datenschutz, Zurücksetzen (Mac: auch Einstellungen)
 │   ├── Support/PreviewSupport     Beispieldaten für #Preview (über die echten Abläufe erzeugt)
 │   └── Resources/                 Assets (AppIcon, AccentColor), PrivacyInfo.xcprivacy
@@ -148,11 +167,13 @@ JavaQuest.xcodeproj
 │   │                              Training (Endlos + frei), VariantSelector (Aufgaben-Varianten)
 │   ├── Content/UMLDiagram         UML-Klassendiagramme: Modell und plattformgleiches Layout
 │   ├── Evaluation/CodeExplainer   Zeilen-Erklärungen in Alltagssprache (Regeln + Blockstapel)
+│   ├── Quests/                    Code-Quests: Modell, QuestRunner + Mentor, CodeQuality, CodeEditing, Fortschritt
 │   └── Resources/java_course.json Der komplette Kurs (auch für Windows)
 ├── Windows/                       Windows-App (Kotlin, Compose Desktop): core/ · data/ · ui/ · tools/
 ├── Config/                        Info.plist-Ergänzung, macOS-Entitlements (Sandbox)
 ├── Tools/course/                  Quelle des Kurses (Python) → java_course.json, mit Zeilen-Erklärungen
 ├── Tools/verify_java_content.py   Prüft alle Code-Beispiele mit javac/java
+├── Tools/quests/, verify_quests.py  Quelle der Code-Quests und ihre Prüfung mit javac/java
 └── Tools/check_course.py          Konsistenz: Themen erreichbar, keine Doppel, UML vollständig
 ```
 
@@ -438,6 +459,7 @@ Einzelheiten, Aufbau und Signatur: [Android/README.md](Android/README.md).
 
 | Prüfung | Ergebnis |
 |---|---|
+| Code-Quests (Stand 11.10.2026) | `swift test`: 172 Tests in 23 Suiten, darunter 17 für die Quests – jede Musterlösung mit 3 Sternen, jeder Startcode übersetzt und löst nicht, Mentor bei fehlendem Semikolon, falscher Klasse, fehlender Methode, Endlosschleife und fehlendem return, Exceptions, Namen und Einrückung, Freischaltung, Abzeichen und die Editor-Regeln. `Tools/verify_quests.py` mit OpenJDK 25: 16 Quests mit 57 Tests auf dem echten JDK bestanden. Im Simulator (iPhone 18 Pro, iPad Pro 13″) und auf dem Mac gezeichnet: Karte, Quest vor und nach dem Lösen, Werkstatt, Arena mit neuem Editor; Tippen über die Editor-Regeln durchgespielt (Einrückung, gesetzte und übersprungene `}`, Klammer- und Anführungszeichen-Paare, Fehlerzeile rot) |
 | `swift test` (JavaQuestKit) | 102 Tests in 13 Suiten bestanden – u. a. jede Zeile der neuen Praxis-Lektionen erklärt und jeder HTTP- und JDBC-Befehl im Lexikon, Regeln für die Kopie vor dem Zurücksetzen (nur mit Fortschritt, jüngste zuerst, umbenannt statt gelöscht), Sicherungen aus Web-App und Mac/iPhone gleich gelesen (gemeinsame Beispieldateien in `Tests/Sicherungen/`), Erinnerung nur an Tagen mit fälligen Lernzielen und höchstens drei Tage in Folge, keine Zeile ohne Erklärung, Lexikon vollständig, jede Musterlösung des Übungspools akzeptiert, Bestehensgrenze 68/69/70 %, Varianten-Rotation, freie Themenwahl, UML-Layout, verteiltes Wiederholen (Fächer 0–5 mit 1/3/7/16/35 Tagen), Schwächen je Schwierigkeitsstufe, adaptive Einstufung, Erklärungslänge und Begründung jeder falschen Antwort, Tipp zu jeder Aufgabe (und keiner, der die Lösung nennt), keine einseitige Stufe, kein Thema überwiegend „Was gibt das aus?“, mindestens drei Varianten je Lernziel, zweiter Tipp zu jeder Aufgabe, gleichwertige Lösungen werden akzeptiert und Unfug weiter abgelehnt, benannte Abweichungen bei Ausgabe und Lücken, Endlos-Training (falsch Gelöstes kommt über 400 Runden mehr als 3× so oft wie heute Gelöstes) |
 | GitHub Actions bei jedem Push | Kursinhalt, alle Java-Schnipsel mit echtem javac, die Web-Prüfungen, `swift test` auf macOS und `gradlew test` auf Windows. Die Veröffentlichung läuft erst, wenn die schnellen Prüfungen durch sind – vorher ging jeder Push ungeprüft live. |
 | `node Web/tests/lauf.mjs` | 62 Prüfungen der Web-Fassung – neu: Elemente mit `hidden` bleiben unsichtbar, auch wenn ihre Klasse `display` setzt; Zurücksetzen hebt eine Kopie auf, ein zweites Zurücksetzen ohne Fortschritt überschreibt sie nicht, Wiederherstellen führt zusammen; Sicherung im Aufbau der Apps geschrieben und aus den Apps gelesen (gleiche fälligen Lernziele nach dem Hin und Zurück, alte Web-Sicherungen bleiben lesbar), Erinnerungstermine und Kalendereintrag (Ortszeit, Umbruch nach 75 Byte, Maskierung), Erklärung vor dem Antworten mit verdeckten Lückenzeilen und ohne verräterische Befehle; außerdem: Musterlösungen, gleichwertige Lösungen, abgelehnter Unfug, Tipps, zweite Tipps, benannte Abweichungen, Bestehensgrenze, Karteikasten-Pausen, Ränge, Sterne, Score, Einstufung, Sicherung, Befehlslexikon (jeder Befehl in allen 5200 erklärten Zeilen hat eine Bedeutung, Sonderzeichen werden maskiert) und ob die Versionsnummer zum ausgelieferten Inhalt passt – dieselben Zahlen wie in den Swift- und Kotlin-Reihen |
