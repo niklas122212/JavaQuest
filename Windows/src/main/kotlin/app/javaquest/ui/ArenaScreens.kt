@@ -34,7 +34,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.automirrored.rounded.TrendingUp
 import androidx.compose.material.icons.automirrored.rounded.Undo
+import androidx.compose.material.icons.rounded.AccountBalance
 import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.AutoFixHigh
 import androidx.compose.material.icons.rounded.Bolt
 import androidx.compose.material.icons.rounded.BugReport
 import androidx.compose.material.icons.rounded.Build
@@ -57,6 +59,7 @@ import androidx.compose.material.icons.rounded.Lightbulb
 import androidx.compose.material.icons.rounded.LocalFireDepartment
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.LooksOne
+import androidx.compose.material.icons.rounded.Map
 import androidx.compose.material.icons.rounded.MilitaryTech
 import androidx.compose.material.icons.rounded.MonetizationOn
 import androidx.compose.material.icons.rounded.Pause
@@ -874,6 +877,9 @@ fun achievementIcon(achievement: Achievement): ImageVector = when (achievement.i
     AchievementIcon.ONE -> Icons.Rounded.LooksOne
     AchievementIcon.UP -> Icons.AutoMirrored.Rounded.TrendingUp
     AchievementIcon.TROPHY -> Icons.Rounded.EmojiEvents
+    AchievementIcon.MAP -> Icons.Rounded.Map
+    AchievementIcon.WAND -> Icons.Rounded.AutoFixHigh
+    AchievementIcon.CASTLE -> Icons.Rounded.AccountBalance
 }
 
 // ---------------------------------------------------------------- Sitzung, Übersicht, Karten

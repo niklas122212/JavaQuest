@@ -977,7 +977,7 @@ class JavaInterpreter(internal val program: Program, private val stepLimit: Int,
     /** Objekte für `%s` vorab in Text verwandeln – mit ihrer eigenen toString-Methode. */
     internal fun formatArgs(args: List<JValue>, line: Int): List<JValue> = args.map { if (it is JValue.Obj) JValue.str(stringify(it, line)) else it }
 
-    private fun printable(value: JValue, line: Int): String = when {
+    internal fun printable(value: JValue, line: Int): String = when {
         value == JValue.Void -> throw JavaProblem.syntax("Diese Methode gibt nichts zurück (void) – es gibt nichts auszugeben.", line)
         value is JValue.ArrV && value.array.elementType == JType.CharT -> value.array.elements.joinToString("") { it.javaString }
         else -> stringify(value, line)

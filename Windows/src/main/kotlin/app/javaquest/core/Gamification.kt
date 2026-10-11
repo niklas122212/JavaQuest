@@ -70,6 +70,12 @@ class LearnerFacts(
         return best
     }
 
+    /** Sterne der Arena-Missionen – ohne Code-Quests, die im selben Protokoll liegen. */
+    val arenaStars: Map<String, Int> by lazy { missionStars.filterKeys { catalog.mission(it) != null } }
+
+    /** Beste Sterne je Code-Quest (IDs mit `quest-`). */
+    val questStars: Map<String, Int> by lazy { missionStars.filterKeys { it.startsWith(QuestBook.ID_PREFIX) } }
+
     val completedLessonIds: Set<String> get() = lessonResults.filterValues { it.isCompleted }.keys
 
     /** Lektionen, die man selbst bestanden hat (nicht nur per Einstufung angerechnet). */
@@ -160,7 +166,7 @@ data class LevelProgress(val level: Int, val xp: Int, val levelStart: Int, val n
 // ---------------------------------------------------------------- Abzeichen
 
 /** Symbole der Abzeichen – die Oberfläche wählt dazu ein passendes Bild. */
-enum class AchievementIcon { WAVE, FLAG, STAR, BOLT, FLAME, CODE, BUG, PUZZLE, GAME, SPARKLES, SHIELD, CROWN, SUN, REPEAT, ONE, UP, TROPHY }
+enum class AchievementIcon { WAVE, FLAG, STAR, BOLT, FLAME, CODE, BUG, PUZZLE, GAME, SPARKLES, SHIELD, CROWN, SUN, REPEAT, ONE, UP, TROPHY, MAP, WAND, CASTLE }
 
 class Achievement(
     val id: String,
@@ -179,6 +185,9 @@ class Achievement(
     companion object {
         /** So viele Lektionen hat der Kurs – „Java Master“ verlangt alle (ein Test prüft die Zahl). */
         const val COURSE_LESSONS = 35
+
+        /** So viele Quests hat das Abenteuer „Die Burg Javahall“ (ein Test prüft die Zahl). */
+        const val QUEST_COUNT = 16
 
         private fun bosses(f: LearnerFacts) = f.missionStars.keys.count { f.catalog.mission(it)?.kind == MissionKind.BOSS }
 
@@ -199,8 +208,11 @@ class Achievement(
             },
             Achievement("bug-hunter", "Bug-Jäger", "Finde den Fehler in 5 Bug-Jagden.", AchievementIcon.BUG, 5) { it.solvedCount(TaskType.FIND_BUG) },
             Achievement("puzzler", "Puzzle-Profi", "Löse 5 Code-Puzzles.", AchievementIcon.PUZZLE, 5) { it.solvedCount(TaskType.ORDERING) },
-            Achievement("first-mission", "Roboter-Pilot", "Schaffe deine erste Arena-Mission.", AchievementIcon.GAME, 1) { it.missionStars.size },
-            Achievement("star-collector", "Sternensammler", "Sammle 15 Sterne in der Arena.", AchievementIcon.SPARKLES, 15) { it.missionStars.values.sum() },
+            Achievement("first-mission", "Roboter-Pilot", "Schaffe deine erste Arena-Mission.", AchievementIcon.GAME, 1) { it.arenaStars.size },
+            Achievement("star-collector", "Sternensammler", "Sammle 15 Sterne in der Arena.", AchievementIcon.SPARKLES, 15) { it.arenaStars.values.sum() },
+            Achievement("first-quest", "Abenteurer", "Löse deine erste Code-Quest.", AchievementIcon.MAP, 1) { it.questStars.size },
+            Achievement("clean-code", "Sauberer Code", "Hol in 5 Code-Quests alle 3 Sterne.", AchievementIcon.WAND, 5) { f -> f.questStars.values.count { it == 3 } },
+            Achievement("javahall", "Retter von Javahall", "Löse alle Code-Quests der Burg.", AchievementIcon.CASTLE, QUEST_COUNT) { it.questStars.size },
             Achievement("boss", "Bossbezwinger", "Besiege ein Boss-Level.", AchievementIcon.SHIELD, 1) { bosses(it) },
             Achievement("all-bosses", "Endgegner", "Besiege alle Boss-Level.", AchievementIcon.CROWN, 3) { bosses(it) },
             Achievement("daily-3", "Tagesheld", "Schaffe 3 tägliche Missionen.", AchievementIcon.SUN, 3) { it.dailyCompletions },

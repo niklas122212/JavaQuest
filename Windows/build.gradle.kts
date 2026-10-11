@@ -67,8 +67,10 @@ val courseFile = rootProject.file("../Packages/JavaQuestKit/Sources/JavaQuestKit
 // Arena-Missionen und Bonus-Aufgaben (Code-Puzzle, Bug-Jagd): dieselben Dateien wie in der iOS-/Mac-App.
 val missionsFile = rootProject.file("../Packages/JavaQuestKit/Sources/JavaQuestKit/Resources/arena_missions.json")
 val extraTasksFile = rootProject.file("../Packages/JavaQuestKit/Sources/JavaQuestKit/Resources/apple_extra_tasks.json")
+// Code-Quests („Die Burg Javahall“): dieselbe Datei wie in der iOS-/Mac-App.
+val questsFile = rootProject.file("../Packages/JavaQuestKit/Sources/JavaQuestKit/Resources/code_quests.json")
 val copyCourse by tasks.registering(Copy::class) {
-    from(courseFile, missionsFile, extraTasksFile)
+    from(courseFile, missionsFile, extraTasksFile, questsFile)
     into(layout.buildDirectory.dir("generated/course"))
 }
 sourceSets.main { resources.srcDir(copyCourse) }
