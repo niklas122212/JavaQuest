@@ -1,0 +1,1057 @@
+{
+ "title": "Die Burg Javahall",
+ "intro": "Die Burg Javahall ist erstarrt: Ihr Code-Zauber ist zerbrochen. Tore klemmen, Treppen schweigen, Golems stehen still. Mit echtem Java bringst du sie Raum für Raum wieder zum Laufen – jede Quest prüfen versteckte Tests, wie bei echten Programmierern.",
+ "chapters": [
+  {
+   "id": "k1-tor",
+   "title": "Das Burgtor",
+   "symbol": "door.left.hand.closed",
+   "story": "Vor dir ragt das Tor von Javahall auf. Ein steinerner Wächter versperrt den Weg – und er versteht nur Java."
+  },
+  {
+   "id": "k2-gaenge",
+   "title": "Die dunklen Gänge",
+   "symbol": "signpost.right.and.left",
+   "story": "Hinter dem Tor verzweigen sich Gänge, Treppen winden sich nach oben. Ohne Entscheidungen und Schleifen kommst du hier nicht weit."
+  },
+  {
+   "id": "k3-bibliothek",
+   "title": "Die Bibliothek",
+   "symbol": "books.vertical",
+   "story": "In der Bibliothek liegen verschlüsselte Bücher und Regale voller Zahlen. Wer Texte und Arrays lesen kann, findet den Weg."
+  },
+  {
+   "id": "k4-werkstatt",
+   "title": "Die Werkstatt der Golems",
+   "symbol": "hammer",
+   "story": "In der Werkstatt stehen Golems, Tränke und Zauberbücher. Hier baust du eigene Klassen – Baupläne für lebendige Objekte."
+  },
+  {
+   "id": "k5-thronsaal",
+   "title": "Der Thronsaal",
+   "symbol": "crown",
+   "story": "Zuletzt der Thronsaal: Schatzkammer, Heldenregister und Beute. Hier zählt robuster Code, der auch mit Fehlern umgehen kann."
+  }
+ ],
+ "quests": [
+  {
+   "id": "quest-torwaechter",
+   "chapterId": "k1-tor",
+   "title": "Der Torwächter",
+   "lessonId": "l01-hello",
+   "topicId": "syntax",
+   "difficulty": 1,
+   "story": "Der steinerne Wächter vor dem Tor öffnet ein Auge. „Wer bist du?“, grollt er. Er erwacht nur, wenn man ihn richtig grüßt.",
+   "task": "Lass das Programm genau zwei Zeilen ausgeben: zuerst „Hallo, Wächter!“, dann „Ich bin der neue Lehrling.“",
+   "concept": {
+    "title": "Ausgeben mit println",
+    "text": "System.out.println(…) schreibt einen Text in die Konsole und springt danach in die nächste Zeile. Texte stehen in Anführungszeichen, am Ende kommt ein Semikolon.",
+    "code": "System.out.println(\"Hallo!\");"
+   },
+   "className": "Tor",
+   "starterCode": "public class Tor {\n    public static void main(String[] args) {\n        // Gib hier die zwei Zeilen aus\n    }\n}",
+   "solution": "public class Tor {\n    public static void main(String[] args) {\n        System.out.println(\"Hallo, Wächter!\");\n        System.out.println(\"Ich bin der neue Lehrling.\");\n    }\n}",
+   "tests": [
+    {
+     "name": "Der Wächter hört genau zwei Zeilen",
+     "expect": {
+      "output": "Hallo, Wächter!\nIch bin der neue Lehrling."
+     },
+     "visible": true,
+     "hint": "Zwei Zeilen brauchen zwei println-Befehle – jeder schreibt eine Zeile."
+    }
+   ],
+   "success": "„Willkommen, Lehrling“, grollt der Wächter und tritt zur Seite. Das Tor knarrt – ein Spalt öffnet sich.",
+   "reward": {
+    "item": "Wächterabzeichen",
+    "symbol": "shield.lefthalf.filled",
+    "text": "Der Wächter erkennt dich jetzt."
+   },
+   "blueprint": {
+    "title": "Programmrahmen",
+    "text": "Jedes Java-Programm: eine Klasse mit main.",
+    "code": "public class MeinProgramm {\n    public static void main(String[] args) {\n        System.out.println(\"Hallo!\");\n    }\n}"
+   }
+  },
+  {
+   "id": "quest-namensschild",
+   "chapterId": "k1-tor",
+   "title": "Das Namensschild",
+   "lessonId": "l02-variables",
+   "topicId": "variables",
+   "difficulty": 1,
+   "story": "Neben dem Tor hängt ein leeres Namensschild. Der Wächter will wissen, wer hier ein und aus geht – und das Schild füllt sich nur aus Variablen.",
+   "task": "Speichere den Namen „Ada“ in einer String-Variablen und das Alter 12 in einer int-Variablen. Gib dann „Lehrling Ada, 12 Jahre“ aus – zusammengesetzt aus deinen Variablen.",
+   "concept": {
+    "title": "Variablen",
+    "text": "Eine Variable ist eine Box mit Etikett: Der Typ sagt, was hineinpasst (String für Text, int für ganze Zahlen). Mit + setzt du Text und Werte zusammen.",
+    "code": "String name = \"Byte\";\nint alter = 3;\nSystem.out.println(name + \" ist \" + alter);"
+   },
+   "className": "Schild",
+   "starterCode": "public class Schild {\n    public static void main(String[] args) {\n        // Zwei Variablen: der Name und das Alter\n    }\n}",
+   "solution": "public class Schild {\n    public static void main(String[] args) {\n        String name = \"Ada\";\n        int alter = 12;\n        System.out.println(\"Lehrling \" + name + \", \" + alter + \" Jahre\");\n    }\n}",
+   "tests": [
+    {
+     "name": "Das Schild zeigt Name und Alter",
+     "expect": {
+      "output": "Lehrling Ada, 12 Jahre"
+     },
+     "visible": true,
+     "hint": "Setze den Text aus Stücken zusammen: \"Lehrling \" + name + \", \" + alter + \" Jahre\"."
+    }
+   ],
+   "requirements": [
+    {
+     "rule": "require",
+     "pattern": "\\bString\\s+\\w+\\s*=",
+     "message": "Speichere den Namen in einer String-Variablen."
+    },
+    {
+     "rule": "require",
+     "pattern": "\\bint\\s+\\w+\\s*=",
+     "message": "Speichere das Alter in einer int-Variablen."
+    },
+    {
+     "rule": "forbid",
+     "pattern": "Ada, 12",
+     "scope": "raw",
+     "message": "Schreib den Satz nicht fertig hin – setze ihn aus deinen Variablen zusammen."
+    }
+   ],
+   "success": "Mit goldenen Buchstaben erscheint dein Name auf dem Schild. Der Wächter nickt zufrieden.",
+   "reward": {
+    "item": "Namensschild",
+    "symbol": "person.text.rectangle",
+    "text": "Javahall kennt jetzt deinen Namen."
+   },
+   "blueprint": {
+    "title": "Text und Zahl",
+    "text": "Variablen anlegen und zusammen ausgeben.",
+    "code": "String held = \"Ada\";\nint punkte = 42;\nSystem.out.println(held + \" hat \" + punkte + \" Punkte\");"
+   }
+  },
+  {
+   "id": "quest-rechenrune",
+   "chapterId": "k1-tor",
+   "title": "Die Rechenrune",
+   "lessonId": "l03-operators",
+   "topicId": "operators",
+   "difficulty": 2,
+   "story": "In das Tor ist eine Rune geritzt: „Turmhöhe 17, Mauerdicke 25, Brücken 8. Addiere sie und verdopple die Summe.“ Nur die richtige Zahl öffnet das Schloss.",
+   "task": "Lege die drei Zahlen in Variablen ab, lass Java (17 + 25 + 8) * 2 ausrechnen und gib „Runencode: “ mit dem Ergebnis aus. Schreib das Ergebnis nicht selbst hin.",
+   "concept": {
+    "title": "Rechnen mit Variablen",
+    "text": "Java rechnet mit + - * / – Klammern zuerst, wie in Mathe. Das Ergebnis legst du in eine neue Variable.",
+    "code": "int a = 3;\nint b = 4;\nint summe = (a + b) * 2;"
+   },
+   "className": "Rune",
+   "starterCode": "public class Rune {\n    public static void main(String[] args) {\n        int turmhoehe = 17;\n        // Mauerdicke 25, Brücken 8 – und dann rechnen\n    }\n}",
+   "solution": "public class Rune {\n    public static void main(String[] args) {\n        int turmhoehe = 17;\n        int mauerdicke = 25;\n        int bruecken = 8;\n        int code = (turmhoehe + mauerdicke + bruecken) * 2;\n        System.out.println(\"Runencode: \" + code);\n    }\n}",
+   "tests": [
+    {
+     "name": "Die Rune zeigt den Code",
+     "expect": {
+      "output": "Runencode: 100"
+     },
+     "visible": true,
+     "hint": "Erst die Summe in Klammern, dann * 2: (turmhoehe + mauerdicke + bruecken) * 2."
+    }
+   ],
+   "requirements": [
+    {
+     "rule": "require",
+     "pattern": "\\*\\s*2",
+     "message": "Verdopple mit * 2."
+    },
+    {
+     "rule": "forbid",
+     "pattern": "\\b100\\b",
+     "message": "Schreib die 100 nicht selbst hin – lass Java rechnen."
+    }
+   ],
+   "success": "Die Rune glüht auf, das Schloss klickt. Das Burgtor schwingt auf – dahinter liegen die dunklen Gänge.",
+   "reward": {
+    "item": "Runenstein",
+    "symbol": "seal.fill",
+    "text": "Er leuchtet, wenn in der Nähe gerechnet wird."
+   },
+   "blueprint": {
+    "title": "Rechnen",
+    "text": "Werte zusammenrechnen und ausgeben.",
+    "code": "int gold = 120;\nint silber = 45;\nint gesamt = gold * 10 + silber;\nSystem.out.println(\"Gesamt: \" + gesamt);"
+   }
+  },
+  {
+   "id": "quest-weggabelung",
+   "chapterId": "k2-gaenge",
+   "title": "Die Weggabelung",
+   "lessonId": "l04-conditionals",
+   "topicId": "conditionals",
+   "difficulty": 2,
+   "story": "Der Gang teilt sich. Links ist es dunkel, rechts tropft Wasser. Byte rät: „Mit mindestens drei Fackeln gehen wir links, sonst lieber rechts.“",
+   "task": "Vervollständige die Methode weg: Bei 3 oder mehr Fackeln gibt sie \"links\" zurück, sonst \"rechts\". Die Methode ist schon vorbereitet – du schreibst nur, was in ihr passiert.",
+   "concept": {
+    "title": "if und else",
+    "text": "if prüft eine Bedingung: Ist sie wahr, läuft der erste Block, sonst der else-Block. Mit return gibt die Methode ihr Ergebnis zurück – was eine Methode genau ist, kommt in Lektion 6.",
+    "code": "if (gold >= 10) {\n    return \"reich\";\n} else {\n    return \"arm\";\n}"
+   },
+   "className": "Gabelung",
+   "starterCode": "public class Gabelung {\n    static String weg(int fackeln) {\n        // Bei 3 oder mehr Fackeln \"links\", sonst \"rechts\"\n        return \"\";\n    }\n}",
+   "solution": "public class Gabelung {\n    static String weg(int fackeln) {\n        if (fackeln >= 3) {\n            return \"links\";\n        } else {\n            return \"rechts\";\n        }\n    }\n}",
+   "tests": [
+    {
+     "name": "Mit 5 Fackeln geht es links",
+     "expression": "Gabelung.weg(5)",
+     "expect": {
+      "value": "links"
+     },
+     "visible": true,
+     "hint": "Bei 3 oder mehr Fackeln ist die Bedingung fackeln >= 3 wahr."
+    },
+    {
+     "name": "Mit 1 Fackel geht es rechts",
+     "expression": "Gabelung.weg(1)",
+     "expect": {
+      "value": "rechts"
+     },
+     "visible": true,
+     "hint": "Ist die Bedingung falsch, läuft der else-Block."
+    },
+    {
+     "name": "Genau 3 Fackeln reichen für links",
+     "expression": "Gabelung.weg(3)",
+     "expect": {
+      "value": "links"
+     },
+     "hint": "„3 oder mehr“ schließt die 3 ein – nimm >= statt >."
+    },
+    {
+     "name": "Ohne Fackel geht es rechts",
+     "expression": "Gabelung.weg(0)",
+     "expect": {
+      "value": "rechts"
+     },
+     "hint": "Auch bei 0 Fackeln muss die Methode \"rechts\" liefern."
+    }
+   ],
+   "success": "Der linke Gang wird heller, je weiter ihr geht. Byte summt zufrieden – die Entscheidung war richtig.",
+   "reward": {
+    "item": "Fackel",
+    "symbol": "flame.fill",
+    "text": "Sie leuchtet jeden Gang aus."
+   },
+   "blueprint": {
+    "title": "Entscheidung",
+    "text": "if und else mit Rückgabewert.",
+    "code": "static String bewerte(int punkte) {\n    if (punkte >= 50) {\n        return \"gut\";\n    } else {\n        return \"übe weiter\";\n    }\n}"
+   }
+  },
+  {
+   "id": "quest-wendeltreppe",
+   "chapterId": "k2-gaenge",
+   "title": "Die Wendeltreppe",
+   "lessonId": "l05-loops",
+   "topicId": "loops",
+   "difficulty": 3,
+   "story": "Eine Wendeltreppe führt in den Turm. Das erste Stockwerk hat 1 Stufe, das zweite 2, das dritte 3 … Die Treppe hält nur, wenn jemand die Stufen richtig zählt.",
+   "task": "Vervollständige stufen: Die Methode bekommt die Zahl der Stockwerke und gibt zurück, wie viele Stufen es insgesamt sind (1 + 2 + … + stockwerke). Nutze eine Schleife.",
+   "concept": {
+    "title": "Zählen mit einer Schleife",
+    "text": "Eine for-Schleife wiederholt einen Block und zählt dabei mit. So addierst du Schritt für Schritt in eine Summen-Variable.",
+    "code": "int summe = 0;\nfor (int i = 1; i <= 3; i++) {\n    summe = summe + i;\n}"
+   },
+   "className": "Treppe",
+   "starterCode": "public class Treppe {\n    static int stufen(int stockwerke) {\n        int summe = 0;\n        // Für jedes Stockwerk seine Stufen dazuzählen\n        return summe;\n    }\n}",
+   "solution": "public class Treppe {\n    static int stufen(int stockwerke) {\n        int summe = 0;\n        for (int i = 1; i <= stockwerke; i++) {\n            summe = summe + i;\n        }\n        return summe;\n    }\n}",
+   "tests": [
+    {
+     "name": "4 Stockwerke haben 10 Stufen",
+     "expression": "Treppe.stufen(4)",
+     "expect": {
+      "value": 10
+     },
+     "visible": true,
+     "hint": "1 + 2 + 3 + 4 = 10: Zähle i von 1 bis stockwerke und addiere jedes i."
+    },
+    {
+     "name": "1 Stockwerk hat 1 Stufe",
+     "expression": "Treppe.stufen(1)",
+     "expect": {
+      "value": 1
+     },
+     "hint": "Beginnt deine Schleife bei 1 und läuft bis einschließlich stockwerke (<=)?"
+    },
+    {
+     "name": "10 Stockwerke haben 55 Stufen",
+     "expression": "Treppe.stufen(10)",
+     "expect": {
+      "value": 55
+     },
+     "hint": "Läuft die Schleife bis einschließlich 10? Nimm <= statt <."
+    },
+    {
+     "name": "Ohne Stockwerk keine Stufe",
+     "expression": "Treppe.stufen(0)",
+     "expect": {
+      "value": 0
+     },
+     "hint": "Bei 0 Stockwerken läuft die Schleife gar nicht – die Summe bleibt 0."
+    }
+   ],
+   "requirements": [
+    {
+     "rule": "anyOf",
+     "pattern": "",
+     "patterns": [
+      "\\bfor\\s*\\(",
+      "\\bwhile\\s*\\("
+     ],
+     "message": "Zähle mit einer Schleife (for oder while)."
+    }
+   ],
+   "success": "Stufe um Stufe leuchtet auf. Oben wartet eine schwere Tür mit einem seltsamen Schloss.",
+   "reward": {
+    "item": "Turmkarte",
+    "symbol": "map.fill",
+    "text": "Sie zeigt jede Treppe der Burg."
+   },
+   "blueprint": {
+    "title": "Summe mit Schleife",
+    "text": "Zahlen von 1 bis n zusammenzählen.",
+    "code": "int summe = 0;\nfor (int i = 1; i <= 10; i++) {\n    summe += i;\n}\nSystem.out.println(summe);"
+   }
+  },
+  {
+   "id": "quest-tuer",
+   "chapterId": "k2-gaenge",
+   "title": "Die verschlossene Tür",
+   "lessonId": "l06-methods",
+   "topicId": "methods",
+   "difficulty": 3,
+   "story": "Die Tür oben im Turm ist verschlossen. Auf dem Schloss steht: „Ich öffne mich für jeden Schlüssel über 100, der durch 7 teilbar ist.“",
+   "task": "Schreibe in der Klasse Tuer die Methode public static boolean unlock(int key). Sie gibt true zurück, wenn key größer als 100 und durch 7 teilbar ist – sonst false.",
+   "concept": {
+    "title": "Methoden mit Rückgabewert",
+    "text": "Eine Methode ist ein benannter Befehl. Der Typ vor dem Namen sagt, was sie zurückgibt (boolean = true oder false). key % 7 ist der Rest beim Teilen durch 7 – ist er 0, geht die Teilung glatt auf.",
+    "code": "public static boolean istGerade(int zahl) {\n    return zahl % 2 == 0;\n}"
+   },
+   "className": "Tuer",
+   "starterCode": "public class Tuer {\n    // Schreibe hier die Methode unlock\n}",
+   "solution": "public class Tuer {\n    public static boolean unlock(int key) {\n        return key > 100 && key % 7 == 0;\n    }\n}",
+   "tests": [
+    {
+     "name": "Der Schlüssel 105 öffnet",
+     "expression": "Tuer.unlock(105)",
+     "expect": {
+      "value": true
+     },
+     "visible": true,
+     "hint": "105 ist größer als 100 und 105 % 7 == 0."
+    },
+    {
+     "name": "Der Schlüssel 98 öffnet nicht",
+     "expression": "Tuer.unlock(98)",
+     "expect": {
+      "value": false
+     },
+     "visible": true,
+     "hint": "98 ist zwar durch 7 teilbar, aber nicht größer als 100 – beide Bedingungen müssen stimmen (&&)."
+    },
+    {
+     "name": "Der Schlüssel 110 öffnet nicht",
+     "expression": "Tuer.unlock(110)",
+     "expect": {
+      "value": false
+     },
+     "hint": "110 ist größer als 100, aber 110 % 7 ist nicht 0."
+    },
+    {
+     "name": "Der Schlüssel 700 öffnet",
+     "expression": "Tuer.unlock(700)",
+     "expect": {
+      "value": true
+     },
+     "hint": "700 = 7 · 100 – größer als 100 und durch 7 teilbar."
+    },
+    {
+     "name": "Der Schlüssel 101 öffnet nicht",
+     "expression": "Tuer.unlock(101)",
+     "expect": {
+      "value": false
+     },
+     "hint": "„Größer als 100“ heißt > 100 – aber 101 ist nicht durch 7 teilbar."
+    }
+   ],
+   "success": "Mit einem Klicken springt das Schloss auf. Dahinter: eine Bibliothek, deren Bücher vor sich hin flüstern.",
+   "reward": {
+    "item": "Messingschlüssel",
+    "symbol": "key.fill",
+    "text": "Er passt in jedes Schloss, das rechnen kann."
+   },
+   "blueprint": {
+    "title": "Methode mit boolean",
+    "text": "Eine Prüfung als eigene Methode.",
+    "code": "static boolean istGross(int zahl) {\n    return zahl > 100;\n}"
+   }
+  },
+  {
+   "id": "quest-spiegelschrift",
+   "chapterId": "k3-bibliothek",
+   "title": "Die Spiegelschrift",
+   "lessonId": "l07-arrays-strings",
+   "topicId": "strings",
+   "difficulty": 3,
+   "story": "Das erste Buch ist in Spiegelschrift geschrieben: „ollaH“ steht da. Wer es rückwärts liest, versteht es.",
+   "task": "Schreibe static String entschluesseln(String text): Die Methode gibt den Text rückwärts zurück – aus \"ollaH\" wird \"Hallo\".",
+   "concept": {
+    "title": "Texte Zeichen für Zeichen",
+    "text": "text.length() ist die Länge, text.charAt(i) das Zeichen an Stelle i (gezählt ab 0). Eine Schleife, die von hinten nach vorn zählt, liest den Text rückwärts.",
+    "code": "String wort = \"Byte\";\nfor (int i = wort.length() - 1; i >= 0; i--) {\n    System.out.print(wort.charAt(i));\n}"
+   },
+   "className": "Spiegel",
+   "starterCode": "public class Spiegel {\n    static String entschluesseln(String text) {\n        String ergebnis = \"\";\n        // Von hinten nach vorn durch den Text laufen\n        return ergebnis;\n    }\n}",
+   "solution": "public class Spiegel {\n    static String entschluesseln(String text) {\n        String ergebnis = \"\";\n        for (int i = text.length() - 1; i >= 0; i--) {\n            ergebnis = ergebnis + text.charAt(i);\n        }\n        return ergebnis;\n    }\n}",
+   "tests": [
+    {
+     "name": "„ollaH“ wird zu „Hallo“",
+     "expression": "Spiegel.entschluesseln(\"ollaH\")",
+     "expect": {
+      "value": "Hallo"
+     },
+     "visible": true,
+     "hint": "Beginne beim letzten Zeichen (text.length() - 1) und hänge jedes Zeichen hinten an."
+    },
+    {
+     "name": "Ein einzelnes Zeichen bleibt",
+     "expression": "Spiegel.entschluesseln(\"a\")",
+     "expect": {
+      "value": "a"
+     },
+     "hint": "Bei einem Zeichen läuft die Schleife genau einmal."
+    },
+    {
+     "name": "Ein leerer Text bleibt leer",
+     "expression": "Spiegel.entschluesseln(\"\")",
+     "expect": {
+      "value": ""
+     },
+     "hint": "Bei \"\" ist length() 0 – die Schleife läuft gar nicht."
+    },
+    {
+     "name": "Auch Satzzeichen werden gespiegelt",
+     "expression": "Spiegel.entschluesseln(\"!reiv\")",
+     "expect": {
+      "value": "vier!"
+     },
+     "hint": "Jedes Zeichen zählt – auch ! und Leerzeichen."
+    }
+   ],
+   "success": "Die Buchstaben ordnen sich, das Buch flüstert: „Im Regal liegt die größte Zahl der Burg.“",
+   "reward": {
+    "item": "Spiegelglas",
+    "symbol": "circle.lefthalf.filled",
+    "text": "Es liest jede Schrift rückwärts."
+   },
+   "blueprint": {
+    "title": "Text rückwärts",
+    "text": "Einen Text von hinten nach vorn durchlaufen.",
+    "code": "String text = \"Javahall\";\nString rueckwaerts = \"\";\nfor (int i = text.length() - 1; i >= 0; i--) {\n    rueckwaerts += text.charAt(i);\n}"
+   }
+  },
+  {
+   "id": "quest-zahlenregal",
+   "chapterId": "k3-bibliothek",
+   "title": "Das Zahlenregal",
+   "lessonId": "l07-arrays-strings",
+   "topicId": "arrays",
+   "difficulty": 3,
+   "story": "Ein Regal voller Zahlenbücher. Das Buch mit der größten Zahl öffnet das Geheimfach – aber die Regale sind jedes Mal anders bestückt.",
+   "task": "Schreibe static int groesstes(int[] zahlen): Die Methode gibt die größte Zahl im Array zurück. Das Array hat immer mindestens ein Element.",
+   "concept": {
+    "title": "Arrays durchsuchen",
+    "text": "Ein Array speichert mehrere Werte unter einem Namen. Mit einer Schleife besuchst du jeden Platz und merkst dir den bisher größten Wert.",
+    "code": "int[] zahlen = {4, 8, 1};\nint bisher = zahlen[0];\nfor (int zahl : zahlen) {\n    // zahl mit bisher vergleichen\n}"
+   },
+   "className": "Regal",
+   "starterCode": "public class Regal {\n    static int groesstes(int[] zahlen) {\n        int bisher = zahlen[0];\n        // Jede Zahl mit bisher vergleichen\n        return bisher;\n    }\n}",
+   "solution": "public class Regal {\n    static int groesstes(int[] zahlen) {\n        int bisher = zahlen[0];\n        for (int zahl : zahlen) {\n            if (zahl > bisher) {\n                bisher = zahl;\n            }\n        }\n        return bisher;\n    }\n}",
+   "tests": [
+    {
+     "name": "In {3, 9, 2} ist 9 am größten",
+     "expression": "Regal.groesstes(new int[] {3, 9, 2})",
+     "expect": {
+      "value": 9
+     },
+     "visible": true,
+     "hint": "Vergleiche jede Zahl mit bisher und merke dir die größere."
+    },
+    {
+     "name": "Auch negative Zahlen klappen",
+     "expression": "Regal.groesstes(new int[] {-5, -2, -9})",
+     "expect": {
+      "value": -2
+     },
+     "hint": "Starte mit zahlen[0], nicht mit 0 – sonst gewinnt bei lauter negativen Zahlen die 0."
+    },
+    {
+     "name": "Ein einziges Buch ist das größte",
+     "expression": "Regal.groesstes(new int[] {7})",
+     "expect": {
+      "value": 7
+     },
+     "hint": "Bei einem Element ist zahlen[0] schon das Ergebnis."
+    },
+    {
+     "name": "Die größte Zahl steht ganz hinten",
+     "expression": "Regal.groesstes(new int[] {1, 2, 3, 40})",
+     "expect": {
+      "value": 40
+     },
+     "hint": "Läuft deine Schleife bis zum letzten Platz?"
+    }
+   ],
+   "success": "Das Buch mit der 40 springt aus dem Regal. Im Geheimfach liegt ein Zettel in einer seltsamen Geheimsprache.",
+   "reward": {
+    "item": "Regalschlüssel",
+    "symbol": "books.vertical.fill",
+    "text": "Er öffnet jedes Geheimfach."
+   },
+   "blueprint": {
+    "title": "Maximum suchen",
+    "text": "Den größten Wert in einem Array finden.",
+    "code": "int[] werte = {12, 7, 30, 4};\nint max = werte[0];\nfor (int wert : werte) {\n    if (wert > max) {\n        max = wert;\n    }\n}"
+   }
+  },
+  {
+   "id": "quest-geheimsprache",
+   "chapterId": "k3-bibliothek",
+   "title": "Die Geheimsprache",
+   "lessonId": "l07-arrays-strings",
+   "topicId": "strings",
+   "difficulty": 3,
+   "story": "Auf dem Zettel steht: „Zähle die Vokale im Namen der Burg.“ Die Zahl ist das Losungswort für den Ausgang der Bibliothek.",
+   "task": "Schreibe static int vokale(String wort): Die Methode zählt, wie viele Vokale (a, e, i, o, u) im Wort stehen – egal ob groß oder klein geschrieben.",
+   "concept": {
+    "title": "Text-Methoden",
+    "text": "toLowerCase() macht alle Buchstaben klein – dann musst du nur noch kleine Vokale prüfen. Mit \"aeiou\".indexOf(zeichen) >= 0 fragst du, ob ein Zeichen ein Vokal ist.",
+    "code": "String klein = \"Hallo\".toLowerCase();\nchar zeichen = klein.charAt(1);\nboolean istVokal = \"aeiou\".indexOf(zeichen) >= 0;"
+   },
+   "className": "Geheimsprache",
+   "starterCode": "public class Geheimsprache {\n    static int vokale(String wort) {\n        int anzahl = 0;\n        // Jedes Zeichen prüfen\n        return anzahl;\n    }\n}",
+   "solution": "public class Geheimsprache {\n    static int vokale(String wort) {\n        int anzahl = 0;\n        String klein = wort.toLowerCase();\n        for (int i = 0; i < klein.length(); i++) {\n            if (\"aeiou\".indexOf(klein.charAt(i)) >= 0) {\n                anzahl++;\n            }\n        }\n        return anzahl;\n    }\n}",
+   "tests": [
+    {
+     "name": "„Javahall“ hat 3 Vokale",
+     "expression": "Geheimsprache.vokale(\"Javahall\")",
+     "expect": {
+      "value": 3
+     },
+     "visible": true,
+     "hint": "a, a und a – zähle jedes Zeichen, das in \"aeiou\" vorkommt."
+    },
+    {
+     "name": "„Burg“ hat 1 Vokal",
+     "expression": "Geheimsprache.vokale(\"Burg\")",
+     "expect": {
+      "value": 1
+     },
+     "hint": "Nur das u ist ein Vokal."
+    },
+    {
+     "name": "Großbuchstaben zählen mit",
+     "expression": "Geheimsprache.vokale(\"AEIOU\")",
+     "expect": {
+      "value": 5
+     },
+     "hint": "Mach das Wort vorher mit toLowerCase() klein – dann zählt auch das große A."
+    },
+    {
+     "name": "Ohne Vokale kommt 0 heraus",
+     "expression": "Geheimsprache.vokale(\"xyz\")",
+     "expect": {
+      "value": 0
+     },
+     "hint": "Bei „xyz“ findet die Schleife nichts – die Zählung bleibt 0."
+    }
+   ],
+   "success": "„Drei!“, rufst du – und das Tor zur Werkstatt der Golems öffnet sich mit einem tiefen Brummen.",
+   "reward": {
+    "item": "Losungsrolle",
+    "symbol": "scroll.fill",
+    "text": "Sie kennt jedes Losungswort der Burg."
+   },
+   "blueprint": {
+    "title": "Zeichen zählen",
+    "text": "Bestimmte Zeichen in einem Text zählen.",
+    "code": "String satz = \"Java macht Spass\";\nint leerzeichen = 0;\nfor (int i = 0; i < satz.length(); i++) {\n    if (satz.charAt(i) == ' ') {\n        leerzeichen++;\n    }\n}"
+   }
+  },
+  {
+   "id": "quest-golem",
+   "chapterId": "k4-werkstatt",
+   "title": "Der Golem erwacht",
+   "lessonId": "l08-classes",
+   "topicId": "oop",
+   "difficulty": 3,
+   "story": "In der Werkstatt steht ein Golem aus Lehm, starr und stumm. Meisterin Ada hat einen Bauplan hinterlassen: Jeder Golem hat einen Namen und 100 Energie. Arbeit kostet 30 Energie – aber nie unter 0.",
+   "task": "Schreibe die Klasse Golem: ein Konstruktor Golem(String name), die Methoden getName() und getEnergie() und die Methode arbeiten(), die 30 Energie abzieht – aber nie unter 0.",
+   "concept": {
+    "title": "Klassen und Objekte",
+    "text": "Eine Klasse ist ein Bauplan, mit new entsteht daraus ein Objekt. Felder speichern, was jedes Objekt hat; der Konstruktor setzt die Startwerte; Methoden beschreiben, was es kann.",
+    "code": "public class Hund {\n    private String name;\n\n    public Hund(String name) {\n        this.name = name;\n    }\n\n    public String getName() {\n        return name;\n    }\n}"
+   },
+   "className": "Golem",
+   "starterCode": "public class Golem {\n    private String name;\n    private int energie = 100;\n\n    // Konstruktor, getName, getEnergie und arbeiten\n}",
+   "solution": "public class Golem {\n    private String name;\n    private int energie = 100;\n\n    public Golem(String name) {\n        this.name = name;\n    }\n\n    public String getName() {\n        return name;\n    }\n\n    public int getEnergie() {\n        return energie;\n    }\n\n    public void arbeiten() {\n        energie = energie - 30;\n        if (energie < 0) {\n            energie = 0;\n        }\n    }\n}",
+   "tests": [
+    {
+     "name": "Ein neuer Golem hat 100 Energie",
+     "expression": "new Golem(\"Rolf\").getEnergie()",
+     "expect": {
+      "value": 100
+     },
+     "visible": true,
+     "hint": "Das Feld energie startet mit 100 – getEnergie() gibt es zurück."
+    },
+    {
+     "name": "Der Golem kennt seinen Namen",
+     "expression": "new Golem(\"Rolf\").getName()",
+     "expect": {
+      "value": "Rolf"
+     },
+     "visible": true,
+     "hint": "Der Konstruktor speichert den Namen: this.name = name;"
+    },
+    {
+     "name": "Arbeit kostet 30 Energie",
+     "setup": "Golem g = new Golem(\"Rolf\");\ng.arbeiten();",
+     "expression": "g.getEnergie()",
+     "expect": {
+      "value": 70
+     },
+     "hint": "arbeiten() zieht 30 von energie ab."
+    },
+    {
+     "name": "Energie fällt nie unter 0",
+     "setup": "Golem g = new Golem(\"Tok\");\ng.arbeiten();\ng.arbeiten();\ng.arbeiten();\ng.arbeiten();",
+     "expression": "g.getEnergie()",
+     "expect": {
+      "value": 0
+     },
+     "hint": "Nach 4-mal Arbeiten wären es -20 – setze energie dann auf 0 zurück."
+    }
+   ],
+   "success": "Die Augen des Golems glimmen auf. Er hebt einen Hammer – und wartet auf Befehle. Am Werktisch liegen Tränke, die niemand sortiert hat.",
+   "reward": {
+    "item": "Golemkern",
+    "symbol": "cube.fill",
+    "text": "Das Herz eines lebendigen Objekts."
+   },
+   "blueprint": {
+    "title": "Klasse mit Konstruktor",
+    "text": "Ein Bauplan für eigene Objekte.",
+    "code": "class Held {\n    private String name;\n    private int leben = 3;\n\n    Held(String name) {\n        this.name = name;\n    }\n\n    int getLeben() {\n        return leben;\n    }\n}"
+   }
+  },
+  {
+   "id": "quest-traenke",
+   "chapterId": "k4-werkstatt",
+   "title": "Die Tränke",
+   "lessonId": "l08-classes",
+   "topicId": "oop",
+   "difficulty": 3,
+   "story": "Auf dem Werktisch stehen Tränke mit Namen und Stärke. Der Golem soll sie vergleichen – und jedes Etikett soll verraten, was drin ist.",
+   "task": "Schreibe die Klasse Trank mit Konstruktor Trank(String name, int staerke), der Methode boolean istStaerkerAls(Trank anderer) und toString(), die zum Beispiel \"Heiltrank (Stärke 5)\" liefert.",
+   "concept": {
+    "title": "Objekte vergleichen und beschreiben",
+    "text": "Eine Methode kann ein anderes Objekt derselben Klasse bekommen und mit ihm vergleichen. toString() legt fest, wie ein Objekt als Text aussieht – println nutzt sie automatisch.",
+    "code": "public String toString() {\n    return name + \" (\" + level + \")\";\n}"
+   },
+   "className": "Trank",
+   "starterCode": "public class Trank {\n    private String name;\n    private int staerke;\n\n    // Konstruktor, istStaerkerAls und toString\n}",
+   "solution": "public class Trank {\n    private String name;\n    private int staerke;\n\n    public Trank(String name, int staerke) {\n        this.name = name;\n        this.staerke = staerke;\n    }\n\n    public boolean istStaerkerAls(Trank anderer) {\n        return staerke > anderer.staerke;\n    }\n\n    public String toString() {\n        return name + \" (Stärke \" + staerke + \")\";\n    }\n}",
+   "tests": [
+    {
+     "name": "Das Etikett nennt Name und Stärke",
+     "expression": "new Trank(\"Heiltrank\", 5)",
+     "expect": {
+      "text": "Heiltrank (Stärke 5)"
+     },
+     "visible": true,
+     "hint": "toString() setzt zusammen: name + \" (Stärke \" + staerke + \")\"."
+    },
+    {
+     "name": "Stärke 8 ist stärker als 5",
+     "expression": "new Trank(\"Feuertrank\", 8).istStaerkerAls(new Trank(\"Heiltrank\", 5))",
+     "expect": {
+      "value": true
+     },
+     "visible": true,
+     "hint": "Vergleiche die eigene staerke mit anderer.staerke."
+    },
+    {
+     "name": "Stärke 2 ist nicht stärker als 5",
+     "expression": "new Trank(\"Wasser\", 2).istStaerkerAls(new Trank(\"Heiltrank\", 5))",
+     "expect": {
+      "value": false
+     },
+     "hint": "Ist die eigene Stärke kleiner, kommt false heraus."
+    },
+    {
+     "name": "Gleich stark ist nicht stärker",
+     "expression": "new Trank(\"A\", 5).istStaerkerAls(new Trank(\"B\", 5))",
+     "expect": {
+      "value": false
+     },
+     "hint": "„Stärker“ heißt echt größer: > statt >=."
+    }
+   ],
+   "success": "Der Golem stellt die Tränke der Stärke nach auf. Hinter dem Regal öffnet sich ein Zwinger – drinnen schnauben seltsame Wesen.",
+   "reward": {
+    "item": "Heiltrank",
+    "symbol": "drop.fill",
+    "text": "Stärke 5 – für Notfälle."
+   },
+   "blueprint": {
+    "title": "toString",
+    "text": "Wie ein Objekt als Text aussieht.",
+    "code": "class Punkt {\n    int x;\n    int y;\n\n    Punkt(int x, int y) {\n        this.x = x;\n        this.y = y;\n    }\n\n    public String toString() {\n        return \"(\" + x + \", \" + y + \")\";\n    }\n}"
+   }
+  },
+  {
+   "id": "quest-wesen",
+   "chapterId": "k4-werkstatt",
+   "title": "Die Wesen im Zwinger",
+   "lessonId": "l09-inheritance",
+   "topicId": "inheritance",
+   "difficulty": 4,
+   "story": "Im Zwinger leben Wesen aller Art. Jedes stellt sich gleich vor – „Glut sagt …“ –, aber jedes macht einen anderen Laut. Meisterin Ada hat die Klasse Wesen schon geschrieben.",
+   "task": "Schreibe die Klassen Drache und Katze, beide erben von Wesen (extends). Ein Drache sagt \"Fauch!\", eine Katze \"Miau\" – überschreibe dafür laut(). Der Konstruktor gibt den Namen mit super(name) weiter.",
+   "concept": {
+    "title": "Vererbung",
+    "text": "Mit extends übernimmt eine Klasse alles von ihrer Oberklasse. super(name) ruft deren Konstruktor auf, und mit @Override ersetzt du eine Methode durch eine eigene Fassung.",
+    "code": "class Hund extends Tier {\n    Hund(String name) {\n        super(name);\n    }\n\n    @Override\n    String laut() {\n        return \"Wuff\";\n    }\n}"
+   },
+   "className": "Zwinger",
+   "starterCode": "public class Zwinger {\n}\n\nclass Wesen {\n    protected String name;\n\n    Wesen(String name) {\n        this.name = name;\n    }\n\n    String laut() {\n        return \"...\";\n    }\n\n    String vorstellen() {\n        return name + \" sagt \" + laut();\n    }\n}\n\n// Drache und Katze erben von Wesen",
+   "solution": "public class Zwinger {\n}\n\nclass Wesen {\n    protected String name;\n\n    Wesen(String name) {\n        this.name = name;\n    }\n\n    String laut() {\n        return \"...\";\n    }\n\n    String vorstellen() {\n        return name + \" sagt \" + laut();\n    }\n}\n\nclass Drache extends Wesen {\n    Drache(String name) {\n        super(name);\n    }\n\n    @Override\n    String laut() {\n        return \"Fauch!\";\n    }\n}\n\nclass Katze extends Wesen {\n    Katze(String name) {\n        super(name);\n    }\n\n    @Override\n    String laut() {\n        return \"Miau\";\n    }\n}",
+   "tests": [
+    {
+     "name": "Der Drache stellt sich vor",
+     "expression": "new Drache(\"Glut\").vorstellen()",
+     "expect": {
+      "value": "Glut sagt Fauch!"
+     },
+     "visible": true,
+     "hint": "vorstellen() kommt von Wesen – sie ruft dein laut() auf."
+    },
+    {
+     "name": "Die Katze miaut",
+     "expression": "new Katze(\"Mimi\").laut()",
+     "expect": {
+      "value": "Miau"
+     },
+     "hint": "Überschreibe laut() in Katze mit return \"Miau\";"
+    },
+    {
+     "name": "Auch als Wesen bleibt der Drache ein Drache",
+     "setup": "Wesen w = new Drache(\"Ember\");",
+     "expression": "w.laut()",
+     "expect": {
+      "value": "Fauch!"
+     },
+     "hint": "Wesen w = new Drache(…) ruft trotzdem das laut() des Drachen auf – das ist Polymorphie."
+    },
+    {
+     "name": "Ein gewöhnliches Wesen bleibt still",
+     "expression": "new Wesen(\"Geist\").laut()",
+     "expect": {
+      "value": "..."
+     },
+     "hint": "Ändere Wesen nicht – nur Drache und Katze bekommen eigene Laute."
+    }
+   ],
+   "success": "Der Drache faucht, die Katze miaut, beide gehorchen. Im Regal dahinter glimmt ein Zauberbuch.",
+   "reward": {
+    "item": "Drachenschuppe",
+    "symbol": "flame.circle.fill",
+    "text": "Warm und unzerbrechlich."
+   },
+   "blueprint": {
+    "title": "Unterklasse",
+    "text": "Eine Klasse erbt und überschreibt.",
+    "code": "class Tier {\n    String laut() {\n        return \"...\";\n    }\n}\n\nclass Eule extends Tier {\n    @Override\n    String laut() {\n        return \"Huhu\";\n    }\n}"
+   }
+  },
+  {
+   "id": "quest-zauberbuch",
+   "chapterId": "k4-werkstatt",
+   "title": "Das Zauberbuch",
+   "lessonId": "l09-inheritance",
+   "topicId": "inheritance",
+   "difficulty": 4,
+   "story": "Das Zauberbuch verlangt einen Vertrag: Jeder Zauber muss sagen, was er kostet. Erst wenn das Buch die Kosten aller Zauber zusammenzählen kann, gibt es den Weg frei.",
+   "task": "Das Interface Zauber verlangt int kosten(). Schreibe die Klassen Feuerball (kostet 5) und Heilung (kostet 3), die es implementieren, und die Methode static int gesamtkosten(Zauber[] zauber) in Zauberbuch.",
+   "concept": {
+    "title": "Interfaces",
+    "text": "Ein Interface ist ein Vertrag: Es sagt, welche Methoden eine Klasse haben muss. Mit implements unterschreibt sie ihn. Ein Array vom Typ Zauber[] kann dann alle Arten von Zaubern halten.",
+    "code": "interface Form {\n    double flaeche();\n}\n\nclass Quadrat implements Form {\n    public double flaeche() {\n        return 4.0;\n    }\n}"
+   },
+   "className": "Zauberbuch",
+   "starterCode": "public class Zauberbuch {\n    static int gesamtkosten(Zauber[] zauber) {\n        int summe = 0;\n        // Die Kosten aller Zauber zusammenzählen\n        return summe;\n    }\n}\n\ninterface Zauber {\n    int kosten();\n}\n\n// Feuerball und Heilung implementieren Zauber",
+   "solution": "public class Zauberbuch {\n    static int gesamtkosten(Zauber[] zauber) {\n        int summe = 0;\n        for (Zauber z : zauber) {\n            summe = summe + z.kosten();\n        }\n        return summe;\n    }\n}\n\ninterface Zauber {\n    int kosten();\n}\n\nclass Feuerball implements Zauber {\n    public int kosten() {\n        return 5;\n    }\n}\n\nclass Heilung implements Zauber {\n    public int kosten() {\n        return 3;\n    }\n}",
+   "tests": [
+    {
+     "name": "Ein Feuerball kostet 5",
+     "expression": "new Feuerball().kosten()",
+     "expect": {
+      "value": 5
+     },
+     "visible": true,
+     "hint": "Feuerball implements Zauber – und kosten() gibt 5 zurück. Die Methode muss public sein."
+    },
+    {
+     "name": "Eine Heilung kostet 3",
+     "expression": "new Heilung().kosten()",
+     "expect": {
+      "value": 3
+     },
+     "hint": "Heilung implementiert Zauber genauso – mit 3."
+    },
+    {
+     "name": "Das Buch zählt alle Zauber zusammen",
+     "expression": "Zauberbuch.gesamtkosten(new Zauber[] {new Feuerball(), new Heilung(), new Feuerball()})",
+     "expect": {
+      "value": 13
+     },
+     "hint": "Laufe durch das Array und addiere z.kosten() – egal, welcher Zauber es ist."
+    },
+    {
+     "name": "Ein leeres Buch kostet nichts",
+     "expression": "Zauberbuch.gesamtkosten(new Zauber[0])",
+     "expect": {
+      "value": 0
+     },
+     "hint": "Ohne Zauber bleibt die Summe 0."
+    }
+   ],
+   "success": "Das Buch klappt auf, die Seiten leuchten. Eine Wendeltreppe aus Licht führt hinauf zum Thronsaal.",
+   "reward": {
+    "item": "Zauberbuch",
+    "symbol": "book.closed.fill",
+    "text": "Es kennt jeden Vertrag."
+   },
+   "blueprint": {
+    "title": "Interface",
+    "text": "Ein Vertrag für mehrere Klassen.",
+    "code": "interface Gegenstand {\n    int wert();\n}\n\nclass Edelstein implements Gegenstand {\n    public int wert() {\n        return 50;\n    }\n}"
+   }
+  },
+  {
+   "id": "quest-schatzkammer",
+   "chapterId": "k5-thronsaal",
+   "title": "Die Schatzkammer",
+   "lessonId": "l10-exceptions",
+   "topicId": "exceptions",
+   "difficulty": 4,
+   "story": "Die Schatzkammer verwaltet das Gold der Burg. Wer zu viel abheben will – oder gar nichts –, soll einen deutlichen Fehler bekommen statt eines leeren Beutels.",
+   "task": "Schreibe in Schatzkammer die Methode int abheben(int menge). Sie zieht menge vom Gold ab und gibt das restliche Gold zurück. Ist menge kleiner als 1 oder größer als das vorhandene Gold, wirft sie eine IllegalArgumentException.",
+   "concept": {
+    "title": "Exceptions werfen",
+    "text": "Mit throw new IllegalArgumentException(\"…\") meldest du einen Fehler: Die Methode bricht sofort ab, und wer sie aufgerufen hat, erfährt, was schiefging.",
+    "code": "if (alter < 0) {\n    throw new IllegalArgumentException(\"Alter kann nicht negativ sein\");\n}"
+   },
+   "className": "Schatzkammer",
+   "starterCode": "public class Schatzkammer {\n    private int gold;\n\n    public Schatzkammer(int gold) {\n        this.gold = gold;\n    }\n\n    public int abheben(int menge) {\n        // Erst prüfen, dann abziehen\n        return gold;\n    }\n}",
+   "solution": "public class Schatzkammer {\n    private int gold;\n\n    public Schatzkammer(int gold) {\n        this.gold = gold;\n    }\n\n    public int abheben(int menge) {\n        if (menge < 1 || menge > gold) {\n            throw new IllegalArgumentException(\"Ungültige Menge: \" + menge);\n        }\n        gold = gold - menge;\n        return gold;\n    }\n}",
+   "tests": [
+    {
+     "name": "Abheben verringert das Gold",
+     "expression": "new Schatzkammer(100).abheben(30)",
+     "expect": {
+      "value": 70
+     },
+     "visible": true,
+     "hint": "Ziehe menge von gold ab und gib den Rest zurück."
+    },
+    {
+     "name": "Zu viel abheben ist ein Fehler",
+     "expression": "new Schatzkammer(100).abheben(500)",
+     "expect": {
+      "exception": "IllegalArgumentException"
+     },
+     "visible": true,
+     "hint": "Ist menge größer als gold: throw new IllegalArgumentException(…);"
+    },
+    {
+     "name": "Negatives Abheben ist ein Fehler",
+     "expression": "new Schatzkammer(100).abheben(-5)",
+     "expect": {
+      "exception": "IllegalArgumentException"
+     },
+     "hint": "Auch menge < 1 ist ungültig – prüfe beide Fälle mit ||."
+    },
+    {
+     "name": "Zweimal abheben rechnet weiter",
+     "setup": "Schatzkammer k = new Schatzkammer(100);\nk.abheben(50);",
+     "expression": "k.abheben(30)",
+     "expect": {
+      "value": 20
+     },
+     "hint": "Speichere den neuen Stand in gold – sonst beginnt das zweite Abheben wieder bei 100."
+    },
+    {
+     "name": "Alles abheben ist erlaubt",
+     "expression": "new Schatzkammer(40).abheben(40)",
+     "expect": {
+      "value": 0
+     },
+     "hint": "Genau so viel wie vorhanden ist erlaubt: > gold, nicht >= gold."
+    }
+   ],
+   "success": "Die Kammer klickt zufrieden. Die Goldmünzen bleiben, wo sie hingehören – Zeit, die Helden der Burg einzutragen.",
+   "reward": {
+    "item": "Goldbeutel",
+    "symbol": "bag.fill",
+    "text": "Er reißt nie – dank sauberer Prüfungen."
+   },
+   "blueprint": {
+    "title": "Fehler melden",
+    "text": "Ungültige Werte mit einer Exception ablehnen.",
+    "code": "static int teilen(int a, int b) {\n    if (b == 0) {\n        throw new IllegalArgumentException(\"Teilen durch 0\");\n    }\n    return a / b;\n}"
+   }
+  },
+  {
+   "id": "quest-heldenregister",
+   "chapterId": "k5-thronsaal",
+   "title": "Das Heldenregister",
+   "lessonId": "l11-collections",
+   "topicId": "collections",
+   "difficulty": 4,
+   "story": "Im Thronsaal liegt das Heldenregister. Jeder Held darf sich eintragen – aber nur einmal, sonst gibt es Streit um den Thron.",
+   "task": "Schreibe die Klasse Gilde mit einer ArrayList<String> der Mitglieder: boolean aufnehmen(String name) trägt einen Namen ein und gibt true zurück – steht er schon drin, nicht noch einmal (dann false). Dazu int anzahl() und List<String> getMitglieder().",
+   "concept": {
+    "title": "Listen",
+    "text": "Eine ArrayList wächst mit: add hängt an, contains fragt, ob etwas schon drin ist, size zählt die Einträge.",
+    "code": "List<String> namen = new ArrayList<>();\nnamen.add(\"Ada\");\nboolean drin = namen.contains(\"Ada\");\nint anzahl = namen.size();"
+   },
+   "className": "Gilde",
+   "starterCode": "import java.util.ArrayList;\nimport java.util.List;\n\npublic class Gilde {\n    private List<String> mitglieder = new ArrayList<>();\n\n    // aufnehmen, anzahl und getMitglieder\n}",
+   "solution": "import java.util.ArrayList;\nimport java.util.List;\n\npublic class Gilde {\n    private List<String> mitglieder = new ArrayList<>();\n\n    public boolean aufnehmen(String name) {\n        if (mitglieder.contains(name)) {\n            return false;\n        }\n        mitglieder.add(name);\n        return true;\n    }\n\n    public int anzahl() {\n        return mitglieder.size();\n    }\n\n    public List<String> getMitglieder() {\n        return mitglieder;\n    }\n}",
+   "tests": [
+    {
+     "name": "Ein neuer Held wird aufgenommen",
+     "expression": "new Gilde().aufnehmen(\"Ada\")",
+     "expect": {
+      "value": true
+     },
+     "visible": true,
+     "hint": "aufnehmen fügt mit add hinzu und gibt true zurück."
+    },
+    {
+     "name": "Niemand steht doppelt im Register",
+     "setup": "Gilde g = new Gilde();\ng.aufnehmen(\"Ada\");",
+     "expression": "g.aufnehmen(\"Ada\")",
+     "expect": {
+      "value": false
+     },
+     "visible": true,
+     "hint": "Prüfe vorher mit contains, ob der Name schon drin ist – dann false."
+    },
+    {
+     "name": "Das Register zählt richtig",
+     "setup": "Gilde g = new Gilde();\ng.aufnehmen(\"Ada\");\ng.aufnehmen(\"Bo\");\ng.aufnehmen(\"Ada\");",
+     "expression": "g.anzahl()",
+     "expect": {
+      "value": 2
+     },
+     "hint": "anzahl() gibt mitglieder.size() zurück – doppelte Namen zählen nicht."
+    },
+    {
+     "name": "Die Reihenfolge bleibt erhalten",
+     "setup": "Gilde g = new Gilde();\ng.aufnehmen(\"Ada\");\ng.aufnehmen(\"Bo\");",
+     "expression": "g.getMitglieder()",
+     "expect": {
+      "text": "[Ada, Bo]"
+     },
+     "hint": "getMitglieder() gibt die Liste zurück, in der Reihenfolge des Eintragens."
+    }
+   ],
+   "success": "Die Namen leuchten im Register auf, keiner doppelt. Fehlt nur noch die Beute der Helden.",
+   "reward": {
+    "item": "Gildenring",
+    "symbol": "circle.hexagongrid.fill",
+    "text": "Jeder Held trägt ihn nur einmal."
+   },
+   "blueprint": {
+    "title": "Liste ohne Doppelte",
+    "text": "Nur aufnehmen, was noch nicht drin ist.",
+    "code": "List<String> gaeste = new ArrayList<>();\nString neu = \"Ada\";\nif (!gaeste.contains(neu)) {\n    gaeste.add(neu);\n}"
+   }
+  },
+  {
+   "id": "quest-beute",
+   "chapterId": "k5-thronsaal",
+   "title": "Die Beute",
+   "lessonId": "l11-collections",
+   "topicId": "collections",
+   "difficulty": 5,
+   "story": "Zum Schluss bringen die Helden ihre Beute: Gold, Rubine, Gold, Kristalle … Der Thron erwacht erst, wenn jede Sorte richtig gezählt ist.",
+   "task": "Schreibe static Map<String, Integer> zaehlen(List<String> beute): Die Methode zählt, wie oft jede Sorte vorkommt – zum Beispiel Gold → 2, Rubin → 1.",
+   "concept": {
+    "title": "Maps",
+    "text": "Eine Map ordnet jedem Schlüssel einen Wert zu. getOrDefault(schluessel, 0) liefert den bisherigen Zählerstand oder 0, put speichert den neuen.",
+    "code": "Map<String, Integer> zaehler = new HashMap<>();\nzaehler.put(\"Gold\", zaehler.getOrDefault(\"Gold\", 0) + 1);"
+   },
+   "className": "Beute",
+   "starterCode": "import java.util.HashMap;\nimport java.util.List;\nimport java.util.Map;\n\npublic class Beute {\n    static Map<String, Integer> zaehlen(List<String> beute) {\n        Map<String, Integer> anzahl = new HashMap<>();\n        // Für jede Sorte den Zähler um 1 erhöhen\n        return anzahl;\n    }\n}",
+   "solution": "import java.util.HashMap;\nimport java.util.List;\nimport java.util.Map;\n\npublic class Beute {\n    static Map<String, Integer> zaehlen(List<String> beute) {\n        Map<String, Integer> anzahl = new HashMap<>();\n        for (String sorte : beute) {\n            anzahl.put(sorte, anzahl.getOrDefault(sorte, 0) + 1);\n        }\n        return anzahl;\n    }\n}",
+   "tests": [
+    {
+     "name": "Zweimal Gold zählt 2",
+     "expression": "Beute.zaehlen(List.of(\"Gold\", \"Gold\", \"Rubin\")).get(\"Gold\")",
+     "expect": {
+      "value": 2
+     },
+     "visible": true,
+     "hint": "Für jede Sorte: anzahl.put(sorte, anzahl.getOrDefault(sorte, 0) + 1);"
+    },
+    {
+     "name": "Einmal Rubin zählt 1",
+     "expression": "Beute.zaehlen(List.of(\"Gold\", \"Gold\", \"Rubin\")).get(\"Rubin\")",
+     "expect": {
+      "value": 1
+     },
+     "hint": "Eine Sorte, die nur einmal vorkommt, hat den Zähler 1."
+    },
+    {
+     "name": "Es gibt genau so viele Einträge wie Sorten",
+     "expression": "Beute.zaehlen(List.of(\"Gold\", \"Kristall\", \"Gold\", \"Rubin\", \"Kristall\")).size()",
+     "expect": {
+      "value": 3
+     },
+     "hint": "Jede Sorte steht nur einmal als Schlüssel in der Map."
+    },
+    {
+     "name": "Keine Beute, keine Einträge",
+     "expression": "Beute.zaehlen(List.of()).size()",
+     "expect": {
+      "value": 0
+     },
+     "hint": "Bei einer leeren Liste bleibt die Map leer."
+    }
+   ],
+   "success": "Der Thron erwacht, die Burg leuchtet in allen Fenstern. Javahall läuft wieder – dank deines Codes. Meisterin Ada wäre stolz.",
+   "reward": {
+    "item": "Krone von Javahall",
+    "symbol": "crown.fill",
+    "text": "Für alle, die die Burg mit Code geweckt haben."
+   },
+   "blueprint": {
+    "title": "Zählen mit Map",
+    "text": "Wie oft kommt was vor?",
+    "code": "Map<String, Integer> zaehler = new HashMap<>();\nfor (String wort : List.of(\"a\", \"b\", \"a\")) {\n    zaehler.put(wort, zaehler.getOrDefault(wort, 0) + 1);\n}"
+   }
+  }
+ ]
+}
