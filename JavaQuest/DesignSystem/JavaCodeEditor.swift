@@ -31,6 +31,12 @@ struct JavaCodeEditor: View {
     /// Unter dem Editor zeigen, was der Compiler beim Tippen findet.
     var showsLint = true
     var isEditable = true
+    /// Grauer Hinweis, solange der Editor leer ist.
+    var placeholder = ""
+    /// Wo man schreibt (UTF-16, Ende der Auswahl) – für Bausteine, die an der Cursorstelle landen.
+    var cursor: Binding<Int?>?
+    /// Ändert sich dieser Zähler, setzt der Editor seinen Cursor auf `cursor` (z. B. hinter Eingefügtes).
+    var cursorRequest = 0
 
     @State private var lint = Lint()
 
@@ -42,8 +48,19 @@ struct JavaCodeEditor: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            PlatformCodeView(text: $text, marks: marks, controller: controller, isEditable: isEditable)
+            PlatformCodeView(text: $text, marks: marks, controller: controller, isEditable: isEditable,
+                             cursor: cursor, cursorRequest: cursorRequest)
                 .frame(minHeight: minHeight)
+                .overlay(alignment: .topLeading) {
+                    if text.isEmpty && !placeholder.isEmpty {
+                        Text(placeholder)
+                            .font(.system(size: EditorStyle.fontSize, design: .monospaced))
+                            .foregroundStyle(CodeTheme.plain.opacity(0.35))
+                            .padding(.leading, EditorStyle.gutterWidth + 9)
+                            .padding(.top, 10)
+                            .allowsHitTesting(false)
+                    }
+                }
             if showsLint && isEditable {
                 lintBar
             }
@@ -211,8 +228,26 @@ private class EditorCoordinator: NSObject {
     var parent: PlatformCodeView
     /// Während der Editor selbst Text ersetzt, sollen die Eingabe-Regeln nicht noch einmal greifen.
     var isApplying = false
+    /// Während SwiftUI den Editor aktualisiert, meldet er keinen Cursor zurück (kein Zustand mitten im Update).
+    var isUpdating = false
+    var lastCursorRequest: Int
 
-    init(parent: PlatformCodeView) { self.parent = parent }
+    init(parent: PlatformCodeView) {
+        self.parent = parent
+        lastCursorRequest = parent.cursorRequest
+    }
+
+    func reportCursor(_ selection: NSRange) {
+        guard !isUpdating, let cursor = parent.cursor, cursor.wrappedValue != NSMaxRange(selection) else { return }
+        cursor.wrappedValue = NSMaxRange(selection)
+    }
+
+    /// Der Cursor, den die Ansicht verlangt – nur, wenn sich `cursorRequest` geändert hat.
+    func requestedCursor(length: Int) -> Int? {
+        guard parent.cursorRequest != lastCursorRequest else { return nil }
+        lastCursorRequest = parent.cursorRequest
+        return parent.cursor?.wrappedValue.map { min(max($0, 0), length) }
+    }
 
     /// Wendet die Regeln aus CodeEditing an. true = selbst erledigt, die Eingabe nicht mehr übernehmen.
     func handle(_ input: String, range: NSRange, text: String, apply: (CodeEditing.Edit) -> Void) -> Bool {
@@ -232,6 +267,8 @@ private struct PlatformCodeView: UIViewRepresentable {
     let marks: [EditorMark]
     let controller: CodeEditorController?
     let isEditable: Bool
+    let cursor: Binding<Int?>?
+    let cursorRequest: Int
 
     func makeCoordinator() -> Coordinator { Coordinator(parent: self) }
 
@@ -256,6 +293,8 @@ private struct PlatformCodeView: UIViewRepresentable {
 
     func updateUIView(_ view: CodeTextView, context: Context) {
         context.coordinator.parent = self
+        context.coordinator.isUpdating = true
+        defer { context.coordinator.isUpdating = false }
         view.isEditable = isEditable
         connect(controller, to: view, coordinator: context.coordinator)
         var needsStyle = false
@@ -270,6 +309,10 @@ private struct PlatformCodeView: UIViewRepresentable {
             needsStyle = true
         }
         if needsStyle { view.restyle() }
+        if let cursor = context.coordinator.requestedCursor(length: (view.text as NSString).length) {
+            view.selectedRange = NSRange(location: cursor, length: 0)
+            view.scrollRangeToVisible(view.selectedRange)
+        }
     }
 
     private func connect(_ controller: CodeEditorController?, to view: CodeTextView, coordinator: Coordinator) {
@@ -296,6 +339,10 @@ private struct PlatformCodeView: UIViewRepresentable {
             guard let view = textView as? CodeTextView else { return }
             parent.text = view.text
             view.restyle()
+        }
+
+        func textViewDidChangeSelection(_ textView: UITextView) {
+            reportCursor(textView.selectedRange)
         }
     }
 }
@@ -471,6 +518,8 @@ private struct PlatformCodeView: NSViewRepresentable {
     let marks: [EditorMark]
     let controller: CodeEditorController?
     let isEditable: Bool
+    let cursor: Binding<Int?>?
+    let cursorRequest: Int
 
     func makeCoordinator() -> Coordinator { Coordinator(parent: self) }
 
@@ -529,6 +578,8 @@ private struct PlatformCodeView: NSViewRepresentable {
 
     func updateNSView(_ scrollView: NSScrollView, context: Context) {
         context.coordinator.parent = self
+        context.coordinator.isUpdating = true
+        defer { context.coordinator.isUpdating = false }
         guard let textView = scrollView.documentView as? CodeNSTextView else { return }
         textView.isEditable = isEditable
         connect(controller, to: textView, coordinator: context.coordinator)
@@ -544,6 +595,10 @@ private struct PlatformCodeView: NSViewRepresentable {
             needsStyle = true
         }
         if needsStyle { textView.restyle() }
+        if let cursor = context.coordinator.requestedCursor(length: (textView.string as NSString).length) {
+            textView.setSelectedRange(NSRange(location: cursor, length: 0))
+            textView.scrollRangeToVisible(textView.selectedRange())
+        }
     }
 
     private func connect(_ controller: CodeEditorController?, to textView: CodeNSTextView, coordinator: Coordinator) {
@@ -568,6 +623,11 @@ private struct PlatformCodeView: NSViewRepresentable {
             guard let view = notification.object as? CodeNSTextView else { return }
             parent.text = view.string
             view.restyle()
+        }
+
+        func textViewDidChangeSelection(_ notification: Notification) {
+            guard let view = notification.object as? NSTextView else { return }
+            reportCursor(view.selectedRange())
         }
     }
 }

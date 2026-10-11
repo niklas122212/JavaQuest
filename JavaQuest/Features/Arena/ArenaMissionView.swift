@@ -1055,52 +1055,16 @@ private struct StarReveal: View {
     }
 }
 
-/// Der Code-Editor der Arena. Ab iOS 18 / macOS 15 merkt er sich, wo man schreibt – dort fügt die
+/// Der Code-Editor der Arena: der echte Editor, der meldet, wo man schreibt – dort fügt die
 /// Befehlsleiste ein, und danach steht der Cursor hinter dem Eingefügten.
 private struct ArenaCodeEditor: View {
     @Bindable var model: ArenaMissionModel
     let minHeight: CGFloat
-    private let placeholder = "// Befehle für Byte, z. B. robot.move();"
 
     var body: some View {
-        if #available(iOS 18.0, macOS 15.0, *) {
-            CursorTrackingEditor(model: model, placeholder: placeholder, minHeight: minHeight)
-        } else {
-            CodeEditorView(text: $model.code, placeholder: placeholder, minHeight: minHeight, isLocked: false)
-        }
-    }
-}
-
-@available(iOS 18.0, macOS 15.0, *)
-private struct CursorTrackingEditor: View {
-    @Bindable var model: ArenaMissionModel
-    let placeholder: String
-    let minHeight: CGFloat
-    @State private var selection: TextSelection?
-
-    var body: some View {
-        SelectableCodeEditorView(text: $model.code, selection: $selection, placeholder: placeholder, minHeight: minHeight, isLocked: false)
+        JavaCodeEditor(text: $model.code, minHeight: minHeight, placeholder: "// Befehle für Byte, z. B. robot.move();",
+                       cursor: $model.cursor, cursorRequest: model.insertionCount)
             .onAppear { model.editorTracksCursor = true }
-            .onChange(of: selection) { _, selection in
-                guard let index = Self.end(of: selection) else { return }
-                model.cursor = min(index.utf16Offset(in: model.code), model.code.utf16.count)
-            }
-            .onChange(of: model.insertionCount) { _, _ in
-                // Cursor hinter das Eingefügte setzen.
-                guard let cursor = model.cursor else { return }
-                let code = model.code
-                let offset = min(cursor, code.utf16.count)
-                selection = TextSelection(insertionPoint: String.Index(utf16Offset: offset, in: code))
-            }
-    }
-
-    private static func end(of selection: TextSelection?) -> String.Index? {
-        switch selection?.indices {
-        case .selection(let range): range.upperBound
-        case .multiSelection(let ranges): ranges.ranges.last?.upperBound
-        case nil: nil
-        @unknown default: nil
-        }
     }
 }
 

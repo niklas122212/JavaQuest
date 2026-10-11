@@ -259,7 +259,8 @@ struct TaskAnswerView: View {
             case .predictOutput:
                 CodeEditorView(text: $draft.text, placeholder: "Ausgabe Zeile für Zeile eintippen …", minHeight: 120, isLocked: isLocked)
             case .code:
-                CodeEditorView(text: $draft.text, placeholder: "// Dein Java-Code", minHeight: 220, isLocked: isLocked)
+                // Der echte Editor – ohne mitlesenden Compiler: Manche Aufgaben verlangen nur ein Stück Code.
+                JavaCodeEditor(text: $draft.text, minHeight: 220, showsLint: false, isEditable: !isLocked, placeholder: "// Dein Java-Code")
             case .ordering(let spec):
                 PuzzleBoard(spec: spec, taskId: task.id, order: $draft.order, isLocked: isLocked, evaluation: evaluation)
             case .findBug(let spec):

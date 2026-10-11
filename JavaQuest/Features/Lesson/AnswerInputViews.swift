@@ -152,8 +152,8 @@ struct BlankFieldsView: View {
     }
 }
 
-/// Monospace-Editor im dunklen Code-Stil. Autokorrektur und Großschreibung sind aus;
-/// typografische Anführungszeichen normalisiert der Evaluator.
+/// Schlichtes Textfeld im dunklen Code-Stil – für Ausgaben, die man vorhersagt. Code schreibt man
+/// im JavaCodeEditor. Autokorrektur und Großschreibung sind aus.
 struct CodeEditorView: View {
     @Binding var text: String
     let placeholder: String
@@ -162,21 +162,6 @@ struct CodeEditorView: View {
 
     var body: some View {
         TextEditor(text: $text)
-            .modifier(CodeEditorStyle(isEmpty: text.isEmpty, placeholder: placeholder, minHeight: minHeight, isLocked: isLocked))
-    }
-}
-
-/// Derselbe Editor, der zusätzlich meldet, wo der Cursor steht (ab iOS 18 / macOS 15).
-@available(iOS 18.0, macOS 15.0, *)
-struct SelectableCodeEditorView: View {
-    @Binding var text: String
-    @Binding var selection: TextSelection?
-    let placeholder: String
-    var minHeight: CGFloat = 180
-    let isLocked: Bool
-
-    var body: some View {
-        TextEditor(text: $text, selection: $selection)
             .modifier(CodeEditorStyle(isEmpty: text.isEmpty, placeholder: placeholder, minHeight: minHeight, isLocked: isLocked))
     }
 }
