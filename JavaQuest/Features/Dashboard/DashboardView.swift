@@ -42,6 +42,7 @@ struct DashboardContent: View {
                         statsGrid
                     }
                     VStack(spacing: 20) {
+                        QuestDashboardCard()
                         levelCard
                         knowledgeCard
                         pathCard
@@ -50,6 +51,7 @@ struct DashboardContent: View {
             } else {
                 scoreCard
                 continueCard
+                QuestDashboardCard()
                 DailyMissionCard(showsArenaLink: true)
                 weakSpotsCard
                 trainingCard

@@ -52,6 +52,24 @@ public enum CodeEditing {
         }
     }
 
+    /// Fügt ein Stück Code (Bauplan, Symbolleiste) an der Cursorstelle ein. Mehrzeiliges rückt auf die
+    /// Ebene der aktuellen Zeile ein und beginnt in einer neuen Zeile, wenn davor schon Code steht.
+    public static func insertion(_ snippet: String, in text: String, selection: NSRange) -> Edit {
+        let ns = text as NSString
+        let location = min(selection.location, ns.length)
+        let range = NSRange(location: location, length: min(selection.length, ns.length - location))
+        guard snippet.contains("\n") else {
+            return Edit(range: range, replacement: snippet, cursor: location + snippet.utf16.count)
+        }
+        let start = lineStart(in: ns, at: location)
+        let before = ns.substring(with: NSRange(location: start, length: location - start))
+        let indent = indentation(of: before)
+        let lines = snippet.components(separatedBy: "\n")
+        var body = lines.enumerated().map { index, line in index == 0 || line.isEmpty ? line : indent + line }.joined(separator: "\n")
+        if !before.trimmingCharacters(in: .whitespaces).isEmpty { body = "\n" + indent + body }
+        return Edit(range: range, replacement: body, cursor: location + body.utf16.count)
+    }
+
     /// Die Einrückung einer Zeile – Leerzeichen (und Tabs) am Zeilenanfang.
     public static func indentation(of line: String) -> String {
         String(line.prefix { $0 == " " || $0 == "\t" })
@@ -95,6 +113,18 @@ public enum CodeEditing {
         let line = ns.substring(with: NSRange(location: start, length: selection.location - start))
         // Nur, wenn vor der Klammer in dieser Zeile nichts steht.
         guard line.allSatisfy({ $0 == " " || $0 == "\t" }) else { return nil }
+        // Steht die passende } schon da (der Editor hat sie nach Enter gesetzt), springt der Cursor
+        // hinter sie – statt eine zweite Klammer zu schreiben, die zu viel wäre.
+        let code = codeUnits(ns)
+        if selection.length == 0, code.filter({ $0 == 0x7D }).count >= code.filter({ $0 == 0x7B }).count {
+            var next = NSMaxRange(selection)
+            while next < ns.length, [0x20, 0x09, 0x0A, 0x0D].contains(ns.character(at: next)) { next += 1 }
+            if next < ns.length, code[next] == 0x7D {
+                let braceLine = lineStart(in: ns, at: next)
+                let removed = NSRange(location: start, length: braceLine - start)
+                return Edit(range: removed, replacement: "", cursor: next + 1 - removed.length)
+            }
+        }
         let target = matchingIndent(in: ns, before: start)
         guard target != line else { return nil }
         let range = NSRange(location: start, length: NSMaxRange(selection) - start)

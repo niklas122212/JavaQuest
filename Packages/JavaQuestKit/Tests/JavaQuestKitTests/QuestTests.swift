@@ -95,6 +95,15 @@ struct QuestTests {
         #expect(semikolon.mentor.text.contains("Semikolon"))
         #expect(semikolon.mentor.line == 3)
 
+        // Fehlt die Methode, zeigt der Mentor den Aufruf des Tests – ohne Zeilennummer aus dem Testcode.
+        let ohneMethode = QuestRunner.run(tuer.starterCode, quest: tuer)
+        #expect(ohneMethode.mentor.kind == .missingMember)
+        #expect(ohneMethode.mentor.text.contains("Tuer.unlock(105)"))
+        #expect(ohneMethode.mentor.line == nil)
+        #expect(ohneMethode.tests.allSatisfy { $0.line == nil })
+        let golemStart = QuestRunner.run(try quest("quest-golem").starterCode, quest: try quest("quest-golem"))
+        #expect(golemStart.mentor.kind == .missingMember)
+
         let klasse = QuestRunner.run("public class tuer {\n    public static boolean unlock(int key) {\n        return true;\n    }\n}", quest: tuer)
         #expect(klasse.mentor.kind == .missingClass)
         #expect(klasse.mentor.text.contains("Groß- und Kleinschreibung"))
@@ -411,5 +420,35 @@ struct QuestTests {
         let tricky = "class A {\n    String s = \"{\";\n    "
         let (trickyText, _) = try #require(type("}", into: tricky, at: tricky.utf16.count))
         #expect(trickyText.hasSuffix("\n}"))
+    }
+
+    @Test("Editor: Baupläne rücken auf die Ebene der Cursorzeile ein")
+    func editorInsertion() {
+        let code = "class A {\n    "
+        let edit = CodeEditing.insertion("int x = 1;\nint y = 2;", in: code, selection: NSRange(location: code.utf16.count, length: 0))
+        #expect(edit.replacement == "int x = 1;\n    int y = 2;")
+        let afterCode = "    f();"
+        let edit2 = CodeEditing.insertion("a();\nb();", in: afterCode, selection: NSRange(location: afterCode.utf16.count, length: 0))
+        #expect(edit2.replacement == "\n    a();\n    b();")
+        let single = CodeEditing.insertion(";", in: "x", selection: NSRange(location: 1, length: 0))
+        #expect(single.replacement == ";" && single.cursor == 2)
+    }
+
+    @Test("Editor: Eine schon gesetzte } wird übersprungen statt verdoppelt")
+    func editorSkipsExistingBrace() throws {
+        // Nach Enter steht die } schon da – tippt man sie trotzdem, springt der Cursor dahinter.
+        let code = "if (x) {\n    return x;\n    \n}"
+        let cursor = "if (x) {\n    return x;\n    ".utf16.count
+        let (text, after) = try #require(type("}", into: code, at: cursor))
+        #expect(text == "if (x) {\n    return x;\n}")
+        #expect(after == text.utf16.count)
+        // Fehlt sie wirklich, wird sie geschrieben.
+        let open = "if (x) {\n    return x;\n    "
+        let (text2, _) = try #require(type("}", into: open, at: open.utf16.count))
+        #expect(text2 == "if (x) {\n    return x;\n}")
+        // Direkt davor: einfach hinüber.
+        let inline = "f() {\n    }"
+        let (text3, after3) = try #require(type("}", into: inline, at: "f() {\n    ".utf16.count))
+        #expect(text3 == inline && after3 == inline.utf16.count)
     }
 }

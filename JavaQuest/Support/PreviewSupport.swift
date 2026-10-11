@@ -16,8 +16,9 @@ enum PreviewSupport {
         do {
             let course = try CourseLoader.loadBundled()
             let catalog = try ArenaCatalog.loadBundled()
+            let questBook = try QuestBook.loadBundled()
             let container = try PersistenceController.makeContainer(inMemory: true)
-            let store = ProgressStore(course: course, catalog: catalog, container: container)
+            let store = ProgressStore(course: course, catalog: catalog, questBook: questBook, container: container)
             seed(store, scenario)
             return store
         } catch {

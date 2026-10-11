@@ -16,6 +16,8 @@ struct SidebarView: View {
                     .tag(AppSection.topics)
                 Label("Meine Schwächen", systemImage: "arrow.counterclockwise")
                     .tag(AppSection.weakSpots)
+                Label("Code-Quests", systemImage: "map.fill")
+                    .tag(AppSection.quests)
                 Label("Arena", systemImage: "gamecontroller.fill")
                     .tag(AppSection.arena)
                 Label("Wissensanalyse", systemImage: "brain.head.profile")

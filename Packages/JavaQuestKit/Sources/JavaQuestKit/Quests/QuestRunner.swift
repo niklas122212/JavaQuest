@@ -16,7 +16,7 @@ public struct QuestTestResult: Sendable, Identifiable {
 /// Der eine Hinweis, den der Mentor nach einem Lauf gibt – der hilfreichste zuerst.
 public struct MentorHint: Sendable, Hashable {
     public enum Kind: Sendable, Hashable {
-        case compile, unsupported, missingClass, endless, crash, wrongValue, requirement, quality, success
+        case compile, unsupported, missingClass, missingMember, endless, crash, wrongValue, requirement, quality, success
     }
     public let kind: Kind
     public let title: String
@@ -100,6 +100,11 @@ public enum QuestRunner {
         }
 
         let outcome = JavaRunner.test(source, setup: test.setup, expression: test.expression, stepLimit: stepLimit)
+        if let problem = outcome.problem, let call = outcome.failingTestCode, problem.kind == .syntax || problem.kind == .unsupported {
+            // Der Test kann nicht aufrufen, was er erwartet: Methode fehlt, heißt anders oder hat andere Parameter.
+            return QuestTestResult(test: test, passed: false, actual: nil,
+                                   message: Mentor.missingMemberPrefix + "\(call)“ auf – aber: \(problem.message)", line: nil)
+        }
         if case .exception(let expected) = test.expect {
             guard let problem = outcome.problem else {
                 return QuestTestResult(test: test, passed: false, actual: outcome.text,
@@ -185,6 +190,8 @@ public enum QuestRunner {
 
 /// Formuliert Fehler und gescheiterte Tests so, dass man weiß, was zu tun ist.
 public enum Mentor {
+    static let missingMemberPrefix = "Der Test ruft „"
+
     static func compile(_ problem: JavaProblem) -> MentorHint {
         if problem.kind == .unsupported {
             return MentorHint(kind: .unsupported, title: "Diesen Baustein kennt der Übungs-Compiler noch nicht",
@@ -217,6 +224,16 @@ public enum Mentor {
     static func after(_ results: [QuestTestResult], missing: [String], naming: [QualityFinding], indentation: [QualityFinding], quest: CodeQuest) -> MentorHint {
         if let failed = results.first(where: { !$0.passed }) {
             let message = failed.message ?? ""
+            if message.hasPrefix(missingMemberPrefix) {
+                let tip = if message.contains("Konstruktor") {
+                    "Schreib den Konstruktor so, wie der Auftrag ihn verlangt – mit denselben Parametern."
+                } else if message.contains("statische") {
+                    "Prüfe Name, Groß- und Kleinschreibung, static und die Parameter – genau wie im Auftrag."
+                } else {
+                    "Prüfe Name, Groß- und Kleinschreibung und die Parameter – genau wie im Auftrag."
+                }
+                return MentorHint(kind: .missingMember, title: "Der Test findet nicht, was er aufruft", text: message + " " + tip, line: nil)
+            }
             if message.contains("Endlosschleife") {
                 return MentorHint(kind: .endless, title: "Deine Schleife läuft endlos",
                                   text: "Beim Test „\(failed.test.name)“ hört dein Code nicht auf. Prüfe, ob sich die Bedingung der Schleife irgendwann ändert – zählst du hoch oder runter?",

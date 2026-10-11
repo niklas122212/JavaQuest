@@ -11,6 +11,10 @@ public struct JavaTestOutcome: Sendable {
     /// Was das Programm während des Tests ausgegeben hat.
     public let output: String
     public let problem: JavaProblem?
+    /// Scheitert schon der Testcode selbst (fehlende Methode, falscher Konstruktor), steht hier die Zeile
+    /// des Tests, die nicht klappt – z. B. `Tuer.unlock(105)`. Die Zeilennummer im Fehler gehört dann nicht
+    /// zum Code des Spielers und ist entfernt.
+    public var failingTestCode: String? = nil
 }
 
 /// Ein Testwert ohne Interpreter-Innenleben – damit Quests ihn mit dem erwarteten Wert vergleichen können.
@@ -92,6 +96,21 @@ extension JavaRunner {
         let interpreter = JavaInterpreter(program: program, stepLimit: stepLimit, host: nil)
         let (value, problem) = interpreter.runTest(setup: setupStatements, expression: expr)
         guard let value, problem == nil else {
+            let playerLines = normalized.components(separatedBy: "\n").count
+            if let problem, let line = problem.line, line > playerLines {
+                // Der Fehler steckt im Testcode – meist ruft der Test etwas auf, das es (so) noch nicht gibt.
+                let harnessLines = harness.components(separatedBy: "\n")
+                var code = line <= harnessLines.count ? harnessLines[line - 1].trimmingCharacters(in: .whitespaces) : ""
+                if code.hasPrefix("System.out.println("), code.hasSuffix(");") {
+                    code = String(code.dropFirst("System.out.println(".count).dropLast(2))
+                }
+                var moved = JavaProblem(problem.kind, problem.message, line: nil)
+                moved.exceptionClass = problem.exceptionClass
+                moved.javaMessage = problem.javaMessage
+                moved.thrown = problem.thrown
+                return JavaTestOutcome(value: nil, text: nil, typeName: nil, output: interpreter.output, problem: moved,
+                                       failingTestCode: code.isEmpty ? nil : code)
+            }
             return JavaTestOutcome(value: nil, text: nil, typeName: nil, output: interpreter.output, problem: problem)
         }
         let text = (try? interpreter.printable(value, line: 0)) ?? value.javaString

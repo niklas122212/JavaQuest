@@ -137,7 +137,7 @@ final class LessonFlowModel {
                 theory: [],
                 tasks: store.freeTrainingTasks(topicIds: topics, difficulties: levels, count: count)
             )
-        case .mission, .playground:
+        case .mission, .playground, .quest, .workshop:
             // Missionen laufen im eigenen Arena-Bildschirm, nicht im Lern-Loop.
             session = LessonSession(mode: .free(topicIds: []), title: "", theory: [], tasks: [])
         }

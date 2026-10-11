@@ -52,6 +52,8 @@ struct LearningCommands: Commands {
                 .keyboardShortcut("4", modifiers: .command)
             Button("Abzeichen") { app.router.selection = .achievements }
                 .keyboardShortcut("5", modifiers: .command)
+            Button("Code-Quests") { app.router.selection = .quests }
+                .keyboardShortcut("6", modifiers: .command)
         }
     }
 }

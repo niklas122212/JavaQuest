@@ -53,6 +53,10 @@ private struct SessionPresenter: ViewModifier {
             switch request.kind {
             case .mission, .playground:
                 ArenaSessionContainer(request: request)
+            case .quest(let id):
+                QuestSessionContainer(questId: id)
+            case .workshop:
+                WorkshopContainer()
             case .lesson, .practice, .training, .free, .weakSpots, .review:
                 LessonFlowContainer(request: request)
             }
@@ -101,8 +105,8 @@ private struct CompactShell: View {
     private func normalize(_ selection: AppSection?) {
         // Modul-Auswahl aus dem Sidebar-Layout gibt es auf dem iPhone nicht als Tab.
         if case .module? = selection { router.selection = .path }
-        // „Meine Schwächen“, Arena und Abzeichen sind auf dem iPhone keine Tabs, sondern hängen an der Übersicht.
-        if selection == .weakSpots || selection == .arena || selection == .achievements { router.selection = .dashboard }
+        // „Meine Schwächen“, Arena, Quests und Abzeichen sind auf dem iPhone keine Tabs, sondern hängen an der Übersicht.
+        if selection == .weakSpots || selection == .arena || selection == .achievements || selection == .quests { router.selection = .dashboard }
     }
 
     private func tab(_ section: AppSection, title: LocalizedStringKey, systemImage: String) -> some View {
@@ -122,6 +126,7 @@ struct SectionScreen: View {
         case .topics: TopicCatalogView()
         case .weakSpots: WeakSpotsView()
         case .arena: ArenaHomeView()
+        case .quests: QuestHomeView()
         case .achievements: AchievementsView()
         case .analysis: KnowledgeAnalysisView()
         case .profile: ProfileView()

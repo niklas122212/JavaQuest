@@ -45,14 +45,17 @@ struct RewardGain: Equatable, Sendable {
 final class ProgressStore {
     let course: Course
     let catalog: ArenaCatalog
+    /// Das Abenteuer „Die Burg Javahall“ – Code-Quests mit versteckten Tests.
+    let questBook: QuestBook
     private let container: ModelContainer
     private var context: ModelContext { container.mainContext }
     private(set) var profile: LearnerProfile?
     private(set) var lastSaveError: String?
 
-    init(course: Course, catalog: ArenaCatalog, container: ModelContainer) {
+    init(course: Course, catalog: ArenaCatalog, questBook: QuestBook, container: ModelContainer) {
         self.course = course
         self.catalog = catalog
+        self.questBook = questBook
         self.container = container
         let profiles = (try? container.mainContext.fetch(FetchDescriptor<LearnerProfile>())) ?? []
         profile = profiles.min { $0.createdAt < $1.createdAt }
@@ -321,6 +324,38 @@ final class ProgressStore {
             context: isDaily ? .daily : .mission,
             difficulty: mission.difficulty.rawValue,
             credit: ActivityRecord.credit(forStars: result.stars),
+            solved: true,
+            tries: 1
+        )
+        context.insert(attempt)
+        profile.attempts?.append(attempt)
+        touchStreak()
+        save()
+    }
+
+    // MARK: - Code-Quests
+
+    /// Offene und gelöste Quests, Inventar, Baupläne und die Werkstatt.
+    var questProgress: QuestProgress {
+        QuestProgress(book: questBook, course: course, stars: facts.questStars, unlockedLessonIds: unlockedLessonIds)
+    }
+
+    /// Speichert eine gelöste Quest – wie eine Arena-Mission (Kontext „mission“, credit = Sterne / 3),
+    /// aber nur bei einem neuen Bestwert.
+    func recordQuest(_ quest: CodeQuest, stars: Int) {
+        guard let profile, stars > 0 else { return }
+        guard stars > (facts.questStars[quest.id] ?? 0) else {
+            touchStreak()
+            save()
+            return
+        }
+        let attempt = TaskAttempt(
+            taskId: quest.id,
+            topicId: quest.topicId,
+            lessonId: quest.lessonId,
+            context: .mission,
+            difficulty: quest.difficulty,
+            credit: ActivityRecord.credit(forStars: stars),
             solved: true,
             tries: 1
         )

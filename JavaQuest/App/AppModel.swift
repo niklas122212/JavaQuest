@@ -26,12 +26,13 @@ final class AppModel {
         do {
             let course = try CourseLoader.loadBundled()
             let catalog = try ArenaCatalog.loadBundled()
+            let questBook = try QuestBook.loadBundled()
             #if DEBUG
             let issues = CourseValidator.validate(course)
             assert(issues.isEmpty, "Kursdatei fehlerhaft:\n" + issues.map(\.description).joined(separator: "\n"))
             #endif
             let container = try PersistenceController.makeContainer(inMemory: inMemory)
-            let store = ProgressStore(course: course, catalog: catalog, container: container)
+            let store = ProgressStore(course: course, catalog: catalog, questBook: questBook, container: container)
             state = .ready(store)
             // Beim Start neu planen: Seit dem letzten Mal kann die Uhrzeit längst vorbei sein.
             if !inMemory { Erinnerungen.planen(for: store) }
@@ -46,7 +47,8 @@ final class AppModel {
     #if DEBUG
     /// Nur für Screenshots und Tests (mit `-inMemoryStore`):
     /// `-seedScenario beginnerStarted|intermediateMidway`, `-openSection arena|achievements|path|analysis|profile`,
-    /// `-openMission <id>`, `-openPlayground`, `-openLesson <id>`, `-openReview`, `-autoRun` (Mission sofort ausführen),
+    /// `-openMission <id>`, `-openPlayground`, `-openLesson <id>`, `-openReview`, `-openQuest <id>`, `-openWorkshop`,
+    /// `-seedQuests <id>` (alle Quests bis dahin gelöst), `-autoRun` (Mission/Quest sofort ausführen),
     /// `-autoSolve` (Musterlösung eintragen und ausführen – zählt wie selbst gelöst).
     private func applyDebugLaunchArguments(_ store: ProgressStore) {
         let defaults = UserDefaults.standard
@@ -62,11 +64,23 @@ final class AppModel {
         case "path": router.selection = .path
         case "analysis": router.selection = .analysis
         case "profile": router.selection = .profile
+        case "quests": router.selection = .quests
         default: break
         }
         if let mission = defaults.string(forKey: "openMission") { router.startMission(mission) }
         if let lesson = defaults.string(forKey: "openLesson") { router.startLesson(lesson) }
         if ProcessInfo.processInfo.arguments.contains("-openPlayground") { router.openPlayground() }
+        if let quest = defaults.string(forKey: "openQuest") { router.startQuest(quest) }
+        if ProcessInfo.processInfo.arguments.contains("-openWorkshop") { router.openWorkshop() }
+        #if os(macOS)
+        if let name = defaults.string(forKey: "snapshotPath") { DebugSnapshot.start(name: name, app: self, store: store) }
+        #else
+        DebugTyping.start()
+        #endif
+        // Quests bis einschließlich dieser ID gelten als gelöst (3 Sterne) – für Screenshots.
+        if let last = defaults.string(forKey: "seedQuests"), let end = store.questBook.quests.firstIndex(where: { $0.id == last }) {
+            for quest in store.questBook.quests[...end] { store.recordQuest(quest, stars: 3) }
+        }
         if ProcessInfo.processInfo.arguments.contains("-openReview") { router.review() }
     }
 
@@ -110,6 +124,8 @@ enum AppSection: Hashable {
     case achievements
     case profile
     case module(String)
+    /// Code-Quests: das Abenteuer, Inventar, Baupläne und die Werkstatt.
+    case quests
 }
 
 /// Eine laufende Lern-Sitzung, die als Vollbild bzw. Sheet angezeigt wird.
@@ -128,6 +144,10 @@ struct SessionRequest: Identifiable, Hashable {
         case mission(String)
         /// Freier Spielplatz ohne Ziel.
         case playground
+        /// Eine Code-Quest aus dem Abenteuer.
+        case quest(String)
+        /// Die Werkstatt: freies Bauen mit eigenen Java-Programmen.
+        case workshop
     }
 
     let id = UUID()
@@ -178,5 +198,13 @@ final class AppRouter {
 
     func openPlayground() {
         activeSession = SessionRequest(kind: .playground)
+    }
+
+    func startQuest(_ questId: String) {
+        activeSession = SessionRequest(kind: .quest(questId))
+    }
+
+    func openWorkshop() {
+        activeSession = SessionRequest(kind: .workshop)
     }
 }
