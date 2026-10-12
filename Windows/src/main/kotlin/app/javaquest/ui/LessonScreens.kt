@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -26,10 +25,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardCapitalization
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
@@ -84,10 +80,8 @@ import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -496,7 +490,7 @@ fun TaskAnswerInput(task: LearningTask, draft: AnswerDraft, onChange: (AnswerDra
                 isLocked = isLocked,
             ) { onChange(draft.copy(choice = it)) }
             is TaskKind.FillBlank -> BlankFields(kind.blanks.size, draft.blanks, evaluation.blankStates, isLocked) { onChange(draft.copy(blanks = it)) }
-            is TaskKind.PredictOutput -> CodeEditor(draft.text, "Ausgabe Zeile für Zeile eintippen …", 130.dp, isLocked, "output-editor") { onChange(draft.copy(text = it)) }
+            is TaskKind.PredictOutput -> CodeEditor(draft.text, "Ausgabe Zeile für Zeile eintippen …", 130.dp, isLocked, "output-editor", isJava = false) { onChange(draft.copy(text = it)) }
             is TaskKind.Code -> CodeEditor(draft.text, "// Dein Java-Code", 230.dp, isLocked, "code-editor") { onChange(draft.copy(text = it)) }
             is TaskKind.Ordering -> PuzzleBoard(kind, task.id, draft.order, isLocked, evaluation) { onChange(draft.copy(order = it)) }
             is TaskKind.FindBug -> task.code?.let { snippet ->
@@ -605,60 +599,6 @@ private fun BlankFields(count: Int, values: List<String>, states: List<Boolean>?
                 }
             }
         }
-    }
-}
-
-/**
- * Bildschirmtastatur für Code (Android): keine Autokorrektur, kein Großbuchstabe am Anfang –
- * sonst wird aus `int` ein „Int“ und aus `System.out` ein Vorschlag. Am Desktop ohne Wirkung.
- */
-private val CodeTastatur = KeyboardOptions(
-    capitalization = KeyboardCapitalization.None,
-    autoCorrectEnabled = false,
-    keyboardType = KeyboardType.Ascii,
-)
-
-/** Mehrzeiliger Editor auf dunklem Grund; Tab rückt um vier Leerzeichen ein. */
-@Composable
-fun CodeEditor(
-    text: String,
-    placeholder: String,
-    minHeight: androidx.compose.ui.unit.Dp,
-    isLocked: Boolean,
-    tag: String,
-    /** Cursor nach einer Änderung von außen (z. B. Einfügen aus der Befehlsleiste); sonst ans Ende. */
-    cursor: Int? = null,
-    /** Meldet, wo geschrieben wird – auch wenn nur der Cursor wandert. */
-    onCursor: ((Int) -> Unit)? = null,
-    onChange: (String) -> Unit,
-) {
-    var value by remember { mutableStateOf(TextFieldValue(text, TextRange(text.length))) }
-    LaunchedEffect(text) {
-        if (value.text != text) value = TextFieldValue(text, TextRange((cursor ?: text.length).coerceIn(0, text.length)))
-    }
-    Box(
-        Modifier.fillMaxWidth().heightIn(min = minHeight).clip(RoundedCornerShape(InnerRadius)).background(CodeColors.background).padding(14.dp),
-    ) {
-        if (value.text.isEmpty()) Text(placeholder, fontFamily = CodeFont, fontSize = 15.sp, color = CodeColors.plain.copy(alpha = 0.35f))
-        BasicTextField(
-            value = value,
-            onValueChange = { value = it; onCursor?.invoke(it.selection.max); onChange(it.text) },
-            readOnly = isLocked,
-            keyboardOptions = CodeTastatur,
-            textStyle = TextStyle(fontFamily = CodeFont, fontSize = 15.sp, color = CodeColors.plain, lineHeight = 22.sp),
-            cursorBrush = SolidColor(Palette.orange),
-            modifier = Modifier.fillMaxWidth().heightIn(min = minHeight - 28.dp).testTag(tag).onPreviewKeyEvent { event ->
-                if (!isLocked && event.type == KeyEventType.KeyDown && event.key == Key.Tab && !event.isShiftPressed) {
-                    val inserted = value.text.replaceRange(value.selection.min, value.selection.max, "    ")
-                    value = TextFieldValue(inserted, TextRange(value.selection.min + 4))
-                    onCursor?.invoke(value.selection.max)
-                    onChange(inserted)
-                    true
-                } else {
-                    false
-                }
-            },
-        )
     }
 }
 

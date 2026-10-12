@@ -10,7 +10,10 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performKeyInput
+import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
@@ -28,6 +31,7 @@ import java.nio.file.Files
 import javax.imageio.ImageIO
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -49,6 +53,13 @@ class UiFlowTest {
     private fun newArenaState() = AppState(
         ProgressStore(course, ProgressFile(Files.createTempDirectory("jq-arena").resolve("progress.json")), catalog = catalog),
     )
+
+    private val questBook = app.javaquest.core.QuestBook.loadBundled()
+
+    /** Mit Code-Quests (und Arena) – nach dem Onboarding als Anfänger, Lektion 1 ist offen. */
+    private fun newQuestState() = AppState(
+        ProgressStore(course, ProgressFile(Files.createTempDirectory("jq-quest").resolve("progress.json")), catalog = catalog, questBook = questBook),
+    ).also { it.store.completeOnboarding(app.javaquest.core.ExperienceLevel.BEGINNER, null) }
 
     private fun DesktopComposeUiTest.show(state: AppState, dark: Boolean = false) =
         setContent { JavaQuestTheme(dark = dark) { AppShell(state) } }
@@ -397,5 +408,99 @@ class UiFlowTest {
         click("run-end")
         onNodeWithText("Das Programm ist fertig.").assertExists()
         onNodeWithTag("run-console", useUnmergedTree = true).assertTextEquals("Runde 1\nRunde 2\nRunde 3")
+    }
+
+    @Test
+    fun `Code-Quest - Mentor statt Falsch, Musterloesung bringt 3 Sterne, Entwurf bleibt`() = runDesktopComposeUiTest(1280, 860) {
+        val state = newQuestState()
+        show(state)
+        click("quest-starten")
+        val model = assertNotNull(state.quest)
+        assertEquals("quest-torwaechter", model.quest.id)
+        onNodeWithText("Dein Auftrag").assertExists()
+        onNodeWithText("So wird geprüft").assertExists()
+        shot("50-quest")
+
+        // Der Startcode übersetzt, löst aber nicht – Byte sagt, was fehlt.
+        click("quest-run")
+        waitUntil(timeoutMillis = 10_000) { model.result != null }
+        assertFalse(model.result!!.solved)
+        onNodeWithTag("mentor").assertExists()
+        shot("51-quest-mentor")
+
+        // Strg + Enter führt die Tests aus – wie „Prüfen“ in den Lektionen.
+        onNodeWithTag("quest-editor").performTextReplacement(model.quest.solution)
+        waitForIdle()
+        assertEquals(model.quest.solution, model.code)
+        assertTrue(model.isStale)
+        onNodeWithTag("quest-editor").performClick().performKeyInput {
+            keyDown(Key.CtrlLeft); pressKey(Key.Enter); keyUp(Key.CtrlLeft)
+        }
+        waitUntil(timeoutMillis = 10_000) { model.result?.solved == true }
+        assertEquals(model.quest.solution, model.code, "Strg + Enter darf keine Zeile einfügen")
+        assertEquals(3, model.result!!.stars)
+        onNodeWithTag("quest-geschafft").assertExists()
+        onNodeWithText("Ins Inventar: ${model.quest.reward.item}").assertExists()
+        assertEquals(3, state.store.questProgress.stars[model.quest.id])
+        shot("52-quest-geschafft")
+
+        // Quest 2 braucht Lektion 2 – also zurück zur Karte, wo der Grund steht.
+        assertNull(model.nextQuest)
+        onNodeWithText("Zur Karte").performScrollTo().performClick()
+        waitForIdle()
+        assertNull(state.quest)
+        assertEquals(app.javaquest.ui.Section.QUESTS, state.section)
+        onNodeWithTag("quest-quest-namensschild").assertExists()
+        assertTrue(onAllNodesWithText("Ab Lektion 2", substring = true).fetchSemanticsNodes().isNotEmpty())
+        shot("53-questkarte")
+
+        // Der Code ist als Entwurf gemerkt.
+        state.startQuest(model.quest.id)
+        assertEquals(model.quest.solution, state.quest!!.code)
+    }
+
+    @Test
+    fun `Werkstatt - oeffnet nach Kapitel 1, Bauplan einfuegen, Programm laeuft`() = runDesktopComposeUiTest(1280, 860) {
+        val state = newQuestState()
+        state.openWorkshop()
+        assertNull(state.workshop, "Vor Kapitel 1 bleibt die Werkstatt zu")
+        for (quest in questBook.quests(questBook.chapters.first())) state.store.recordQuest(quest, 3)
+        show(state)
+        state.section = app.javaquest.ui.Section.QUESTS
+        waitForIdle()
+        click("werkstatt-oeffnen")
+        val model = assertNotNull(state.workshop)
+
+        click("werkstatt-run")
+        waitUntil(timeoutMillis = 10_000) { model.ranCode != null }
+        assertEquals("Hallo aus der Werkstatt!\n", model.output)
+        onNodeWithText("Hallo aus der Werkstatt!").assertExists()
+
+        val (quest, blueprint) = state.store.questProgress.blueprints.first()
+        click("bauplan-${quest.id}")
+        waitUntil(timeoutMillis = 5_000) { model.code.contains(blueprint.code.lines().first().trim()) }
+        shot("54-werkstatt")
+
+        click("close-werkstatt")
+        assertNull(state.workshop)
+    }
+
+    @Test
+    fun `Handy - Questkarte und Quest untereinander, Zurueck schliesst die Quest`() = runDesktopComposeUiTest(400, 860) {
+        val state = newQuestState()
+        show(state)
+        click("quests-karte")
+        assertEquals(app.javaquest.ui.Section.QUESTS, state.section)
+        assertTrue(onAllNodesWithText(questBook.title).fetchSemanticsNodes().isNotEmpty())
+        shot("55-handy-questkarte")
+        click("quest-weiter")
+        assertNotNull(state.quest)
+        onNodeWithTag("quest-editor").performScrollTo()
+        shot("56-handy-quest")
+        assertTrue(state.kannZurueck)
+        state.zurueck()
+        waitForIdle()
+        assertNull(state.quest)
+        assertEquals(app.javaquest.ui.Section.QUESTS, state.section)
     }
 }

@@ -903,7 +903,8 @@ fun ArenaSessionScreen(model: ArenaMissionModel, onClose: () -> Unit) {
 @Composable
 fun ArenaHomeScreen(state: AppState) {
     val store = state.store
-    val stars = store.missionStars
+    // Nur Arena-Missionen – Code-Quests liegen im selben Protokoll.
+    val stars = store.facts.arenaStars
     val kompakt = LocalKompakt.current
     ScreenScroll {
         Row(

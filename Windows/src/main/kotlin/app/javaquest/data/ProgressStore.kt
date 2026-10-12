@@ -8,6 +8,9 @@ import app.javaquest.core.ActivityRecord
 import app.javaquest.core.ArenaCatalog
 import app.javaquest.core.ArenaMission
 import app.javaquest.core.ArenaResult
+import app.javaquest.core.CodeQuest
+import app.javaquest.core.QuestBook
+import app.javaquest.core.QuestProgress
 import app.javaquest.core.AttemptRecord
 import app.javaquest.core.DailyMission
 import app.javaquest.core.Experience
@@ -40,6 +43,8 @@ import app.javaquest.core.TrainingBuilder
 import app.javaquest.core.VariantSelector
 import app.javaquest.core.Difficulty
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.builtins.MapSerializer
+import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
 import java.nio.file.Files
 import java.nio.file.Path
@@ -204,6 +209,8 @@ class ProgressStore(
     private val clock: Clock = Clock.systemDefaultZone(),
     /** Die Arena-Missionen – ohne Katalog (leer) gibt es keine Arena. */
     val catalog: ArenaCatalog = ArenaCatalog.EMPTY,
+    /** Das Abenteuer „Die Burg Javahall“ – Code-Quests mit versteckten Tests (leer: keine Quests). */
+    val questBook: QuestBook = QuestBook.EMPTY,
 ) {
     var data: ProgressData? by mutableStateOf(file?.load())
         private set
@@ -399,6 +406,61 @@ class ProgressStore(
             date = now(),
         )
         commit(touchStreak(d.copy(attempts = d.attempts + attempt)))
+    }
+
+    // MARK: Code-Quests
+
+    /** Offene und gelöste Quests, Inventar, Baupläne und die Werkstatt. */
+    val questProgress: QuestProgress get() = QuestProgress(questBook, course, facts.questStars, unlockedLessonIds)
+
+    /**
+     * Speichert eine gelöste Quest – wie eine Arena-Mission (Kontext „mission“, credit = Sterne / 3), aber nur bei
+     * einem neuen Bestwert. So landen Quest-Ergebnisse in denselben Sicherungen wie auf Mac und iPhone.
+     */
+    fun recordQuest(quest: CodeQuest, stars: Int) {
+        val d = data ?: return
+        if (stars <= 0) return
+        if (stars <= (facts.questStars[quest.id] ?: 0)) {
+            commit(touchStreak(d))
+            return
+        }
+        val attempt = TaskAttempt(
+            taskId = quest.id,
+            topicId = quest.topicId,
+            lessonId = quest.lessonId,
+            context = AttemptContext.MISSION.raw,
+            difficulty = quest.difficulty,
+            credit = ActivityRecord.credit(stars),
+            solved = true,
+            tries = 1,
+            date = now(),
+        )
+        commit(touchStreak(d.copy(attempts = d.attempts + attempt)))
+    }
+
+    // MARK: Entwürfe
+
+    /**
+     * Code, an dem man gerade schreibt (Quests) und eigene Programme der Werkstatt – neben progress.json in
+     * `entwuerfe.json`, nur auf diesem Gerät und nicht in Sicherungen (wie auf Mac und iPhone). Ohne Datei: nur im Speicher.
+     */
+    private val entwurfDatei: Path? = file?.path?.resolveSibling("entwuerfe.json")
+    private val entwuerfe: MutableMap<String, String> = entwurfDatei?.let { pfad ->
+        runCatching {
+            if (Files.exists(pfad)) Json.decodeFromString(MapSerializer(String.serializer(), String.serializer()), pfad.leseText()).toMutableMap() else null
+        }.getOrNull()
+    } ?: mutableMapOf()
+
+    fun entwurf(key: String): String? = entwuerfe[key]
+
+    fun entwurfMerken(key: String, text: String) {
+        if (entwuerfe[key] == text) return
+        entwuerfe[key] = text
+        val pfad = entwurfDatei ?: return
+        runCatching {
+            Files.createDirectories(pfad.parent)
+            pfad.schreibeText(Json.encodeToString(MapSerializer(String.serializer(), String.serializer()), entwuerfe))
+        }
     }
 
     // MARK: Onboarding & Einstufung

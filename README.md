@@ -40,10 +40,10 @@ Android (Kotlin-Fassung unter `Windows/src/main/kotlin/app/javaquest/core`) und 
 - **Eingebauter Java-Interpreter** (`JavaQuestKit/Interpreter`, in Kotlin `core/interpreter`, im Web `Web/java.js`): Variablen, Kontrollfluss, statische Methoden,
   Arrays und Strings. Code-Aufgaben werden damit wirklich ausgeführt und die Ausgabe verglichen; dazu ein
   „Testlauf“, der keinen Versuch kostet. Gegen ein echtes JDK geprüft (`Tests/…/Fixtures/java_differential.json`).
-  In der Apple-App versteht er außerdem Klassen, Objekte, Vererbung, Interfaces, Exceptions mit try/catch,
-  Listen, Maps, Enums und Records (`java_differential_oop.json`) – damit laufen über 280 Kursprogramme;
-  Lambdas und was er sonst nicht kennt, meldet er als „nicht unterstützt“ und überlässt es der Regelprüfung.
-  Windows, Android und Web bleiben vorerst bei der Teilmenge ohne Klassen.
+  In der Apple-App, unter Windows und Android versteht er außerdem Klassen, Objekte, Vererbung, Interfaces,
+  Exceptions mit try/catch, Listen, Maps, Enums und Records (`java_differential_oop.json`) – damit laufen über
+  280 Kursprogramme; Lambdas und was er sonst nicht kennt, meldet er als „nicht unterstützt“ und überlässt es
+  der Regelprüfung. Das Web bleibt vorerst bei der Teilmenge ohne Klassen.
 - **Ausführen und zusehen:** Theorie-Beispiele,
   gelöste Aufgaben und Musterlösungen laufen auf Knopfdruck
   Schritt für Schritt – wie in einem Debugger: Die nächste Zeile ist markiert und erklärt, daneben stehen die
@@ -54,11 +54,11 @@ Android (Kotlin-Fassung unter `Windows/src/main/kotlin/app/javaquest/core`) und 
   (`apple_extra_tasks.json` – trotz des Namens auch für Windows, Android und Web, dort als Kopie `Web/bonus_aufgaben.json` –,
   beim Laden einsortiert). Sie bringen XP, zählen aber **nicht** für Trefferquote und
   Master Score – so bleibt der Score auf allen Plattformen gleich. Die gemeinsame Kursdatei bleibt unverändert.
-- **Motivation:** XP und Level, Combos, 19 Abzeichen (in der Apple-App 22, mit den Quest-Abzeichen), Missionssterne und Boss-Level im Lernpfad.
+- **Motivation:** XP und Level, Combos, 22 Abzeichen (im Web 19, ohne die Quest-Abzeichen), Missionssterne und Boss-Level im Lernpfad.
   Missionsergebnisse stehen im vorhandenen Aufgaben-Protokoll (Kontext `mission`/`daily`, `credit` = Sterne ÷ 3) –
   kein neues Speicherschema, alte Lernstände bleiben unverändert lesbar, Sicherungen nehmen sie mit.
 
-**Code-Quests – in der Apple-App** ([Konzept und Architektur](Docs/Code-Quests.md)):
+**Code-Quests – in der Apple-App, unter Windows und Android** ([Konzept und Architektur](Docs/Code-Quests.md)):
 - **Abenteuer „Die Burg Javahall“:** 16 Quests in 5 Kapiteln, von `println` bis `Map`. Jede Quest erzählt eine
   Szene („Die Tür ist verschlossen. Schreibe `public static boolean unlock(int key)` …“), führt genau ein
   Konzept ein und prüft den Code mit versteckten Tests wie JUnit – die ersten sind als `assertEquals(…)`
@@ -68,7 +68,8 @@ Android (Kotlin-Fassung unter `Windows/src/main/kotlin/app/javaquest/core`) und 
   Absturz oder falscher Wert – jeweils mit Zeile und einem Hinweis, der den Denkfehler nennt, nicht die Lösung.
 - **Echter Code-Editor** (auch in Code-Aufgaben und in der Arena): Zeilennummern, Syntaxfarben beim Tippen,
   automatische Einrückung, Klammerpaare, Tab als vier Leerzeichen, ein Compiler, der mitliest (Fehlerzeile rot,
-  Namenshinweise gelb), und auf iPhone/iPad eine Symbolleiste über der Tastatur.
+  Namenshinweise gelb), auf iPhone/iPad eine Symbolleiste über der Tastatur, unter Android eine Zeichenleiste
+  unter dem Editor.
 - **Sauberer Code zahlt sich aus:** ★ Tests · ★ Namenskonventionen · ★ Einrückung; XP, ein Gegenstand je Quest,
   Baupläne (Code-Bausteine) nur mit 3 Sternen, drei neue Abzeichen. Nach Kapitel 1 öffnet die **Werkstatt**:
   freies Bauen mit eigenen Programmen, Konsole, „Ausführen und zusehen“ und den Bauplänen.

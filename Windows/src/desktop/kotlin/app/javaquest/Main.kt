@@ -14,6 +14,7 @@ import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import app.javaquest.core.ArenaCatalog
 import app.javaquest.core.CourseLoader
+import app.javaquest.core.QuestBook
 import app.javaquest.data.ProgressFile
 import app.javaquest.data.ProgressStore
 import app.javaquest.ui.AppShell
@@ -25,6 +26,7 @@ import app.javaquest.ui.LocalPlattform
 import java.awt.Dimension
 import java.io.File
 import javax.imageio.ImageIO
+import kotlinx.coroutines.runBlocking
 
 fun main() {
     CodeFont = DesktopPlattform.codeSchrift()
@@ -32,7 +34,10 @@ fun main() {
     System.getProperty("javaquest.selfcheck")?.let { selfCheck(File(it)); return }
 
     application {
-        val state = remember { AppState(ProgressStore(CourseLoader.loadBundled(), ProgressFile.defaultLocation(), catalog = ArenaCatalog.loadBundled())) }
+        val state = remember { AppState(ProgressStore(
+                    CourseLoader.loadBundled(), ProgressFile.defaultLocation(),
+                    catalog = ArenaCatalog.loadBundled(), questBook = QuestBook.loadBundled(),
+                )) }
         val icon = remember { BitmapPainter(ImageIO.read(AppState::class.java.getResourceAsStream("/icon.png")).toComposeImageBitmap()) }
         Window(
             onCloseRequest = ::exitApplication,
@@ -56,7 +61,7 @@ private fun selfCheck(outputDir: File) {
     println("Kurs: ${course.modules.size} Module, ${course.allLessons.size} Lektionen, $lines erklärte Codezeilen")
     val catalog = ArenaCatalog.loadBundled()
     println("Arena: ${catalog.missions.size} Missionen")
-    val state = AppState(ProgressStore(course, file = null, catalog = catalog))
+    val state = AppState(ProgressStore(course, file = null, catalog = catalog, questBook = QuestBook.loadBundled()))
     fun newScene() = ImageComposeScene(1280, 860, Density(1f)) { JavaQuestTheme(dark = false) { AppShell(state) } }
     var scene = newScene()
     var count = 0
@@ -136,11 +141,28 @@ private fun selfCheck(outputDir: File) {
         render("frei-auswertung")
     }
     state.closeFlow()
+    // Code-Quests: jede einmal offen und mit der Musterlösung gelöst – danach die Werkstatt mit allen Bauplänen.
+    for (quest in state.store.questBook.quests) {
+        state.startQuest(quest.id)
+        val session = state.quest ?: error("Quest ${quest.id} bleibt nach allen Lektionen gesperrt")
+        render(quest.id)
+        session.updateCode(quest.solution)
+        runBlocking { session.run() }
+        check(session.result?.stars == 3) { "Musterlösung von ${quest.id}: ${session.result?.mentor?.text}" }
+        // Der Editor übernimmt neuen Text im nächsten Frame (LaunchedEffect) – erst danach das Bild.
+        scene.render()
+        render("${quest.id}-geloest")
+        state.closeQuest()
+    }
+    state.openWorkshop()
+    state.workshop?.let { workshop -> runBlocking { workshop.run() }; render("werkstatt") }
+    state.closeWorkshop()
 
     for (section in app.javaquest.ui.Section.entries) { state.section = section; render("${section.name.lowercase()}-am-ende") }
     // Auch beim Aufräumen kann derselbe Compose-Fehler auftreten – die Bilder sind dann längst geschrieben.
     runCatching { scene.close() }
     println("$count Bildschirme gezeichnet → ${outputDir.absolutePath}" + if (rebuilt > 0) " (Szene $rebuilt× neu aufgebaut)" else "")
-    println("Score ${state.store.masterScore}, Lektionen ${state.store.completedLessonCount}/${course.allLessons.size}")
+    println("Score ${state.store.masterScore}, Lektionen ${state.store.completedLessonCount}/${course.allLessons.size}, " +
+        "Quests ${state.store.questProgress.solvedCount}/${state.store.questBook.quests.size}")
     println("Java ${System.getProperty("java.version")} · ${System.getProperty("os.name")} ${System.getProperty("os.arch")}")
 }

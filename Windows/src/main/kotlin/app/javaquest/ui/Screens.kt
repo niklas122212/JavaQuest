@@ -394,7 +394,12 @@ fun AppShell(state: AppState) {
 private fun Inhalt(state: AppState) {
     val flow = state.flow
     val arena = state.arena
+    val quest = state.quest
+    val workshop = state.workshop
     when {
+        // „Nächste Quest“ wechselt direkt: eigener Zustand je Quest – Editor, Scrollposition, aufgeklappte Karten.
+        quest != null -> androidx.compose.runtime.key(quest) { QuestSessionScreen(quest, state) }
+        workshop != null -> WorkshopScreen(workshop, state)
         arena != null -> ArenaSessionScreen(arena, onClose = state::closeArena)
         flow != null -> LessonFlowScreen(flow, onClose = state::closeFlow, onStartLesson = state::startLesson, onTrainAgain = state::startTraining)
         else -> when (state.section) {
@@ -402,6 +407,7 @@ private fun Inhalt(state: AppState) {
             Section.PATH -> PathScreen(state)
             Section.TOPICS -> TopicsScreen(state)
             Section.ANALYSIS -> AnalysisScreen(state)
+            Section.QUESTS -> QuestHomeScreen(state)
             Section.ARENA -> ArenaHomeScreen(state)
             Section.ACHIEVEMENTS -> AchievementsScreen(state)
             Section.PROFILE -> ProfileScreen(state)
@@ -413,7 +419,7 @@ private fun Inhalt(state: AppState) {
 @Composable
 private fun KompakterAufbau(state: AppState) {
     val surfaces = LocalSurfaces.current
-    val mitLeiste = state.flow == null && state.arena == null
+    val mitLeiste = state.flow == null && state.arena == null && state.quest == null && state.workshop == null
     Column(Modifier.fillMaxSize()) {
         val raender = if (mitLeiste) WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
             else WindowInsets.safeDrawing
@@ -460,13 +466,13 @@ private fun BreiterAufbau(state: AppState, mitScore: Boolean = true) {
                 Text("JavaQuest", fontSize = 20.sp, fontWeight = FontWeight.Bold)
             }
             for (section in Section.entries) {
-                val selected = state.flow == null && state.arena == null && state.section == section
+                val selected = state.flow == null && state.arena == null && state.quest == null && state.workshop == null && state.section == section
                 Row(
                     Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(12.dp))
                         .background(if (selected) Palette.orange.copy(alpha = 0.14f) else Color.Transparent)
-                        .clickableHand { state.closeFlow(); state.closeArena(); state.section = section }
+                        .clickableHand { state.closeFlow(); state.closeArena(); state.closeQuest(); state.closeWorkshop(); state.section = section }
                         .padding(horizontal = 12.dp, vertical = 10.dp)
                         .testTag("nav-${section.name.lowercase()}"),
                     verticalAlignment = Alignment.CenterVertically,
