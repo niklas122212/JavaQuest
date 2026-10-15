@@ -4,6 +4,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Dashboard
 import androidx.compose.material.icons.rounded.EmojiEvents
 import androidx.compose.material.icons.rounded.GridView
+import androidx.compose.material.icons.rounded.Map
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Psychology
 import androidx.compose.material.icons.rounded.Route
@@ -38,6 +39,7 @@ enum class Section(val title: String, val icon: ImageVector, val kurz: String = 
     PATH("Lernpfad", Icons.Rounded.Route),
     TOPICS("Alle Themen", Icons.Rounded.GridView, "Themen"),
     ANALYSIS("Analyse", Icons.Rounded.Psychology),
+    QUESTS("Code-Quests", Icons.Rounded.Map, inLeiste = false),
     ARENA("Arena", Icons.Rounded.SportsEsports, inLeiste = false),
     ACHIEVEMENTS("Abzeichen", Icons.Rounded.EmojiEvents, inLeiste = false),
     PROFILE("Profil", Icons.Rounded.Person),
@@ -55,6 +57,40 @@ class AppState(val store: ProgressStore) {
     /** Arena-Mission oder Spielplatz außerhalb einer Lektion (aus der Arena oder als Tagesmission). */
     var arena by mutableStateOf<ArenaMissionModel?>(null)
         private set
+
+    /** Eine Code-Quest aus dem Abenteuer „Die Burg Javahall“. */
+    var quest by mutableStateOf<QuestSessionModel?>(null)
+        private set
+
+    /** Die Werkstatt: freies Bauen mit eigenen Programmen. */
+    var workshop by mutableStateOf<WorkshopModel?>(null)
+        private set
+
+    /** Startet eine Quest – gesperrte Quests bleiben zu. */
+    fun startQuest(questId: String) {
+        val next = store.questBook.quest(questId) ?: return
+        if (!store.questProgress.state(next).isPlayable) return
+        flow = null
+        arena = null
+        workshop = null
+        quest = QuestSessionModel(next, store)
+    }
+
+    fun openWorkshop() {
+        if (!store.questProgress.isWorkshopUnlocked) return
+        flow = null
+        arena = null
+        quest = null
+        workshop = WorkshopModel(store)
+    }
+
+    fun closeQuest() {
+        quest = null
+    }
+
+    fun closeWorkshop() {
+        workshop = null
+    }
 
     fun startLesson(lessonId: String) {
         val lesson = store.course.lesson(lessonId) ?: return
@@ -126,7 +162,7 @@ class AppState(val store: ProgressStore) {
     }
 
     /** Ob die Zurück-Taste (Android) gerade etwas zu tun hat – sonst schließt das System die App. */
-    val kannZurueck: Boolean get() = !store.needsOnboarding && (arena != null || flow != null || section != Section.DASHBOARD)
+    val kannZurueck: Boolean get() = !store.needsOnboarding && (arena != null || flow != null || quest != null || workshop != null || section != Section.DASHBOARD)
 
     /**
      * Zurück-Taste bzw. -Geste: erst die laufende Mission oder Lektion schließen, dann zur Übersicht.
@@ -134,6 +170,8 @@ class AppState(val store: ProgressStore) {
      */
     fun zurueck() {
         when {
+            quest != null -> closeQuest()
+            workshop != null -> closeWorkshop()
             arena != null -> closeArena()
             flow != null -> closeFlow()
             section != Section.DASHBOARD -> section = Section.DASHBOARD

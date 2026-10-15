@@ -110,7 +110,9 @@ fun CodeRunPanel(source: String, lines: List<ExplainedLine>) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Rounded.SubdirectoryArrowRight, null, tint = Palette.violet, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(4.dp))
-                Text("in der Methode ${step.method}()", color = Palette.violet, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                // Konstruktoren heißen wie ihre Klasse – und die beginnt mit einem Großbuchstaben.
+                val ort = if (step.method.first().isUpperCase()) "im Konstruktor ${step.method}(…)" else "in der Methode ${step.method}()"
+                Text(ort, color = Palette.violet, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
             }
         }
         Text(explanation(step, isLast, current, lines), fontSize = 15.sp, modifier = Modifier.testTag("run-explanation"))

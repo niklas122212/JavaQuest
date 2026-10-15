@@ -104,14 +104,20 @@ object JavaRunner {
     }
 }
 
-class JavaInterpreter(private val program: Program, private val stepLimit: Int, private val host: JavaHost?) {
-    private class Slot(val type: JType, var value: JValue?, val isFinal: Boolean)
+class JavaInterpreter(internal val program: Program, private val stepLimit: Int, private val host: JavaHost?) {
+    internal class Slot(val type: JType, var value: JValue?, val isFinal: Boolean)
 
-    private class Frame(val method: Method?) {
+    internal class Frame(
+        val method: Method?,
+        /** Das Objekt, dessen Methode oder Konstruktor gerade läuft (`this`). */
+        val thisObject: JavaObject? = null,
+        /** Die Klasse, deren Code gerade läuft – für Felder, statische Methoden und private Zugriffe. */
+        val currentClass: String? = null,
+    ) {
         val scopes = mutableListOf(mutableMapOf<String, Slot>())
     }
 
-    private sealed interface Flow {
+    internal sealed interface Flow {
         data object Normal : Flow
         data object Break : Flow
         data object Continue : Flow
@@ -122,20 +128,27 @@ class JavaInterpreter(private val program: Program, private val stepLimit: Int, 
     companion object {
         const val MAX_CALL_DEPTH = 400
         const val MAX_OUTPUT = 60_000
+        private val BOXES = setOf("Integer", "Long", "Short", "Byte", "Character", "Double", "Boolean")
     }
 
     val output = StringBuilder()
     var steps = 0
         private set
     val warnings = mutableListOf<JavaWarning>()
-    private val globals = mutableMapOf<String, Slot>()
-    private val frames = mutableListOf(Frame(null))
+    internal val globals = mutableMapOf<String, Slot>()
+    internal val frames = mutableListOf(Frame(null))
+    /** Statische Felder eigener Klassen (die Hauptklasse nutzt [globals]). */
+    internal val statics = mutableMapOf<String, MutableMap<String, Slot>>()
+    /** Enum-Konstanten je Enum, in Deklarationsreihenfolge. */
+    internal val enumConstants = mutableMapOf<String, List<JavaObject>>()
     private val random = java.util.Random(42)
     /** Beim Zusehen: zeichnet vor jeder Anweisung und jeder neuen Schleifenrunde ein Bild auf. */
     var recorder: TraceRecorder? = null
-    private val frame: Frame get() = frames.last()
+    internal val frame: Frame get() = frames.last()
 
     fun run(): JavaProblem? = try {
+        validateClasses()
+        initializeClasses()
         for (field in program.staticFields) execute(field, global = true)
         for (statement in program.statements) {
             when (execute(statement)) {
@@ -182,24 +195,49 @@ class JavaInterpreter(private val program: Program, private val stepLimit: Int, 
         frame.scopes.last()[name] = Slot(type, value, isFinal)
     }
 
-    private fun lookup(name: String): Slot? = frame.scopes.asReversed().firstNotNullOfOrNull { it[name] } ?: globals[name]
+    internal fun lookup(name: String): Slot? {
+        frame.scopes.asReversed().firstNotNullOfOrNull { it[name] }?.let { return it }
+        // Felder des eigenen Objekts (this.name ohne this)
+        frame.thisObject?.let { obj -> obj.fieldTypes[name]?.let { type -> return Slot(type, obj.fields[name], false) } }
+        // Statische Felder der eigenen Klasse und ihrer Oberklassen
+        staticSlot(name, frame.currentClass)?.let { return it.second }
+        return globals[name]
+    }
 
     private fun read(name: String, line: Int): JValue {
+        if (frame.thisObject == null && isInstanceField(name) && frame.scopes.none { name in it }) {
+            throw JavaProblem.syntax("„$name“ ist ein Feld des Objekts – in einer static-Methode gibt es aber kein Objekt (this). Lass static weg oder nimm ein Objekt: objekt.$name.", line)
+        }
         val slot = lookup(name) ?: throw unknownName(name, line)
         return slot.value ?: throw JavaProblem.syntax("Die Variable „$name“ hat noch keinen Wert. Gib ihr zuerst einen, z. B. $name = 0;", line)
     }
 
-    private fun write(name: String, value: JValue, line: Int): JValue {
-        val slot = lookup(name) ?: throw unknownName(name, line)
-        if (slot.isFinal && slot.value != null) {
-            throw JavaProblem.syntax("„$name“ ist final – der Wert darf nach dem ersten Festlegen nicht mehr geändert werden.", line)
+    internal fun write(name: String, value: JValue, line: Int): JValue {
+        for (scope in frame.scopes.asReversed()) {
+            val slot = scope[name] ?: continue
+            if (slot.isFinal && slot.value != null) {
+                throw JavaProblem.syntax("„$name“ ist final – der Wert darf nach dem ersten Festlegen nicht mehr geändert werden.", line)
+            }
+            val stored = coerce(value, slot.type, line, "Die Variable „$name“")
+            slot.value = stored
+            return stored
         }
-        val stored = coerce(value, slot.type, line, "Die Variable „$name“")
-        slot.value = stored
-        return stored
+        val obj = frame.thisObject
+        if (obj != null && name in obj.fieldTypes) return writeField(obj, name, value, line)
+        staticSlot(name, frame.currentClass)?.let { return writeStatic(it.first, name, value, line) }
+        globals[name]?.let { slot ->
+            if (slot.isFinal && slot.value != null) throw JavaProblem.syntax("„$name“ ist final – der Wert darf nicht mehr geändert werden.", line)
+            val stored = coerce(value, slot.type, line, "Das Feld „$name“")
+            slot.value = stored
+            return stored
+        }
+        if (frame.thisObject == null && isInstanceField(name)) {
+            throw JavaProblem.syntax("„$name“ ist ein Feld des Objekts – in einer static-Methode gibt es aber kein Objekt (this).", line)
+        }
+        throw unknownName(name, line)
     }
 
-    private fun unknownName(name: String, line: Int): JavaProblem {
+    internal fun unknownName(name: String, line: Int): JavaProblem {
         if (host?.objectNames?.contains(name) == true) {
             return JavaProblem.syntax("„$name“ ist ein Objekt – rufe eine seiner Methoden auf, z. B. $name.move();", line)
         }
@@ -212,6 +250,8 @@ class JavaInterpreter(private val program: Program, private val stepLimit: Int, 
     fun visibleVariables(): List<JavaVariable> {
         val merged = LinkedHashMap<String, Slot>()
         globals.keys.sorted().forEach { merged[it] = globals.getValue(it) }
+        // Beim Zusehen: das eigene Objekt mit seinen Feldern
+        frame.thisObject?.let { merged["this"] = Slot(JType.Obj(it.className), JValue.Obj(it), true) }
         for (scope in frame.scopes) scope.keys.sorted().forEach { merged[it] = scope.getValue(it) }
         return merged.mapNotNull { (name, slot) ->
             val value = slot.value ?: return@mapNotNull null
@@ -219,14 +259,14 @@ class JavaInterpreter(private val program: Program, private val stepLimit: Int, 
         }
     }
 
-    private fun warn(message: String, line: Int) {
+    internal fun warn(message: String, line: Int) {
         val warning = JavaWarning(message, line)
         if (warning !in warnings) warnings += warning
     }
 
     // MARK: Anweisungen
 
-    private fun executeBlock(statements: List<Stmt>): Flow {
+    internal fun executeBlock(statements: List<Stmt>): Flow {
         frame.scopes += mutableMapOf()
         try {
             for (statement in statements) {
@@ -245,7 +285,7 @@ class JavaInterpreter(private val program: Program, private val stepLimit: Int, 
         else -> execute(statement)
     }
 
-    private fun execute(statement: Stmt, global: Boolean = false): Flow {
+    internal fun execute(statement: Stmt, global: Boolean = false): Flow {
         tick(statement.line)
         when (statement) {
             is Stmt.VarDecl -> {
@@ -316,17 +356,22 @@ class JavaInterpreter(private val program: Program, private val stepLimit: Int, 
             }
             is Stmt.ForEach -> {
                 val source = evaluate(statement.collection)
-                val array = (source as? JValue.ArrV)?.array ?: when (source) {
-                    is JValue.StrV -> throw JavaProblem.syntax("Über einen String kann for-each nicht direkt laufen – nimm text.toCharArray().", statement.line)
-                    JValue.Null -> throw JavaProblem.runtime("NullPointerException: Das Array ist null.", statement.line)
-                    else -> throw JavaProblem.syntax("for-each braucht ein Array, bekommt aber ${source.typeName}.", statement.line)
+                var itemType: JType = JType.Inferred
+                val items: List<JValue> = when {
+                    source is JValue.ArrV -> { itemType = source.array.elementType; source.array.elements.toList() }
+                    // Sammlungen: in derselben Reihenfolge wie in Java (HashSet nach Hash-Fächern).
+                    source is JValue.Obj && source.obj.kind in setOf(JavaObject.Kind.LIST, JavaObject.Kind.SET, JavaObject.Kind.DEQUE) -> iterationOrder(source.obj)
+                    source is JValue.Obj && source.obj.kind == JavaObject.Kind.MAP ->
+                        throw JavaProblem.syntax("Über eine Map kann for-each nicht direkt laufen – nimm map.keySet(), map.values() oder map.entrySet().", statement.line)
+                    source is JValue.StrV -> throw JavaProblem.syntax("Über einen String kann for-each nicht direkt laufen – nimm text.toCharArray().", statement.line)
+                    source == JValue.Null -> throw JavaProblem.exception("NullPointerException", null, "Das Array bzw. die Liste ist null.", statement.line)
+                    else -> throw JavaProblem.syntax("for-each braucht ein Array oder eine Sammlung, bekommt aber ${source.typeName}.", statement.line)
                 }
-                var index = 0
-                while (index < array.elements.size) {
-                    val declared = if (statement.type == JType.Inferred) array.elementType else statement.type
-                    val value = coerce(array.elements[index], declared, statement.line, "Die Schleifenvariable „${statement.name}“")
+                for (element in items) {
+                    val declared = if (statement.type == JType.Inferred) itemType else statement.type
                     frame.scopes += mutableMapOf()
                     val flow = try {
+                        val value = coerce(element, declared, statement.line, "Die Schleifenvariable „${statement.name}“")
                         declare(statement.name, declared, value, false, statement.line)
                         executeBody(statement.body)
                     } finally {
@@ -337,7 +382,6 @@ class JavaInterpreter(private val program: Program, private val stepLimit: Int, 
                         is Flow.Returned, is Flow.Yielded -> return flow
                         else -> Unit
                     }
-                    index++
                     tick(statement.line)
                 }
                 return Flow.Normal
@@ -347,6 +391,7 @@ class JavaInterpreter(private val program: Program, private val stepLimit: Int, 
             is Stmt.Return -> {
                 val method = frame.method
                 if (method == null) {
+                    // return im main-Block beendet das Programm.
                     if (statement.value != null) throw JavaProblem.syntax("main gibt nichts zurück – return steht hier ohne Wert.", statement.line)
                     return Flow.Returned(JValue.Void)
                 }
@@ -366,9 +411,9 @@ class JavaInterpreter(private val program: Program, private val stepLimit: Int, 
             is Stmt.Yield -> return Flow.Yielded(evaluate(statement.value))
             is Stmt.Switch -> {
                 val value = evaluate(statement.subject)
-                val start = matchingCase(value, statement.cases, statement.line) ?: return Flow.Normal
                 frame.scopes += mutableMapOf()
                 try {
+                    val start = matchingCase(value, statement.cases, statement.line) ?: return Flow.Normal
                     if (statement.cases[start].isArrow) {
                         val flow = executeBlock(statement.cases[start].body)
                         return if (flow == Flow.Break) Flow.Normal else flow
@@ -387,23 +432,55 @@ class JavaInterpreter(private val program: Program, private val stepLimit: Int, 
                     frame.scopes.removeAt(frame.scopes.lastIndex)
                 }
             }
+            is Stmt.Throw -> throw throwing(evaluate(statement.value), statement.line)
+            is Stmt.Try -> return executeTry(statement.body, statement.catches, statement.finallyBody)
             is Stmt.Empty -> return Flow.Normal
         }
     }
 
-    private fun test(expr: Expr, keyword: String): Boolean {
+    internal fun test(expr: Expr, keyword: String): Boolean {
         val value = evaluate(expr)
         if (value is JValue.BoolV) return value.value
         if (expr is Expr.Assign && expr.op == "=") throw JavaProblem.syntax("In der Bedingung steht = (Zuweisung). Zum Vergleichen braucht man ==.", expr.line)
         throw JavaProblem.syntax("Die Bedingung von $keyword muss true oder false ergeben, nicht ${value.typeName}.", expr.line)
     }
 
+    private fun isNullLabel(label: Expr) = label is Expr.Literal && label.value == JValue.Null
+
+    /** Die Muster-Variablen landen im aktuellen (innersten) Bereich – dort gilt dann der Zweig. */
     private fun matchingCase(value: JValue, cases: List<SwitchCase>, line: Int): Int? {
-        if (value == JValue.Null) throw JavaProblem.runtime("NullPointerException: switch über null.", line)
+        if (value == JValue.Null) {
+            // Nur mit „case null“ darf ein switch null bekommen.
+            val index = cases.indexOfFirst { case -> case.labels.any { isNullLabel(it) } }
+            if (index >= 0) return index
+            throw JavaProblem.exception("NullPointerException", null, "switch über null – ohne „case null“ geht das nicht.", line)
+        }
         var defaultIndex: Int? = null
         cases.forEachIndexed { index, case ->
             if (case.isDefault) defaultIndex = index
-            for (label in case.labels) if (valuesEqual(value, evaluate(label), label.line)) return index
+            for (label in case.labels) {
+                if (isNullLabel(label)) continue
+                // Typ-Muster: case Kreis k -> … (die Variable k gilt im Zweig)
+                if (label is Expr.InstanceOf && label.value is Expr.Name && label.value.name == "\$switch") {
+                    if (!isInstance(value, label.type)) continue
+                    label.binding?.let { frame.scopes.last()[it] = Slot(label.type, value, false) }
+                    if (case.guardExpr != null && !test(case.guardExpr, "when")) continue
+                    return index
+                }
+                if (label is Expr.RecordPattern && label.value is Expr.Name && label.value.name == "\$switch") {
+                    val bindings = match(value, label.pattern, label.line) ?: continue
+                    for ((name, slot) in bindings) frame.scopes.last()[name] = slot
+                    if (case.guardExpr != null && !test(case.guardExpr, "when")) continue
+                    return index
+                }
+                // Enum-Konstante ohne Klassennamen: case ROT ->
+                val constantName = (value as? JValue.Obj)?.obj?.fields?.get("\$name")?.stringValue
+                if (constantName != null && label is Expr.Name && lookup(label.name) == null) {
+                    if (label.name == constantName) return index
+                    continue
+                }
+                if (valuesEqual(value, evaluate(label), label.line)) return index
+            }
         }
         return defaultIndex
     }
@@ -413,10 +490,13 @@ class JavaInterpreter(private val program: Program, private val stepLimit: Int, 
         if (a != null && b != null) return Num.compare(a, b) == 0
         if (lhs is JValue.StrV && rhs is JValue.StrV) return lhs.ref.text == rhs.ref.text
         if (lhs is JValue.BoolV && rhs is JValue.BoolV) return lhs.value == rhs.value
+        if (lhs is JValue.Obj && rhs is JValue.Obj) return lhs.obj === rhs.obj
         throw JavaProblem.syntax("Der case-Wert (${rhs.typeName}) passt nicht zum Typ im switch (${lhs.typeName}).", line)
     }
 
     // MARK: Ausdrücke
+
+    internal fun evaluateArgs(exprs: List<Expr>): List<JValue> = exprs.map { evaluate(it) }
 
     fun evaluate(expr: Expr, expected: JType? = null): JValue = when (expr) {
         is Expr.Literal -> expr.value
@@ -430,7 +510,12 @@ class JavaInterpreter(private val program: Program, private val stepLimit: Int, 
             store(new, expr.target, expr.line)
             if (expr.prefix) new else old
         }
-        is Expr.Binary -> binary(expr.op, evaluate(expr.left), evaluate(expr.right), expr.line)
+        is Expr.Binary -> {
+            val left = evaluate(expr.left)
+            val right = evaluate(expr.right)
+            val same = if (expr.op == "==" || expr.op == "!=") boxedIdentity(expr.left, expr.right, left, right, expr.line) else null
+            if (same != null) JValue.BoolV(if (expr.op == "==") same else !same) else binary(expr.op, left, right, expr.line)
+        }
         is Expr.Logical -> {
             val left = evaluate(expr.left) as? JValue.BoolV
                 ?: throw JavaProblem.syntax("${expr.op} verknüpft nur true/false-Werte.", expr.line)
@@ -465,7 +550,7 @@ class JavaInterpreter(private val program: Program, private val stepLimit: Int, 
             val counts = expr.sizes.map { size ->
                 val number = Num.of(evaluate(size))
                 if (number !is Num.I) throw JavaProblem.syntax("Die Größe eines Arrays muss eine ganze Zahl (int) sein.", expr.line)
-                if (number.v < 0) throw JavaProblem.runtime("NegativeArraySizeException: Ein Array kann nicht ${number.v} Plätze haben.", expr.line)
+                if (number.v < 0) throw JavaProblem.exception("NegativeArraySizeException", "${number.v}", "Ein Array kann nicht ${number.v} Plätze haben.", expr.line)
                 number.v
             }
             var leaf = expr.element
@@ -479,18 +564,12 @@ class JavaInterpreter(private val program: Program, private val stepLimit: Int, 
             JValue.ArrV(JavaArray(elementType, values.toMutableList()))
         }
         is Expr.SwitchExpr -> switchExpression(expr, expected)
-        is Expr.InstanceOf -> {
-            val value = evaluate(expr.value)
-            when {
-                value is JValue.StrV && expr.type == JType.StringT -> JValue.BoolV(true)
-                value == JValue.Null -> JValue.BoolV(false)
-                expr.type == JType.Unknown("Object") -> JValue.BoolV(true)
-                else -> throw JavaProblem.unsupported("instanceof mit ${expr.type} kennt der eingebaute Interpreter nicht.", expr.line)
-            }
-        }
-        is Expr.NewObject -> {
-            if (expr.className != "String") throw JavaProblem.unsupported("Objekte mit new ${expr.className}(…) kennt der eingebaute Interpreter nicht.", expr.line)
-            val args = expr.args.map { evaluate(it) }
+        is Expr.This -> JValue.Obj(
+            frame.thisObject ?: throw JavaProblem.syntax("this gibt es nur in Methoden eines Objekts – in einer static-Methode wie main gibt es kein this.", expr.line),
+        )
+        is Expr.SuperRef -> throw JavaProblem.syntax("super allein ist kein Wert – nach super folgt eine Methode, z. B. super.laut().", expr.line)
+        is Expr.NewObject -> if (expr.className != "String") instantiate(expr.className, evaluateArgs(expr.args), expr.line) else {
+            val args = evaluateArgs(expr.args)
             when (args.size) {
                 0 -> JValue.str("")
                 1 -> {
@@ -502,14 +581,28 @@ class JavaInterpreter(private val program: Program, private val stepLimit: Int, 
                 else -> throw JavaProblem.unsupported("new String mit mehreren Werten kennt der eingebaute Interpreter nicht.", expr.line)
             }
         }
+        is Expr.RecordPattern -> {
+            val bindings = match(evaluate(expr.value), expr.pattern, expr.line)
+            if (bindings == null) JValue.BoolV(false) else {
+                for ((name, slot) in bindings) frame.scopes.last()[name] = slot
+                JValue.BoolV(true)
+            }
+        }
+        is Expr.InstanceOf -> {
+            val value = evaluate(expr.value)
+            val matches = isInstance(value, expr.type)
+            // Muster-Variable: x instanceof Hund h – h ist ab hier ein Hund.
+            if (matches && expr.binding != null) frame.scopes.last()[expr.binding] = Slot(expr.type, value, false)
+            JValue.BoolV(matches)
+        }
     }
 
     private fun switchExpression(expr: Expr.SwitchExpr, expected: JType?): JValue {
         val value = evaluate(expr.subject)
-        val start = matchingCase(value, expr.cases, expr.line)
-            ?: throw JavaProblem.syntax("Der switch-Ausdruck braucht einen default-Zweig, damit immer ein Wert herauskommt.", expr.line)
         frame.scopes += mutableMapOf()
         try {
+            val start = matchingCase(value, expr.cases, expr.line)
+                ?: throw JavaProblem.syntax("Der switch-Ausdruck braucht einen default-Zweig, damit immer ein Wert herauskommt.", expr.line)
             for (index in start until expr.cases.size) {
                 val case = expr.cases[index]
                 case.value?.let { return evaluate(it, expected) }
@@ -540,6 +633,7 @@ class JavaInterpreter(private val program: Program, private val stepLimit: Int, 
     private fun storageType(target: Expr, line: Int): JType? = when (target) {
         is Expr.Name -> (lookup(target.name) ?: throw unknownName(target.name, line)).type
         is Expr.Index -> (evaluate(target.base) as? JValue.ArrV)?.array?.elementType
+        is Expr.Field -> fieldType(target.base, target.name)
         else -> null
     }
 
@@ -550,7 +644,7 @@ class JavaInterpreter(private val program: Program, private val stepLimit: Int, 
             val (array, position) = arrayAccess(evaluate(target.base), evaluate(target.index), line)
             coerce(value, array.elementType, line, "Ein Platz im Array").also { array.elements[position] = it }
         }
-        is Expr.Field -> throw JavaProblem.syntax(
+        is Expr.Field -> storeField(target.base, target.name, value, line) ?: throw JavaProblem.syntax(
             if (target.name == "length") "length eines Arrays kann man nicht ändern – die Größe steht beim Erzeugen fest." else "„${target.name}“ kann man nicht verändern.", line,
         )
         else -> throw JavaProblem.syntax("Links vom = muss eine Variable stehen.", line)
@@ -565,7 +659,10 @@ class JavaInterpreter(private val program: Program, private val stepLimit: Int, 
         val position = (Num.of(index) as? Num.I)?.v ?: throw JavaProblem.syntax("Der Index in [ ] muss eine ganze Zahl (int) sein.", line)
         if (position < 0 || position >= array.elements.size) {
             val range = if (array.elements.isEmpty()) "das Array ist leer" else "erlaubt sind nur 0 bis ${array.elements.size - 1}"
-            throw JavaProblem.runtime("ArrayIndexOutOfBoundsException: Index $position gibt es nicht – $range. Denk dran: Gezählt wird ab 0.", line)
+            throw JavaProblem.exception(
+                "ArrayIndexOutOfBoundsException", "Index $position out of bounds for length ${array.elements.size}",
+                "Index $position gibt es nicht – $range. Denk dran: Gezählt wird ab 0.", line,
+            )
         }
         return array to position
     }
@@ -590,10 +687,33 @@ class JavaInterpreter(private val program: Program, private val stepLimit: Int, 
         }
     }
 
-    private fun binary(op: String, lhs: JValue, rhs: JValue, line: Int): JValue {
+    /**
+     * `Integer a = 1000, b = 1000; a == b` ist in Java false: == vergleicht hier Objekte.
+     * Java hält nur kleine Zahlen (-128 bis 127) als gemeinsame Objekte vorrätig.
+     */
+    private fun boxedIdentity(lhs: Expr, rhs: Expr, left: JValue, right: JValue, line: Int): Boolean? {
+        val leftType = (declaredType(lhs) as? JType.Obj)?.name ?: return null
+        val rightType = (declaredType(rhs) as? JType.Obj)?.name ?: return null
+        if (leftType !in BOXES || rightType !in BOXES || left.isNull || right.isNull) return null
+        warn("$leftType-Werte vergleicht man mit equals(), nicht mit ==. == prüft, ob es dasselbe Objekt ist – das klappt nur bei kleinen Zahlen (-128 bis 127) zufällig.", line)
+        if (!valuesEqual(left, right, line)) return false
+        if (lhs is Expr.Name && rhs is Expr.Name && lhs.name == rhs.name) return true
+        return when (left) {
+            is JValue.BoolV -> true
+            is JValue.DoubleV -> false
+            is JValue.CharV -> left.value.code <= 127
+            else -> {
+                val number = Num.of(left)
+                number != null && !number.isDouble && number.toDouble in -128.0..127.0
+            }
+        }
+    }
+
+    internal fun binary(op: String, lhs: JValue, rhs: JValue, line: Int): JValue {
         if (lhs == JValue.Void) throw JavaProblem.syntax("Links von $op steht ein Methodenaufruf, der nichts zurückgibt (void).", line)
         if (rhs == JValue.Void) throw JavaProblem.syntax("Rechts von $op steht ein Methodenaufruf, der nichts zurückgibt (void).", line)
-        if (op == "+" && (lhs is JValue.StrV || rhs is JValue.StrV)) return JValue.str(lhs.javaString + rhs.javaString)
+        // Objekte werden mit ihrem toString() angehängt – wie in Java.
+        if (op == "+" && (lhs is JValue.StrV || rhs is JValue.StrV)) return JValue.str(stringify(lhs, line) + stringify(rhs, line))
 
         when (op) {
             "==", "!=" -> {
@@ -607,9 +727,15 @@ class JavaInterpreter(private val program: Program, private val stepLimit: Int, 
                         lhs.ref === rhs.ref
                     }
                     lhs == JValue.Null && rhs == JValue.Null -> true
-                    (lhs == JValue.Null && (rhs is JValue.StrV || rhs is JValue.ArrV)) ||
-                        (rhs == JValue.Null && (lhs is JValue.StrV || lhs is JValue.ArrV)) -> false
+                    (lhs == JValue.Null && (rhs is JValue.StrV || rhs is JValue.ArrV || rhs is JValue.Obj)) ||
+                        (rhs == JValue.Null && (lhs is JValue.StrV || lhs is JValue.ArrV || lhs is JValue.Obj)) -> false
                     lhs is JValue.ArrV && rhs is JValue.ArrV -> lhs.array === rhs.array
+                    // Objekte: == prüft, ob es dasselbe Objekt ist (gleicher Inhalt reicht nicht – dafür gibt es equals).
+                    lhs is JValue.Obj && rhs is JValue.Obj -> lhs.obj === rhs.obj
+                    lhs == JValue.Null || rhs == JValue.Null -> throw JavaProblem.exception(
+                        "NullPointerException", null,
+                        "Ein Wert ist null – null lässt sich nicht als ${(if (lhs.isNull) rhs else lhs).typeName} vergleichen (z. B. weil get(…) nichts gefunden hat).", line,
+                    )
                     else -> throw JavaProblem.syntax("${lhs.typeName} und ${rhs.typeName} kann man nicht mit $op vergleichen.", line)
                 }
                 return JValue.BoolV(if (op == "==") equal else !equal)
@@ -623,9 +749,9 @@ class JavaInterpreter(private val program: Program, private val stepLimit: Int, 
         if (a == null || b == null) {
             val offender = if (a == null) lhs else rhs
             throw when (offender) {
+                JValue.Null -> JavaProblem.exception("NullPointerException", null, "Mit null kann man nicht rechnen – der Wert fehlt (z. B. weil get(…) den Schlüssel nicht gefunden hat).", line)
                 is JValue.BoolV -> JavaProblem.syntax("Mit $op kann man nicht mit true/false rechnen.", line)
                 is JValue.StrV -> JavaProblem.syntax("Mit $op kann man nicht mit Text (String) rechnen. Nur + hängt Texte aneinander.", line)
-                JValue.Null -> JavaProblem.runtime("NullPointerException: Mit null kann man nicht rechnen.", line)
                 else -> JavaProblem.syntax("$op passt nicht zu ${lhs.typeName} und ${rhs.typeName}.", line)
             }
         }
@@ -637,7 +763,7 @@ class JavaInterpreter(private val program: Program, private val stepLimit: Int, 
             }
             "/", "%" -> {
                 val (x, y) = Num.promote(a, b)
-                if (y.isZeroIntegral) throw JavaProblem.runtime("ArithmeticException: / by zero – durch 0 teilen geht bei ganzen Zahlen nicht.", line)
+                if (y.isZeroIntegral) throw JavaProblem.exception("ArithmeticException", "/ by zero", "/ by zero – durch 0 teilen geht bei ganzen Zahlen nicht.", line)
                 Num.apply(op, x, y).value
             }
             "+", "-", "*" -> Num.apply(op, a, b).value
@@ -666,6 +792,12 @@ class JavaInterpreter(private val program: Program, private val stepLimit: Int, 
                 value == JValue.Void -> message = "Die Methode gibt nichts zurück (void) – $what bekommt deshalb keinen Wert."
             }
             return JavaProblem.syntax(message, line)
+        }
+        if (value.isNull && type.isPrimitive) {
+            throw JavaProblem.exception(
+                "NullPointerException", null,
+                "$what erwartet $type, bekommt aber null – zum Beispiel, weil get(…) den Schlüssel nicht gefunden hat. null passt in keine Zahlen-Variable.", line,
+            )
         }
         return when (type) {
             JType.Inferred -> value
@@ -698,11 +830,13 @@ class JavaInterpreter(private val program: Program, private val stepLimit: Int, 
             }
             JType.VoidT -> throw JavaProblem.syntax("Eine Variable kann nicht den Typ void haben.", line)
             is JType.Unknown -> throw JavaProblem.unsupported("Den Typ ${type.name} kennt der eingebaute Interpreter nicht.", line)
+            is JType.Obj -> if (canAssign(value, type.name)) value else throw mismatch()
         }
     }
 
     /** Expliziter Cast `(int) x` – mit Javas Regeln für Abschneiden und Überlauf. */
     fun cast(value: JValue, type: JType, line: Int): JValue {
+        if (type is JType.Obj) return castObject(value, type.name, line)
         if (type == JType.StringT) {
             return if (value is JValue.StrV || value == JValue.Null) value
             else throw JavaProblem.syntax("${value.typeName} kann man nicht in String casten – nimm String.valueOf(wert).", line)
@@ -725,6 +859,7 @@ class JavaInterpreter(private val program: Program, private val stepLimit: Int, 
     // MARK: Felder
 
     private fun field(base: Expr, name: String, line: Int): JValue {
+        objectField(base, name, line)?.let { return it }
         if (base is Expr.Name && lookup(base.name) == null) {
             val className = base.name
             if (className == "java" || className == "javax") {
@@ -755,7 +890,8 @@ class JavaInterpreter(private val program: Program, private val stepLimit: Int, 
         return when {
             value is JValue.ArrV && name == "length" -> JValue.IntV(value.array.elements.size)
             value is JValue.StrV && name == "length" -> throw JavaProblem.syntax("Bei Strings ist length eine Methode und braucht Klammern: length().", line)
-            value == JValue.Null -> throw JavaProblem.runtime("NullPointerException: Der Wert ist null – darauf gibt es kein „$name“.", line)
+            value == JValue.Null -> throw JavaProblem.exception("NullPointerException", null, "Der Wert ist null – darauf gibt es kein „$name“.", line)
+            value is JValue.Obj -> readField(value.obj, name, line)
             else -> throw JavaProblem.syntax("${value.typeName} hat kein Feld „$name“.", line)
         }
     }
@@ -763,13 +899,18 @@ class JavaInterpreter(private val program: Program, private val stepLimit: Int, 
     // MARK: Methodenaufrufe
 
     private fun call(target: Expr?, name: String, argExprs: List<Expr>, line: Int): JValue {
-        if (target == null) return callUserMethod(name, argExprs, line)
+        if (target == null) {
+            if (name == "this" || name == "super") throw JavaProblem.syntax("$name(…) darf nur als erste Zeile in einem Konstruktor stehen.", line)
+            return callUserMethod(name, argExprs, line)
+        }
+        callOnClassOrObject(target, name, argExprs, line)?.let { return it }
+        // System.out.println(…)
         if (target is Expr.Field && target.base is Expr.Name && target.base.name == "System" && lookup("System") == null) {
             if (target.name != "out" && target.name != "err") throw JavaProblem.unsupported("System.${target.name} kennt der eingebaute Interpreter nicht.", line)
-            return printCall(name, argExprs.map { evaluate(it) }, line)
+            return printCall(name, evaluateArgs(argExprs), line)
         }
         if (target is Expr.Name && lookup(target.name) == null) {
-            val args = argExprs.map { evaluate(it) }
+            val args = evaluateArgs(argExprs)
             val host = host
             if (host != null && target.name in host.objectNames) {
                 args.forEachIndexed { index, arg -> if (arg == JValue.Void) throw JavaProblem.syntax("Argument ${index + 1} gibt keinen Wert zurück (void).", line) }
@@ -779,7 +920,37 @@ class JavaInterpreter(private val program: Program, private val stepLimit: Int, 
             return JavaLibrary.callStatic(target.name, name, args, line, this)
         }
         val receiver = evaluate(target)
-        return JavaLibrary.callInstance(receiver, name, argExprs.map { evaluate(it) }, line, this)
+        val args = evaluateArgs(argExprs)
+        if (receiver is JValue.Obj) {
+            // list.remove(Integer.valueOf(7)) entfernt den Wert 7, list.remove(7) die Stelle 7.
+            if (name == "remove" && receiver.obj.kind == JavaObject.Kind.LIST && argExprs.size == 1 && isBoxed(argExprs[0])) {
+                return JavaCollections.callObject(receiver.obj, "\$removeValue", args, line, this)
+            }
+            return callMethod(receiver.obj, name, args, line, declaredType(target))
+        }
+        // Zahlen aus Sammlungen oder Integer-Variablen sind in Java Objekte: liste.get(0).equals(…)
+        if (!isPlainPrimitive(target)) JavaCollections.boxedMethod(receiver, name, args, line, this)?.let { return it }
+        return JavaLibrary.callInstance(receiver, name, args, line, this)
+    }
+
+    /** Ist der Ausdruck sicher ein einfacher Wert (int, double …)? Daran gibt es in Java keine Methoden. */
+    private fun isPlainPrimitive(expr: Expr): Boolean = when (expr) {
+        is Expr.Literal, is Expr.Binary, is Expr.Unary, is Expr.Increment -> true
+        is Expr.Cast -> expr.type.className == null
+        is Expr.Field -> expr.name == "length"
+        is Expr.Name -> lookup(expr.name)?.type?.isPrimitive == true
+        else -> false
+    }
+
+    /** Steht hier eine Zahl als Objekt (Integer statt int)? */
+    private fun isBoxed(expr: Expr): Boolean {
+        val boxes = setOf("Integer", "Long", "Double", "Character", "Boolean", "Object", "Number")
+        return when {
+            expr is Expr.Call && expr.name == "valueOf" && expr.target is Expr.Name -> expr.target.name in boxes
+            expr is Expr.Cast && expr.type is JType.Obj -> expr.type.name in boxes
+            expr is Expr.NewObject -> expr.className in boxes
+            else -> (declaredType(expr) as? JType.Obj)?.name in boxes
+        }
     }
 
     private fun printCall(name: String, args: List<JValue>, line: Int): JValue {
@@ -796,17 +967,20 @@ class JavaInterpreter(private val program: Program, private val stepLimit: Int, 
             "printf", "format" -> {
                 val pattern = args.firstOrNull()?.stringValue
                     ?: throw JavaProblem.syntax("printf braucht als Erstes einen Format-Text, z. B. printf(\"%d%n\", zahl).", line)
-                emit(JavaFormat.format(pattern, args.drop(1), line), line)
+                emit(JavaFormat.format(pattern, formatArgs(args.drop(1), line), line), line)
             }
             else -> throw JavaProblem.syntax("System.out.$name gibt es nicht. Meintest du println oder print?", line)
         }
         return JValue.Void
     }
 
-    private fun printable(value: JValue, line: Int): String = when {
+    /** Objekte für `%s` vorab in Text verwandeln – mit ihrer eigenen toString-Methode. */
+    internal fun formatArgs(args: List<JValue>, line: Int): List<JValue> = args.map { if (it is JValue.Obj) JValue.str(stringify(it, line)) else it }
+
+    internal fun printable(value: JValue, line: Int): String = when {
         value == JValue.Void -> throw JavaProblem.syntax("Diese Methode gibt nichts zurück (void) – es gibt nichts auszugeben.", line)
         value is JValue.ArrV && value.array.elementType == JType.CharT -> value.array.elements.joinToString("") { it.javaString }
-        else -> value.javaString
+        else -> stringify(value, line)
     }
 
     private fun emit(text: String, line: Int) {
@@ -817,6 +991,8 @@ class JavaInterpreter(private val program: Program, private val stepLimit: Int, 
     }
 
     private fun callUserMethod(name: String, argExprs: List<Expr>, line: Int): JValue {
+        // In einer Klasse: erst deren Methoden (Objektmethoden über this, dann statische), dann die des Hauptprogramms.
+        callInClassContext(name, argExprs, line)?.let { return it }
         val candidates = program.methods[name]
         if (candidates == null) {
             if (name == "println" || name == "print") throw JavaProblem.syntax("$name allein kennt Java nicht – es heißt System.out.$name(…).", line)
@@ -828,26 +1004,33 @@ class JavaInterpreter(private val program: Program, private val stepLimit: Int, 
             }
             throw JavaProblem.syntax("Die Methode $name(…) gibt es nicht. Ist sie geschrieben und richtig benannt?", line)
         }
-        val args = argExprs.map { evaluate(it) }
+        val args = evaluateArgs(argExprs)
         val matching = candidates.filter { it.parameters.size == args.size }
         if (matching.isEmpty()) {
             throw JavaProblem.syntax("$name erwartet ${candidates.joinToString(" oder ") { it.parameters.size.toString() }} Wert(e) in den Klammern, bekommt aber ${args.size}.", line)
         }
+        return invoke(selectOverload(matching, args, name, line), args, line)
+    }
+
+    /** Wählt die passende Variante: erst exakte Typen, dann erlaubte Verbreiterung (int → double usw.). */
+    internal fun selectOverload(matching: List<Method>, args: List<JValue>, name: String, line: Int): Method {
         val exact = matching.firstOrNull { m -> m.parameters.zip(args).all { (p, a) -> p.type == a.type || p.type == JType.Inferred } }
         val widening = matching.firstOrNull { m -> m.parameters.zip(args).all { (p, a) -> runCatching { coerce(a, p.type, line, "") }.isSuccess } }
-        val method = exact ?: widening ?: run {
+        return exact ?: widening ?: run {
             // Keine passt: die Meldung der ersten Variante erklärt, welcher Parameter nicht passt.
             matching[0].parameters.zip(args).forEach { (p, a) -> coerce(a, p.type, line, "Der Parameter „${p.name}“ von $name") }
             throw JavaProblem.syntax("Die Werte passen nicht zu den Parametern von $name.", line)
         }
-        return invoke(method, args, line)
     }
 
-    private fun invoke(method: Method, args: List<JValue>, line: Int): JValue {
+    internal fun invoke(method: Method, args: List<JValue>, line: Int, self: JavaObject? = null): JValue {
         if (frames.size >= MAX_CALL_DEPTH) {
             throw JavaProblem.runtime("StackOverflowError: ${method.name} ruft sich immer wieder selbst auf und hört nie auf. Jede Rekursion braucht einen Abbruchfall.", line)
         }
-        val newFrame = Frame(method)
+        if (method.isAbstract) {
+            throw JavaProblem.syntax("${method.name} hat keinen Körper (abstract) – aufrufen kann man nur eine Klasse, die die Methode umsetzt.", line)
+        }
+        val newFrame = Frame(method, if (method.isStatic) null else self, method.owner)
         method.parameters.zip(args).forEach { (p, a) ->
             newFrame.scopes[0][p.name] = Slot(p.type, coerce(a, p.type, line, "Der Parameter „${p.name}“ von ${method.name}"), false)
         }

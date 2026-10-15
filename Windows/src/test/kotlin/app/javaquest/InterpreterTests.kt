@@ -18,8 +18,13 @@ import kotlin.test.assertTrue
 class InterpreterTest {
     private fun problem(source: String) = JavaRunner.run(source).problem
 
-    @Test fun `Gleiche Ausgabe wie ein echtes JDK`() {
-        val text = javaClass.getResourceAsStream("/java_differential.json")!!.bufferedReader().readText()
+    @Test fun `Gleiche Ausgabe wie ein echtes JDK`() = matchesRealJava("java_differential")
+
+    /** Klassen, Vererbung, Interfaces, Exceptions, Sammlungen, Enums und Records – Ausgaben von JDK 25, wie in Swift. */
+    @Test fun `Gleiche Ausgabe wie ein echtes JDK auch mit Objekten`() = matchesRealJava("java_differential_oop")
+
+    private fun matchesRealJava(file: String) {
+        val text = javaClass.getResourceAsStream("/$file.json")!!.bufferedReader().readText()
         val cases = Json.parseToJsonElement(text).jsonArray
         assertTrue(cases.size >= 5)
         for (case in cases) {
@@ -65,10 +70,12 @@ class InterpreterTest {
 
     @Test fun `Unbekannte Bausteine sind nicht unterstuetzt statt falsch`() {
         listOf(
-            "List<String> l = new ArrayList<>();",
-            "class Hund { String name; Hund(String n) { name = n; } }",
-            "try { int x = 1; } catch (Exception e) { }",
             "Runnable r = () -> System.out.println(1);",
+            "float f = 1.5f;",
+            "List<String> l = new ArrayList<>();\nl.forEach(System.out::println);",
+            "Object o = new Object() { };",
+            "try (var s = new java.util.Scanner(System.in)) { }",
+            "LocalDate d = LocalDate.now();",
         ).forEach { assertEquals(JavaProblem.Kind.UNSUPPORTED, problem(it)?.kind, it) }
     }
 
@@ -93,7 +100,8 @@ class InterpreterTest {
             assertNull(result.problem, "${task.id}: ${result.problem?.description}")
             assertEquals(AnswerEvaluator.outputLines(expected), AnswerEvaluator.outputLines(result.output), task.id)
         }
-        assertTrue(supported >= 17, "nur $supported Aufgaben")
+        // Alles bis auf Lambdas, Streams, Datum/Zeit, Threads, Netzwerk und Eingaben läuft wirklich – wie in Swift.
+        assertTrue(supported >= 280, "nur $supported Aufgaben")
     }
 }
 
@@ -134,6 +142,7 @@ class TraceTest {
         val course = CourseLoader.loadBundled()
         val examples = course.allLessons.flatMap { lesson -> lesson.theory.mapNotNull { it.example?.source } }
         val useful = examples.count { JavaRunner.trace(it).isUseful }
-        assertTrue(useful >= 14, "nur $useful Theorie-Beispiele lassen sich beim Ausführen beobachten")
+        // Auch Klassen, Listen, Maps, Exceptions und Records; nicht: reine Deklarationen ohne main, Lambdas, Threads, Netzwerk.
+        assertTrue(useful >= 28, "nur $useful Theorie-Beispiele lassen sich beim Ausführen beobachten")
     }
 }

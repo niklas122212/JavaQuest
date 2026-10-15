@@ -5,7 +5,7 @@ Java-Konzept ein und prüft den Code der Spielerin mit versteckten Tests, wie be
 einen Mentor-Hinweis, der sagt, was zu tun ist. Sauberer Code bringt Sterne, Gegenstände und Baupläne, und
 nach Kapitel 1 öffnet die Werkstatt für freies Bauen.
 
-> Stand: Apple-App (iPhone, iPad, Mac). Windows, Android und Web kennen die Quests noch nicht, bewahren
+> Stand: Apple-App (iPhone, iPad, Mac), Windows und Android. Das Web kennt die Quests noch nicht, bewahrt
 > ihre Ergebnisse in Sicherungen aber auf (siehe [Plattformen](#plattformen)).
 
 ## 1. Ausgangslage und Ziel
@@ -90,7 +90,9 @@ Werkstatt, in Code-Aufgaben der Lektionen und in der Arena.
 | Kurz nach dem Tippen | Der Compiler liest mit: Fehlerzeile rot (Hintergrund und Zeilennummer), Meldung in der Leiste darunter. Namenshinweise erscheinen gelb gepunktet. |
 | Nach einem Testlauf | Die Zeile eines Absturzes ist rot markiert. |
 | iPhone/iPad | Symbolleiste über der Tastatur: ⇥ `{ } ( ) ; " = + - < > [ ] ! && \|\| . , * / % '`. Sie folgt denselben Regeln. |
+| Android | Dieselben Zeichen als Leiste unter dem Editor, solange er den Fokus hat; die Zurück-Geste schließt Quest bzw. Werkstatt. |
 | Mac | Rückgängig (⌘Z), Tests mit ⌘↩, Quests mit ⌘6. |
+| Windows | Tests bzw. Programm mit Strg+Enter, Esc schließt (der Entwurf bleibt). |
 
 Deutsche Tottasten (`^`, `´`) bleiben nutzbar: Während einer zusammengesetzten Eingabe wird nicht umgefärbt.
 
@@ -193,10 +195,12 @@ Faustregeln: Sichtbar sind nur die Tests, die die Signatur zeigen. Versteckte Te
 
 | | Apple | Windows/Android | Web |
 |---|---|---|---|
-| Quests, Werkstatt, neuer Editor | ✓ | – | – |
-| Quest-Ergebnisse in Sicherungen | ✓ | bleiben erhalten (Kontext `mission`) | bleiben erhalten (unbekannte IDs werden übernommen) |
-| Interpreter mit Klassen, Vererbung, Exceptions, Sammlungen | ✓ | in Arbeit (Branch `kotlin-oop-wip`, es fehlt `JavaCollections.kt`) | – |
+| Quests, Werkstatt, neuer Editor | ✓ | ✓ | – |
+| Quest-Ergebnisse in Sicherungen | ✓ | ✓ | bleiben erhalten (unbekannte IDs werden übernommen) |
+| Interpreter mit Klassen, Vererbung, Exceptions, Sammlungen | ✓ | ✓ | – |
 
-Nächste Schritte: den Kotlin-Interpreter fertig portieren, dann Quests und Editor für Windows/Android
-(Compose) und Web (`java.js`) nachziehen. Die Quest-Datei und die Tests sind dafür bereits
-plattformunabhängig.
+Windows und Android lesen dieselbe `code_quests.json` und bewerten wie die Apple-App: `QuestTests.kt` prüft
+dieselben Fälle wie `QuestTests.swift`, `UiFlowTest` klickt Quest, Mentor, Karte und Werkstatt durch.
+Entwürfe und Werkstatt-Programme liegen dort in `entwuerfe.json` neben dem Lernstand, nicht in Sicherungen.
+
+Nächster Schritt: Quests und Editor im Web (`java.js` braucht dafür zuerst Klassen und Objekte).

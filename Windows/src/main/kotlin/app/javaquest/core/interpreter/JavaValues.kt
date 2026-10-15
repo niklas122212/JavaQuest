@@ -43,6 +43,8 @@ sealed interface JValue {
     data class CharV(val value: Char) : JValue
     class StrV(val ref: JavaString) : JValue
     class ArrV(val array: JavaArray) : JValue
+    /** Objekt einer eigenen Klasse oder aus der Bibliothek (Liste, Map, StringBuilder, Exception …). */
+    class Obj(val obj: JavaObject) : JValue
     data object Null : JValue
     data object Void : JValue
 
@@ -55,6 +57,7 @@ sealed interface JValue {
             is CharV -> JType.CharT
             is StrV -> JType.StringT
             is ArrV -> JType.Arr(array.elementType)
+            is Obj -> JType.Obj(obj.className)
             Null -> JType.Unknown("null")
             Void -> JType.VoidT
         }
@@ -72,6 +75,7 @@ sealed interface JValue {
             is CharV -> value.toString()
             is StrV -> ref.text
             is ArrV -> array.identityString
+            is Obj -> obj.debugDescription
             Null -> "null"
             Void -> ""
         }
@@ -82,10 +86,13 @@ sealed interface JValue {
             is StrV -> "\"${ref.text}\""
             is CharV -> "'$value'"
             is ArrV -> "{" + array.elements.take(12).joinToString(", ") { it.debugDisplay } + (if (array.elements.size > 12) ", …" else "") + "}"
+            is Obj -> obj.debugDescription
             else -> javaString
         }
 
     val stringValue: String? get() = (this as? StrV)?.ref?.text
+
+    val isNull: Boolean get() = this == Null
 
     companion object {
         fun str(text: String): JValue = StrV(JavaString(text))
@@ -203,6 +210,7 @@ object JavaFormat {
                 is JValue.CharV -> arg.value
                 is JValue.StrV -> arg.ref.text
                 is JValue.ArrV -> arg.array.identityString
+                is JValue.Obj -> arg.obj.debugDescription
                 JValue.Null -> null
                 JValue.Void -> throw JavaProblem.syntax("Ein Argument gibt nichts zurück (void).", line)
             }
@@ -212,7 +220,7 @@ object JavaFormat {
             val text = String.format(Locale.US, pattern, *javaArgs)
             if (LINE_SEPARATOR == "\n") text else text.replace(LINE_SEPARATOR, "\n")
         } catch (e: java.util.IllegalFormatException) {
-            throw JavaProblem.runtime("${e.javaClass.simpleName}: Das Format „$pattern“ passt nicht zu den Werten.", line)
+            throw JavaProblem.exception(e.javaClass.simpleName, e.message, "Das Format „$pattern“ passt nicht zu den Werten.", line)
         }
     }
 

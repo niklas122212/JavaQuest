@@ -89,6 +89,7 @@ fun DashboardScreen(state: AppState) {
                         TrainingCard(state)
                     }
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(20.dp)) {
+                        QuestDashboardCard(state)
                         KnowledgeSnapshotCard(state)
                     }
                 }
@@ -96,6 +97,7 @@ fun DashboardScreen(state: AppState) {
                 Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
                     MasterScoreCard(store)
                     ContinueCard(state)
+                    QuestDashboardCard(state)
                     TrainingCard(state)
                     KnowledgeSnapshotCard(state)
                 }

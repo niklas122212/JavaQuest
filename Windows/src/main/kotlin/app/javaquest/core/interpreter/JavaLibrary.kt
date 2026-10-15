@@ -20,10 +20,11 @@ internal object JavaLibrary {
 
     // MARK: Statische Methoden
 
-    fun callStatic(className: String, name: String, args: List<JValue>, line: Int, interpreter: JavaInterpreter): JValue = when (className) {
+    fun callStatic(className: String, name: String, args: List<JValue>, line: Int, interpreter: JavaInterpreter): JValue =
+        JavaCollections.collectionStatic(className, name, args, line, interpreter) ?: when (className) {
         "Math" -> math(name, args, line, interpreter)
         "Integer", "Long", "Double", "Boolean" -> wrapper(className, name, args, line)
-        "String" -> stringStatic(name, args, line)
+        "String" -> stringStatic(name, args, line, interpreter)
         "Character" -> character(name, args, line)
         "Arrays" -> arrays(name, args, line, interpreter)
         "System" -> throw JavaProblem.unsupported("System.$name kennt der eingebaute Interpreter nicht.", line)
@@ -57,7 +58,7 @@ internal object JavaLibrary {
                 arity(args, 2, label, line)
                 val (a, b) = Num.promote(number(args[0], label, line), number(args[1], label, line))
                 if (a.isDouble) throw JavaProblem.syntax("$label rechnet nur mit ganzen Zahlen.", line)
-                if (b.isZeroIntegral) throw JavaProblem.runtime("ArithmeticException: / by zero", line)
+                if (b.isZeroIntegral) throw JavaProblem.exception("ArithmeticException", "/ by zero", "/ by zero", line)
                 if (a is Num.I) {
                     val divisor = (b as Num.I).v
                     JValue.IntV(if (name == "floorDiv") Math.floorDiv(a.v, divisor) else Math.floorMod(a.v, divisor))
@@ -88,19 +89,22 @@ internal object JavaLibrary {
                     if (name == "parseInt") stringArg(args[0], label, line)
                     JValue.IntV(intArg(args[0], label, line))
                 } else {
-                    JValue.IntV(text.toIntOrNull() ?: throw JavaProblem.runtime("NumberFormatException: For input string: \"$text\" – das ist keine ganze Zahl.", line))
+                    JValue.IntV(text.toIntOrNull() ?: throw JavaProblem.exception("NumberFormatException", "For input string: \"$text\"",
+                        "For input string: \"$text\" – das ist keine ganze Zahl.", line))
                 }
             }
             className == "Long" && (name == "parseLong" || name == "valueOf") -> {
                 arity(args, 1, label, line)
                 val text = stringArg(args[0], label, line)
-                JValue.LongV(text.toLongOrNull() ?: throw JavaProblem.runtime("NumberFormatException: For input string: \"$text\"", line))
+                JValue.LongV(text.toLongOrNull() ?: throw JavaProblem.exception("NumberFormatException", "For input string: \"$text\"",
+                    "For input string: \"$text\"", line))
             }
             className == "Double" && (name == "parseDouble" || name == "valueOf") -> {
                 arity(args, 1, label, line)
                 Num.of(args[0])?.let { return JValue.DoubleV(it.toDouble) }
                 val text = stringArg(args[0], label, line).trim()
-                JValue.DoubleV(text.toDoubleOrNull() ?: throw JavaProblem.runtime("NumberFormatException: For input string: \"$text\" – das ist keine Zahl (Kommazahlen mit Punkt schreiben).", line))
+                JValue.DoubleV(text.toDoubleOrNull() ?: throw JavaProblem.exception("NumberFormatException", "For input string: \"$text\"",
+                    "For input string: \"$text\" – das ist keine Zahl (Kommazahlen mit Punkt schreiben).", line))
             }
             className == "Boolean" && name == "parseBoolean" -> {
                 arity(args, 1, label, line)
@@ -122,22 +126,23 @@ internal object JavaLibrary {
         }
     }
 
-    private fun stringStatic(name: String, args: List<JValue>, line: Int): JValue = when (name) {
+    private fun stringStatic(name: String, args: List<JValue>, line: Int, interpreter: JavaInterpreter): JValue = when (name) {
         "valueOf" -> {
             arity(args, 1, "String.valueOf", line)
             val arg = args[0]
             if (arg is JValue.ArrV && arg.array.elementType == JType.CharT) JValue.str(arg.array.elements.joinToString("") { it.javaString })
-            else JValue.str(arg.javaString)
+            else JValue.str(interpreter.stringify(arg, line))
         }
         "format" -> {
             val pattern = args.firstOrNull()?.stringValue ?: throw JavaProblem.syntax("String.format braucht als Erstes einen Format-Text.", line)
-            JValue.str(JavaFormat.format(pattern, args.drop(1), line))
+            JValue.str(JavaFormat.format(pattern, interpreter.formatArgs(args.drop(1), line), line))
         }
         "join" -> {
             if (args.size < 2) throw JavaProblem.syntax("String.join braucht ein Trennzeichen und Texte.", line)
             val separator = stringArg(args[0], "String.join", line)
             val second = args[1]
             val parts = if (args.size == 2 && second is JValue.ArrV) second.array.elements.map { it.javaString }
+            else if (args.size == 2 && second is JValue.Obj) JavaCollections.elements(second, "String.join", line, interpreter).map { interpreter.stringify(it, line) }
             else args.drop(1).map { stringArg(it, "String.join", line) }
             JValue.str(parts.joinToString(separator))
         }
@@ -211,7 +216,9 @@ internal object JavaLibrary {
             "length" -> throw JavaProblem.syntax("Bei Arrays ist length ein Feld ohne Klammern: zahlen.length.", line)
             else -> throw JavaProblem.syntax("Arrays haben keine Methode $name(). Für Hilfsfunktionen gibt es Arrays.$name(…).", line)
         }
-        JValue.Null -> throw JavaProblem.runtime("NullPointerException: Der Wert ist null – auf null kann man keine Methode $name() aufrufen.", line)
+        is JValue.Obj -> JavaCollections.callObject(receiver.obj, name, args, line, interpreter)
+        JValue.Null -> throw JavaProblem.exception("NullPointerException", null,
+            "Der Wert ist null – auf null kann man keine Methode $name() aufrufen.", line)
         JValue.Void -> throw JavaProblem.syntax("Die Methode davor gibt nichts zurück (void) – darauf kann man nicht .$name() aufrufen.", line)
         else -> throw JavaProblem.syntax("${receiver.typeName} ist ein einfacher Wert und hat keine Methoden wie $name().", line)
     }
@@ -231,7 +238,8 @@ internal object JavaLibrary {
                 arity(args, 1, "charAt", line)
                 val i = index(0)
                 if (i < 0 || i >= text.length) {
-                    throw JavaProblem.runtime("StringIndexOutOfBoundsException: Index $i gibt es nicht – \"$text\" hat nur die Positionen 0 bis ${text.length - 1}.", line)
+                    throw JavaProblem.exception("StringIndexOutOfBoundsException", "Index $i out of bounds for length ${text.length}",
+                        "Index $i gibt es nicht – \"$text\" hat nur die Positionen 0 bis ${text.length - 1}.", line)
                 }
                 JValue.CharV(text[i])
             }
@@ -240,7 +248,8 @@ internal object JavaLibrary {
                 val begin = index(0)
                 val end = if (args.size == 2) index(1) else text.length
                 if (begin < 0 || end > text.length || begin > end) {
-                    throw JavaProblem.runtime("StringIndexOutOfBoundsException: begin $begin, end $end, length ${text.length} – der Bereich passt nicht in den Text.", line)
+                    throw JavaProblem.exception("StringIndexOutOfBoundsException", "Range [$begin, $end) out of bounds for length ${text.length}",
+                        "begin $begin, end $end, length ${text.length} – der Bereich passt nicht in den Text.", line)
                 }
                 JValue.str(text.substring(begin, end))
             }

@@ -7,12 +7,27 @@ class JavaProblem(val kind: Kind, override val message: String, val line: Int?) 
     enum class Kind {
         /** Kein gültiges Java (würde auch javac ablehnen). */
         SYNTAX,
-        /** Gültiges Java, das der eingebaute Interpreter nicht kennt (Klassen, Lambdas …). */
+        /** Gültiges Java, das der eingebaute Interpreter nicht kennt (Lambdas, Threads …). */
         UNSUPPORTED,
         /** Fehler zur Laufzeit, z. B. Division durch 0. */
         RUNTIME,
         /** Das Programm hört nicht auf. */
         STEP_LIMIT,
+    }
+
+    /** Bei Laufzeitfehlern: die Java-Exception, z. B. `ArithmeticException` – damit try/catch sie auffangen kann. */
+    var exceptionClass: String? = null
+    /** Javas eigene Meldung (`getMessage()`), z. B. „/ by zero“. */
+    var javaMessage: String? = null
+    /** Das geworfene Exception-Objekt (bei `throw` oder eigenen Exceptions). */
+    var thrown: JValue? = null
+
+    init {
+        if (kind == Kind.RUNTIME) {
+            // „ArithmeticException: / by zero – …“: Die Klasse steht vorne.
+            val name = message.substringBefore(':', "")
+            if ((name.endsWith("Exception") || name.endsWith("Error")) && ' ' !in name) exceptionClass = name
+        }
     }
 
     /** Meldung mit vorangestellter Zeilennummer. */
@@ -24,6 +39,13 @@ class JavaProblem(val kind: Kind, override val message: String, val line: Int?) 
         fun syntax(message: String, line: Int?) = JavaProblem(Kind.SYNTAX, message, line)
         fun unsupported(message: String, line: Int?) = JavaProblem(Kind.UNSUPPORTED, message, line)
         fun runtime(message: String, line: Int?) = JavaProblem(Kind.RUNTIME, message, line)
+
+        /** Laufzeitfehler mit Exception-Klasse und Javas Originalmeldung; [explanation] ist der Text für Lernende. */
+        fun exception(className: String, javaMessage: String?, explanation: String, line: Int?) =
+            JavaProblem(Kind.RUNTIME, "$className: $explanation", line).also {
+                it.exceptionClass = className
+                it.javaMessage = javaMessage
+            }
     }
 }
 
@@ -219,8 +241,24 @@ sealed interface JType {
     data class Arr(val element: JType) : JType { override fun toString() = "$element[]" }
     /** Ein Klassen-Typ, den der Interpreter nicht kennt. */
     data class Unknown(val name: String) : JType { override fun toString() = name }
+    /**
+     * Ein Referenztyp, den der Interpreter kennt: eigene Klasse, Interface, Enum, Record oder Bibliotheksklasse
+     * (`Hund`, `List<String>`, `Integer` …). Der Text bleibt für die Anzeige erhalten; Generics spielen beim Ausführen keine Rolle.
+     */
+    data class Obj(val name: String) : JType { override fun toString() = name }
 
     val baseType: JType get() = if (this is Arr) element.baseType else this
+
+    /** Klassenname ohne Generics: `List<String>` → `List`. */
+    val className: String?
+        get() = when (this) {
+            is Obj -> name.substringBefore('<')
+            is Unknown -> name.substringBefore('<')
+            StringT -> "String"
+            else -> null
+        }
+
+    val isPrimitive: Boolean get() = this == IntT || this == LongT || this == DoubleT || this == BooleanT || this == CharT
 }
 
 sealed class Expr(val line: Int) {
@@ -235,12 +273,27 @@ sealed class Expr(val line: Int) {
     class Cast(val type: JType, val operand: Expr, line: Int) : Expr(line)
     class Index(val base: Expr, val index: Expr, line: Int) : Expr(line)
     class Field(val base: Expr, val name: String, line: Int) : Expr(line)
+    /** Methodenaufruf; `target == null` bei eigenen Methoden wie `istGerade(4)`. */
     class Call(val target: Expr?, val name: String, val args: List<Expr>, line: Int) : Expr(line)
     class NewArray(val element: JType, val sizes: List<Expr>, val extraDimensions: Int, line: Int) : Expr(line)
     class ArrayLiteral(val element: JType?, val items: List<Expr>, line: Int) : Expr(line)
     class SwitchExpr(val subject: Expr, val cases: List<SwitchCase>, line: Int) : Expr(line)
-    class InstanceOf(val value: Expr, val type: JType, line: Int) : Expr(line)
+    /** `x instanceof Hund` – mit [binding] (`x instanceof Hund h`) entsteht dabei eine neue Variable. */
+    class InstanceOf(val value: Expr, val type: JType, val binding: String?, line: Int) : Expr(line)
+    /** Record-Muster: `o instanceof Punkt(int x, int y)` – packt die Felder gleich in neue Variablen aus. */
+    class RecordPattern(val value: Expr, val pattern: Pattern, line: Int) : Expr(line)
+    /** `new Hund("Bello")`, `new ArrayList<>()`, `new String("…")`. */
     class NewObject(val className: String, val args: List<Expr>, line: Int) : Expr(line)
+    /** `this` – das Objekt, dessen Methode gerade läuft. */
+    class This(line: Int) : Expr(line)
+    /** `super` vor einem Methodenaufruf (`super.laut()`). */
+    class SuperRef(line: Int) : Expr(line)
+}
+
+/** Muster in instanceof und switch: `int x`, `var y`, `Punkt(int x, int y)` (auch verschachtelt). */
+sealed interface Pattern {
+    class Binding(val type: JType, val name: String) : Pattern
+    class Record(val className: String, val parts: List<Pattern>) : Pattern
 }
 
 class SwitchCase(
@@ -250,6 +303,8 @@ class SwitchCase(
     val body: List<Stmt>,
     val value: Expr?,
     val line: Int,
+    /** Zusatzbedingung bei Typ-Mustern: `case Kreis k when k.radius() > 2 ->`. */
+    val guardExpr: Expr? = null,
 )
 
 class Declarator(val name: String, val extraDimensions: Int, val initializer: Expr?, val line: Int)
@@ -268,17 +323,80 @@ sealed class Stmt(val line: Int) {
     class Return(val value: Expr?, line: Int) : Stmt(line)
     class Yield(val value: Expr, line: Int) : Stmt(line)
     class Switch(val subject: Expr, val cases: List<SwitchCase>, line: Int) : Stmt(line)
+    class Throw(val value: Expr, line: Int) : Stmt(line)
+    /** `try { … } catch (A | B e) { … } finally { … }` */
+    class Try(val body: List<Stmt>, val catches: List<Catch>, val finallyBody: List<Stmt>?, line: Int) : Stmt(line)
     class Empty(line: Int) : Stmt(line)
 }
 
 class Parameter(val type: JType, val name: String)
 
-class Method(val name: String, val returnType: JType, val parameters: List<Parameter>, val body: List<Stmt>, val line: Int)
+/** Ein catch-Zweig: ein oder mehrere Exception-Typen (`catch (A | B e)`). */
+class Catch(val types: List<String>, val name: String, val body: List<Stmt>, val line: Int)
 
-/** Ein geparstes Programm: eigene statische Methoden, statische Felder und die Startanweisungen. */
+class Method(
+    val name: String,
+    val returnType: JType,
+    val parameters: List<Parameter>,
+    val body: List<Stmt>,
+    val line: Int,
+    var isStatic: Boolean = true,
+    /** Ohne Körper (in Interfaces und abstrakten Klassen). */
+    var isAbstract: Boolean = false,
+    var isPrivate: Boolean = false,
+    /** Mit @Override markiert – dann muss es die Methode in einer Oberklasse oder einem Interface geben. */
+    var isOverride: Boolean = false,
+    /** Klasse, in der die Methode steht (`null` = Hauptklasse bzw. lose Methoden). */
+    var owner: String? = null,
+)
+
+/** Konstruktor einer eigenen Klasse. */
+class Constructor(
+    val parameters: List<Parameter>,
+    val body: List<Stmt>,
+    val isPrivate: Boolean,
+    val line: Int,
+    /** Kompakter Record-Konstruktor `Punkt { … }`: prüft die Werte, danach landen sie automatisch in den Feldern. */
+    val isCompact: Boolean = false,
+)
+
+/** Ein Feld einer eigenen Klasse. */
+class FieldDecl(val type: JType, val name: String, val initializer: Expr?, val isStatic: Boolean, val isFinal: Boolean, val isPrivate: Boolean, val line: Int)
+
+/** Eine Enum-Konstante, z. B. `ROT("Stehen")`. */
+class EnumConstant(val name: String, val args: List<Expr>, val line: Int)
+
+/** Eine eigene Klasse, ein Interface, ein Enum oder ein Record. */
+class ClassDecl(val name: String, val kind: Kind, val line: Int) {
+    enum class Kind { CLASS, INTERFACE, ENUM, RECORD }
+
+    /** Oberklasse (`extends`); `null` = Object. Für eigene Exceptions z. B. `Exception`. */
+    var superclass: String? = null
+    val interfaces = mutableListOf<String>()
+    var isAbstract = false
+    /** Äußere Klasse bei verschachtelten Klassen – für den Namen `Main$Inner` und private Zugriffe. */
+    var outer: String? = null
+    val fields = mutableListOf<FieldDecl>()
+    val constructors = mutableListOf<Constructor>()
+    val methods = LinkedHashMap<String, MutableList<Method>>()
+    val enumConstants = mutableListOf<EnumConstant>()
+    val recordComponents = mutableListOf<Parameter>()
+
+    /** Name, wie ihn Java bei `getName()` und im Standard-`toString()` zeigt. */
+    val binaryName: String get() = outer?.let { "$it$$name" } ?: name
+    val isInterface: Boolean get() = kind == Kind.INTERFACE
+}
+
+/** Ein geparstes Programm: eigene statische Methoden, statische Felder, die Startanweisungen und eigene Klassen. */
 class Program {
-    val methods = mutableMapOf<String, MutableList<Method>>()
+    val methods = LinkedHashMap<String, MutableList<Method>>()
     val staticFields = mutableListOf<Stmt>()
     var statements = mutableListOf<Stmt>()
     var hasMain = false
+    /** Eigene Klassen, Interfaces, Enums und Records (ohne die Hauptklasse mit main). */
+    var classes = LinkedHashMap<String, ClassDecl>()
+    /** Reihenfolge, in der die Klassen im Quelltext stehen – für die Initialisierung statischer Felder. */
+    var classOrder = mutableListOf<String>()
+    /** Name der Hauptklasse (mit main), falls es eine gab. */
+    var mainClass: String? = null
 }

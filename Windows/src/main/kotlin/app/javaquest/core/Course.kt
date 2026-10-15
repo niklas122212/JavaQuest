@@ -401,6 +401,19 @@ data class Course(
 
 /** Liest `java_course.json`. Aufgaben stehen im JSON flach; `type` wählt die Variante. */
 object CourseLoader {
+    /** Eine Code-Regel (verlangt, verboten, eines von mehreren) – auch für die Code-Quests. */
+    fun parseRule(rule: JsonObject): CodeRule = CodeRule(
+        rule = when (rule.getValue("rule").jsonPrimitive.content) {
+            "anyOf" -> RuleKind.ANY_OF
+            else -> RuleKind.valueOf(rule.getValue("rule").jsonPrimitive.content.uppercase())
+        },
+        pattern = (rule["pattern"] as? JsonPrimitive)?.content ?: "",
+        patterns = (rule["patterns"] as? JsonArray)?.map { it.jsonPrimitive.content } ?: emptyList(),
+        message = rule.getValue("message").jsonPrimitive.content,
+        scope = (rule["scope"] as? JsonPrimitive)?.content?.let { RuleScope.valueOf(it.uppercase()) } ?: RuleScope.CODE,
+        weight = (rule["weight"] as? JsonPrimitive)?.doubleOrNull ?: 1.0,
+    )
+
     private val json = Json { ignoreUnknownKeys = true }
 
     /**
@@ -551,20 +564,7 @@ object CourseLoader {
                 starter = t["starterCode"]?.let(::parseSnippet) ?: CodeSnippet.of(""),
                 solution = parseSnippet(t.getValue("sampleSolution")),
                 expectedOutput = t.optStr("expectedOutput"),
-                rules = t.arr("rules").map { r ->
-                    val rule = r.jsonObject
-                    CodeRule(
-                        rule = when (rule.str("rule")) {
-                            "anyOf" -> RuleKind.ANY_OF
-                            else -> RuleKind.valueOf(rule.str("rule").uppercase())
-                        },
-                        pattern = rule.optStr("pattern") ?: "",
-                        patterns = (rule["patterns"] as? JsonArray)?.map { it.jsonPrimitive.content } ?: emptyList(),
-                        message = rule.str("message"),
-                        scope = rule.optStr("scope")?.let { RuleScope.valueOf(it.uppercase()) } ?: RuleScope.CODE,
-                        weight = (rule["weight"] as? JsonPrimitive)?.doubleOrNull ?: 1.0,
-                    )
-                },
+                rules = t.arr("rules").map { parseRule(it.jsonObject) },
                 structure = (t["structure"] as? JsonArray)?.map { s ->
                     when (s.jsonPrimitive.content) {
                         "balancedDelimiters" -> StructureCheck.BALANCED_DELIMITERS
