@@ -227,4 +227,47 @@ class QuestTest {
         assertEquals("int x = 1;\n    int y = 2;", insert.replacement)
         assertEquals("\n    a();\n    b();", CodeEditing.insertion("a();\nb();", "    f();", 8).replacement)
     }
+
+    @Test fun `Tab auf markierten Zeilen rueckt ein statt zu loeschen, Umschalt+Tab rueckt aus`() {
+        val code = "if (a) {\nf();\n\ng();\n}"
+        val start = "if (a) {\n".length
+        val tab = CodeEditing.edit("\t", code, start, start + "f();\n\ng".length)!!
+        val indented = tab.applyTo(code)
+        assertEquals("if (a) {\n    f();\n\n    g();\n}", indented)
+        // Danach sind die ganzen Zeilen markiert – noch ein Tab schiebt weiter.
+        assertEquals("    f();\n\n    g();", indented.substring(tab.cursor, tab.cursor + tab.selectionLength))
+        val back = CodeEditing.shiftLines(indented, tab.cursor, tab.cursor + tab.selectionLength, outdent = true)!!
+        assertEquals(code, back.applyTo(indented))
+
+        val lines = "a();\nb();\nc();"
+        assertEquals("    a();\n    b();\nc();", CodeEditing.shiftLines(lines, 0, "a();\nb();\n".length, outdent = false)!!.applyTo(lines))
+
+        val line = "        x = 1;"
+        val out = CodeEditing.shiftLines(line, 10, outdent = true)!!
+        assertEquals("    x = 1;" to 6, out.applyTo(line) to out.cursor)
+        assertNull(CodeEditing.shiftLines("x = 1;", 0, outdent = true))
+        assertEquals(4, CodeEditing.shiftLines("x = 1;", 0, outdent = false)!!.cursor)
+    }
+
+    @Test fun `Auskommentieren auf der Spalte der Zeilen und wieder zurueck`() {
+        val code = "    int a = 1;\n\n        a++;"
+        val on = CodeEditing.toggleComment(code, 0, code.length)!!
+        val commented = on.applyTo(code)
+        assertEquals("    // int a = 1;\n\n    //     a++;", commented)
+        assertEquals(code, CodeEditing.toggleComment(commented, on.cursor, on.cursor + on.selectionLength)!!.applyTo(commented))
+
+        val line = "    f();"
+        val edit = CodeEditing.toggleComment(line, 6)!!
+        assertEquals("    // f();" to 9, edit.applyTo(line) to edit.cursor)
+        val mixed = "// a();\nb();"
+        assertEquals("// // a();\n// b();", CodeEditing.toggleComment(mixed, 0, mixed.length)!!.applyTo(mixed))
+        assertNull(CodeEditing.toggleComment("   ", 1))
+    }
+
+    @Test fun `Ohne Ausgabe sagt der Mentor gibt nichts aus`() {
+        // Der Startcode des Torwächters gibt nichts aus – statt „gibt „“ aus“.
+        val quest = quest("quest-torwaechter")
+        val message = QuestRunner.run(quest.starterCode, quest).tests.first { !it.passed }.message!!
+        assertTrue("gibt nichts aus" in message, message)
+    }
 }

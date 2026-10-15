@@ -2,12 +2,16 @@ package app.javaquest.core
 
 /**
  * Was der Code-Editor beim Tippen selbst erledigt – wie in einer echten IDE: Einrückung nach `{`, schließende `}`
- * zurück auf die Ebene ihrer `{`, Tab als vier Leerzeichen, Klammern und Anführungszeichen paarweise.
+ * zurück auf die Ebene ihrer `{`, Tab als vier Leerzeichen, Tab/Umschalt+Tab auf markierten Zeilen ein- und
+ * ausrücken, Auskommentieren, Klammern und Anführungszeichen paarweise.
  * Dieselben Regeln wie in der Apple-App (`CodeEditing.swift`). Positionen sind String-Indizes (UTF-16).
  */
 object CodeEditing {
-    /** Ersetzt [start] bis [end] (exklusiv) durch [replacement]; danach steht der Cursor bei [cursor]. */
-    data class Edit(val start: Int, val end: Int, val replacement: String, val cursor: Int) {
+    /**
+     * Ersetzt [start] bis [end] (exklusiv) durch [replacement]; danach steht der Cursor bei [cursor],
+     * mit [selectionLength] markierten Zeichen dahinter (0 = nur der Cursor).
+     */
+    data class Edit(val start: Int, val end: Int, val replacement: String, val cursor: Int, val selectionLength: Int = 0) {
         fun applyTo(text: String): String = text.substring(0, start) + replacement + text.substring(end)
     }
 
@@ -19,6 +23,8 @@ object CodeEditing {
         return when (input) {
             "\n", "\r", "\r\n" -> newline(text, selStart, selEnd)
             "\t" -> {
+                // Mit Auswahl rückt Tab die Zeilen ein, statt sie durch Leerzeichen zu ersetzen.
+                if (selStart != selEnd) return shiftLines(text, selStart, selEnd, outdent = false)
                 val column = selStart - lineStart(text, selStart)
                 val spaces = " ".repeat(4 - column % 4)
                 Edit(selStart, selEnd, spaces, selStart + spaces.length)
@@ -41,6 +47,71 @@ object CodeEditing {
             }
             else -> null
         }
+    }
+
+    /**
+     * Rückt die Zeilen ein bzw. aus, die die Auswahl berührt (Tab/Umschalt+Tab) – um vier Leerzeichen. Leere Zeilen
+     * bleiben leer. Mit Auswahl sind danach die ganzen Zeilen markiert, sodass man weiter schieben kann; ohne bleibt
+     * der Cursor an seiner Stelle im Code. Null: Es gibt nichts zu tun.
+     */
+    fun shiftLines(text: String, selStart: Int, selEnd: Int = selStart, outdent: Boolean): Edit? {
+        if (selStart < 0 || selEnd > text.length || selStart > selEnd) return null
+        val (start, end) = touchedLines(text, selStart, selEnd)
+        val lines = text.substring(start, end).split("\n")
+        val shifted = lines.map { line ->
+            when {
+                outdent -> line.drop(if (line.startsWith("\t")) 1 else minOf(line.takeWhile { it == ' ' }.length, INDENT.length))
+                line.isBlank() -> line
+                else -> INDENT + line
+            }
+        }
+        return lineEdit(start, end, selStart, selEnd, lines, shifted) { 0 }
+    }
+
+    /**
+     * Stehen vor allen markierten Codezeilen schon `//`, fallen sie weg – sonst kommt `// ` davor, und zwar auf die
+     * Spalte der am wenigsten eingerückten Zeile (die Einrückung bleibt sauber).
+     */
+    fun toggleComment(text: String, selStart: Int, selEnd: Int = selStart): Edit? {
+        if (selStart < 0 || selEnd > text.length || selStart > selEnd) return null
+        val (start, end) = touchedLines(text, selStart, selEnd)
+        val lines = text.substring(start, end).split("\n")
+        val code = lines.filter { it.isNotBlank() }
+        if (code.isEmpty()) return null
+        val uncomment = code.all { it.trimStart(' ', '\t').startsWith("//") }
+        val column = code.minOf { indentation(it).length }
+        val changed = lines.map { line ->
+            when {
+                line.isBlank() -> line
+                uncomment -> {
+                    val indent = indentation(line)
+                    indent + line.substring(indent.length + 2).removePrefix(" ")
+                }
+                else -> line.substring(0, column) + "// " + line.substring(column)
+            }
+        }
+        return lineEdit(start, end, selStart, selEnd, lines, changed) { line -> if (uncomment) indentation(line).length else column }
+    }
+
+    /** Die ganzen Zeilen der Auswahl, ohne letzten Zeilenumbruch; endet sie am Anfang einer Zeile, zählt diese nicht mit. */
+    private fun touchedLines(text: String, selStart: Int, selEnd: Int): Pair<Int, Int> {
+        val start = lineStart(text, selStart)
+        val last = if (selEnd > selStart && text[selEnd - 1] == '\n') selEnd - 1 else selEnd
+        val end = text.indexOf('\n', last).let { if (it < 0) text.length else it }
+        return start to maxOf(end, start)
+    }
+
+    /** Ersetzt die Zeilen; ohne Auswahl wandert der Cursor mit seinem Code ([at]: Spalte der Änderung in Zeile 1). */
+    private fun lineEdit(start: Int, end: Int, selStart: Int, selEnd: Int, lines: List<String>, changed: List<String>, at: (String) -> Int): Edit? {
+        val replacement = changed.joinToString("\n")
+        if (replacement == lines.joinToString("\n")) return null
+        if (selStart != selEnd) return Edit(start, end, replacement, start, replacement.length)
+        val column = selStart - start
+        val first = at(lines[0])
+        val delta = changed[0].length - lines[0].length
+        // Vor der Änderungsstelle bleibt der Cursor stehen; genau auf ihr wandert er mit Eingefügtem mit.
+        val moved = if (column < first || (column == first && delta < 0)) column else maxOf(first, column + delta)
+        return Edit(start, end, replacement, start + minOf(moved, changed[0].length))
     }
 
     /**

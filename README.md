@@ -107,7 +107,9 @@ Program – Schritt für Schritt beschrieben in [Docs/TestFlight.md](Docs/TestFl
 
 Tastatur (Mac und iPad mit Tastatur): Tasten 1–4 wählen eine Antwort, ⌘ + Enter prüft und geht weiter,
 Esc bricht ab, ⌘ 1–6 wechselt den Bereich (Übersicht, Lernpfad, Wissensanalyse, Arena, Abzeichen, Code-Quests),
-⇧⌘T startet die Tagesmission, ⌘↩ führt in Quests und in der Werkstatt die Tests bzw. das Programm aus. Antworten, Prüfen und Abbrechen gehen mit denselben Tasten wie unter Windows und im Browser – im
+⇧⌘T startet die Tagesmission, ⌘↩ führt in Quests und in der Werkstatt die Tests bzw. das Programm aus.
+Im Code-Editor: Tab/⇧Tab rücken markierte Zeilen ein und aus, das Menü „Code“ kommentiert aus und ändert die
+Schriftgröße (⌘+ / ⌘− / ⌘0), ⌘F sucht und ersetzt. Antworten, Prüfen und Abbrechen gehen mit denselben Tasten wie unter Windows und im Browser – im
 Browser wechselt Alt statt ⌘ den Bereich, weil Browser ⌘ + Zahl für ihre Tabs beanspruchen.
 
 **Auf dem Mac benutzen – genau eine App, immer aktuell:**

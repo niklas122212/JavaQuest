@@ -6,7 +6,9 @@ import SwiftUI
 /// landen die Fenster als PNG im temporären Ordner der App – wegen der Sandbox unter
 /// `~/Library/Containers/<App>/Data/tmp/<Name>-1.png`. Für Prüfungen ohne Bildschirmaufnahme.
 /// Gibt es kein Fenster (Sitzung ohne Anzeige), zeichnet es die laufende Sitzung in einem unsichtbaren Fenster.
-/// `-typeText "…"` tippt vorher in den ersten Code-Editor (`\n` = Enter, `\t` = Tab).
+/// `-typeText "…"` tippt vorher in den ersten Code-Editor (`\n` = Enter, `\t` = Tab, `\A` = alles markieren,
+/// `\B` = ⇧Tab, `\C` = Kommentar ein/aus über die Responder-Kette wie das Menü, `\Z` = Widerrufen).
+/// `-printMenu` schreibt die Menüleiste ins Protokoll.
 @MainActor
 enum DebugSnapshot {
     static func start(name: String, app: AppModel, store: ProgressStore) {
@@ -22,19 +24,40 @@ enum DebugSnapshot {
                 try? await Task.sleep(for: .seconds(delay > 0 ? delay : 6))
                 windows = [window]
             }
-            if let typed = UserDefaults.standard.string(forKey: "typeText"), let window = windows.first,
-               let textView = window.contentView.flatMap(firstTextView) {
+            // Der erste Editor in irgendeinem Fenster – Quests und Werkstatt liegen auf dem Mac in einem Sheet.
+            if let typed = UserDefaults.standard.string(forKey: "typeText"),
+               let textView = windows.lazy.compactMap({ $0.contentView.flatMap(firstTextView) }).first,
+               let window = textView.window {
                 // Wie auf der Tastatur: Zeichen für Zeichen, Enter und Tab über die Befehle von NSTextView.
                 window.makeFirstResponder(textView)
                 textView.setSelectedRange(NSRange(location: (textView.string as NSString).length, length: 0))
-                for character in typed.replacingOccurrences(of: "\\n", with: "\n").replacingOccurrences(of: "\\t", with: "\t") {
+                let escapes = ["\\n": "\n", "\\t": "\t", "\\A": "\u{1}", "\\B": "\u{2}", "\\C": "\u{3}", "\\Z": "\u{4}"]
+                let keys = escapes.reduce(typed) { $0.replacingOccurrences(of: $1.key, with: $1.value) }
+                for character in keys {
                     switch character {
                     case "\n": textView.insertNewline(nil)
                     case "\t": textView.insertTab(nil)
+                    case "\u{1}": textView.selectAll(nil)
+                    case "\u{2}": textView.insertBacktab(nil)
+                    // Wie das Menü: vom Fokus des Fensters die Responder-Kette hinauf (die Debug-App ist nicht aktiv,
+                    // NSApp.sendAction fände kein Schlüsselfenster).
+                    case "\u{3}": _ = window.firstResponder?.tryToPerform(#selector(CodeNSTextView.toggleLineComment(_:)), with: nil)
+                    case "\u{4}": textView.undoManager?.undo()
                     default: textView.insertText(String(character), replacementRange: textView.selectedRange())
                     }
                 }
+                NSLog("JavaQuest-Editor: Auswahl %@\n%@", NSStringFromRange(textView.selectedRange()), textView.string)
                 try? await Task.sleep(for: .seconds(1))
+            }
+            if ProcessInfo.processInfo.arguments.contains("-printMenu"), let menu = NSApp.mainMenu {
+                func lines(_ menu: NSMenu, _ depth: Int) -> [String] {
+                    menu.items.flatMap { item -> [String] in
+                        let key = item.keyEquivalent.isEmpty ? "" : "  [\(item.keyEquivalentModifierMask.contains(.option) ? "⌥" : "")\(item.keyEquivalentModifierMask.contains(.shift) ? "⇧" : "")⌘\(item.keyEquivalent)]"
+                        let own = item.isSeparatorItem ? [] : [String(repeating: "  ", count: depth) + item.title + key]
+                        return own + (item.submenu.map { lines($0, depth + 1) } ?? [])
+                    }
+                }
+                NSLog("JavaQuest-Menü:\n%@", lines(menu, 0).joined(separator: "\n"))
             }
             for (index, window) in windows.enumerated() {
                 guard let view = window.contentView else { continue }

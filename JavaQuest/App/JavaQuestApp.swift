@@ -1,8 +1,18 @@
 import SwiftUI
+#if os(macOS)
+import AppKit
+#endif
 
 @main
 struct JavaQuestApp: App {
     @State private var app = AppModel()
+
+    init() {
+        #if os(macOS)
+        // Ein Fenster, keine Tabs: Ein zweites Fenster teilte sich denselben Lernzustand und spränge mit.
+        NSWindow.allowsAutomaticWindowTabbing = false
+        #endif
+    }
 
     var body: some Scene {
         WindowGroup {
@@ -15,7 +25,16 @@ struct JavaQuestApp: App {
         #if os(macOS)
         .defaultSize(width: 1200, height: 820)
         .windowResizability(.contentMinSize)
-        .commands { LearningCommands(app: app) }
+        .commands {
+            LearningCommands(app: app)
+            CodeCommands()
+            CommandGroup(replacing: .newItem) {}
+            // Ohne „Neues Fenster“ fiele das Menü „Ablage“ samt ⌘W weg – Schließen bleibt.
+            CommandGroup(replacing: .saveItem) {
+                Button("Fenster schließen") { NSApp.keyWindow?.performClose(nil) }
+                    .keyboardShortcut("w", modifiers: .command)
+            }
+        }
         #endif
 
         #if os(macOS)
@@ -55,6 +74,49 @@ struct LearningCommands: Commands {
             Button("Code-Quests") { app.router.selection = .quests }
                 .keyboardShortcut("6", modifiers: .command)
         }
+    }
+}
+
+/// Menü „Code“ und Suchen unter „Bearbeiten“ – sie wirken auf den Editor, in dem man gerade schreibt
+/// (über die Responder-Kette; ohne Editor im Fokus passiert nichts).
+struct CodeCommands: Commands {
+    var body: some Commands {
+        CommandGroup(after: .pasteboard) {
+            Divider()
+            Button("Suchen …") { find(.showFindInterface) }
+                .keyboardShortcut("f", modifiers: .command)
+            Button("Suchen und Ersetzen …") { find(.showReplaceInterface) }
+                .keyboardShortcut("f", modifiers: [.command, .option])
+            Button("Weitersuchen") { find(.nextMatch) }
+                .keyboardShortcut("g", modifiers: .command)
+            Button("Rückwärts suchen") { find(.previousMatch) }
+                .keyboardShortcut("g", modifiers: [.command, .shift])
+        }
+        CommandMenu("Code") {
+            Button("Einrücken") { send(#selector(CodeNSTextView.indentLines(_:))) }
+                .keyboardShortcut("]", modifiers: .command)
+            Button("Ausrücken") { send(#selector(CodeNSTextView.outdentLines(_:))) }
+                .keyboardShortcut("[", modifiers: .command)
+            Button("Kommentar ein/aus") { send(#selector(CodeNSTextView.toggleLineComment(_:))) }
+                .keyboardShortcut("/", modifiers: .command)
+            Divider()
+            Button("Schrift größer") { EditorStyle.changeFontSize(by: 1) }
+                .keyboardShortcut("+", modifiers: .command)
+            Button("Schrift kleiner") { EditorStyle.changeFontSize(by: -1) }
+                .keyboardShortcut("-", modifiers: .command)
+            Button("Originalgröße") { EditorStyle.resetFontSize() }
+                .keyboardShortcut("0", modifiers: .command)
+        }
+    }
+
+    private func send(_ action: Selector, tag: Int = 0) {
+        let sender = NSMenuItem()
+        sender.tag = tag
+        NSApp.sendAction(action, to: nil, from: sender)
+    }
+
+    private func find(_ action: NSTextFinder.Action) {
+        send(#selector(NSResponder.performTextFinderAction(_:)), tag: action.rawValue)
     }
 }
 

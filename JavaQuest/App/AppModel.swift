@@ -58,6 +58,11 @@ final class AppModel {
         case "intermediateMidway": PreviewSupport.seed(store, .intermediateMidway)
         default: break
         }
+        // Quests bis einschließlich dieser ID gelten als gelöst (3 Sterne) – vor dem Öffnen, sonst bliebe
+        // die Werkstatt (ab Kapitel 1) noch zu.
+        if let last = defaults.string(forKey: "seedQuests"), let end = store.questBook.quests.firstIndex(where: { $0.id == last }) {
+            for quest in store.questBook.quests[...end] { store.recordQuest(quest, stars: 3) }
+        }
         switch defaults.string(forKey: "openSection") {
         case "arena": router.selection = .arena
         case "achievements": router.selection = .achievements
@@ -77,10 +82,6 @@ final class AppModel {
         #else
         DebugTyping.start()
         #endif
-        // Quests bis einschließlich dieser ID gelten als gelöst (3 Sterne) – für Screenshots.
-        if let last = defaults.string(forKey: "seedQuests"), let end = store.questBook.quests.firstIndex(where: { $0.id == last }) {
-            for quest in store.questBook.quests[...end] { store.recordQuest(quest, stars: 3) }
-        }
         if ProcessInfo.processInfo.arguments.contains("-openReview") { router.review() }
     }
 
