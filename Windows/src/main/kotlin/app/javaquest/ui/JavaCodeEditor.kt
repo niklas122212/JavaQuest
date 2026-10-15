@@ -38,6 +38,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.isCtrlPressed
+import androidx.compose.ui.input.key.isMetaPressed
 import androidx.compose.ui.input.key.isShiftPressed
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
@@ -133,14 +135,22 @@ fun CodeEditor(
         if (next.text != old.text) onChange(next.text)
     }
 
-    fun applyEdit(edit: CodeEditing.Edit) = apply(TextFieldValue(edit.applyTo(value.text), TextRange(edit.cursor)))
+    fun applyEdit(edit: CodeEditing.Edit) =
+        apply(TextFieldValue(edit.applyTo(value.text), TextRange(edit.cursor, edit.cursor + edit.selectionLength)))
 
     /** Eingabe über die Regeln des Editors – für Tab und die Zeichenleiste. */
     fun type(input: String) {
         if (isLocked) return
-        val edit = CodeEditing.edit(input, value.text, value.selection.min, value.selection.max)
-            ?: CodeEditing.Edit(value.selection.min, value.selection.max, input, value.selection.min + input.length)
-        applyEdit(edit)
+        val (start, end) = value.selection.min to value.selection.max
+        // Tab mit Auswahl rückt ein – ist nichts einzurücken (nur Leerzeilen), bleibt alles, wie es ist.
+        if (input == "\t" && start != end) { CodeEditing.shiftLines(value.text, start, end, outdent = false)?.let(::applyEdit); return }
+        applyEdit(CodeEditing.edit(input, value.text, start, end) ?: CodeEditing.Edit(start, end, input, start + input.length))
+    }
+
+    /** Umschalt+Tab und Auskommentieren – auf den Zeilen, die die Auswahl berührt. */
+    fun lines(edit: (String, Int, Int) -> CodeEditing.Edit?) {
+        if (isLocked) return
+        edit(value.text, value.selection.min, value.selection.max)?.let(::applyEdit)
     }
 
     LaunchedEffect(insertion?.id) {
@@ -185,11 +195,15 @@ fun CodeEditor(
             modifier = Modifier.fillMaxWidth().heightIn(min = minHeight).testTag(tag)
                 .onFocusChanged { focused = it.isFocused }
                 .onPreviewKeyEvent { event ->
-                    if (!isLocked && event.type == KeyEventType.KeyDown && event.key == Key.Tab && !event.isShiftPressed) {
-                        type("\t")
-                        true
-                    } else {
-                        false
+                    val command = event.isCtrlPressed || event.isMetaPressed
+                    when {
+                        isLocked || event.type != KeyEventType.KeyDown -> false
+                        event.key == Key.Tab && !event.isShiftPressed -> { type("\t"); true }
+                        !isJava -> false
+                        event.key == Key.Tab -> { lines { text, start, end -> CodeEditing.shiftLines(text, start, end, outdent = true) }; true }
+                        // Strg+# (deutsche Tastatur, wie in VS Code) oder Strg+/ – Kommentar ein/aus.
+                        command && (event.key == Key.Pound || event.key == Key.Slash) -> { lines(CodeEditing::toggleComment); true }
+                        else -> false
                     }
                 },
             decorationBox = { inner ->

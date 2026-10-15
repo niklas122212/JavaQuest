@@ -456,7 +456,17 @@ class UiFlowTest {
 
         // Der Code ist als Entwurf gemerkt.
         state.startQuest(model.quest.id)
-        assertEquals(model.quest.solution, state.quest!!.code)
+        val again = state.quest!!
+        assertEquals(model.quest.solution, again.code)
+
+        // „Startcode“ fragt nach, bevor er den eigenen Code ersetzt.
+        waitForIdle()
+        onNodeWithText("Startcode").performScrollTo().performClick()
+        waitForIdle()
+        onNodeWithText("Code auf den Startcode zurücksetzen?").assertExists()
+        assertEquals(model.quest.solution, again.code, "Erst nach dem Bestätigen")
+        click("startcode-ja")
+        assertEquals(model.quest.starterCode, again.code)
     }
 
     @Test

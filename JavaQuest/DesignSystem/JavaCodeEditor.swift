@@ -10,14 +10,37 @@ typealias PlatformColor = NSColor
 typealias PlatformFont = NSFont
 #endif
 
-/// Fügt Code an der Cursorstelle ein – für Baupläne und Bausteine neben dem Editor.
+/// Fügt Code an der Cursorstelle ein – für Baupläne und Bausteine neben dem Editor – oder ersetzt ihn ganz.
 @MainActor
 final class CodeEditorController {
     fileprivate var insertHandler: ((String) -> Void)?
     fileprivate var focusHandler: (() -> Void)?
+    fileprivate var replaceHandler: ((String) -> Void)?
 
     func insert(_ snippet: String) { insertHandler?(snippet) }
     func focus() { focusHandler?() }
+
+    /// Ersetzt den ganzen Code über den Editor (Startcode) – so holt ⌘Z den alten zurück.
+    /// false: Gerade ist kein Editor verbunden.
+    @discardableResult
+    func replaceAll(with text: String) -> Bool {
+        guard let replaceHandler else { return false }
+        replaceHandler(text)
+        return true
+    }
+}
+
+/// Befehle auf den Zeilen, die die Auswahl berührt – Menü „Code“ (Mac) und Hardware-Tastatur (iPad).
+enum CodeEditorCommand {
+    case indent, outdent, toggleComment
+
+    func edit(in text: String, selection: NSRange) -> CodeEditing.Edit? {
+        switch self {
+        case .indent: CodeEditing.shiftLines(in: text, selection: selection, outdent: false)
+        case .outdent: CodeEditing.shiftLines(in: text, selection: selection, outdent: true)
+        case .toggleComment: CodeEditing.toggleComment(in: text, selection: selection)
+        }
+    }
 }
 
 /// Ein echter Code-Editor: Zeilennummern, Syntaxfarben beim Tippen, automatische Einrückung,
@@ -39,6 +62,8 @@ struct JavaCodeEditor: View {
     var cursorRequest = 0
 
     @State private var lint = Lint()
+    /// ⌘+ / ⌘− im Menü „Code“ – jede offene Ansicht folgt sofort.
+    @AppStorage(EditorStyle.fontSizeKey) private var storedFontSize = 0.0
 
     struct Lint: Equatable {
         var problem: JavaProblem?
@@ -49,12 +74,12 @@ struct JavaCodeEditor: View {
     var body: some View {
         VStack(spacing: 0) {
             PlatformCodeView(text: $text, marks: marks, controller: controller, isEditable: isEditable,
-                             cursor: cursor, cursorRequest: cursorRequest)
+                             cursor: cursor, cursorRequest: cursorRequest, fontSize: EditorStyle.fontSize(stored: storedFontSize))
                 .frame(minHeight: minHeight)
                 .overlay(alignment: .topLeading) {
                     if text.isEmpty && !placeholder.isEmpty {
                         Text(placeholder)
-                            .font(.system(size: EditorStyle.fontSize, design: .monospaced))
+                            .font(.system(size: EditorStyle.fontSize(stored: storedFontSize), design: .monospaced))
                             .foregroundStyle(CodeTheme.plain.opacity(0.35))
                             .padding(.leading, EditorStyle.gutterWidth + 9)
                             .padding(.top, 10)
@@ -129,13 +154,29 @@ struct EditorMark: Equatable {
 @MainActor
 enum EditorStyle {
     #if os(iOS)
-    static let fontSize: CGFloat = UIDevice.current.userInterfaceIdiom == .phone ? 13 : 14
+    static let defaultFontSize: CGFloat = UIDevice.current.userInterfaceIdiom == .phone ? 13 : 14
     #else
-    static let fontSize: CGFloat = 13.5
+    static let defaultFontSize: CGFloat = 13.5
     #endif
+    /// Die gewählte Schriftgröße (⌘+ / ⌘−) bleibt gemerkt; 0 heißt Standard.
+    static let fontSizeKey = "codeSchriftgroesse"
+    static let fontSizes: ClosedRange<CGFloat> = 10...28
+
+    static func fontSize(stored: Double) -> CGFloat {
+        stored > 0 ? min(max(CGFloat(stored), fontSizes.lowerBound), fontSizes.upperBound) : defaultFontSize
+    }
+    static var fontSize: CGFloat { fontSize(stored: UserDefaults.standard.double(forKey: fontSizeKey)) }
+
+    static func changeFontSize(by step: CGFloat) {
+        UserDefaults.standard.set(Double(min(max(fontSize + step, fontSizes.lowerBound), fontSizes.upperBound)), forKey: fontSizeKey)
+    }
+
+    static func resetFontSize() { UserDefaults.standard.removeObject(forKey: fontSizeKey) }
+
     static var font: PlatformFont { .monospacedSystemFont(ofSize: fontSize, weight: .regular) }
     static var gutterFont: PlatformFont { .monospacedDigitSystemFont(ofSize: fontSize - 2.5, weight: .regular) }
-    static let gutterWidth: CGFloat = 34
+    /// Breit genug für zweistellige Nummern – auch in großer Schrift.
+    static var gutterWidth: CGFloat { max(34, (fontSize * 2.5).rounded()) }
 
     static func color(_ color: Color) -> PlatformColor { PlatformColor(color) }
 
@@ -269,6 +310,7 @@ private struct PlatformCodeView: UIViewRepresentable {
     let isEditable: Bool
     let cursor: Binding<Int?>?
     let cursorRequest: Int
+    let fontSize: CGFloat
 
     func makeCoordinator() -> Coordinator { Coordinator(parent: self) }
 
@@ -285,6 +327,10 @@ private struct PlatformCodeView: UIViewRepresentable {
             if !coordinator.handle(input, range: view.selectedRange, text: view.text, apply: { view.apply($0) }) {
                 view.insertText(input)
             }
+            coordinator.textViewDidChange(view)
+        }
+        view.didPerformCommand = { [weak view, weak coordinator = context.coordinator] in
+            guard let view, let coordinator else { return }
             coordinator.textViewDidChange(view)
         }
         connect(controller, to: view, coordinator: context.coordinator)
@@ -308,6 +354,10 @@ private struct PlatformCodeView: UIViewRepresentable {
             view.marks = marks
             needsStyle = true
         }
+        if view.appliedFontSize != fontSize {
+            view.applyFontSize()
+            needsStyle = true
+        }
         if needsStyle { view.restyle() }
         if let cursor = context.coordinator.requestedCursor(length: (view.text as NSString).length) {
             view.selectedRange = NSRange(location: cursor, length: 0)
@@ -325,11 +375,18 @@ private struct PlatformCodeView: UIViewRepresentable {
             coordinator.textViewDidChange(view)
         }
         controller?.focusHandler = { [weak view] in view?.becomeFirstResponder() }
+        controller?.replaceHandler = { [weak view, weak coordinator] newText in
+            guard let view, let coordinator else { return }
+            coordinator.isApplying = true
+            view.apply(CodeEditing.Edit(range: NSRange(location: 0, length: (view.text as NSString).length), replacement: newText, cursor: 0))
+            coordinator.isApplying = false
+            coordinator.textViewDidChange(view)
+        }
     }
 
     final class Coordinator: EditorCoordinator, UITextViewDelegate {
         func textView(_ textView: UITextView, shouldChangeTextIn range: NSRange, replacementText text: String) -> Bool {
-            guard let view = textView as? CodeTextView else { return true }
+            guard let view = textView as? CodeTextView, !view.isApplyingEdit else { return true }
             let handled = handle(text, range: range, text: view.text) { view.apply($0) }
             if handled { textViewDidChange(view) }
             return !handled
@@ -354,6 +411,11 @@ final class CodeTextView: UITextView {
     var marks: [EditorMark] = []
     /// Eingabe mit den Editor-Regeln (Einrücken, Klammerpaare) – für die Symbolleiste.
     var smartInput: ((String) -> Void)?
+    /// Nach einem Befehl von der Hardware-Tastatur (⇧⇥, ⌘], ⌘[, ⌘/) – damit der Code im Modell ankommt.
+    var didPerformCommand: (() -> Void)?
+    /// Während der Editor selbst ersetzt, greifen die Eingabe-Regeln nicht noch einmal.
+    private(set) var isApplyingEdit = false
+    private(set) var appliedFontSize = EditorStyle.fontSize
 
     init() {
         let layoutManager = NSLayoutManager()
@@ -373,6 +435,8 @@ final class CodeTextView: UITextView {
         smartDashesType = .no
         smartInsertDeleteType = .no
         keyboardType = .asciiCapable
+        // Schreibtools formulieren Text um – in Code richten sie nur Schaden an.
+        if #available(iOS 18.0, *) { writingToolsBehavior = .none }
         keyboardAppearance = .dark
         alwaysBounceVertical = true
         textContainerInset = UIEdgeInsets(top: 10, left: EditorStyle.gutterWidth + 4, bottom: 10, right: 8)
@@ -396,12 +460,43 @@ final class CodeTextView: UITextView {
     }
 
     func apply(_ edit: CodeEditing.Edit) {
+        isApplyingEdit = true
+        defer { isApplyingEdit = false }
         if let start = position(from: beginningOfDocument, offset: edit.range.location),
            let end = position(from: start, offset: edit.range.length),
            let range = textRange(from: start, to: end), !(edit.replacement.isEmpty && edit.range.length == 0) {
             replace(range, withText: edit.replacement)
         }
-        selectedRange = NSRange(location: edit.cursor, length: 0)
+        selectedRange = NSRange(location: edit.cursor, length: edit.selectionLength)
+    }
+
+    func applyFontSize() {
+        appliedFontSize = EditorStyle.fontSize
+        font = EditorStyle.font
+        textContainerInset.left = EditorStyle.gutterWidth + 4
+        setNeedsLayout()
+    }
+
+    // Hardware-Tastatur am iPad: dieselben Befehle wie im Mac-Menü „Code“.
+    override var keyCommands: [UIKeyCommand]? {
+        let commands = [
+            UIKeyCommand(title: "Ausrücken", action: #selector(outdentLines), input: "\t", modifierFlags: .shift),
+            UIKeyCommand(title: "Einrücken", action: #selector(indentLines), input: "]", modifierFlags: .command),
+            UIKeyCommand(title: "Ausrücken", action: #selector(outdentLines), input: "[", modifierFlags: .command),
+            UIKeyCommand(title: "Kommentar ein/aus", action: #selector(toggleLineComment), input: "/", modifierFlags: .command),
+        ]
+        for command in commands { command.wantsPriorityOverSystemBehavior = true }
+        return (super.keyCommands ?? []) + commands
+    }
+
+    @objc private func indentLines() { perform(.indent) }
+    @objc private func outdentLines() { perform(.outdent) }
+    @objc private func toggleLineComment() { perform(.toggleComment) }
+
+    private func perform(_ command: CodeEditorCommand) {
+        guard isEditable, let edit = command.edit(in: text, selection: selectedRange) else { return }
+        apply(edit)
+        didPerformCommand?()
     }
 
     override func layoutSubviews() {
@@ -520,6 +615,7 @@ private struct PlatformCodeView: NSViewRepresentable {
     let isEditable: Bool
     let cursor: Binding<Int?>?
     let cursorRequest: Int
+    let fontSize: CGFloat
 
     func makeCoordinator() -> Coordinator { Coordinator(parent: self) }
 
@@ -549,6 +645,11 @@ private struct PlatformCodeView: NSViewRepresentable {
         textView.isContinuousSpellCheckingEnabled = false
         textView.isGrammarCheckingEnabled = false
         textView.smartInsertDeleteEnabled = false
+        // ⌘F: Suchleiste über dem Code, mit Ersetzen (⌥⌘F) – wie in Xcode.
+        textView.usesFindBar = true
+        textView.isIncrementalSearchingEnabled = true
+        // Schreibtools formulieren Text um – in Code richten sie nur Schaden an.
+        if #available(macOS 15.0, *) { textView.writingToolsBehavior = .none }
         textView.drawsBackground = false
         textView.insertionPointColor = EditorStyle.color(Theme.orange)
         textView.selectedTextAttributes = [.backgroundColor: EditorStyle.color(Theme.indigo).withAlphaComponent(0.45)]
@@ -594,6 +695,11 @@ private struct PlatformCodeView: NSViewRepresentable {
             textView.marks = marks
             needsStyle = true
         }
+        if textView.appliedFontSize != fontSize {
+            textView.applyFontSize()
+            scrollView.tile()
+            needsStyle = true
+        }
         if needsStyle { textView.restyle() }
         if let cursor = context.coordinator.requestedCursor(length: (textView.string as NSString).length) {
             textView.setSelectedRange(NSRange(location: cursor, length: 0))
@@ -611,11 +717,21 @@ private struct PlatformCodeView: NSViewRepresentable {
             textView.window?.makeFirstResponder(textView)
         }
         controller?.focusHandler = { [weak textView] in textView?.window?.makeFirstResponder(textView) }
+        controller?.replaceHandler = { [weak textView, weak coordinator] newText in
+            guard let textView, let coordinator else { return }
+            coordinator.isApplying = true
+            // Ein eigener Schritt fürs Rückgängigmachen – nicht mit dem letzten Tippen verschmolzen.
+            textView.breakUndoCoalescing()
+            textView.apply(CodeEditing.Edit(range: NSRange(location: 0, length: (textView.string as NSString).length), replacement: newText, cursor: 0))
+            textView.breakUndoCoalescing()
+            coordinator.isApplying = false
+            textView.scrollRangeToVisible(NSRange(location: 0, length: 0))
+        }
     }
 
     final class Coordinator: EditorCoordinator, NSTextViewDelegate {
         func textView(_ textView: NSTextView, shouldChangeTextIn affectedCharRange: NSRange, replacementString: String?) -> Bool {
-            guard let view = textView as? CodeNSTextView, let replacement = replacementString else { return true }
+            guard let view = textView as? CodeNSTextView, !view.isApplyingEdit, let replacement = replacementString else { return true }
             return !handle(replacement, range: affectedCharRange, text: view.string) { view.apply($0) }
         }
 
@@ -636,6 +752,9 @@ final class CodeNSTextView: NSTextView {
     var storage: NSTextStorage?
     weak var ruler: LineNumberRuler?
     var marks: [EditorMark] = []
+    /// Während der Editor selbst ersetzt (Befehle, Einfügen), greifen die Eingabe-Regeln nicht noch einmal.
+    private(set) var isApplyingEdit = false
+    private(set) var appliedFontSize = EditorStyle.fontSize
 
     func restyle() {
         // Während einer Tottaste (^, ´ auf deutschen Tastaturen) nicht umfärben – das bräche die Eingabe ab.
@@ -647,11 +766,32 @@ final class CodeNSTextView: NSTextView {
     }
 
     func apply(_ edit: CodeEditing.Edit) {
+        isApplyingEdit = true
+        defer { isApplyingEdit = false }
         if !(edit.replacement.isEmpty && edit.range.length == 0) {
             // insertText registriert die Änderung fürs Rückgängigmachen.
             insertText(edit.replacement, replacementRange: edit.range)
         }
-        setSelectedRange(NSRange(location: edit.cursor, length: 0))
+        setSelectedRange(NSRange(location: edit.cursor, length: edit.selectionLength))
+    }
+
+    func applyFontSize() {
+        appliedFontSize = EditorStyle.fontSize
+        font = EditorStyle.font
+        ruler?.ruleThickness = EditorStyle.gutterWidth
+    }
+
+    // Menü „Code“ (über die Responder-Kette) und ⇧⇥.
+    @objc func indentLines(_ sender: Any?) { perform(.indent) }
+    @objc func outdentLines(_ sender: Any?) { perform(.outdent) }
+    @objc func toggleLineComment(_ sender: Any?) { perform(.toggleComment) }
+    override func insertBacktab(_ sender: Any?) { perform(.outdent) }
+
+    private func perform(_ command: CodeEditorCommand) {
+        guard isEditable, let edit = command.edit(in: string, selection: selectedRange()) else { return }
+        breakUndoCoalescing()
+        apply(edit)
+        breakUndoCoalescing()
     }
 
     override func didChangeText() {

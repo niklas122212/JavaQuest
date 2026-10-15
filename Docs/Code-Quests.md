@@ -84,14 +84,16 @@ Werkstatt, in Code-Aufgaben der Lektionen und in der Arena.
 | Enter nach `{`, wenn eine `}` fehlt | Die `}` erscheint auf eigener Zeile, der Cursor steht eingerückt dazwischen. |
 | Enter zwischen `{` und `}` | Die Klammer klappt auf. |
 | `}` am Zeilenanfang | Springt auf die Einrückung der passenden `{`. Steht die `}` schon da, springt der Cursor dahinter, statt eine zweite zu schreiben. |
-| Tab | Leerzeichen bis zur nächsten Vierer-Spalte. |
+| Tab | Leerzeichen bis zur nächsten Vierer-Spalte. Mit Auswahl rücken die markierten Zeilen ein (statt sie zu ersetzen) und bleiben markiert; ⇧Tab rückt aus. |
+| Kommentar | ⌘/ (Mac, iPad), Strg+# oder Strg+/ (Windows): `// ` vor alle markierten Zeilen, auf der Spalte der am wenigsten eingerückten – oder wieder weg. |
+| „Startcode“ | Fragt nach. Auf Mac und iPad ersetzt er den Code über den Editor, „Widerrufen“ (⌘Z) holt den eigenen zurück. In der Werkstatt fragt „Löschen“ ebenso nach. |
 | `(` `[` `"` | Paarweise, aber nur vor Leerraum oder schließenden Zeichen und nicht in Strings. Die schließende Klammer wird übertippt. |
 | Tippen allgemein | Syntaxfarben sofort, Zeilennummern links (mit umbrochenen Zeilen), keine Autokorrektur, keine typografischen Anführungszeichen. |
 | Kurz nach dem Tippen | Der Compiler liest mit: Fehlerzeile rot (Hintergrund und Zeilennummer), Meldung in der Leiste darunter. Namenshinweise erscheinen gelb gepunktet. |
 | Nach einem Testlauf | Die Zeile eines Absturzes ist rot markiert. |
 | iPhone/iPad | Symbolleiste über der Tastatur: ⇥ `{ } ( ) ; " = + - < > [ ] ! && \|\| . , * / % '`. Sie folgt denselben Regeln. |
 | Android | Dieselben Zeichen als Leiste unter dem Editor, solange er den Fokus hat; die Zurück-Geste schließt Quest bzw. Werkstatt. |
-| Mac | Rückgängig (⌘Z), Tests mit ⌘↩, Quests mit ⌘6. |
+| Mac | Rückgängig (⌘Z), Tests mit ⌘↩, Quests mit ⌘6. Menü „Code“: Einrücken, Ausrücken, Kommentar, Schrift größer/kleiner (⌘+ / ⌘− / ⌘0, gemerkt). ⌘F sucht, ⌥⌘F ersetzt im Code. Apples Schreibtools sind im Editor aus. Ein Fenster (kein ⌘N): Ein zweites teilte sich denselben Lernzustand. |
 | Windows | Tests bzw. Programm mit Strg+Enter, Esc schließt (der Entwurf bleibt). |
 
 Deutsche Tottasten (`^`, `´`) bleiben nutzbar: Während einer zusammengesetzten Eingabe wird nicht umgefärbt.

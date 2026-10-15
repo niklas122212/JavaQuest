@@ -93,7 +93,7 @@ object QuestRunner {
             result.problem?.let { return QuestTestResult(test, false, null, Mentor.describe(it), it.line) }
             val passed = AnswerEvaluator.outputLines(result.output) == AnswerEvaluator.outputLines(expect.output)
             return QuestTestResult(test, passed, shown(result.output),
-                if (passed) null else "Erwartet wird die Ausgabe „${shown(expect.output)}“, dein Programm gibt „${shown(result.output)}“ aus.", null)
+                if (passed) null else "Erwartet wird die Ausgabe „${shown(expect.output)}“, dein Programm gibt ${said(result.output)} aus.", null)
         }
 
         val outcome = JavaRunner.test(source, test.setup, test.expression, STEP_LIMIT)
@@ -128,7 +128,7 @@ object QuestRunner {
             is QuestExpectation.Output -> {
                 val passed = AnswerEvaluator.outputLines(outcome.output) == AnswerEvaluator.outputLines(expect.output)
                 QuestTestResult(test, passed, shown(outcome.output),
-                    if (passed) null else "Erwartet wird die Ausgabe „${shown(expect.output)}“, dein Code gibt „${shown(outcome.output)}“ aus.", null)
+                    if (passed) null else "Erwartet wird die Ausgabe „${shown(expect.output)}“, dein Code gibt ${said(outcome.output)} aus.", null)
             }
             is QuestExpectation.Exception -> QuestTestResult(test, false, null, null, null)
         }
@@ -178,6 +178,9 @@ object QuestRunner {
     }
 
     private fun shown(output: String) = AnswerEvaluator.outputLines(output).joinToString(" ⏎ ")
+
+    /** Für den Satz „dein Programm gibt … aus“ – ohne Ausgabe „nichts“ statt leerer Anführungszeichen. */
+    private fun said(output: String) = if (AnswerEvaluator.outputLines(output).isEmpty()) "nichts" else "„${shown(output)}“"
 }
 
 /** Formuliert Fehler und gescheiterte Tests so, dass man weiß, was zu tun ist. */

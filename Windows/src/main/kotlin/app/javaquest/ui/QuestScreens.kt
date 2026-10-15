@@ -71,8 +71,10 @@ import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material.icons.rounded.WaterDrop
 import androidx.compose.material.icons.rounded.Whatshot
 import androidx.compose.material.icons.rounded.WorkspacePremium
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -478,7 +480,17 @@ private fun QuestWorkbench(model: QuestSessionModel, state: AppState, wide: Bool
         Icon(Icons.Rounded.Description, null, tint = Palette.orange, modifier = Modifier.size(20.dp))
         Spacer(Modifier.width(8.dp))
         Text("${model.quest.className}.java", fontFamily = CodeFont, fontWeight = FontWeight.Bold, fontSize = 17.sp, modifier = Modifier.weight(1f))
-        SecondaryButton("Startcode", Icons.Rounded.Refresh, enabled = model.code != model.quest.starterCode, tint = Palette.gray) { model.reset() }
+        var confirmsReset by remember { mutableStateOf(false) }
+        SecondaryButton("Startcode", Icons.Rounded.Refresh, enabled = model.code != model.quest.starterCode, tint = Palette.gray) { confirmsReset = true }
+        if (confirmsReset) {
+            AlertDialog(
+                onDismissRequest = { confirmsReset = false },
+                title = { Text("Code auf den Startcode zurücksetzen?") },
+                text = { Text("Dein Code wird durch den Startcode ersetzt.") },
+                confirmButton = { TextButton({ confirmsReset = false; model.reset() }, Modifier.testTag("startcode-ja")) { Text("Zurücksetzen", color = Palette.ember) } },
+                dismissButton = { TextButton({ confirmsReset = false }) { Text("Abbrechen") } },
+            )
+        }
     }
     CodeEditor(
         model.code, "// Dein Java-Code", if (wide) 380.dp else 280.dp, false, "quest-editor",
@@ -701,6 +713,16 @@ private fun WorkshopMain(model: WorkshopModel, wide: Boolean) {
     val surfaces = LocalSurfaces.current
     var renaming by remember { mutableStateOf(false) }
     var newName by remember { mutableStateOf("") }
+    var confirmsDelete by remember { mutableStateOf(false) }
+    if (confirmsDelete) {
+        AlertDialog(
+            onDismissRequest = { confirmsDelete = false },
+            title = { Text("„${model.selected?.name ?: "Programm"}“ löschen?") },
+            text = { Text("Das Programm und sein Code sind danach weg.") },
+            confirmButton = { TextButton({ confirmsDelete = false; model.deleteSelected() }) { Text("Löschen", color = Palette.ember) } },
+            dismissButton = { TextButton({ confirmsDelete = false }) { Text("Abbrechen") } },
+        )
+    }
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         for (project in model.projects) {
             val selected = project.id == model.selectedId
@@ -713,7 +735,7 @@ private fun WorkshopMain(model: WorkshopModel, wide: Boolean) {
         }
         SecondaryButton("Neu", Icons.Rounded.Add, tint = Palette.teal) { model.newProject() }
         SecondaryButton("Umbenennen", Icons.Rounded.Edit, tint = Palette.gray) { newName = model.selected?.name ?: ""; renaming = !renaming }
-        SecondaryButton("Löschen", Icons.Rounded.Delete, tint = Palette.ember) { model.deleteSelected() }
+        SecondaryButton("Löschen", Icons.Rounded.Delete, tint = Palette.ember) { confirmsDelete = true }
     }
     if (renaming) {
         Row(verticalAlignment = Alignment.CenterVertically) {

@@ -2,6 +2,7 @@ import Foundation
 
 /// Was der Code-Editor beim Tippen selbst erledigt – wie in einer echten IDE:
 /// Einrückung nach `{`, schließende `}` zurück auf die Ebene ihrer `{`, Tab als vier Leerzeichen,
+/// Tab/⇧Tab auf markierten Zeilen ein- und ausrücken, ⌘/ zum Auskommentieren,
 /// Klammern und Anführungszeichen paarweise. Rein und ohne UI, damit iOS, macOS und Tests
 /// dasselbe Verhalten haben. Positionen sind UTF-16-Offsets (wie bei `NSRange`).
 public enum CodeEditing {
@@ -10,8 +11,17 @@ public enum CodeEditing {
         public let range: NSRange
         /// … durch diesen Text,
         public let replacement: String
-        /// und danach steht der Cursor hier (Offset im neuen Text).
+        /// und danach steht der Cursor hier (Offset im neuen Text) …
         public let cursor: Int
+        /// … mit so vielen markierten Zeichen dahinter (0 = nur der Cursor).
+        public let selectionLength: Int
+
+        public init(range: NSRange, replacement: String, cursor: Int, selectionLength: Int = 0) {
+            self.range = range
+            self.replacement = replacement
+            self.cursor = cursor
+            self.selectionLength = selectionLength
+        }
     }
 
     public static let indentUnit = "    "
@@ -24,6 +34,8 @@ public enum CodeEditing {
         case "\n", "\r", "\r\n":
             return newline(in: ns, selection: selection)
         case "\t":
+            // Mit Auswahl rückt Tab die Zeilen ein, statt sie durch Leerzeichen zu ersetzen.
+            if selection.length > 0 { return shiftLines(in: text, selection: selection, outdent: false) }
             let column = selection.location - lineStart(in: ns, at: selection.location)
             let spaces = String(repeating: " ", count: 4 - column % 4)
             return Edit(range: selection, replacement: spaces, cursor: selection.location + spaces.utf16.count)
@@ -68,6 +80,50 @@ public enum CodeEditing {
         var body = lines.enumerated().map { index, line in index == 0 || line.isEmpty ? line : indent + line }.joined(separator: "\n")
         if !before.trimmingCharacters(in: .whitespaces).isEmpty { body = "\n" + indent + body }
         return Edit(range: range, replacement: body, cursor: location + body.utf16.count)
+    }
+
+    /// Rückt die Zeilen ein bzw. aus, die die Auswahl berührt (Tab/⇧Tab, ⌘]/⌘[) – um vier Leerzeichen.
+    /// Leere Zeilen bleiben leer. Mit Auswahl sind danach die ganzen Zeilen markiert, sodass man weiter
+    /// schieben kann; ohne bleibt der Cursor an seiner Stelle im Code. Nil: Es gibt nichts zu tun.
+    public static func shiftLines(in text: String, selection: NSRange, outdent: Bool) -> Edit? {
+        let ns = text as NSString
+        guard selection.location != NSNotFound, NSMaxRange(selection) <= ns.length else { return nil }
+        let block = touchedLines(in: ns, selection: selection)
+        let lines = ns.substring(with: block).components(separatedBy: "\n")
+        let shifted = lines.map { line -> String in
+            if outdent {
+                let remove = line.hasPrefix("\t") ? 1 : min(line.prefix { $0 == " " }.count, indentUnit.count)
+                return String(line.dropFirst(remove))
+            }
+            return line.allSatisfy { $0 == " " || $0 == "\t" } ? line : indentUnit + line
+        }
+        return lineEdit(in: ns, block: block, selection: selection, lines: lines, changed: shifted, at: { _ in 0 })
+    }
+
+    /// ⌘/: Stehen vor allen markierten Codezeilen schon `//`, fallen sie weg – sonst kommt `// ` davor,
+    /// und zwar auf die Spalte der am wenigsten eingerückten Zeile (die Einrückung bleibt sauber).
+    public static func toggleComment(in text: String, selection: NSRange) -> Edit? {
+        let ns = text as NSString
+        guard selection.location != NSNotFound, NSMaxRange(selection) <= ns.length else { return nil }
+        let block = touchedLines(in: ns, selection: selection)
+        let lines = ns.substring(with: block).components(separatedBy: "\n")
+        let code = lines.filter { !$0.allSatisfy { $0 == " " || $0 == "\t" } }
+        guard !code.isEmpty else { return nil }
+        let uncomment = code.allSatisfy { $0.drop { $0 == " " || $0 == "\t" }.hasPrefix("//") }
+        let column = code.map { indentation(of: $0).count }.min() ?? 0
+        let changed = lines.map { line -> String in
+            guard !line.allSatisfy({ $0 == " " || $0 == "\t" }) else { return line }
+            let indent = indentation(of: line)
+            if uncomment {
+                var rest = line.dropFirst(indent.count + 2)
+                if rest.hasPrefix(" ") { rest = rest.dropFirst() }
+                return indent + rest
+            }
+            return String(line.prefix(column)) + "// " + String(line.dropFirst(column))
+        }
+        return lineEdit(in: ns, block: block, selection: selection, lines: lines, changed: changed) { line in
+            uncomment ? indentation(of: line).utf16.count : column
+        }
     }
 
     /// Die Einrückung einer Zeile – Leerzeichen (und Tabs) am Zeilenanfang.
@@ -133,6 +189,32 @@ public enum CodeEditing {
     }
 
     // MARK: Hilfen
+
+    /// Die ganzen Zeilen, die die Auswahl berührt – ohne den letzten Zeilenumbruch. Endet die Auswahl
+    /// direkt am Anfang einer Zeile, gehört diese Zeile nicht mehr dazu (wie in jeder IDE).
+    private static func touchedLines(in ns: NSString, selection: NSRange) -> NSRange {
+        let start = lineStart(in: ns, at: selection.location)
+        var last = NSMaxRange(selection)
+        if selection.length > 0, ns.character(at: last - 1) == 0x0A { last -= 1 }
+        return NSRange(location: start, length: max(lineEnd(in: ns, at: last), start) - start)
+    }
+
+    /// Ersetzt die Zeilen `block` durch `changed`. Ohne Auswahl wandert der Cursor mit seinem Code mit;
+    /// `at` nennt die Spalte, an der sich die erste Zeile ändert.
+    private static func lineEdit(in ns: NSString, block: NSRange, selection: NSRange, lines: [String], changed: [String],
+                                 at: (String) -> Int) -> Edit? {
+        let replacement = changed.joined(separator: "\n")
+        guard replacement != lines.joined(separator: "\n") else { return nil }
+        guard selection.length == 0 else {
+            return Edit(range: block, replacement: replacement, cursor: block.location, selectionLength: replacement.utf16.count)
+        }
+        let column = selection.location - block.location
+        let start = at(lines[0])
+        let delta = changed[0].utf16.count - lines[0].utf16.count
+        // Vor der Änderungsstelle bleibt der Cursor stehen; genau auf ihr wandert er mit Eingefügtem mit.
+        let moved = column < start || (column == start && delta < 0) ? column : max(start, column + delta)
+        return Edit(range: block, replacement: replacement, cursor: block.location + min(moved, changed[0].utf16.count))
+    }
 
     static func lineStart(in ns: NSString, at location: Int) -> Int {
         ns.lineRange(for: NSRange(location: location, length: 0)).location

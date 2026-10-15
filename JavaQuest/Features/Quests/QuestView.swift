@@ -60,6 +60,7 @@ struct QuestView: View {
     @Environment(AppRouter.self) private var router
     @Environment(ProgressStore.self) private var store
     @State private var width: CGFloat = 400
+    @State private var confirmsReset = false
 
     private var isWide: Bool { width >= 900 }
 
@@ -117,7 +118,7 @@ struct QuestView: View {
                     .font(.subheadline.monospaced().weight(.semibold))
                 Spacer()
                 Button {
-                    withAnimation(.smooth) { model.reset() }
+                    confirmsReset = true
                 } label: {
                     Label("Startcode", systemImage: "arrow.counterclockwise")
                         .font(.caption.weight(.semibold))
@@ -126,6 +127,15 @@ struct QuestView: View {
                 .foregroundStyle(.secondary)
                 .disabled(model.code == model.quest.starterCode)
                 .help("Den Code auf den Anfang zurücksetzen")
+                .confirmationDialog("Code auf den Startcode zurücksetzen?", isPresented: $confirmsReset, titleVisibility: .visible) {
+                    Button("Zurücksetzen", role: .destructive) {
+                        // Über den Editor, damit „Widerrufen“ (⌘Z) den eigenen Code zurückholt.
+                        model.editor.replaceAll(with: model.quest.starterCode)
+                        withAnimation(.smooth) { model.reset() }
+                    }
+                } message: {
+                    Text("Dein Code wird durch den Startcode ersetzt. Mit „Widerrufen“ (⌘Z) holst du ihn zurück.")
+                }
             }
 
             JavaCodeEditor(text: $model.code, runErrorLine: model.errorLine, controller: model.editor, minHeight: isWide ? 380 : 280)

@@ -96,7 +96,7 @@ public enum QuestRunner {
             }
             let passed = AnswerEvaluator.outputLines(result.output) == AnswerEvaluator.outputLines(expected)
             return QuestTestResult(test: test, passed: passed, actual: shown(result.output),
-                                   message: passed ? nil : "Erwartet wird die Ausgabe „\(shown(expected))“, dein Programm gibt „\(shown(result.output))“ aus.", line: nil)
+                                   message: passed ? nil : "Erwartet wird die Ausgabe „\(shown(expected))“, dein Programm gibt \(said(result.output)) aus.", line: nil)
         }
 
         let outcome = JavaRunner.test(source, setup: test.setup, expression: test.expression, stepLimit: stepLimit)
@@ -130,7 +130,7 @@ public enum QuestRunner {
         case .output(let expected):
             let passed = AnswerEvaluator.outputLines(outcome.output) == AnswerEvaluator.outputLines(expected)
             return QuestTestResult(test: test, passed: passed, actual: shown(outcome.output),
-                                   message: passed ? nil : "Erwartet wird die Ausgabe „\(shown(expected))“, dein Code gibt „\(shown(outcome.output))“ aus.", line: nil)
+                                   message: passed ? nil : "Erwartet wird die Ausgabe „\(shown(expected))“, dein Code gibt \(said(outcome.output)) aus.", line: nil)
         case .exception:
             return QuestTestResult(test: test, passed: false, actual: nil, message: nil, line: nil)
         }
@@ -185,6 +185,11 @@ public enum QuestRunner {
 
     static func shown(_ output: String) -> String {
         AnswerEvaluator.outputLines(output).joined(separator: " ⏎ ")
+    }
+
+    /// Für den Satz „dein Programm gibt … aus“ – ohne Ausgabe „nichts“ statt leerer Anführungszeichen.
+    static func said(_ output: String) -> String {
+        AnswerEvaluator.outputLines(output).isEmpty ? "nichts" : "„\(shown(output))“"
     }
 }
 

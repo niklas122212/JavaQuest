@@ -451,4 +451,63 @@ struct QuestTests {
         let (text3, after3) = try #require(type("}", into: inline, at: "f() {\n    ".utf16.count))
         #expect(text3 == inline && after3 == inline.utf16.count)
     }
+
+    func applied(_ edit: CodeEditing.Edit, to text: String) -> (text: String, selection: NSRange) {
+        ((text as NSString).replacingCharacters(in: edit.range, with: edit.replacement), NSRange(location: edit.cursor, length: edit.selectionLength))
+    }
+
+    @Test("Editor: Tab auf markierten Zeilen rückt ein statt zu löschen, ⇧Tab rückt aus")
+    func editorBlockIndent() throws {
+        let code = "if (a) {\nf();\n\ng();\n}"
+        // Markiert von „f“ bis mitten in „g“: Tab rückt die drei Zeilen ein, die leere bleibt leer.
+        let start = "if (a) {\n".utf16.count
+        let selection = NSRange(location: start, length: "f();\n\ng".utf16.count)
+        let tab = try #require(CodeEditing.edit(for: "\t", in: code, selection: selection))
+        let indented = applied(tab, to: code)
+        #expect(indented.text == "if (a) {\n    f();\n\n    g();\n}")
+        // Danach sind die ganzen Zeilen markiert – noch ein Tab schiebt weiter.
+        #expect((indented.text as NSString).substring(with: indented.selection) == "    f();\n\n    g();")
+        let back = try #require(CodeEditing.shiftLines(in: indented.text, selection: indented.selection, outdent: true))
+        #expect(applied(back, to: indented.text).text == code)
+
+        // Endet die Auswahl am Anfang einer Zeile, bleibt diese Zeile, wie sie ist.
+        let lines = "a();\nb();\nc();"
+        let two = try #require(CodeEditing.shiftLines(in: lines, selection: NSRange(location: 0, length: "a();\nb();\n".utf16.count), outdent: false))
+        #expect(applied(two, to: lines).text == "    a();\n    b();\nc();")
+
+        // Ohne Auswahl wandert der Cursor mit seinem Code; ganz ausgerückt gibt es nichts zu tun.
+        let line = "        x = 1;"
+        let out = try #require(CodeEditing.shiftLines(in: line, selection: NSRange(location: 10, length: 0), outdent: true))
+        #expect(applied(out, to: line).text == "    x = 1;" && out.cursor == 6)
+        #expect(CodeEditing.shiftLines(in: "x = 1;", selection: NSRange(location: 0, length: 0), outdent: true) == nil)
+        let inward = try #require(CodeEditing.shiftLines(in: "x = 1;", selection: NSRange(location: 0, length: 0), outdent: false))
+        #expect(inward.cursor == 4)
+    }
+
+    @Test("Editor: ⌘/ kommentiert auf der Spalte der Zeilen aus und wieder ein")
+    func editorToggleComment() throws {
+        let code = "    int a = 1;\n\n        a++;"
+        let all = NSRange(location: 0, length: code.utf16.count)
+        let commented = applied(try #require(CodeEditing.toggleComment(in: code, selection: all)), to: code)
+        #expect(commented.text == "    // int a = 1;\n\n    //     a++;")
+        let back = try #require(CodeEditing.toggleComment(in: commented.text, selection: commented.selection))
+        #expect(applied(back, to: commented.text).text == code)
+
+        // Eine Zeile ohne Auswahl: Der Cursor bleibt bei seinem Zeichen.
+        let line = "    f();"
+        let edit = try #require(CodeEditing.toggleComment(in: line, selection: NSRange(location: 6, length: 0)))
+        #expect(applied(edit, to: line).text == "    // f();" && edit.cursor == 9)
+        // Gemischt (nur eine Zeile kommentiert) heißt: alle auskommentieren. Leerer Code: nichts zu tun.
+        let mixed = "// a();\nb();"
+        #expect(applied(try #require(CodeEditing.toggleComment(in: mixed, selection: NSRange(location: 0, length: mixed.utf16.count))), to: mixed).text
+                == "// // a();\n// b();")
+        #expect(CodeEditing.toggleComment(in: "   ", selection: NSRange(location: 1, length: 0)) == nil)
+    }
+
+    @Test("Mentor: Ohne Ausgabe heißt es „gibt nichts aus“ statt leerer Anführungszeichen")
+    func mentorSaysNothing() throws {
+        let quest = try #require(book.quest(id: "quest-torwaechter"))
+        let failed = try #require(QuestRunner.run(quest.starterCode, quest: quest).tests.first { !$0.passed })
+        #expect(failed.message?.contains("gibt nichts aus") == true)
+    }
 }

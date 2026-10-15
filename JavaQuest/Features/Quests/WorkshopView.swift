@@ -142,6 +142,7 @@ struct WorkshopView: View {
     @State private var width: CGFloat = 400
     @State private var isRenaming = false
     @State private var newName = ""
+    @State private var confirmsDelete = false
 
     private var isWide: Bool { width >= 900 }
 
@@ -172,6 +173,11 @@ struct WorkshopView: View {
             Button("Umbenennen") { model.rename(to: newName) }
             Button("Abbrechen", role: .cancel) {}
         }
+        .confirmationDialog("„\(model.selected?.name ?? "Programm")“ löschen?", isPresented: $confirmsDelete, titleVisibility: .visible) {
+            Button("Löschen", role: .destructive) { model.deleteSelected() }
+        } message: {
+            Text("Das Programm und sein Code sind danach weg.")
+        }
     }
 
     private var main: some View {
@@ -189,7 +195,7 @@ struct WorkshopView: View {
                         newName = model.selected?.name ?? ""
                         isRenaming = true
                     } label: { Label("Umbenennen …", systemImage: "pencil") }
-                    Button(role: .destructive) { model.deleteSelected() } label: { Label("Löschen", systemImage: "trash") }
+                    Button(role: .destructive) { confirmsDelete = true } label: { Label("Löschen …", systemImage: "trash") }
                 } label: {
                     Label(model.selected?.name ?? "Programm", systemImage: "doc.text.fill")
                         .font(.headline)
